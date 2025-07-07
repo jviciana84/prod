@@ -113,3 +113,18 @@ html {
 }
 
 /* No modificar el de los modales pequeños si ya es compacto */
+
+/* Sidebar: evitar flash blanco y respetar tema desde el primer render */
+.sidebar {
+  background: rgba(31,31,31,0.85) !important; /* Oscuro por defecto */
+  transition: background 0.2s;
+}
+body.light .sidebar {
+  background: rgba(255,255,255,0.85) !important;
+}
+body.dark .sidebar {
+  background: rgba(31,31,31,0.85) !important;
+}
+body.ocre .sidebar {
+  background: rgba(247,243,233,0.85) !important;
+}

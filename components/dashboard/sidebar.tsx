@@ -115,11 +115,10 @@ export default function DashboardSidebar({ roles }: DashboardSidebarProps) {
   return (
     <aside
       className={cn(
-        "fixed left-0 transition-all duration-300 ease-in-out z-40 overflow-y-auto scrollbar-hide",
+        "sidebar fixed left-0 transition-all duration-300 ease-in-out z-40 overflow-y-auto scrollbar-hide",
         isExpanded ? "w-64" : "w-16",
       )}
       style={{
-        background: sidebarBg,
         backdropFilter: "blur(8px)",
         WebkitBackdropFilter: "blur(8px)",
         top: "56px", // Altura exacta del header
