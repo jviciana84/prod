@@ -44,7 +44,6 @@ export function fixCorruptedCookies() {
   if (typeof window === "undefined") return
 
   // NO ELIMINAR COOKIES DE AUTENTICACIÓN
-  console.log("Función desactivada para preservar la sesión")
   return false
 }
 
@@ -53,7 +52,6 @@ export function fixCorruptedCookies() {
  * DESACTIVADO: NO ELIMINAR COOKIES DE AUTENTICACIÓN
  */
 export function clearCorruptedSession() {
-  console.log("Función desactivada para preservar la sesión")
   return
 }
 
@@ -114,7 +112,6 @@ export function checkSessionHealth() {
 // Función para intentar recuperar una sesión problemática
 export async function attemptSessionRecovery() {
   // NO ELIMINAR COOKIES DE AUTENTICACIÓN
-  console.log("Función desactivada para preservar la sesión")
   return
 }
 
@@ -126,6 +123,5 @@ export function smartFixCorruptedCookies() {
   if (typeof window === "undefined") return false
 
   // NO ELIMINAR COOKIES DE AUTENTICACIÓN
-  console.log("Función desactivada para preservar la sesión")
   return false
 }

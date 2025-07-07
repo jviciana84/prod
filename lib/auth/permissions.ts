@@ -7,17 +7,18 @@ export const getUserRoles = cache(async () => {
   const startTime = Date.now()
   const supabase = await createServerClient()
 
-  console.log("⚙️ [getUserRoles] Intentando obtener sesión del servidor...")
+  console.log("⚙️ [getUserRoles] Intentando obtener usuario del servidor...")
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
 
-  if (!session) {
-    console.log("⚠️ [getUserRoles] No hay sesión activa en el servidor. Devolviendo roles vacíos.")
+  if (userError || !user) {
+    console.log("⚠️ [getUserRoles] No hay usuario autenticado en el servidor. Devolviendo roles vacíos.")
     return []
   }
 
-  console.log("✅ [getUserRoles] Sesión activa para usuario ID:", session.user.id)
+  console.log("✅ [getUserRoles] Usuario autenticado ID:", user.id)
 
   try {
     // Primero intentar obtener desde la tabla profiles (más rápido)
@@ -25,7 +26,7 @@ export const getUserRoles = cache(async () => {
     const { data: profileData, error: profileError } = await supabase
       .from("profiles")
       .select("role")
-      .eq("id", session.user.id)
+      .eq("id", user.id)
       .single()
 
     if (!profileError && profileData?.role) {
@@ -36,9 +37,9 @@ export const getUserRoles = cache(async () => {
     }
 
     // Si no hay rol en profiles, usar RPC como fallback
-    console.log("⚙️ [getUserRoles] Llamando a RPC 'get_user_role_names' para user_id:", session.user.id)
+    console.log("⚙️ [getUserRoles] Llamando a RPC 'get_user_role_names' para user_id:", user.id)
     const { data, error } = await supabase.rpc("get_user_role_names", {
-      user_id_param: session.user.id,
+      user_id_param: user.id,
     })
 
     if (error) {
@@ -61,10 +62,11 @@ export const getUserPermissions = cache(async () => {
   const supabase = await createServerClient()
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
 
-  if (!session) {
+  if (userError || !user) {
     return []
   }
 
@@ -91,17 +93,18 @@ export async function hasPermission(permissionName: string): Promise<boolean> {
   const supabase = createClientComponentClient()
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
 
-  if (!session) {
+  if (userError || !user) {
     return false
   }
 
   try {
     // Usar una función RPC para verificar el permiso
     const { data, error } = await supabase.rpc("user_has_permission", {
-      user_id_param: session.user.id,
+      user_id_param: user.id,
       permission_name_param: permissionName,
     })
 
@@ -122,17 +125,18 @@ export async function hasRole(roleName: string): Promise<boolean> {
   const supabase = createClientComponentClient()
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
 
-  if (!session) {
+  if (userError || !user) {
     return false
   }
 
   try {
     // Usar una función RPC para verificar el rol
     const { data, error } = await supabase.rpc("user_has_role", {
-      user_id_param: session.user.id,
+      user_id_param: user.id,
       role_name_param: roleName.toLowerCase(), // Convertir a minúsculas para comparación consistente
     })
 
@@ -180,17 +184,18 @@ export async function getUserRolesClient(): Promise<string[]> {
   const supabase = createClientComponentClient()
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
 
-  if (!session) {
+  if (userError || !user) {
     return []
   }
 
   try {
     // Usar una consulta SQL directa para evitar las políticas RLS
     const { data, error } = await supabase.rpc("get_user_role_names", {
-      user_id_param: session.user.id,
+      user_id_param: user.id,
     })
 
     if (error) {

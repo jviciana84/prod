@@ -7,6 +7,7 @@ import {
   generateTramitacionEmailHTML,
   generateConfirmacionEmailHTML,
   generateRechazoEmailHTML,
+  generateRealizadoEmailHTML,
 } from "@/lib/email-templates/extorno-email-templates"
 
 // Función para generar la tabla HTML de adjuntos
@@ -41,13 +42,16 @@ function generateAdjuntosTable(documentos: any[] = []) {
 
 export async function POST(request: NextRequest) {
   try {
-    // Asegúrate de que los nombres de los campos coincidan con lo que envía el frontend
-    const { extorno_id, tipo, recipientEmail } = await request.json()
+    // Leer el body completo una sola vez
+    const body = await request.json()
+    const { extorno_id, tipo, recipientEmail, justificante_url, justificante_nombre } = body
 
     console.log("📧 === INICIO ENVÍO EMAIL EXTORNO CON ADJUNTOS ===")
     console.log("📧 ID de extorno:", extorno_id)
     console.log("📧 Tipo de email:", tipo)
     console.log("📧 Email del destinatario (opcional):", recipientEmail)
+    console.log("📧 Justificante URL:", justificante_url)
+    console.log("📧 Justificante nombre:", justificante_nombre)
 
     if (!extorno_id || !tipo) {
       console.error("❌ Faltan campos requeridos: extorno_id, tipo")
@@ -56,17 +60,26 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createClient()
 
-    // Verificar usuario autenticado
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
+    // Verificar si es una llamada interna (sin autenticación)
+    const isInternalCall = request.headers.get("X-Internal-Call") === "true"
+    
+    // Verificar usuario autenticado (excepto para tipo "realizado" que puede ser anónimo o llamadas internas)
+    let user = null
+    let authError = null
+    
+    if (tipo !== "realizado" && !isInternalCall) {
+      const authResult = await supabase.auth.getUser()
+      user = authResult.data.user
+      authError = authResult.error
 
-    if (authError || !user) {
-      console.error("❌ Usuario no autenticado:", authError)
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+      if (authError || !user) {
+        console.error("❌ Usuario no autenticado:", authError)
+        return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+      }
+      console.log("✅ Usuario autenticado:", user.email)
+    } else {
+      console.log(`📧 Envío de email '${tipo}' - ${isInternalCall ? 'llamada interna' : 'usuario anónimo'} permitido`)
     }
-    console.log("✅ Usuario autenticado:", user.email)
 
     // Obtener datos del extorno
     let { data: extorno, error: extornoError } = await supabase
@@ -175,8 +188,10 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (creatorError || !creatorProfile) {
-      console.warn("⚠️ No se pudo obtener el email del creador del extorno. Usando email del usuario actual.")
-      toRecipients.add(user.email || "") // Fallback al email del usuario actual
+      console.warn("⚠️ No se pudo obtener el email del creador del extorno.")
+      if (user?.email) {
+        toRecipients.add(user.email) // Fallback al email del usuario actual si está autenticado
+      }
     } else {
       toRecipients.add(creatorProfile.email || "")
     }
@@ -187,7 +202,7 @@ export async function POST(request: NextRequest) {
     } else if (tipo === "tramitacion") {
       if (config.email_tramitador) toRecipients.add(config.email_tramitador)
       if (config.email_pagador) toRecipients.add(config.email_pagador)
-    } else if (tipo === "confirmacion" || tipo === "rechazo") {
+    } else if (tipo === "confirmacion" || tipo === "rechazo" || tipo === "realizado") {
       // Estos emails van a todos los involucrados
       if (config.email_tramitador) toRecipients.add(config.email_tramitador)
       if (config.email_pagador) toRecipients.add(config.email_pagador)
@@ -242,7 +257,6 @@ export async function POST(request: NextRequest) {
     let motivo_rechazo = extorno.motivo_rechazo || "Sin comentario"
 
     // Si el body trae datos explícitos (por ejemplo desde el frontend), usarlos
-    const body = await request.json().catch(() => null)
     if (body) {
       if (body.usuario_rechaza_nombre) {
         rechazado_por_nombre = body.usuario_rechaza_nombre
@@ -325,6 +339,26 @@ export async function POST(request: NextRequest) {
         })
       }
     })
+
+    // Para el tipo "realizado", agregar el justificante si existe
+    if (tipo === "realizado") {
+      // Usar datos del body si están disponibles, sino usar datos del extorno
+      const justificanteUrl = justificante_url || extorno.justificante_url
+      const justificanteNombre = justificante_nombre || extorno.justificante_nombre
+      
+      if (justificanteUrl) {
+        documentosAdjuntos.push({
+          nombre: justificanteNombre || "Justificante de Pago",
+          url: justificanteUrl,
+          tamaño: 0, // No tenemos el tamaño real
+          subido_en: extorno.pago_confirmado_at || new Date().toISOString()
+        })
+        console.log("📎 Agregando justificante a adjuntos:", justificanteNombre)
+      } else {
+        console.log("📎 No hay justificante para agregar")
+      }
+    }
+
     // Preparar adjuntos para nodemailer
     const attachments = documentosAdjuntos.map(doc => ({
       filename: doc.nombre,
@@ -346,6 +380,12 @@ export async function POST(request: NextRequest) {
       case "confirmacion":
         htmlContent = generateConfirmacionEmailHTML(datosRegistro)
         subject = `✅ Extorno #${extorno.id} Confirmado - ${extorno.matricula}`
+        break
+      case "realizado":
+        const justificanteUrl = justificante_url || extorno.justificante_url
+        const justificanteNombre = justificante_nombre || extorno.justificante_nombre
+        htmlContent = generateRealizadoEmailHTML(datosRegistro, justificanteUrl, justificanteNombre)
+        subject = `✅ Extorno #${extorno.id} Realizado - ${extorno.matricula}`
         break
       case "rechazo":
         htmlContent = generateRechazoEmailHTML(datosRegistro)

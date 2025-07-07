@@ -58,6 +58,9 @@ import {
   XCircle,
   Trash,
   FileText,
+  Upload,
+  Download,
+  CreditCard as CreditCardIcon,
 } from "lucide-react"
 
 import { createClientComponentClient } from "@/lib/supabase/client"
@@ -98,6 +101,8 @@ interface ExtornoSolicitud {
   realizado_por?: string
   rechazado_por?: string
   motivo_rechazo?: string
+  justificante_url?: string
+  justificante_nombre?: string
   created_at: string
   updated_at: string
   documentos_adjuntos?: DocumentMetadata[]
@@ -174,6 +179,13 @@ export default function ExtornosPage() {
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false)
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false)
   const [motivoRechazo, setMotivoRechazo] = useState("")
+  const [numeroCuentaError, setNumeroCuentaError] = useState("")
+  
+  // Estados para la nueva pestaña "Realizado"
+  const [justificanteFile, setJustificanteFile] = useState<File | null>(null)
+  const [isConfirmingPayment, setIsConfirmingPayment] = useState(false)
+  const [paymentMessage, setPaymentMessage] = useState("")
+  const [defaultTab, setDefaultTab] = useState<string>("adjuntos")
 
   const supabase = createClientComponentClient()
 
@@ -185,6 +197,40 @@ export default function ExtornosPage() {
   const conceptoRef = useRef<HTMLTextAreaElement>(null)
   const numeroCuentaRef = useRef<HTMLInputElement>(null)
   const concesionRef = useRef<HTMLButtonElement>(null)
+
+  // Función para formatear número de cuenta (separar cada 4 dígitos)
+  const formatearNumeroCuenta = (valor: string): string => {
+    // Remover todos los espacios y caracteres no alfanuméricos
+    const limpiado = valor.replace(/[^A-Za-z0-9]/g, '')
+    
+    // Si no hay contenido, devolver vacío
+    if (!limpiado) return ''
+    
+    // Separar cada 4 caracteres con espacios
+    const formateado = limpiado.match(/.{1,4}/g)?.join(' ') || limpiado
+    
+    return formateado.toUpperCase()
+  }
+
+  // Función para validar número de cuenta
+  const validarNumeroCuenta = (valor: string): { esValido: boolean; mensaje: string } => {
+    const limpiado = valor.replace(/[^A-Za-z0-9]/g, '')
+    
+    if (limpiado.length === 0) {
+      return { esValido: false, mensaje: 'El número de cuenta es obligatorio' }
+    }
+    
+    if (limpiado.length !== 24) {
+      return { esValido: false, mensaje: `El número de cuenta debe tener exactamente 24 caracteres (actual: ${limpiado.length})` }
+    }
+    
+    // Verificar que comience con letras
+    if (!/^[A-Za-z]/.test(limpiado)) {
+      return { esValido: false, mensaje: 'El número de cuenta debe comenzar con letras' }
+    }
+    
+    return { esValido: true, mensaje: '' }
+  }
 
   const handleKeyPress = (
     e: React.KeyboardEvent,
@@ -402,6 +448,19 @@ export default function ExtornosPage() {
     setSubmitting(true)
 
     try {
+      // Validar número de cuenta antes de continuar
+      const validacionCuenta = validarNumeroCuenta(formData.numero_cuenta)
+      if (!validacionCuenta.esValido) {
+        setNumeroCuentaError(validacionCuenta.mensaje)
+        toast({
+          title: "Error en número de cuenta",
+          description: validacionCuenta.mensaje,
+          variant: "destructive",
+        })
+        setSubmitting(false)
+        return
+      }
+
       if (!currentUser?.id) {
         toast({
           title: "Error",
@@ -551,6 +610,7 @@ export default function ExtornosPage() {
       })
       setPendingFiles([]) // Clear pending files
       setExtornoTemporal(null)
+      setNumeroCuentaError("") // Limpiar error del número de cuenta
 
       // Recargar solicitudes
       cargarSolicitudes()
@@ -571,6 +631,7 @@ export default function ExtornosPage() {
     const tempId = `temp-${Date.now()}` // Use a string for temporary ID
     setExtornoTemporal(tempId)
     setPendingFiles([]) // Clear pending files for new form
+    setNumeroCuentaError("") // Limpiar error del número de cuenta
     setIsDialogOpen(true)
   }
 
@@ -904,9 +965,81 @@ Muchas gracias`.trim()
     setFormData((prev) => ({ ...prev, importe: valorLimpio }))
   }
 
-  const verDetalles = (solicitud: ExtornoSolicitud) => {
+  const verDetalles = (solicitud: ExtornoSolicitud, tab?: string) => {
     setSelectedSolicitud(solicitud)
     setIsDetailDialogOpen(true)
+    // Resetear estados de la pestaña "Realizado"
+    setJustificanteFile(null)
+    setPaymentMessage("")
+    setIsConfirmingPayment(false)
+    // Establecer pestaña por defecto
+    setDefaultTab(tab || "adjuntos")
+  }
+
+  // Función para manejar el cambio de justificante
+  const handleJustificanteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setJustificanteFile(file)
+      setPaymentMessage("")
+    }
+  }
+
+  // Función para confirmar pago con justificante
+  const handleConfirmarPago = async () => {
+    if (!selectedSolicitud) return
+
+    setIsConfirmingPayment(true)
+    setPaymentMessage("")
+
+    try {
+      const formData = new FormData()
+      formData.append("extornoId", selectedSolicitud.id.toString())
+      
+      // El justificante es opcional
+      if (justificanteFile) {
+        formData.append("justificante", justificanteFile)
+      }
+
+      const response = await fetch("/api/extornos/confirm-payment-with-justificante", {
+        method: "POST",
+        body: formData,
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        setPaymentMessage("✅ Pago confirmado exitosamente. Se ha enviado un email a todos los implicados.")
+        // Recargar datos para actualizar el estado
+        await cargarSolicitudes()
+        // Cerrar el modal después de un momento
+        setTimeout(() => {
+          setIsDetailDialogOpen(false)
+          setJustificanteFile(null)
+          setPaymentMessage("")
+          setIsConfirmingPayment(false)
+        }, 2000)
+      } else {
+        setPaymentMessage(`❌ Error: ${result.error || "Error al confirmar el pago"}`)
+      }
+    } catch (error) {
+      console.error("Error confirmando pago:", error)
+      setPaymentMessage("❌ Error de conexión al confirmar el pago")
+    } finally {
+      setIsConfirmingPayment(false)
+    }
+  }
+
+  // Función para verificar si el usuario puede realizar pagos
+  const canPerformPayment = (solicitud: ExtornoSolicitud) => {
+    if (!userProfile) return false
+    
+    const userRole = userProfile.role
+    const isAdmin = userRole === "admin"
+    const isTramitador = userRole === "tramitador"
+    const isPagador = userRole === "pagador"
+    
+    return isAdmin || isTramitador || isPagador
   }
 
   // Si no está autenticado, no mostramos nada
@@ -1100,12 +1233,25 @@ Muchas gracias`.trim()
                     id="numero_cuenta"
                     ref={numeroCuentaRef}
                     value={formData.numero_cuenta}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, numero_cuenta: e.target.value }))}
+                    onChange={(e) => {
+                      const formateado = formatearNumeroCuenta(e.target.value)
+                      setFormData((prev) => ({ ...prev, numero_cuenta: formateado }))
+                      
+                      // Validar y mostrar error
+                      const validacion = validarNumeroCuenta(formateado)
+                      setNumeroCuentaError(validacion.mensaje)
+                    }}
                     onKeyPress={(e) => handleKeyPress(e, concesionRef)}
                     placeholder="ES12 3456 7890 1234 5678 9012"
-                    className="h-10"
+                    className={`h-10 ${numeroCuentaError ? 'border-red-500 focus:border-red-500' : ''}`}
                     required
                   />
+                  {numeroCuentaError && (
+                    <p className="text-sm text-red-500 flex items-center gap-1">
+                      <AlertCircle className="h-4 w-4" />
+                      {numeroCuentaError}
+                    </p>
+                  )}
                 </div>
                 {/* Quinta fila */}
                 <div className="space-y-2">
@@ -1235,7 +1381,7 @@ Muchas gracias`.trim()
                           <TableRow
                             key={solicitud.id}
                             className="cursor-pointer"
-                            onClick={() => verDetalles(solicitud)}
+                            onClick={() => verDetalles(solicitud, "adjuntos")}
                           >
                             <TableCell>
                               <div className="flex items-center gap-2">
@@ -1300,51 +1446,100 @@ Muchas gracias`.trim()
                             </TableCell>
                             <TableCell onClick={(e) => e.stopPropagation()}>
                               <div className="flex items-center gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    verDetalles(solicitud)
-                                  }}
-                                  className="h-8 w-8 p-0 hover:bg-blue-50"
-                                >
-                                  <Eye className="h-4 w-4 text-gray-600" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => copiarDatos(solicitud)}
-                                  className={
-                                    copiedItems.has(solicitud.id.toString()) ? "bg-green-100 border-green-300" : ""
-                                  }
-                                >
-                                  {copiedItems.has(solicitud.id.toString()) ? (
-                                    <Check className="h-4 w-4 text-green-600" />
-                                  ) : (
-                                    <Copy className="h-4 w-4" />
-                                  )}
-                                </Button>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          verDetalles(solicitud, "adjuntos")
+                                        }}
+                                        className="h-8 w-8 p-0 hover:bg-blue-50"
+                                      >
+                                        <Eye className="h-4 w-4 text-gray-600" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Ver detalles</TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => copiarDatos(solicitud)}
+                                        className={
+                                          copiedItems.has(solicitud.id.toString()) ? "bg-green-100 border-green-300 h-8 w-8 p-0" : "h-8 w-8 p-0"
+                                        }
+                                      >
+                                        {copiedItems.has(solicitud.id.toString()) ? (
+                                          <Check className="h-4 w-4 text-green-600" />
+                                        ) : (
+                                          <Copy className="h-4 w-4" />
+                                        )}
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Copiar datos</TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                                 {solicitud.estado === "pendiente" && (
                                   <>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => enviarEmailTramitacion(solicitud)}
-                                      disabled={emailStates[`tramitacion_${solicitud.id}`] === "sending"}
-                                    >
-                                      {getEmailButtonIcon(solicitud)}
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => rechazarExtorno(solicitud)}
-                                      disabled={emailStates[`rechazo_${solicitud.id}`] === "sending"}
-                                      className="border-red-500 hover:bg-red-50"
-                                    >
-                                      {getRejectButtonIcon(solicitud)}
-                                    </Button>
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => enviarEmailTramitacion(solicitud)}
+                                            disabled={emailStates[`tramitacion_${solicitud.id}`] === "sending"}
+                                            className="h-8 w-8 p-0"
+                                          >
+                                            {getEmailButtonIcon(solicitud)}
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>Enviar email de tramitación</TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => rechazarExtorno(solicitud)}
+                                            disabled={emailStates[`rechazo_${solicitud.id}`] === "sending"}
+                                            className="border-red-500 hover:bg-red-50 h-8 w-8 p-0"
+                                          >
+                                            {getRejectButtonIcon(solicitud)}
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>Rechazar extorno</TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
                                   </>
+                                )}
+                                {(solicitud.estado === "tramitado" || solicitud.estado === "realizado") && canPerformPayment(solicitud) && (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            verDetalles(solicitud, "realizado")
+                                          }}
+                                          className="border-green-500 hover:bg-green-50 h-8 w-8 p-0"
+                                        >
+                                          <CreditCardIcon className="h-4 w-4 text-green-600" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>Confirmar pago / Ver realizado</TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
                                 )}
                               </div>
                             </TableCell>
@@ -1527,13 +1722,16 @@ Muchas gracias`.trim()
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <Tabs defaultValue="adjuntos">
+                    <Tabs defaultValue={defaultTab}>
                       <TabsList>
                         <TabsTrigger value="adjuntos">
                           Adjuntos ({selectedSolicitud.documentos_adjuntos?.length || 0})
                         </TabsTrigger>
                         <TabsTrigger value="tramitacion">
                           Tramitación ({selectedSolicitud.documentos_tramitacion?.length || 0})
+                        </TabsTrigger>
+                        <TabsTrigger value="realizado">
+                          Realizado
                         </TabsTrigger>
                       </TabsList>
 
@@ -1558,6 +1756,115 @@ Muchas gracias`.trim()
                           disabled={false}
                         />
                       </TabsContent>
+
+                      <TabsContent value="realizado">
+                        <div className="space-y-4">
+                          {/* Mostrar justificante existente si existe */}
+                          {selectedSolicitud.justificante_url && (
+                            <div className="p-4 border border-green-200 bg-green-50 rounded-lg">
+                              <div className="flex items-center gap-2 mb-2">
+                                <CheckCircle className="h-5 w-5 text-green-600" />
+                                <h4 className="font-medium text-green-800">Justificante de Pago</h4>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4 w-4 text-green-600" />
+                                <span className="text-sm text-green-700">
+                                  {selectedSolicitud.justificante_nombre || "Justificante"}
+                                </span>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => window.open(selectedSolicitud.justificante_url, '_blank')}
+                                  className="ml-auto"
+                                >
+                                  <Download className="h-4 w-4 mr-1" />
+                                  Ver
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Formulario para adjuntar justificante y realizar pago */}
+                          {selectedSolicitud.estado === "tramitado" && canPerformPayment(selectedSolicitud) && (
+                            <div className="p-4 border border-blue-200 bg-blue-50 rounded-lg">
+                              <div className="flex items-center gap-2 mb-3">
+                                <CreditCardIcon className="h-5 w-5 text-blue-600" />
+                                <h4 className="font-medium text-blue-800">Confirmar Pago</h4>
+                              </div>
+                              
+                              <div className="space-y-3">
+                                <div>
+                                  <Label htmlFor="justificante" className="text-sm font-medium text-blue-700">
+                                    Adjuntar Justificante (opcional)
+                                  </Label>
+                                  <Input
+                                    id="justificante"
+                                    type="file"
+                                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                                    onChange={handleJustificanteChange}
+                                    className="mt-1"
+                                  />
+                                  <p className="text-xs text-blue-600 mt-1">
+                                    Puede confirmar el pago sin adjuntar justificante
+                                  </p>
+                                </div>
+
+                                {paymentMessage && (
+                                  <div className={`p-3 rounded-md text-sm ${
+                                    paymentMessage.includes("✅") 
+                                      ? "bg-green-100 text-green-800 border border-green-200" 
+                                      : "bg-red-100 text-red-800 border border-red-200"
+                                  }`}>
+                                    {paymentMessage}
+                                  </div>
+                                )}
+
+                                <Button
+                                  onClick={handleConfirmarPago}
+                                  disabled={isConfirmingPayment}
+                                  className="w-full"
+                                >
+                                  {isConfirmingPayment ? (
+                                    <>
+                                      <BMWMSpinner size="sm" className="mr-2" />
+                                      Confirmando...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <CheckCircle className="h-4 w-4 mr-2" />
+                                      Confirmar Pago
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Mensaje si no puede realizar pagos */}
+                          {selectedSolicitud.estado === "tramitado" && !canPerformPayment(selectedSolicitud) && (
+                            <div className="p-4 border border-gray-200 bg-gray-50 rounded-lg">
+                              <div className="flex items-center gap-2">
+                                <AlertCircle className="h-5 w-5 text-gray-600" />
+                                <span className="text-sm text-gray-700">
+                                  Solo tramitadores, pagadores y administradores pueden confirmar pagos
+                                </span>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Mensaje si ya está realizado */}
+                          {selectedSolicitud.estado === "realizado" && !selectedSolicitud.justificante_url && (
+                            <div className="p-4 border border-green-200 bg-green-50 rounded-lg">
+                              <div className="flex items-center gap-2">
+                                <CheckCircle className="h-5 w-5 text-green-600" />
+                                <span className="text-sm text-green-700">
+                                  Pago confirmado sin justificante
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </TabsContent>
                     </Tabs>
                   </CardContent>
                 </Card>
@@ -1565,18 +1872,14 @@ Muchas gracias`.trim()
             </div>
           )}
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setIsDetailDialogOpen(false)}>
+            <Button type="button" variant="outline" size="sm" onClick={() => setIsDetailDialogOpen(false)}>
               Cerrar
             </Button>
             {selectedSolicitud && (
               <>
-                <Button type="button" variant="secondary" onClick={() => copiarDatos(selectedSolicitud)}>
+                <Button type="button" variant="secondary" size="sm" onClick={() => copiarDatos(selectedSolicitud)}>
                   <Copy className="h-4 w-4 mr-2" />
                   Copiar Datos
-                </Button>
-                <Button type="button" onClick={() => enviarPorCorreo(selectedSolicitud)}>
-                  <Send className="h-4 w-4 mr-2" />
-                  Enviar por Correo
                 </Button>
               </>
             )}

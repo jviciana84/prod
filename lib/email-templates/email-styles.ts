@@ -288,11 +288,12 @@ export function getExtornoEmailTemplate(content: string, title: string): string 
   const includeFooter = title !== 'Nueva Solicitud de Extorno';
   
   // Si el contenido ya incluye un header (como el email de rechazo), no añadas header adicional
-  const hasOwnHeader = content.includes('background:#E53935') || content.includes('background:#FFB300') || content.includes('background:#22C55E');
-  
-  // Usa la clase de header adecuada solo si no tiene header propio
+  const hasOwnHeader = content.includes('background:#E53935') || content.includes('background:#FFB300') || content.includes('background:#22C55E') || content.includes('background:#10B981');
+
+  // NO añadir header si el título es vacío o solo espacios
+  const shouldShowHeader = title && title.trim().length > 0;
   const headerClass = title === 'Nueva Solicitud de Extorno' ? 'header-naranja' : 'header';
-  const headerHtml = hasOwnHeader ? '' : `<div class="${headerClass}">${title}</div>`;
+  const headerHtml = (!shouldShowHeader || hasOwnHeader) ? '' : `<div class="${headerClass}">${title}</div>`;
 
   return `
     <!DOCTYPE html>

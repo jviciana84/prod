@@ -30,8 +30,8 @@ export function Logo({ size = "md", showText = true, className, linkTo, showFull
       <Image
         src={ASSETS?.LOGO || "/placeholder.svg"}
         alt="CVO Logo"
-        width={width * 2}
-        height={height * 2}
+        width={128}
+        height={47.36}
         className="object-contain"
         priority
       />

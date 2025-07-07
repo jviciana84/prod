@@ -2,10 +2,26 @@
 
 import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { CheckCircle, XCircle, AlertTriangle } from "lucide-react"
+import { CheckCircle, XCircle, AlertTriangle, Upload, FileText, Euro, User, Calendar, CreditCard } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Suspense, useEffect, useState } from "react"
+
+interface ExtornoData {
+  id: number
+  matricula: string
+  cliente: string
+  numero_cliente?: string
+  concepto: string
+  importe: number
+  numero_cuenta: string
+  concesion: number
+  estado: string
+  fecha_solicitud: string
+  created_at: string
+}
 
 function ConfirmationContent() {
   const searchParams = useSearchParams()
@@ -14,43 +30,94 @@ function ConfirmationContent() {
   const [message, setMessage] = useState<string>("")
   const [error, setError] = useState<string>("")
   const [manualResult, setManualResult] = useState<string>("")
-
-  // Log para depuración
-  console.log("[DEBUG] Valor de token en URL:", token)
+  const [extornoData, setExtornoData] = useState<ExtornoData | null>(null)
+  const [justificante, setJustificante] = useState<File | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showConfirmationForm, setShowConfirmationForm] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    console.log("[DEBUG] useEffect ejecutado. Token:", token)
+    setIsLoading(true)
+    setError("")
+    setSuccess(null)
     if (!token) {
       setError("Token de confirmación no proporcionado en la URL. No se puede continuar.")
       setSuccess(false)
+      setIsLoading(false)
       return
     }
-    fetch(`/api/extornos/confirm-payment?token=${token}`)
+    fetch(`/api/extornos/get-extorno-by-token?token=${token}`)
       .then(async res => {
-        const html = await res.text()
-        console.log("[DEBUG] Respuesta del endpoint:", html)
-        if (html.includes("Pago Confirmado")) {
-          setSuccess(true)
-          setMessage("El pago del extorno ha sido confirmado correctamente.")
-        } else if (html.includes("Token no válido") || html.includes("Error") || html.includes("No se pudo confirmar")) {
-          setSuccess(false)
-          // Extraer el mensaje de error del HTML si existe
-          const match = html.match(/<div class=["'](?:error|warning)["'][^>]*>[\s\S]*?<h2[^>]*>(.*?)<\/h2>([\s\S]*?)<\/div>/)
-          if (match) {
-            setError(`${match[1].replace(/<[^>]+>/g, "").trim()}\n${match[2].replace(/<[^>]+>/g, "").trim()}`)
-          } else {
-            setError("Error desconocido: " + html)
-          }
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`)
+        }
+        const data = await res.json()
+        if (data.success) {
+          setExtornoData(data.extorno)
+          setShowConfirmationForm(true)
         } else {
+          setError(data.message || "No se pudo obtener la información del extorno")
           setSuccess(false)
-          setError("No se pudo confirmar el pago. Respuesta inesperada del servidor: " + html)
         }
       })
       .catch((e) => {
+        setError("Error de red al obtener información del extorno: " + e.message)
         setSuccess(false)
-        setError("Error de red al intentar confirmar el pago: " + e.message)
+      })
+      .finally(() => {
+        setIsLoading(false)
       })
   }, [token])
+
+  const handleJustificanteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setJustificante(file)
+    }
+  }
+
+  const handleConfirmarConJustificante = async () => {
+    if (!token || !extornoData) {
+      setError("Token o datos del extorno no disponibles")
+      return
+    }
+
+    // El justificante es opcional
+    if (!justificante) {
+      console.log("⚠️ Confirmando pago sin justificante")
+    }
+
+    setIsSubmitting(true)
+    setError("")
+
+    try {
+      const formData = new FormData()
+      formData.append("token", token)
+      if (justificante) {
+        formData.append("justificante", justificante)
+      }
+
+      const response = await fetch("/api/extornos/confirm-payment-with-justificante", {
+        method: "POST",
+        body: formData,
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setSuccess(true)
+        setMessage("Pago confirmado exitosamente con justificante. Se ha enviado un email a todos los implicados.")
+      } else {
+        setError(result.message || "Error al confirmar el pago")
+        setSuccess(false)
+      }
+    } catch (e: any) {
+      setError("Error de red: " + e.message)
+      setSuccess(false)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   const handleManualFetch = async () => {
     if (!token) {
@@ -70,28 +137,150 @@ function ConfirmationContent() {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle className="flex items-center justify-center gap-2 text-2xl">
-            {success ? (
+            {isLoading ? (
+              <div className="flex items-center gap-2">
+                <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-blue-600" />
+                <span className="text-blue-700 dark:text-blue-300 font-semibold">Cargando...</span>
+              </div>
+            ) : success ? (
               <CheckCircle className="h-8 w-8 text-green-500" />
+            ) : showConfirmationForm ? (
+              <FileText className="h-8 w-8 text-blue-500" />
             ) : (
               <XCircle className="h-8 w-8 text-red-500" />
             )}
-            Confirmación de Pago
+            {isLoading
+              ? "Cargando información del extorno..."
+              : success
+              ? "Pago Confirmado"
+              : showConfirmationForm
+              ? "Confirmar Pago con Justificante"
+              : "Confirmación de Pago"}
           </CardTitle>
         </CardHeader>
-        <CardContent className="text-center space-y-4">
+        <CardContent className="space-y-6">
           {/* Mostrar el token en pantalla para depuración */}
           <div className="text-xs text-gray-500 mb-2">Token leído de la URL: <span className="font-mono">{token || "(no token)"}</span></div>
-          {/* Botón para forzar el fetch manualmente */}
-          <Button onClick={handleManualFetch} className="mb-2 w-full" variant="outline">Probar confirmación manual (debug)</Button>
-          {manualResult && (
+          
+          {/* Estado de carga visual */}
+          {isLoading && (
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4" />
+              <p className="text-blue-700 dark:text-blue-300 text-lg font-medium">Cargando información del extorno...</p>
+            </div>
+          )}
+
+          {/* Información del extorno */}
+          {!isLoading && extornoData && showConfirmationForm && !success && (
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+              <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Información del Extorno
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">ID:</span>
+                  <span className="font-mono">#{extornoData.id}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Matrícula:</span>
+                  <span className="font-mono font-bold">{extornoData.matricula}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Cliente:</span>
+                  <span>{extornoData.cliente}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Nº Cliente:</span>
+                  <span>{extornoData.numero_cliente || "N/A"}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Importe:</span>
+                  <span className="font-bold text-green-600">
+                    {new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(extornoData.importe)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Nº Cuenta:</span>
+                  <span className="font-mono">{extornoData.numero_cuenta}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Concepto:</span>
+                  <span className="col-span-1">{extornoData.concepto}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Concesión:</span>
+                  <span>{extornoData.concesion === 1 ? "Motor Múnich SA" : "Motor Múnich Cadí"}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Formulario de justificante */}
+          {!isLoading && showConfirmationForm && !success && (
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
+              <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                <Upload className="h-5 w-5" />
+                Adjuntar Justificante de Pago
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="justificante" className="text-sm font-medium">
+                    Seleccione el archivo justificante (PDF, imagen, etc.)
+                  </Label>
+                  <Input
+                    id="justificante"
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx"
+                    onChange={handleJustificanteChange}
+                    className="mt-1"
+                  />
+                  {justificante ? (
+                    <p className="text-sm text-green-600 mt-1">
+                      ✓ Archivo seleccionado: {justificante.name}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-blue-600 mt-1">
+                      ℹ️ El justificante es opcional. Puede confirmar sin adjuntar archivo.
+                    </p>
+                  )}
+                </div>
+                <Button 
+                  onClick={handleConfirmarConJustificante}
+                  disabled={isSubmitting}
+                  className="w-full"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Confirmando...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Confirmar Pago
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Botón para forzar el fetch manualmente (debug) */}
+          {!isLoading && (
+            <Button onClick={handleManualFetch} className="w-full" variant="outline">Probar confirmación manual (debug)</Button>
+          )}
+          {manualResult && !isLoading && (
             <div className="p-2 bg-gray-200 dark:bg-gray-800 rounded text-left text-xs whitespace-pre-wrap max-h-40 overflow-auto">
               {manualResult}
             </div>
           )}
-          {message && (
+
+          {/* Mensajes de éxito/error */}
+          {!isLoading && message && (
             <div
               className={`p-4 rounded-md ${
                 success
@@ -102,17 +291,23 @@ function ConfirmationContent() {
               <p>{message}</p>
             </div>
           )}
-          {error && (
+          {!isLoading && error && (
             <div className="p-4 rounded-md bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200 flex items-start gap-2">
               <AlertTriangle className="h-5 w-5 mt-0.5 flex-shrink-0" />
               <pre className="text-left whitespace-pre-wrap">{error}</pre>
             </div>
           )}
-          <p className="text-gray-600 dark:text-gray-400">
-            {success
-              ? "El estado del extorno ha sido actualizado. Puede cerrar esta ventana."
+
+          <p className="text-gray-600 dark:text-gray-400 text-center">
+            {isLoading
+              ? "Por favor, espera mientras se carga la información..."
+              : success
+              ? "El estado del extorno ha sido actualizado y se ha enviado un email con el justificante. Puede cerrar esta ventana."
+              : showConfirmationForm
+              ? "Revise la información del extorno y adjunte el justificante de pago para confirmar."
               : "Si el problema persiste, por favor contacte con el administrador."}
           </p>
+
           <div className="space-y-2">
             <Button asChild className="w-full">
               <Link href="/dashboard/extornos">Volver al Dashboard</Link>

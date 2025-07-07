@@ -16,6 +16,5 @@ export function createClient() {
 
 export function clearCorruptedSession() {
   // Función desactivada para preservar la sesión
-  console.log("Función desactivada para preservar la sesión")
   return
 }

@@ -189,6 +189,65 @@ export function generateConfirmacionEmailHTML(extorno: ExtornoData): string {
   return getExtornoEmailTemplate(content, "Confirmar Extorno")
 }
 
+export function generateRealizadoEmailHTML(extorno: ExtornoData, justificanteUrl?: string, justificanteNombre?: string): string {
+  let clienteTexto = extorno.cliente || ''
+  if (extorno.numero_cliente) {
+    clienteTexto += ` <b>CL. (${extorno.numero_cliente})</b>`
+  }
+
+  let concesionTexto = ''
+  if (String(extorno.concesion) === '1') {
+    concesionTexto = 'Motor Munich SA'
+  } else if (String(extorno.concesion) === '2') {
+    concesionTexto = 'Motor Munich Cadí SL'
+  } else {
+    concesionTexto = extorno.concesion ? String(extorno.concesion) : ''
+  }
+
+  const filas = [
+    `<tr style='background:#f7f7f7;'><td style='padding:8px 12px;font-weight:bold;width:180px;'>Matrícula</td><td style='padding:8px 12px;'>${extorno.matricula}</td></tr>`,
+    `<tr><td style='padding:8px 12px;font-weight:bold;'>Cliente</td><td style='padding:8px 12px;'>${clienteTexto}</td></tr>`,
+    `<tr style='background:#f7f7f7;'><td style='padding:8px 12px;font-weight:bold;'>Concepto</td><td style='padding:8px 12px;'>${extorno.motivo || ''}</td></tr>`,
+    `<tr><td style='padding:8px 12px;font-weight:bold;'>Importe</td><td style='padding:8px 12px;'><strong>${Number(extorno.importe).toLocaleString('es-ES', {minimumFractionDigits:2})} €</strong></td></tr>`,
+    `<tr style='background:#f7f7f7;'><td style='padding:8px 12px;font-weight:bold;'>Número de Cuenta</td><td style='padding:8px 12px;font-family:monospace;'>${extorno.numero_cuenta || ''}</td></tr>`,
+    `<tr><td style='padding:8px 12px;font-weight:bold;'>Concesión</td><td style='padding:8px 12px;'>${concesionTexto}</td></tr>`,
+    `<tr style='background:#f7f7f7;'><td style='padding:8px 12px;font-weight:bold;'>Fecha</td><td style='padding:8px 12px;'>${formatFechaDMY(extorno.fecha_solicitud || extorno.created_at || '')}</td></tr>`,
+    `<tr><td style='padding:8px 12px;font-weight:bold;'>Registrado por</td><td style='padding:8px 12px;'>${extorno.registrado_por_nombre} <i>(${extorno.registrado_por_id})</i></td></tr>`,
+    `<tr style='background:#f7f7f7;'><td style='padding:8px 12px;font-weight:bold;'>Fecha de Pago</td><td style='padding:8px 12px;'>${formatFechaDMY(new Date().toISOString())}</td></tr>`
+  ]
+
+  const justificanteHtml = justificanteUrl ? `
+    <div style='margin:24px 0 0 0;padding:18px 20px;background:#f0f9ff;color:#0c4a6e;border:1px solid #0ea5e9;border-radius:8px;font-size:1.1em;'>
+      <b>📎 Justificante de Pago:</b> Se ha adjuntado el justificante del pago realizado.
+      <div style="text-align: center; margin: 20px 0 10px 0;">
+        <a href="${justificanteUrl}" style="display: inline-block; background-color: #0ea5e9; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; border: 2px solid #0c4a6e;">
+          📄 Ver Justificante: ${justificanteNombre || 'Archivo'}
+        </a>
+      </div>
+    </div>
+  ` : ''
+
+  // SOLO encabezado verde, sin emoji ni doble encabezado
+  const content = `
+    <div style="background:#10B981;color:#fff;padding:40px 0;text-align:center;border-radius:12px 12px 0 0;font-size:1.7em;font-weight:bold;letter-spacing:0.5px;margin-bottom:0;width:100%;">EXTORNO REALIZADO</div>
+    <p style="margin-bottom: 16px;">Estimados compañeros,</p>
+    <p style="margin-bottom: 24px;">El siguiente extorno ha sido <strong>PAGADO Y CONFIRMADO</strong> exitosamente:</p>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+      <tr style="background:#10B981;color:#fff;">
+        <th colspan="2" style="padding:10px 12px;text-align:left;font-size:1.1em;">EXTORNO REALIZADO</th>
+      </tr>
+      ${filas.join('\n')}
+    </table>
+    ${justificanteHtml}
+    <div style='margin:24px 0 0 0;padding:18px 20px;background:#f0fdf4;color:#166534;border:1px solid #22c55e;border-radius:8px;font-size:1.1em;'>
+      <b>Estado:</b> El extorno ha sido pagado y confirmado correctamente. El proceso está completo.
+    </div>
+  `
+
+  // Usar el wrapper global pero con encabezado vacío para evitar el azul
+  return getExtornoEmailTemplate(content, "")
+}
+
 export function generateRechazoEmailHTML(extorno: ExtornoData): string {
   let clienteTexto = extorno.cliente || ''
   if (extorno.numero_cliente) {

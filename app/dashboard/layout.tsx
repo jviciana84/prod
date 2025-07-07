@@ -18,10 +18,11 @@ export default async function DashboardLayout({
   const supabase = await createServerClient()
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
 
-  if (!session) {
+  if (userError || !user) {
     redirect("/")
   }
 
@@ -38,7 +39,7 @@ export default async function DashboardLayout({
       {/* <AnimatedGridBackgroundDashboard /> */}
 
       {/* Header siempre visible en la parte superior */}
-      <DashboardHeader user={session.user} roles={roles} />
+      <DashboardHeader user={user} roles={roles} />
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar siempre visible en el lado izquierdo */}

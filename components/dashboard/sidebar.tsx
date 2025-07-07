@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -102,11 +102,15 @@ export default function DashboardSidebar({ roles }: DashboardSidebarProps) {
   const isAdmin = roles.includes("admin")
   const [isExpanded, setIsExpanded] = useState(false)
   const { theme } = useTheme()
+  const [sidebarBg, setSidebarBg] = useState("rgba(255,255,255,0.85)") // Valor por defecto
 
-  // Definir el color translúcido según el tema
-  let sidebarBg = "rgba(255,255,255,0.85)" // Día por defecto
-  if (theme === "dark") sidebarBg = "rgba(31,31,31,0.85)"
-  if (theme === "ocre") sidebarBg = "rgba(247,243,233,0.85)"
+  // Definir el color translúcido según el tema usando useEffect para evitar hidratación
+  useEffect(() => {
+    let bg = "rgba(255,255,255,0.85)" // Día por defecto
+    if (theme === "dark") bg = "rgba(31,31,31,0.85)"
+    if (theme === "ocre") bg = "rgba(247,243,233,0.85)"
+    setSidebarBg(bg)
+  }, [theme])
 
   return (
     <aside
