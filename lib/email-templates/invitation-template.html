@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invitación a {{APP_NAME}}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f9f9f9; color: #333; }
+        .container { background-color: #fff; padding: 20px; border-radius: 5px; max-width: 580px; margin: auto; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .header { text-align: center; margin-bottom: 20px; }
+        .header img { max-width: 150px; }
+        .content h1 { font-size: 22px; color: #333; text-align: center; }
+        .content p { line-height: 1.6; }
+        .button-container { text-align: center; margin: 25px 0; }
+        .button { background-color: #007bff; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 4px; font-size: 16px; }
+        .link-alternative { font-size: 12px; text-align: center; word-break: break-all; }
+        .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #777; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="{{APP_LOGO_URL}}" alt="{{APP_NAME}} Logo">
+        </div>
+        <div class="content">
+            <h1>¡Bienvenido/a a {{APP_NAME}}!</h1>
+            <p>Hola,</p>
+            <p>Has sido invitado/a para unirte a {{APP_NAME}}. Para completar tu registro y configurar tu contraseña, por favor haz clic en el siguiente botón:</p>
+            <div class="button-container">
+                <a href="{{ACTION_URL}}" class="button">Configurar mi Cuenta</a>
+            </div>
+            <p>Si el botón no funciona, copia y pega el siguiente enlace en tu navegador:</p>
+            <p class="link-alternative"><a href="{{ACTION_URL}}">{{ACTION_URL}}</a></p>
+            <p>Este enlace es válido por 24 horas.</p>
+            <p>Si no esperabas esta invitación, puedes ignorar este correo electrónico.</p>
+            <p>¡Gracias!<br>El equipo de {{APP_NAME}}</p>
+        </div>
+        <div class="footer">
+            <p>&copy; {{CURRENT_YEAR}} {{APP_NAME}}. Todos los derechos reservados.</p>
+            <p>{{COMPANY_ADDRESS}}</p>
+            <p><a href="{{APP_URL}}">Visita nuestro sitio web</a></p>
+        </div>
+    </div>
+</body>
+</html>

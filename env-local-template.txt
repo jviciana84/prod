@@ -1,0 +1,20 @@
+# Copia este contenido a un archivo llamado .env.local en la raíz del proyecto
+
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=https://wpjmimbscfsdzcwuwctk.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indwam1pbWJzY2ZzZHpjd3V3Y3RrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY2NDIyNTksImV4cCI6MjA2MjIxODI1OX0.Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8
+
+# Supabase Service Role Key (for server-side operations)
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indwam1pbWJzY2ZzZHpjd3V3Y3RrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NjY0MjI1OSwiZXhwIjoyMDYyMjE4MjU5fQ.fZ_uvDPgJLTczTNu7UMd_hcEDzYqVpDCcilTiSv-hh0
+
+# Email Configuration
+SMTP_HOST=smtp.controlvo.ovh
+SMTP_PORT=587
+SMTP_USER=material@controlvo.ovh
+SMTP_PASS=your_smtp_password_here
+
+# Webhook Configuration (opcional)
+WEBHOOK_TOKEN=your_webhook_token_here
+
+# Vercel Configuration
+VERCEL_URL=http://localhost:3000 

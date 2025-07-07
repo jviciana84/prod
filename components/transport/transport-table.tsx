@@ -1,0 +1,598 @@
+"use client"
+
+import type React from "react"
+
+import { useState, useEffect } from "react"
+import { createClientComponentClient } from "@/lib/supabase/client"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import { useToast } from "@/hooks/use-toast"
+import {
+  Calendar,
+  Clock,
+  Filter,
+  RefreshCw,
+  Search,
+  SquarePen,
+  Trash2,
+  CheckCircle,
+  ArrowUpDown,
+  X,
+} from "lucide-react"
+import { format, parseISO, differenceInDays } from "date-fns"
+import { es } from "date-fns/locale"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { cn } from "@/lib/utils"
+
+interface TransportTableProps {
+  initialTransports: any[]
+  locations: any[]
+  userRoles?: string[]
+  isAdmin?: boolean
+}
+
+export default function TransportTable({
+  initialTransports,
+  locations,
+  userRoles = [],
+  isAdmin = false,
+}: TransportTableProps) {
+  const [transports, setTransports] = useState<any[]>(initialTransports)
+  const [filteredTransports, setFilteredTransports] = useState<any[]>(initialTransports)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [activeFilter, setActiveFilter] = useState("pending") // pending, received, all
+  const [rowsPerPage, setRowsPerPage] = useState(10)
+  const [currentPage, setCurrentPage] = useState(1)
+
+  const supabase = createClientComponentClient()
+  const { toast } = useToast()
+
+  // Actualizar los transportes cuando cambian los initialTransports
+  useEffect(() => {
+    setTransports(initialTransports)
+    applyFilters(initialTransports, searchTerm, activeFilter)
+  }, [initialTransports])
+
+  // Aplicar filtros (búsqueda y estado)
+  const applyFilters = (data: any[], search: string, filter: string) => {
+    let result = [...data]
+
+    // Aplicar filtro de búsqueda
+    if (search.trim()) {
+      const lowerSearch = search.toLowerCase()
+      result = result.filter((transport) => {
+        return (
+          (transport.license_plate && transport.license_plate.toLowerCase().includes(lowerSearch)) ||
+          (transport.model && transport.model.toLowerCase().includes(lowerSearch)) ||
+          (transport.origin_location?.name && transport.origin_location.name.toLowerCase().includes(lowerSearch)) ||
+          (transport.expense_type?.name && transport.expense_type.name.toLowerCase().includes(lowerSearch))
+        )
+      })
+    }
+
+    // Aplicar filtro de estado
+    if (filter === "pending") {
+      result = result.filter((t) => t && !t.is_received)
+    } else if (filter === "received") {
+      result = result.filter((t) => t && t.is_received)
+    }
+
+    setFilteredTransports(result)
+  }
+
+  // Manejar cambio en la búsqueda
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setSearchTerm(value)
+    applyFilters(transports, value, activeFilter)
+  }
+
+  // Manejar cambio en el filtro
+  const handleFilterChange = (value: string) => {
+    setActiveFilter(value)
+    applyFilters(transports, searchTerm, value)
+    setCurrentPage(1) // Resetear a la primera página
+  }
+
+  // Limpiar búsqueda
+  const clearSearch = () => {
+    setSearchTerm("")
+    applyFilters(transports, "", activeFilter)
+  }
+
+  // Refrescar datos
+  const refreshData = async () => {
+    setIsLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from("nuevas_entradas")
+        .select("*")
+        .order("purchase_date", { ascending: false })
+
+      if (error) throw error
+
+      if (data) {
+        // Enriquecer con datos relacionados
+        const { data: locationData } = await supabase.from("locations").select("*")
+        const { data: expenseTypeData } = await supabase.from("expense_types").select("*")
+
+        const locationMap = locationData
+          ? locationData.reduce((map, loc) => {
+              map[loc.id] = loc
+              return map
+            }, {})
+          : {}
+
+        const expenseTypeMap = expenseTypeData
+          ? expenseTypeData.reduce((map, type) => {
+              map[type.id] = type
+              return map
+            }, {})
+          : {}
+
+        const enrichedData = data.map((transport) => ({
+          ...transport,
+          origin_location: locationMap[transport.origin_location_id] || null,
+          expense_type: expenseTypeMap[transport.expense_type_id] || null,
+        }))
+
+        setTransports(enrichedData)
+        applyFilters(enrichedData, searchTerm, activeFilter)
+      }
+    } catch (error) {
+      console.error("Error al refrescar datos:", error)
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los datos actualizados",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Cambiar estado de recepción
+  const toggleReception = async (id: number, currentStatus: boolean) => {
+    setIsLoading(true)
+    try {
+      const newStatus = !currentStatus
+      const receptionDate = newStatus ? new Date().toISOString() : null
+
+      const { error } = await supabase
+        .from("nuevas_entradas")
+        .update({ is_received: newStatus, reception_date: receptionDate })
+        .eq("id", id)
+
+      if (error) throw error
+
+      // Actualizar localmente
+      const updatedTransports = transports.map((item) =>
+        item && item.id === id ? { ...item, is_received: newStatus, reception_date: receptionDate } : item,
+      )
+
+      setTransports(updatedTransports)
+      applyFilters(updatedTransports, searchTerm, activeFilter)
+
+      toast({
+        title: newStatus ? "Vehículo recibido" : "Recepción cancelada",
+        description: newStatus
+          ? "Se ha marcado el vehículo como recibido"
+          : "Se ha cancelado la recepción del vehículo",
+      })
+    } catch (error) {
+      console.error("Error al cambiar estado de recepción:", error)
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el estado de recepción",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Eliminar transporte
+  const deleteTransport = async (id: number) => {
+    if (!confirm("¿Está seguro de que desea eliminar este registro?")) return
+
+    setIsLoading(true)
+    try {
+      const { error } = await supabase.from("nuevas_entradas").delete().eq("id", id)
+
+      if (error) throw error
+
+      // Actualizar localmente
+      const updatedTransports = transports.filter((item) => item && item.id !== id)
+      setTransports(updatedTransports)
+      applyFilters(updatedTransports, searchTerm, activeFilter)
+
+      toast({
+        title: "Registro eliminado",
+        description: "El registro se ha eliminado correctamente",
+      })
+    } catch (error) {
+      console.error("Error al eliminar:", error)
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar el registro",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Editar transporte
+  const handleEdit = (id: number) => {
+    // Redirigir a la página de edición
+    window.location.href = `/dashboard/nuevas-entradas/edit/${id}`
+  }
+
+  // Formatear fecha
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "-"
+    try {
+      return format(parseISO(dateString), "dd/MM/yyyy", { locale: es })
+    } catch (error) {
+      return dateString
+    }
+  }
+
+  // Calcular días de espera
+  const getWaitingDays = (purchaseDate: string, receptionDate: string | null) => {
+    if (!purchaseDate) return null
+
+    const startDate = parseISO(purchaseDate)
+    const endDate = receptionDate ? parseISO(receptionDate) : new Date()
+
+    return differenceInDays(endDate, startDate)
+  }
+
+  // Determinar clase CSS para días de espera
+  const getWaitingBadgeClass = (days: number | null) => {
+    if (days === null) return ""
+    if (days > 30) return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+    if (days > 15) return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+    if (days > 7) return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
+    return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+  }
+
+  // Función para obtener el color de la prioridad basado en días de espera
+  function getPriorityColor(days: number | null): string {
+    if (days === null) return "bg-gray-300 dark:bg-gray-600"
+    if (days > 30) return "bg-red-600 dark:bg-red-500" // Máxima prioridad
+    if (days > 15) return "bg-red-500 dark:bg-red-400" // Alta prioridad
+    if (days > 7) return "bg-orange-500 dark:bg-orange-400" // Media prioridad
+    if (days > 3) return "bg-amber-500 dark:bg-amber-400" // Baja prioridad
+    return "bg-yellow-400 dark:bg-yellow-300" // Mínima prioridad
+  }
+
+  // Determinar prioridad basada en días de espera
+  const getPriorityClass = (days: number | null) => {
+    if (days === null) return ""
+    if (days > 30) return "animate-[priorityPulseHigh_1.5s_ease-in-out_infinite]"
+    if (days > 15) return "animate-[priorityPulseHigh_1.5s_ease-in-out_infinite]"
+    if (days > 7) return "animate-[priorityPulseMedium_2.5s_ease-in-out_infinite]"
+    return "animate-[priorityPulseLow_4s_ease-in-out_infinite]"
+  }
+
+  // Paginación
+  const totalPages = Math.ceil(filteredTransports.length / rowsPerPage)
+  const paginatedData = filteredTransports.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage)
+
+  return (
+    <div className="space-y-4">
+      {/* Estilos para las animaciones personalizadas */}
+      <style jsx global>{`
+      @keyframes priorityPulseHigh {
+        0%, 100% {
+          transform: scale(0.7);
+          opacity: 0.9;
+        }
+        50% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+      @keyframes priorityPulseMedium {
+        0%, 100% {
+          transform: scale(0.7);
+          opacity: 0.9;
+        }
+        50% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+      @keyframes priorityPulseLow {
+        0%, 100% {
+          transform: scale(0.7);
+          opacity: 0.9;
+        }
+        50% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+    `}</style>
+
+      <div className="flex flex-col md:flex-row gap-4 mb-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            className="pl-10"
+            placeholder="Buscar por matrícula, modelo, sede o cargo..."
+            value={searchTerm}
+            onChange={handleSearchChange}
+          />
+          {searchTerm && (
+            <button
+              onClick={clearSearch}
+              className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+        <Tabs value={activeFilter} onValueChange={handleFilterChange} className="w-full md:w-auto">
+          <TabsList className="grid grid-cols-3 w-full md:w-[400px]">
+            <TabsTrigger value="pending" className="flex items-center gap-1">
+              <Clock className="h-4 w-4" />
+              <span>Pendientes</span>
+            </TabsTrigger>
+            <TabsTrigger value="received" className="flex items-center gap-1">
+              <CheckCircle className="h-4 w-4" />
+              <span>Recibidos</span>
+            </TabsTrigger>
+            <TabsTrigger value="all" className="flex items-center gap-1">
+              <Filter className="h-4 w-4" />
+              <span>Todos</span>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        <Button variant="outline" size="icon" onClick={() => {}}>
+          <ArrowUpDown className="h-4 w-4" />
+        </Button>
+
+        <Button variant="outline" size="icon" onClick={refreshData} disabled={isLoading}>
+          <RefreshCw className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
+        <div className="relative w-full overflow-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
+                <TableHead className="text-sm font-medium py-3 text-foreground">MATRÍCULA</TableHead>
+                <TableHead className="text-sm font-medium py-3 text-foreground">MODELO</TableHead>
+                <TableHead className="text-sm font-medium py-3 text-foreground">PRECIO</TableHead>
+                <TableHead className="text-sm font-medium py-3 text-foreground">SEDE ORIGEN</TableHead>
+                <TableHead className="text-sm font-medium py-3 text-foreground">CARGO GASTOS</TableHead>
+                <TableHead className="text-sm font-medium py-3 text-foreground">DÍA COMPRA</TableHead>
+                <TableHead className="text-sm font-medium py-3 text-foreground">DÍAS ESPERA</TableHead>
+                <TableHead className="text-sm font-medium py-3 text-foreground">RECEPCIÓN</TableHead>
+                <TableHead className="text-sm font-medium text-right py-3 text-foreground">ACCIONES</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedData.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
+                    No se encontraron resultados.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                paginatedData.map((transport, index) => {
+                  const waitingDays = getWaitingDays(transport.purchase_date, transport.reception_date)
+                  const waitingBadgeClass = getWaitingBadgeClass(waitingDays)
+                  const priorityColor = getPriorityColor(waitingDays)
+                  const priorityClass = getPriorityClass(waitingDays)
+
+                  return (
+                    <TableRow
+                      key={transport?.id || index}
+                      className={cn(
+                        "hover:bg-muted/30 transition-colors border-b",
+                        index % 2 === 0 ? "bg-background" : "bg-muted/10",
+                      )}
+                    >
+                      <TableCell className="py-3">
+                        <div className="flex items-center">
+                          {transport && !transport.is_received && (
+                            <div className="relative flex items-center justify-center mr-2">
+                              <div
+                                className={cn("rounded-full relative z-10", priorityClass, priorityColor)}
+                                style={{
+                                  width: waitingDays && waitingDays > 0 ? "10px" : "8px",
+                                  height: waitingDays && waitingDays > 0 ? "10px" : "8px",
+                                }}
+                                title={
+                                  waitingDays > 15
+                                    ? "Prioridad alta"
+                                    : waitingDays > 7
+                                      ? "Prioridad media"
+                                      : "Prioridad normal"
+                                }
+                              />
+                              {waitingDays > 15 && (
+                                <div
+                                  className={cn(
+                                    "absolute top-0 left-0 rounded-full animate-ping opacity-75",
+                                    priorityColor,
+                                  )}
+                                  style={{
+                                    width: waitingDays && waitingDays > 0 ? "10px" : "8px",
+                                    height: waitingDays && waitingDays > 0 ? "10px" : "8px",
+                                  }}
+                                />
+                              )}
+                            </div>
+                          )}
+                          <span className="font-medium text-foreground">{transport.license_plate}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-3 text-foreground">{transport.model || "-"}</TableCell>
+                      <TableCell className="py-3 text-foreground">
+                        {transport.purchase_price ? `${transport.purchase_price.toLocaleString("es-ES")} €` : "-"}
+                      </TableCell>
+                      <TableCell className="py-3 text-foreground">{transport.origin_location?.name || "-"}</TableCell>
+                      <TableCell className="py-3 text-foreground">{transport.expense_type?.name || "-"}</TableCell>
+                      <TableCell className="py-3">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-foreground">{formatDate(transport.purchase_date)}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-3">
+                        {waitingDays !== null && (
+                          <Badge variant="outline" className={waitingBadgeClass}>
+                            {waitingDays}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="py-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => transport && toggleReception(transport.id, transport.is_received)}
+                          disabled={isLoading}
+                                                      className={`h-8 text-xs transition-all duration-300 ${
+                              transport && transport.is_received
+                                ? "border-green-200 text-green-700 hover:text-white hover:border-green-500 hover:bg-green-500 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-700 dark:hover:text-white"
+                                : "border-amber-200 text-amber-700 hover:text-white hover:border-amber-500 hover:bg-amber-500 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-700 dark:hover:text-white"
+                            }`}
+                        >
+                          {transport && transport.is_received ? (
+                            <>
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Recibido
+                            </>
+                          ) : (
+                            <>
+                              <Clock className="h-3 w-3 mr-1" />
+                              Pendiente
+                            </>
+                          )}
+                        </Button>
+                      </TableCell>
+                      <TableCell className="py-3 text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => transport && handleEdit(transport.id)}
+                          >
+                            <SquarePen className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-100"
+                            onClick={() => transport && deleteTransport(transport.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+
+      <div className="flex flex-col md:flex-row justify-between items-center mt-4 gap-4">
+        <div className="text-sm text-muted-foreground">
+          Mostrando {paginatedData.length > 0 ? (currentPage - 1) * rowsPerPage + 1 : 0} a{" "}
+          {Math.min(currentPage * rowsPerPage, filteredTransports.length)} de {filteredTransports.length} registros
+        </div>
+
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm">Filas por página:</span>
+            <select
+              className="flex h-8 w-[80px] items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              value={rowsPerPage}
+              onChange={(e) => setRowsPerPage(Number(e.target.value))}
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+            </select>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="lucide lucide-chevron-left h-4 w-4"
+              >
+                <path d="m15 18-6-6 6-6"></path>
+              </svg>
+            </Button>
+
+            {/* Mostrar números de página */}
+            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+              const pageNum = i + 1
+              return (
+                <Button
+                  key={pageNum}
+                  variant={currentPage === pageNum ? "default" : "outline"}
+                  size="icon"
+                  onClick={() => setCurrentPage(pageNum)}
+                >
+                  {pageNum}
+                </Button>
+              )
+            })}
+
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages || totalPages === 0}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="lucide lucide-chevron-right h-4 w-4"
+              >
+                <path d="m9 18 6-6-6-6"></path>
+              </svg>
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

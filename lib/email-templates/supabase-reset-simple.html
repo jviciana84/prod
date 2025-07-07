@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restablecer Contraseña</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            background-color: #4a5568;
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .logo {
+            max-width: 120px;
+            margin-bottom: 15px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .content h2 {
+            color: #2d3748;
+            margin-bottom: 20px;
+        }
+        .content p {
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+        .button {
+            display: inline-block;
+            background-color: #4a5568;
+            color: white !important;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .button-container {
+            text-align: center;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #6c757d;
+        }
+        .link-backup {
+            font-size: 12px;
+            color: #6c757d;
+            word-break: break-all;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="https://n6va547dj09mfqlu.public.blob.vercel-storage.com/cvo-KUNh8rXJGJ38lK00MJ9JTEci2nGA5o.png" alt="CVO" class="logo">
+            <h1>Restablecer Contraseña</h1>
+        </div>
+        
+        <div class="content">
+            <h2>¿Olvidaste tu contraseña?</h2>
+            
+            <p>Hola,</p>
+            
+            <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta en CVO.</p>
+            
+            <p>Haz clic en el siguiente botón para crear una nueva contraseña:</p>
+            
+            <div class="button-container">
+                <a href="{{ .ConfirmationURL }}" class="button">Restablecer Contraseña</a>
+            </div>
+            
+            <div class="warning">
+                <strong>⚠️ Importante:</strong> Este enlace expira en 1 hora por tu seguridad.
+            </div>
+            
+            <p>Si no solicitaste este cambio, puedes ignorar este email.</p>
+            
+            <div class="link-backup">
+                <p>¿Problemas con el botón? Copia este enlace:</p>
+                <a href="{{ .ConfirmationURL }}">{{ .ConfirmationURL }}</a>
+            </div>
+            
+            <p>Saludos,<br><strong>Equipo de CVO</strong></p>
+        </div>
+        
+        <div class="footer">
+            <p>&copy; 2025 CVO. Todos los derechos reservados.</p>
+        </div>
+    </div>
+</body>
+</html>

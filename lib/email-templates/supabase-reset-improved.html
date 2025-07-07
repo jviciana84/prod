@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Restablecer Contraseña - CVO</title>
+</head>
+<body style="font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5;">
+    <!-- Versión de texto plano para evitar spam -->
+    <div style="display: none; max-height: 0; overflow: hidden;">
+        Restablecer contraseña para tu cuenta de CVO. Haz clic en el enlace para establecer una nueva contraseña.
+    </div>
+    
+    <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        
+        <!-- Logo -->
+        <div style="text-align: center; margin-bottom: 30px;">
+            <img src="https://n6va547dj09mfqlu.public.blob.vercel-storage.com/cvo-KUNh8rXJGJ38lK00MJ9JTEci2nGA5o.png" 
+                 alt="CVO Logo" style="max-width: 120px; height: auto;">
+        </div>
+        
+        <!-- Título -->
+        <h1 style="color: #333; text-align: center; margin-bottom: 30px; font-size: 24px;">
+            Restablecer Contraseña
+        </h1>
+        
+        <!-- Contenido principal -->
+        <div style="color: #666; font-size: 16px; line-height: 1.6;">
+            <p>Estimado usuario,</p>
+            
+            <p>Hemos recibido una solicitud para restablecer la contraseña de tu cuenta en el sistema CVO.</p>
+            
+            <p>Para establecer una nueva contraseña, haz clic en el siguiente botón:</p>
+        </div>
+        
+        <!-- Botón principal -->
+        <div style="text-align: center; margin: 40px 0;">
+            <a href="{{ .ConfirmationURL }}" 
+               style="background-color: #4a5568; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold; font-size: 16px;">
+                Establecer Nueva Contraseña
+            </a>
+        </div>
+        
+        <!-- Información adicional -->
+        <div style="color: #666; font-size: 14px; line-height: 1.5;">
+            <p><strong>Información importante:</strong></p>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+                <li>Este enlace expirará en 24 horas por seguridad</li>
+                <li>Si no solicitaste este cambio, puedes ignorar este correo</li>
+                <li>Tu contraseña actual seguirá siendo válida hasta que establezcas una nueva</li>
+            </ul>
+        </div>
+        
+        <!-- Enlace alternativo -->
+        <div style="margin: 30px 0; padding: 20px; background-color: #f8f9fa; border-radius: 5px;">
+            <p style="color: #666; font-size: 12px; margin: 0;">
+                <strong>¿Problemas con el botón?</strong><br>
+                Copia y pega este enlace en tu navegador:
+            </p>
+            <p style="color: #4a5568; font-size: 12px; word-break: break-all; margin: 5px 0 0 0;">
+                {{ .ConfirmationURL }}
+            </p>
+        </div>
+        
+        <!-- Soporte -->
+        <div style="margin: 30px 0; text-align: center;">
+            <p style="color: #666; font-size: 14px; margin: 0;">
+                ¿Necesitas ayuda? Contacta con el administrador del sistema.
+            </p>
+        </div>
+        
+        <!-- Pie de página -->
+        <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; text-align: center;">
+            <p style="color: #999; font-size: 12px; margin: 0;">
+                © 2025 CVO - Sistema de Gestión Vehicular<br>
+                Este es un correo automático, por favor no respondas a esta dirección.
+            </p>
+        </div>
+        
+    </div>
+    
+    <!-- Texto plano alternativo -->
+    <div style="display: none;">
+        RESTABLECER CONTRASEÑA - CVO
+        
+        Estimado usuario,
+        
+        Hemos recibido una solicitud para restablecer la contraseña de tu cuenta en el sistema CVO.
+        
+        Para establecer una nueva contraseña, visita el siguiente enlace:
+        {{ .ConfirmationURL }}
+        
+        INFORMACIÓN IMPORTANTE:
+        - Este enlace expirará en 24 horas por seguridad
+        - Si no solicitaste este cambio, puedes ignorar este correo
+        - Tu contraseña actual seguirá siendo válida hasta que establezcas una nueva
+        
+        ¿Necesitas ayuda? Contacta con el administrador del sistema.
+        
+        © 2025 CVO - Sistema de Gestión Vehicular
+        Este es un correo automático, por favor no respondas a esta dirección.
+    </div>
+</body>
+</html>

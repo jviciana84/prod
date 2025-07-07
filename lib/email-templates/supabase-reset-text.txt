@@ -1,0 +1,18 @@
+RESTABLECER CONTRASEÑA - CVO
+
+Hola,
+
+Recibimos una solicitud para restablecer tu contraseña en el sistema CVO.
+
+Para establecer una nueva contraseña, visita este enlace:
+{{ .ConfirmationURL }}
+
+INFORMACIÓN IMPORTANTE:
+- Este enlace expira en 24 horas
+- Si no solicitaste este cambio, ignora este correo
+- Tu contraseña actual sigue siendo válida
+
+¿Necesitas ayuda? Contacta al administrador.
+
+CVO - Sistema de Gestión
+Correo automático, no responder.

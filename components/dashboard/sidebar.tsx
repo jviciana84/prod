@@ -1,0 +1,335 @@
+"use client"
+
+import type React from "react"
+
+import { useState } from "react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { cn } from "@/lib/utils"
+import {
+  LayoutDashboard,
+  Users,
+  CarFrontIcon,
+  ShoppingCart,
+  BarChart,
+  Settings,
+  ChevronDown,
+  ChevronRight,
+  Camera,
+  ImageIcon,
+  MessageSquare,
+  Key,
+  FileCheck,
+  PackageOpen,
+  AlertTriangle,
+  Trophy,
+  ArrowRightLeft,
+  Bell,
+  TestTube,
+  Stethoscope,
+  Target,
+  Mail,
+  Car,
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+
+interface SidebarItemProps {
+  href: string
+  icon: React.ReactNode
+  title: string
+  isActive: boolean
+  isExpanded: boolean
+}
+
+function SidebarItem({ href, icon, title, isActive, isExpanded }: SidebarItemProps) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all hover:bg-accent whitespace-nowrap",
+        isActive ? "bmw-sidebar-active text-accent-foreground" : "text-muted-foreground hover:text-accent-foreground",
+        !isExpanded && "justify-center px-0",
+      )}
+    >
+      {icon}
+      {isExpanded && <span className="truncate">{title}</span>}
+    </Link>
+  )
+}
+
+interface SidebarGroupProps {
+  title: string
+  icon: React.ReactNode
+  children: React.ReactNode
+  defaultOpen?: boolean
+  isExpanded: boolean
+}
+
+function SidebarGroup({ title, icon, children, defaultOpen = false, isExpanded }: SidebarGroupProps) {
+  const [isOpen, setIsOpen] = useState(defaultOpen)
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <CollapsibleTrigger asChild>
+        <Button
+          variant="ghost"
+          className={cn(
+            "flex w-full items-center justify-between px-3 py-2 text-sm font-medium whitespace-nowrap",
+            !isExpanded && "justify-center px-0",
+            "bmw-m-hover-border",
+          )}
+        >
+          <div className={cn("flex items-center gap-3", !isExpanded && "justify-center")}>
+            {icon}
+            {isExpanded && <span className="truncate">{title}</span>}
+          </div>
+          {isExpanded && (isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />)}
+        </Button>
+      </CollapsibleTrigger>
+      <CollapsibleContent className={cn("pt-1", isExpanded ? "pl-6" : "pl-0")}>{children}</CollapsibleContent>
+    </Collapsible>
+  )
+}
+
+interface DashboardSidebarProps {
+  roles: string[]
+}
+
+export default function DashboardSidebar({ roles }: DashboardSidebarProps) {
+  const pathname = usePathname()
+  const isAdmin = roles.includes("admin")
+  const [isExpanded, setIsExpanded] = useState(false)
+
+  return (
+    <aside
+      className={cn(
+        "fixed left-0 transition-all duration-300 ease-in-out bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-40 border-r overflow-y-auto scrollbar-hide",
+        isExpanded ? "w-64" : "w-16",
+      )}
+      style={{
+        top: "56px", // Altura exacta del header
+        bottom: "33px", // Altura exacta del footer (32.8px redondeado)
+        height: "calc(100vh - 89px)", // 100vh - (header 56px + footer 33px)
+      }}
+      onMouseEnter={() => setIsExpanded(true)}
+      onMouseLeave={() => setIsExpanded(false)}
+    >
+      <nav className={cn("flex flex-col gap-2 p-4", !isExpanded && "items-center")}>
+        <SidebarItem
+          href="/dashboard"
+          icon={<LayoutDashboard className="h-5 w-5" />}
+          title="Dashboard"
+          isActive={pathname === "/dashboard"}
+          isExpanded={isExpanded}
+        />
+
+        {isAdmin && (
+          <SidebarGroup
+            title="Administración"
+            icon={<Users className="h-5 w-5" />}
+            defaultOpen={pathname.startsWith("/dashboard/admin")}
+            isExpanded={isExpanded}
+          >
+            <SidebarItem
+              href="/dashboard/admin/users"
+              icon={<Users className="h-5 w-5" />}
+              title="Usuarios"
+              isActive={pathname === "/dashboard/admin/users"}
+              isExpanded={isExpanded}
+            />
+            <SidebarItem
+              href="/dashboard/admin/avatares"
+              icon={<ImageIcon className="h-5 w-5" />}
+              title="Avatares"
+              isActive={pathname === "/dashboard/admin/avatares"}
+              isExpanded={isExpanded}
+            />
+            <SidebarItem
+              href="/dashboard/admin/notifications"
+              icon={<Bell className="h-5 w-5" />}
+              title="Notificaciones"
+              isActive={pathname === "/dashboard/admin/notifications"}
+              isExpanded={isExpanded}
+            />
+            <SidebarItem
+              href="/dashboard/admin/carga-masiva"
+              icon={<FileCheck className="h-5 w-5" />}
+              title="Carga Masiva"
+              isActive={pathname === "/dashboard/admin/carga-masiva"}
+              isExpanded={isExpanded}
+            />
+            <SidebarItem
+              href="/dashboard/admin/configuracion"
+              icon={<Settings className="h-5 w-5" />}
+              title="Configuración Sistema"
+              isActive={pathname === "/dashboard/admin/configuracion"}
+              isExpanded={isExpanded}
+            />
+            <SidebarItem
+              href="/dashboard/admin/objetivos"
+              icon={<Target className="h-5 w-5" />}
+              title="Objetivos"
+              isActive={pathname === "/dashboard/admin/objetivos"}
+              isExpanded={isExpanded}
+            />
+            <SidebarItem
+              href="/dashboard/admin/email-config"
+              icon={<Mail className="h-5 w-5" />}
+              title="Configuración Email"
+              isActive={pathname === "/dashboard/admin/email-config"}
+              isExpanded={isExpanded}
+            />
+            <SidebarGroup
+              title="Diagnósticos"
+              icon={<Stethoscope className="h-5 w-5" />}
+              defaultOpen={pathname.startsWith("/dashboard/admin/diagnosticos")}
+              isExpanded={isExpanded}
+            >
+              <SidebarItem
+                href="/dashboard/admin/diagnosticos"
+                icon={<TestTube className="h-5 w-5" />}
+                title="Panel General"
+                isActive={pathname === "/dashboard/admin/diagnosticos"}
+                isExpanded={isExpanded}
+              />
+              <SidebarItem
+                href="/dashboard/admin/diagnosticos/notificaciones"
+                icon={<Bell className="h-5 w-5" />}
+                title="Notificaciones"
+                isActive={pathname === "/dashboard/admin/diagnosticos/notificaciones"}
+                isExpanded={isExpanded}
+              />
+              <SidebarItem
+                href="/dashboard/photos/diagnostico"
+                icon={<Camera className="h-5 w-5" />}
+                title="Fotografías"
+                isActive={pathname === "/dashboard/photos/diagnostico"}
+                isExpanded={isExpanded}
+              />
+              <SidebarItem
+                href="/dashboard/entregas/diagnostico"
+                icon={<PackageOpen className="h-5 w-5" />}
+                title="Entregas"
+                isActive={pathname === "/dashboard/entregas/diagnostico"}
+                isExpanded={isExpanded}
+              />
+              <SidebarItem
+                href="/dashboard/llaves/diagnostico-incidencias"
+                icon={<Key className="h-5 w-5" />}
+                title="Llaves/Incidencias"
+                isActive={pathname === "/dashboard/llaves/diagnostico-incidencias"}
+                isExpanded={isExpanded}
+              />
+            </SidebarGroup>
+            {roles.some((role) => role === "admin" || role === "administrador" || role.includes("admin")) && (
+              <SidebarItem
+                href="/dashboard/admin/footer-messages"
+                icon={<MessageSquare size={18} />}
+                title="Mensajes Footer"
+                isActive={pathname.includes("/dashboard/admin/footer-messages")}
+                isExpanded={isExpanded}
+              />
+            )}
+          </SidebarGroup>
+        )}
+
+        <SidebarItem
+          href="/dashboard/vehicles"
+          icon={<Car className="h-5 w-5" />}
+          title="Vehículos"
+          isActive={pathname === "/dashboard/vehicles"}
+          isExpanded={isExpanded}
+        />
+
+        <SidebarItem
+          href="/dashboard/llaves"
+          icon={<Key className="h-5 w-5" />}
+          title="Llaves y Documentos"
+          isActive={pathname === "/dashboard/llaves"}
+          isExpanded={isExpanded}
+        />
+
+        <SidebarItem
+          href="/dashboard/nuevas-entradas"
+          icon={<CarFrontIcon className="h-5 w-5" />} // Icono actualizado
+          title="Nuevas Entradas"
+          isActive={pathname.startsWith("/dashboard/nuevas-entradas")}
+          isExpanded={isExpanded}
+        />
+
+        <SidebarItem
+          href="/dashboard/photos"
+          icon={<Camera className="h-5 w-5" />}
+          title="Fotografías"
+          isActive={pathname.startsWith("/dashboard/photos")}
+          isExpanded={isExpanded}
+        />
+
+        <SidebarItem
+          href="/dashboard/ventas"
+          icon={<ShoppingCart className="h-5 w-5" />}
+          title="Gestión ventas"
+          isActive={pathname.startsWith("/dashboard/ventas") || pathname.startsWith("/dashboard/sales")}
+          isExpanded={isExpanded}
+        />
+
+        <SidebarItem
+          href="/dashboard/validados"
+          icon={<FileCheck className="h-5 w-5" />}
+          title="Pedidos Validados"
+          isActive={pathname === "/dashboard/validados"}
+          isExpanded={isExpanded}
+        />
+
+        <SidebarItem
+          href="/dashboard/entregas"
+          icon={<PackageOpen className="h-5 w-5" />}
+          title="Entregas"
+          isActive={pathname === "/dashboard/entregas"}
+          isExpanded={isExpanded}
+        />
+
+        <SidebarItem
+          href="/dashboard/entregas/informes"
+          icon={<AlertTriangle className="h-5 w-5" />}
+          title="Incidencias"
+          isActive={pathname === "/dashboard/entregas/informes"}
+          isExpanded={isExpanded}
+        />
+
+        <SidebarItem
+          href="/dashboard/incentivos"
+          icon={<Trophy className="h-5 w-5" />}
+          title="Incentivos"
+          isActive={pathname === "/dashboard/incentivos"}
+          isExpanded={isExpanded}
+        />
+
+        <SidebarItem
+          href="/dashboard/extornos"
+          icon={<ArrowRightLeft className="h-5 w-5" />}
+          title="Extornos"
+          isActive={pathname === "/dashboard/extornos"}
+          isExpanded={isExpanded}
+        />
+
+        <SidebarItem
+          href="/dashboard/reports"
+          icon={<BarChart className="h-5 w-5" />}
+          title="Informes"
+          isActive={pathname === "/dashboard/reports"}
+          isExpanded={isExpanded}
+        />
+
+        <SidebarItem
+          href="/dashboard/settings"
+          icon={<Settings className="h-5 w-5" />}
+          title="Configuración"
+          isActive={pathname === "/dashboard/settings"}
+          isExpanded={isExpanded}
+        />
+      </nav>
+    </aside>
+  )
+}

@@ -1,0 +1,596 @@
+import { type NextRequest, NextResponse } from "next/server"
+import { createClient } from "@/lib/supabase/server"
+import nodemailer from "nodemailer"
+import crypto from "crypto"
+
+interface ExtornoNotificationData {
+  extorno_id: number
+  tipo: "registro" | "tramitacion" | "confirmacion" | "rechazo"
+  usuario_registra_email?: string
+  usuario_registra_nombre?: string
+  usuario_tramita_email?: string
+  usuario_tramita_nombre?: string
+  usuario_rechaza_email?: string
+  usuario_rechaza_nombre?: string
+  motivo_rechazo?: string
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const notificationData: ExtornoNotificationData = await request.json()
+
+    console.log("📧 === INICIO ENVÍO EMAIL EXTORNO ===")
+    console.log("📧 Datos recibidos:", JSON.stringify(notificationData, null, 2))
+
+    const supabase = createClient()
+
+    // Obtener configuración de extornos
+    console.log("📧 Obteniendo configuración de extornos...")
+    const { data: config, error: configError } = await supabase.from("extornos_email_config").select("*").single()
+
+    if (configError) {
+      console.error("❌ Error obteniendo configuración:", configError)
+      return NextResponse.json({
+        success: false,
+        message: "Error obteniendo configuración de extornos",
+        error: configError,
+      })
+    }
+
+    if (!config.enabled) {
+      console.log("⚠️ Envío de emails de extornos deshabilitado en configuración")
+      return NextResponse.json({
+        success: false,
+        message: "Envío de emails de extornos deshabilitado",
+      })
+    }
+
+    // Verificar variables SMTP específicas de extornos
+    if (!process.env.SMTP_HOST || !process.env.EXTORNO_EMAIL || !process.env.EXTORNO_PASSWORD) {
+      console.error("❌ Configuración SMTP de extornos incompleta")
+      console.error("Variables requeridas: SMTP_HOST, EXTORNO_EMAIL, EXTORNO_PASSWORD")
+      return NextResponse.json({
+        success: false,
+        message: "Configuración SMTP de extornos incompleta",
+      })
+    }
+
+    // Obtener datos del extorno
+    const { data: extorno, error: extornoError } = await supabase
+      .from("extornos")
+      .select("*")
+      .eq("id", notificationData.extorno_id)
+      .single()
+
+    if (extornoError || !extorno) {
+      console.error("❌ Error obteniendo extorno:", extornoError)
+      return NextResponse.json({
+        success: false,
+        message: "Extorno no encontrado",
+      })
+    }
+
+    // Si es tramitación y no hay token, generarlo
+    if (notificationData.tipo === "tramitacion" && !extorno.confirmation_token) {
+      const confirmationToken = crypto.randomUUID()
+      console.log("🔑 Generando token de confirmación:", confirmationToken)
+
+      const { error: tokenError } = await supabase
+        .from("extornos")
+        .update({ confirmation_token: confirmationToken })
+        .eq("id", notificationData.extorno_id)
+
+      if (tokenError) {
+        console.error("❌ Error guardando token:", tokenError)
+      } else {
+        console.log("✅ Token guardado correctamente")
+        extorno.confirmation_token = confirmationToken
+      }
+    }
+
+    // Configuración del transporter con credenciales de extornos
+    console.log("📧 Configurando transporter con credenciales de extornos...")
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: Number.parseInt(process.env.SMTP_PORT || "465"),
+      secure: true,
+      auth: {
+        user: process.env.EXTORNO_EMAIL, // ✅ Usar cuenta de extornos
+        pass: process.env.EXTORNO_PASSWORD, // ✅ Usar password de extornos
+      },
+      tls: {
+        rejectUnauthorized: false,
+      },
+    })
+
+    // Verificar conexión SMTP
+    try {
+      await transporter.verify()
+      console.log("✅ Conexión SMTP verificada correctamente con extorno@controlvo.ovh")
+    } catch (verifyError) {
+      console.error("❌ Error verificando conexión SMTP:", verifyError)
+      return NextResponse.json({
+        success: false,
+        message: "Error de conexión SMTP",
+        error: verifyError.message,
+      })
+    }
+
+    // Preparar destinatarios según el tipo de notificación
+    const recipients = new Set<string>()
+
+    if (notificationData.tipo === "registro" || notificationData.tipo === "rechazo") {
+      // Para registro y rechazo: usuario que registra + tramitador + CC
+      if (notificationData.usuario_registra_email) {
+        recipients.add(notificationData.usuario_registra_email)
+      }
+      if (config.email_tramitador) {
+        recipients.add(config.email_tramitador)
+      }
+      // Para rechazo, también añadir el usuario que rechaza
+      if (notificationData.tipo === "rechazo" && notificationData.usuario_rechaza_email) {
+        recipients.add(notificationData.usuario_rechaza_email)
+      }
+    } else if (notificationData.tipo === "tramitacion") {
+      // Para tramitación: usuario que registra + usuario que tramita + pagador + CC
+      if (notificationData.usuario_registra_email) {
+        recipients.add(notificationData.usuario_registra_email)
+      }
+      if (notificationData.usuario_tramita_email) {
+        recipients.add(notificationData.usuario_tramita_email)
+      }
+      if (config.email_pagador) {
+        recipients.add(config.email_pagador)
+      }
+    } else if (notificationData.tipo === "confirmacion") {
+      // Para confirmación: todos
+      if (notificationData.usuario_registra_email) {
+        recipients.add(notificationData.usuario_registra_email)
+      }
+      if (notificationData.usuario_tramita_email) {
+        recipients.add(notificationData.usuario_tramita_email)
+      }
+      if (config.email_pagador) {
+        recipients.add(config.email_pagador)
+      }
+    }
+
+    const recipientsList = Array.from(recipients)
+    const ccEmails = config.cc_emails || []
+
+    if (recipientsList.length === 0 && ccEmails.length === 0) {
+      console.error("❌ No hay destinatarios válidos")
+      return NextResponse.json({
+        success: false,
+        message: "No hay destinatarios válidos",
+      })
+    }
+
+    // Generar contenido del email
+    const htmlContent = generateExtornoEmailHTML(extorno, notificationData, config)
+
+    // Preparar asunto simple
+    const concesionTexto = extorno.concesion === 1 ? "Motor Múnich SA" : "Motor Múnich Cadí"
+    const fechaConBarras = new Date(extorno.created_at).toLocaleDateString("es-ES", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    })
+    const numeroClienteTexto = extorno.numero_cliente ? ` ${extorno.numero_cliente}` : ""
+
+    let subject = ""
+    if (notificationData.tipo === "registro") {
+      subject = `Extorno Registrado ${extorno.matricula} ${extorno.cliente}${numeroClienteTexto} ${concesionTexto} ${fechaConBarras}`
+    } else if (notificationData.tipo === "tramitacion") {
+      subject = `Extorno Revisado ${extorno.matricula} ${extorno.cliente}${numeroClienteTexto} ${concesionTexto} ${fechaConBarras}`
+    } else if (notificationData.tipo === "confirmacion") {
+      subject = `Extorno Confirmado ${extorno.matricula} ${extorno.cliente}${numeroClienteTexto} ${concesionTexto} ${fechaConBarras}`
+    } else if (notificationData.tipo === "rechazo") {
+      subject = `Extorno Rechazado ${extorno.matricula} ${extorno.cliente}${numeroClienteTexto} ${concesionTexto} ${fechaConBarras}`
+    }
+
+    // Preparar opciones del email con remitente correcto
+    const mailOptions = {
+      from: `"Extorno - Sistema CVO" <${process.env.EXTORNO_EMAIL}>`, // ✅ Usar cuenta de extornos
+      to: recipientsList.length > 0 ? recipientsList.join(",") : undefined,
+      cc: ccEmails.length > 0 ? ccEmails.join(",") : undefined,
+      subject: subject,
+      html: htmlContent,
+      text: `${notificationData.usuario_registra_nombre || "Usuario"} ha ${
+        notificationData.tipo === "registro"
+          ? "registrado"
+          : notificationData.tipo === "rechazo"
+            ? "rechazado"
+            : "actualizado"
+      } un extorno`,
+    }
+
+    console.log("📧 Opciones finales del email:", {
+      from: mailOptions.from,
+      to: mailOptions.to,
+      cc: mailOptions.cc,
+      subject: mailOptions.subject,
+    })
+
+    // Enviar email
+    console.log("📧 Enviando email desde extorno@controlvo.ovh...")
+    const result = await transporter.sendMail(mailOptions)
+    console.log("✅ Email enviado exitosamente:", result.messageId)
+
+    return NextResponse.json({
+      success: true,
+      message: "Email enviado exitosamente",
+      messageId: result.messageId,
+      recipients: {
+        to: mailOptions.to,
+        cc: mailOptions.cc,
+      },
+    })
+  } catch (error) {
+    console.error("❌ Error crítico enviando email:", error)
+    return NextResponse.json({
+      success: false,
+      message: "Error crítico enviando email",
+      error: error.message,
+    })
+  }
+}
+
+function generateExtornoEmailHTML(extorno: any, notificationData: ExtornoNotificationData, config: any) {
+  if (notificationData.tipo === "tramitacion") {
+    return generateTramitacionEmailHTML(extorno, notificationData)
+  } else if (notificationData.tipo === "rechazo") {
+    return generateRechazoEmailHTML(extorno, notificationData)
+  } else {
+    return generateRegistroEmailHTML(extorno, notificationData)
+  }
+}
+
+function generateRegistroEmailHTML(extorno: any, notificationData: ExtornoNotificationData) {
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #333; margin: 0; padding: 20px; background-color: #f8f9fa;">
+   <div style="max-width: 800px; margin: 0 auto; background-color: white; padding: 25px; border-radius: 8px;">
+       <div style="text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #e9ecef;">
+           <h2 style="margin: 0; color: #495057;">Extorno Registrado</h2>
+       </div>
+       
+       <div style="margin-bottom: 20px; font-size: 16px;">
+           Estimados compañeros,
+       </div>
+       
+       <div style="margin-bottom: 25px; font-size: 16px; font-weight: 500; color: #495057;">
+           <strong>${notificationData.usuario_registra_nombre || "Usuario del sistema"}</strong> ha registrado el siguiente extorno:
+       </div>
+
+       <div style="margin-bottom: 20px;">
+           <div style="background-color: #6c757d; color: white; padding: 12px; font-weight: bold; text-transform: uppercase; text-align: left; font-size: 14px; margin-bottom: 0;">
+               DETALLES DEL EXTORNO
+           </div>
+           <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px; border: 1px solid #dee2e6;">
+               <tbody>
+                   <tr style="background-color: white;">
+                       <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600;">Matrícula</td>
+                       <td style="padding: 12px; border: 1px solid #dee2e6;">${extorno.matricula}</td>
+                   </tr>
+                   <tr style="background-color: #f8f9fa;">
+                       <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600;">Cliente</td>
+                       <td style="padding: 12px; border: 1px solid #dee2e6;">${extorno.cliente}</td>
+                   </tr>
+                   ${
+                     extorno.numero_cliente
+                       ? `
+                   <tr style="background-color: white;">
+                       <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600;">Número Cliente</td>
+                       <td style="padding: 12px; border: 1px solid #dee2e6;">${extorno.numero_cliente}</td>
+                   </tr>
+                   `
+                       : ""
+                   }
+                   <tr style="background-color: ${extorno.numero_cliente ? "#f8f9fa" : "white"};">
+                       <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600;">Concepto</td>
+                       <td style="padding: 12px; border: 1px solid #dee2e6;">${extorno.concepto}</td>
+                   </tr>
+                   <tr style="background-color: ${extorno.numero_cliente ? "white" : "#f8f9fa"};">
+                       <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600;">Importe</td>
+                       <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: bold; color: #dc3545;">${extorno.importe.toLocaleString(
+                         "es-ES",
+                         { minimumFractionDigits: 2, maximumFractionDigits: 2 },
+                       )} €</td>
+                   </tr>
+                   ${
+                     extorno.numero_cuenta
+                       ? `
+                   <tr style="background-color: ${extorno.numero_cliente ? "#f8f9fa" : "white"};">
+                       <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600;">Número de Cuenta</td>
+                       <td style="padding: 12px; border: 1px solid #dee2e6; font-family: monospace;">${extorno.numero_cuenta}</td>
+                   </tr>
+                   `
+                       : ""
+                   }
+                   <tr style="background-color: #f8f9fa;">
+                       <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600;">Concesión</td>
+                       <td style="padding: 12px; border: 1px solid #dee2e6;">${extorno.concesion === 1 ? "Motor Múnich SA" : "Motor Múnich Cadí"}</td>
+                   </tr>
+                   <tr style="background-color: white;">
+                       <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600;">Fecha</td>
+                       <td style="padding: 12px; border: 1px solid #dee2e6;">${new Date(
+                         extorno.created_at,
+                       ).toLocaleDateString("es-ES")}</td>
+                   </tr>
+               </tbody>
+           </table>
+       </div>
+
+       <div style="margin: 30px 0 20px 0; font-size: 16px;">
+           Atentamente,<br>
+           <strong>Sistema de Extornos CVO</strong>
+       </div>
+
+       <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e9ecef; font-size: 12px; color: #6c757d; font-style: italic; text-align: center;">
+           Este es un mensaje automático, por favor no responda a este correo.
+       </div>
+       
+       <div style="margin-top: 40px; text-align: center; color: #6c757d; font-size: 12px;">
+           <hr style="border: none; border-top: 1px solid #e9ecef; margin: 20px 0;">
+           Control Vehículos de Ocasión | ${new Date().getFullYear()}
+       </div>
+   </div>
+</body>
+</html>`
+}
+
+function generateRechazoEmailHTML(extorno: any, notificationData: ExtornoNotificationData) {
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #333; margin: 0; padding: 20px; background-color: #f8f9fa;">
+   <div style="max-width: 800px; margin: 0 auto; background-color: white; padding: 25px; border-radius: 8px;">
+       <div style="text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #e9ecef;">
+           <h2 style="margin: 0; color: #dc3545;">Extorno Rechazado</h2>
+       </div>
+       
+       <div style="margin-bottom: 20px; font-size: 16px;">
+           Estimados compañeros,
+       </div>
+       
+       <div style="margin-bottom: 25px; font-size: 16px; font-weight: 500; color: #495057;">
+           <strong>${notificationData.usuario_rechaza_nombre || "El revisor"}</strong> ha rechazado el extorno <strong>${extorno.matricula}</strong> solicitado por <strong>${notificationData.usuario_registra_nombre || "el usuario"}</strong>.
+       </div>
+
+       <div style="margin-bottom: 20px;">
+           <div style="background-color: #dc3545; color: white; padding: 12px; font-weight: bold; text-transform: uppercase; text-align: left; font-size: 14px; margin-bottom: 0;">
+               DETALLES DEL EXTORNO RECHAZADO
+           </div>
+           <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px; border: 1px solid #dee2e6;">
+               <tbody>
+                   <tr style="background-color: white;">
+                       <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600;">Matrícula</td>
+                       <td style="padding: 12px; border: 1px solid #dee2e6;">${extorno.matricula}</td>
+                   </tr>
+                   <tr style="background-color: #f8f9fa;">
+                       <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600;">Cliente</td>
+                       <td style="padding: 12px; border: 1px solid #dee2e6;">${extorno.cliente}</td>
+                   </tr>
+                   ${
+                     extorno.numero_cliente
+                       ? `
+                   <tr style="background-color: white;">
+                       <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600;">Número Cliente</td>
+                       <td style="padding: 12px; border: 1px solid #dee2e6;">${extorno.numero_cliente}</td>
+                   </tr>
+                   `
+                       : ""
+                   }
+                   <tr style="background-color: ${extorno.numero_cliente ? "#f8f9fa" : "white"};">
+                       <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600;">Concepto</td>
+                       <td style="padding: 12px; border: 1px solid #dee2e6;">${extorno.concepto}</td>
+                   </tr>
+                   <tr style="background-color: ${extorno.numero_cliente ? "white" : "#f8f9fa"};">
+                       <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600;">Importe</td>
+                       <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: bold; color: #dc3545; font-size: 18px;">${extorno.importe.toLocaleString(
+                         "es-ES",
+                         { minimumFractionDigits: 2, maximumFractionDigits: 2 },
+                       )} €</td>
+                   </tr>
+                   ${
+                     extorno.numero_cuenta
+                       ? `
+                   <tr style="background-color: ${extorno.numero_cliente ? "#f8f9fa" : "white"};">
+                       <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600;">Número de Cuenta</td>
+                       <td style="padding: 12px; border: 1px solid #dee2e6; font-family: monospace;">${extorno.numero_cuenta}</td>
+                   </tr>
+                   `
+                       : ""
+                   }
+                   <tr style="background-color: #f8f9fa;">
+                       <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600;">Concesión</td>
+                       <td style="padding: 12px; border: 1px solid #dee2e6;">${extorno.concesion === 1 ? "Motor Múnich SA" : "Motor Múnich Cadí"}</td>
+                   </tr>
+                   <tr style="background-color: white;">
+                       <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600;">Fecha Solicitud</td>
+                       <td style="padding: 12px; border: 1px solid #dee2e6;">${new Date(
+                         extorno.created_at,
+                       ).toLocaleDateString("es-ES")}</td>
+                   </tr>
+                   <tr style="background-color: #f8f9fa;">
+                       <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600;">Solicitado por</td>
+                       <td style="padding: 12px; border: 1px solid #dee2e6;">${notificationData.usuario_registra_nombre || "Usuario del sistema"}</td>
+                   </tr>
+                   <tr style="background-color: white;">
+                       <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600;">Rechazado por</td>
+                       <td style="padding: 12px; border: 1px solid #dee2e6;">${notificationData.usuario_rechaza_nombre || "Usuario del sistema"}</td>
+                   </tr>
+                   ${
+                     notificationData.motivo_rechazo
+                       ? `
+                   <tr style="background-color: #f8f9fa;">
+                       <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600;">Motivo Rechazo</td>
+                       <td style="padding: 12px; border: 1px solid #dee2e6; color: #dc3545; font-weight: 500;">${notificationData.motivo_rechazo}</td>
+                   </tr>
+                   `
+                       : ""
+                   }
+               </tbody>
+           </table>
+       </div>
+
+       <!-- Mensaje de rechazo -->
+       <div style="margin: 30px 0; text-align: center; padding: 20px; background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 8px;">
+           <h3 style="margin: 0 0 15px 0; color: #721c24;">Extorno Rechazado</h3>
+           <p style="margin: 0; color: #721c24; font-weight: 500;">
+               Este extorno ha sido rechazado. No se procesará ningún pago.
+           </p>
+       </div>
+
+       <div style="margin: 30px 0 20px 0; font-size: 16px;">
+           Atentamente,<br>
+           <strong>Sistema de Extornos CVO</strong>
+       </div>
+
+       <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e9ecef; font-size: 12px; color: #6c757d; font-style: italic; text-align: center;">
+           Este es un mensaje automático, por favor no responda a este correo.
+       </div>
+       
+       <div style="margin-top: 40px; text-align: center; color: #6c757d; font-size: 12px;">
+           <hr style="border: none; border-top: 1px solid #e9ecef; margin: 20px 0;">
+           Control Vehículos de Ocasión | ${new Date().getFullYear()}
+       </div>
+   </div>
+</body>
+</html>`
+}
+
+function generateTramitacionEmailHTML(extorno: any, notificationData: ExtornoNotificationData) {
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://controlvo.ovh"
+  const confirmUrl = `${baseUrl}/api/extornos/confirm-payment?token=${extorno.confirmation_token}&extorno_id=${extorno.id}`
+
+  console.log("🔗 URL de confirmación generada:", confirmUrl)
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #333; margin: 0; padding: 20px; background-color: #f8f9fa;">
+   <div style="max-width: 800px; margin: 0 auto; background-color: white; padding: 25px; border-radius: 8px;">
+       <div style="text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #e9ecef;">
+           <h2 style="margin: 0; color: #495057;">Extorno Revisado</h2>
+       </div>
+       
+       <div style="margin-bottom: 20px; font-size: 16px;">
+           Estimados compañeros,
+       </div>
+       
+       <div style="margin-bottom: 25px; font-size: 16px; font-weight: 500; color: #495057;">
+           <strong>${notificationData.usuario_tramita_nombre || "El revisor"}</strong> ha revisado el extorno <strong>${extorno.matricula}</strong> solicitado por <strong>${notificationData.usuario_registra_nombre || "el usuario"}</strong> y es correcto. Por favor proceder al pago del mismo.
+       </div>
+
+       <div style="margin-bottom: 20px;">
+           <div style="background-color: #28a745; color: white; padding: 12px; font-weight: bold; text-transform: uppercase; text-align: left; font-size: 14px; margin-bottom: 0;">
+               DATOS DEL EXTORNO APROBADO
+           </div>
+           <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px; border: 1px solid #dee2e6;">
+               <tbody>
+                   <tr style="background-color: white;">
+                       <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600;">Matrícula</td>
+                       <td style="padding: 12px; border: 1px solid #dee2e6;">${extorno.matricula}</td>
+                   </tr>
+                   <tr style="background-color: #f8f9fa;">
+                       <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600;">Cliente</td>
+                       <td style="padding: 12px; border: 1px solid #dee2e6;">${extorno.cliente}</td>
+                   </tr>
+                   ${
+                     extorno.numero_cliente
+                       ? `
+                   <tr style="background-color: white;">
+                       <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600;">Número Cliente</td>
+                       <td style="padding: 12px; border: 1px solid #dee2e6;">${extorno.numero_cliente}</td>
+                   </tr>
+                   `
+                       : ""
+                   }
+                   <tr style="background-color: ${extorno.numero_cliente ? "#f8f9fa" : "white"};">
+                       <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600;">Concepto</td>
+                       <td style="padding: 12px; border: 1px solid #dee2e6;">${extorno.concepto}</td>
+                   </tr>
+                   <tr style="background-color: ${extorno.numero_cliente ? "white" : "#f8f9fa"};">
+                       <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600;">Importe</td>
+                       <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: bold; color: #dc3545; font-size: 18px;">${extorno.importe.toLocaleString(
+                         "es-ES",
+                         { minimumFractionDigits: 2, maximumFractionDigits: 2 },
+                       )} €</td>
+                   </tr>
+                   ${
+                     extorno.numero_cuenta
+                       ? `
+                   <tr style="background-color: ${extorno.numero_cliente ? "#f8f9fa" : "white"};">
+                       <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600;">Número de Cuenta</td>
+                       <td style="padding: 12px; border: 1px solid #dee2e6; font-family: monospace; background-color: #f1f5f9; font-weight: bold;">${extorno.numero_cuenta}</td>
+                   </tr>
+                   `
+                       : ""
+                   }
+                   <tr style="background-color: #f8f9fa;">
+                       <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600;">Concesión</td>
+                       <td style="padding: 12px; border: 1px solid #dee2e6;">${extorno.concesion === 1 ? "Motor Múnich SA" : "Motor Múnich Cadí"}</td>
+                   </tr>
+                   <tr style="background-color: white;">
+                       <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600;">Fecha Solicitud</td>
+                       <td style="padding: 12px; border: 1px solid #dee2e6;">${new Date(
+                         extorno.created_at,
+                       ).toLocaleDateString("es-ES")}</td>
+                   </tr>
+                   <tr style="background-color: #f8f9fa;">
+                       <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600;">Solicitado por</td>
+                       <td style="padding: 12px; border: 1px solid #dee2e6;">${notificationData.usuario_registra_nombre || "Usuario del sistema"}</td>
+                   </tr>
+                   <tr style="background-color: white;">
+                       <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600;">Revisado por</td>
+                       <td style="padding: 12px; border: 1px solid #dee2e6;">${notificationData.usuario_tramita_nombre || "Usuario del sistema"}</td>
+                   </tr>
+               </tbody>
+           </table>
+       </div>
+
+       <!-- Botón de confirmación de pago -->
+       <div style="margin: 30px 0; text-align: center; padding: 20px; background-color: #e9ecef; border: 1px solid #dee2e6; border-radius: 8px;">
+           <h3 style="margin: 0 0 15px 0; color: #495057;">Confirmación de Pago</h3>
+           <p style="margin: 0 0 20px 0; color: #495057;">Una vez realizado el pago, haga clic en el siguiente botón para confirmar:</p>
+           <a href="${confirmUrl}" style="display: inline-block; background-color: #28a745; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
+               Confirmar Pago Realizado
+           </a>
+           <p style="margin: 15px 0 0 0; font-size: 12px; color: #6c757d;">
+               Si el botón no funciona, copie este enlace: <br>
+               <span style="font-family: monospace; background-color: #f8f9fa; padding: 2px 4px; border-radius: 3px;">${confirmUrl}</span>
+           </p>
+       </div>
+
+       <div style="margin: 30px 0 20px 0; font-size: 16px;">
+           Atentamente,<br>
+           <strong>Sistema de Extornos CVO</strong>
+       </div>
+
+       <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e9ecef; font-size: 12px; color: #6c757d; font-style: italic; text-align: center;">
+           Este es un mensaje automático, por favor no responda a este correo.
+       </div>
+       
+       <div style="margin-top: 40px; text-align: center; color: #6c757d; font-size: 12px;">
+           <hr style="border: none; border-top: 1px solid #e9ecef; margin: 20px 0;">
+           Control Vehículos de Ocasión | ${new Date().getFullYear()}
+       </div>
+   </div>
+</body>
+</html>`
+}

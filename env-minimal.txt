@@ -1,0 +1,38 @@
+# ========================================
+# VARIABLES MÍNIMAS PARA FUNCIONAMIENTO BÁSICO
+# ========================================
+# Copia este contenido a un archivo llamado .env.local
+
+# 🔑 SUPABASE (OBLIGATORIAS)
+NEXT_PUBLIC_SUPABASE_URL=tu_url_de_supabase_aqui
+NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_anon_key_aqui
+SUPABASE_SERVICE_ROLE_KEY=tu_service_role_key_aqui
+
+# 🌐 SITE URL (OBLIGATORIA)
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+
+# ========================================
+# VARIABLES OPCIONALES (para funcionalidades avanzadas)
+# ========================================
+
+# 📧 EMAIL (OPCIONAL - solo si quieres enviar emails)
+# SMTP_HOST=smtp.gmail.com
+# SMTP_PORT=587
+# SMTP_USER=tu_email@gmail.com
+# SMTP_PASSWORD=tu_app_password
+# EXTORNO_EMAIL=tu_email@gmail.com
+# EXTORNO_PASSWORD=tu_app_password
+
+# 🔔 NOTIFICACIONES PUSH (OPCIONAL)
+# NEXT_PUBLIC_VAPID_PUBLIC_KEY=tu_vapid_public_key
+# VAPID_PRIVATE_KEY=tu_vapid_private_key
+
+# 📁 BLOB STORAGE (OPCIONAL - para archivos)
+# BLOB_READ_WRITE_TOKEN=tu_blob_token
+
+# 📥 IMAP (OPCIONAL - para procesar emails entrantes)
+# IMAP_HOST=imap.gmail.com
+# IMAP_PORT=993
+# IMAP_USER=tu_email@gmail.com
+# IMAP_PASSWORD=tu_app_password
+# IMAP_TLS=true 

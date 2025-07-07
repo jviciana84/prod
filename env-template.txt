@@ -1,0 +1,22 @@
+# Copia este contenido a un archivo llamado .env.local en la raíz del proyecto
+
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url_here
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here
+
+# Site URL
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+
+# Email Configuration (opcional para desarrollo)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+EXTORNO_EMAIL=your_email@gmail.com
+EXTORNO_PASSWORD=your_app_password
+
+# VAPID Keys para notificaciones push (opcional)
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=your_vapid_public_key
+VAPID_PRIVATE_KEY=your_vapid_private_key
+
+# Blob Storage (opcional)
+BLOB_READ_WRITE_TOKEN=your_blob_token 

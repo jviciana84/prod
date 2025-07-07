@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restablecer Contraseña - CVO</title>
+</head>
+<body style="font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5;">
+    
+    <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        
+        <!-- Logo -->
+        <div style="text-align: center; margin-bottom: 30px;">
+            <h2 style="color: #4a5568; margin: 0;">CVO</h2>
+        </div>
+        
+        <!-- Título -->
+        <h1 style="color: #333; text-align: center; margin-bottom: 30px; font-size: 24px;">
+            Restablecer Contraseña
+        </h1>
+        
+        <!-- Contenido principal -->
+        <div style="color: #666; font-size: 16px; line-height: 1.6;">
+            <p>Hola,</p>
+            
+            <p>Recibimos una solicitud para restablecer tu contraseña.</p>
+            
+            <p>Haz clic en el botón para establecer una nueva contraseña:</p>
+        </div>
+        
+        <!-- Botón principal -->
+        <div style="text-align: center; margin: 40px 0;">
+            <a href="{{ .ConfirmationURL }}" 
+               style="background-color: #4a5568; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold; font-size: 16px;">
+                Cambiar Contraseña
+            </a>
+        </div>
+        
+        <!-- Información adicional -->
+        <div style="color: #666; font-size: 14px; line-height: 1.5;">
+            <p>Este enlace expira en 24 horas.</p>
+            <p>Si no solicitaste este cambio, ignora este correo.</p>
+        </div>
+        
+        <!-- Enlace alternativo -->
+        <div style="margin: 30px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px;">
+            <p style="color: #666; font-size: 12px; margin: 0 0 5px 0;">
+                ¿Problemas con el botón? Usa este enlace:
+            </p>
+            <p style="color: #4a5568; font-size: 12px; word-break: break-all; margin: 0;">
+                {{ .ConfirmationURL }}
+            </p>
+        </div>
+        
+        <!-- Pie de página -->
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center;">
+            <p style="color: #999; font-size: 12px; margin: 0;">
+                CVO - Sistema de Gestión<br>
+                Correo automático, no responder.
+            </p>
+        </div>
+        
+    </div>
+</body>
+</html>
