@@ -23,6 +23,7 @@ interface ExtornoData {
   tramitado_por_nombre?: string
   tramitado_por_id?: string
   fecha_tramitacion?: string
+  ultima_ip_confirmacion?: string
 }
 
 // Función para formatear fecha en DD/MM/AAAA
@@ -213,7 +214,9 @@ export function generateRealizadoEmailHTML(extorno: ExtornoData, justificanteUrl
     `<tr><td style='padding:8px 12px;font-weight:bold;'>Concesión</td><td style='padding:8px 12px;'>${concesionTexto}</td></tr>`,
     `<tr style='background:#f7f7f7;'><td style='padding:8px 12px;font-weight:bold;'>Fecha</td><td style='padding:8px 12px;'>${formatFechaDMY(extorno.fecha_solicitud || extorno.created_at || '')}</td></tr>`,
     `<tr><td style='padding:8px 12px;font-weight:bold;'>Registrado por</td><td style='padding:8px 12px;'>${extorno.registrado_por_nombre} <i>(${extorno.registrado_por_id})</i></td></tr>`,
-    `<tr style='background:#f7f7f7;'><td style='padding:8px 12px;font-weight:bold;'>Fecha de Pago</td><td style='padding:8px 12px;'>${formatFechaDMY(new Date().toISOString())}</td></tr>`
+    `<tr style='background:#f7f7f7;'><td style='padding:8px 12px;font-weight:bold;'>Tramitado por</td><td style='padding:8px 12px;'>${extorno.tramitado_por_nombre || extorno.tramitado_por_id || ''}</td></tr>`,
+    `<tr><td style='padding:8px 12px;font-weight:bold;'>Fecha de Pago</td><td style='padding:8px 12px;'>${formatFechaDMY(new Date().toISOString())}</td></tr>`,
+    `<tr style='background:#f7f7f7;'><td style='padding:8px 12px;font-weight:bold;'>Realizado por (IP)</td><td style='padding:8px 12px;'>${extorno.ultima_ip_confirmacion || ''}</td></tr>`
   ]
 
   const justificanteHtml = justificanteUrl ? `

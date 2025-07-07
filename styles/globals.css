@@ -92,3 +92,24 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Scrollbar global unificado para toda la app */
+::-webkit-scrollbar {
+  width: 8px;
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #b0b0b0;
+  border-radius: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Firefox */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: #b0b0b0 transparent;
+}
+
+/* No modificar el de los modales pequeños si ya es compacto */
