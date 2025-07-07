@@ -92,7 +92,7 @@ export function DashboardFooter() {
     : ""
 
   return (
-    <footer className="border-t border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-1 z-20 fixed bottom-0 left-0 right-0">
+    <footer className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-1 z-20 fixed bottom-0 left-0 right-0">
       <div className="container flex max-w-full px-4 md:px-6 lg:px-8 xl:px-10 items-center justify-between">
         <div className="text-sm text-muted-foreground">
           © {new Date().getFullYear()} CVO - Control Vehículos de Ocasión

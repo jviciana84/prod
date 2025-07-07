@@ -180,6 +180,7 @@ const Sidebar = React.forwardRef<
     if (collapsible === "none") {
       return (
         <div
+          style={{ backgroundColor: 'var(--sidebar-background)' }}
           className={cn(
             "flex h-full w-[--sidebar-width] flex-col bg-sidebar text-sidebar-foreground",
             className

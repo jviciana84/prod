@@ -29,8 +29,13 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex min-h-screen flex-col relative">
+      {/* Fondo sólido solo en modo oscuro */}
+      <div className="fixed inset-0 -z-10 pointer-events-none dark:block hidden" style={{background: '#111A23'}} />
+
+      {/* Fondo animado tipo blob eliminado, fondo oscuro liso */}
+
       {/* Fondo animado con cuadrícula y degradado */}
-      <AnimatedGridBackgroundDashboard />
+      {/* <AnimatedGridBackgroundDashboard /> */}
 
       {/* Header siempre visible en la parte superior */}
       <DashboardHeader user={session.user} roles={roles} />

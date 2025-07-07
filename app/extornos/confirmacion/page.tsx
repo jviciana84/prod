@@ -13,32 +13,60 @@ function ConfirmationContent() {
   const [success, setSuccess] = useState<boolean | null>(null)
   const [message, setMessage] = useState<string>("")
   const [error, setError] = useState<string>("")
+  const [manualResult, setManualResult] = useState<string>("")
+
+  // Log para depuración
+  console.log("[DEBUG] Valor de token en URL:", token)
 
   useEffect(() => {
+    console.log("[DEBUG] useEffect ejecutado. Token:", token)
     if (!token) {
-      setError("Token de confirmación no proporcionado.")
+      setError("Token de confirmación no proporcionado en la URL. No se puede continuar.")
       setSuccess(false)
       return
     }
     fetch(`/api/extornos/confirm-payment?token=${token}`)
-      .then(res => res.text())
-      .then(html => {
+      .then(async res => {
+        const html = await res.text()
+        console.log("[DEBUG] Respuesta del endpoint:", html)
         if (html.includes("Pago Confirmado")) {
           setSuccess(true)
           setMessage("El pago del extorno ha sido confirmado correctamente.")
         } else if (html.includes("Token no válido") || html.includes("Error") || html.includes("No se pudo confirmar")) {
           setSuccess(false)
-          setError("No se pudo confirmar el pago. El token puede ser inválido o ya usado.")
+          // Extraer el mensaje de error del HTML si existe
+          const match = html.match(/<div class=["'](?:error|warning)["'][^>]*>[\s\S]*?<h2[^>]*>(.*?)<\/h2>([\s\S]*?)<\/div>/)
+          if (match) {
+            setError(`${match[1].replace(/<[^>]+>/g, "").trim()}\n${match[2].replace(/<[^>]+>/g, "").trim()}`)
+          } else {
+            setError("Error desconocido: " + html)
+          }
         } else {
           setSuccess(false)
-          setError("No se pudo confirmar el pago. Respuesta inesperada del servidor.")
+          setError("No se pudo confirmar el pago. Respuesta inesperada del servidor: " + html)
         }
       })
-      .catch(() => {
+      .catch((e) => {
         setSuccess(false)
-        setError("Error de red al intentar confirmar el pago.")
+        setError("Error de red al intentar confirmar el pago: " + e.message)
       })
   }, [token])
+
+  const handleManualFetch = async () => {
+    if (!token) {
+      setManualResult("Token no disponible en la URL.")
+      return
+    }
+    setManualResult("Llamando al endpoint...")
+    try {
+      const res = await fetch(`/api/extornos/confirm-payment?token=${token}`)
+      const html = await res.text()
+      setManualResult(html)
+      console.log("[DEBUG][ManualFetch] Respuesta:", html)
+    } catch (e: any) {
+      setManualResult("Error de red: " + e.message)
+    }
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
@@ -54,6 +82,15 @@ function ConfirmationContent() {
           </CardTitle>
         </CardHeader>
         <CardContent className="text-center space-y-4">
+          {/* Mostrar el token en pantalla para depuración */}
+          <div className="text-xs text-gray-500 mb-2">Token leído de la URL: <span className="font-mono">{token || "(no token)"}</span></div>
+          {/* Botón para forzar el fetch manualmente */}
+          <Button onClick={handleManualFetch} className="mb-2 w-full" variant="outline">Probar confirmación manual (debug)</Button>
+          {manualResult && (
+            <div className="p-2 bg-gray-200 dark:bg-gray-800 rounded text-left text-xs whitespace-pre-wrap max-h-40 overflow-auto">
+              {manualResult}
+            </div>
+          )}
           {message && (
             <div
               className={`p-4 rounded-md ${
@@ -68,7 +105,7 @@ function ConfirmationContent() {
           {error && (
             <div className="p-4 rounded-md bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200 flex items-start gap-2">
               <AlertTriangle className="h-5 w-5 mt-0.5 flex-shrink-0" />
-              <p className="text-left">{error}</p>
+              <pre className="text-left whitespace-pre-wrap">{error}</pre>
             </div>
           )}
           <p className="text-gray-600 dark:text-gray-400">

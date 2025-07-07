@@ -105,40 +105,46 @@ body {
     --accent-foreground: 240 5.9% 10%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
+    --border: 0 0% 68%;
     --input: 240 5.9% 90%;
     --ring: 240 5.9% 10%;
     --radius: 0.5rem;
+    --sidebar-background: rgba(255,255,255,0.85);
   }
   .dark {
-    /* Monokai Theme */
-    --background: 0 0% 4%;             /* #0a0a0a */
-    --foreground: 60 9% 98%;           /* #f8f8f2 */
+    /* Fondo principal Windows #1e1e1e */
+    --background: 0 0% 12%;
+    --foreground: 0 0% 100%; /* Texto principal #ffffff */
 
-    --card: 0 0% 8%;                   /* #141414 */
-    --card-foreground: 60 9% 98%;      /* #f8f8f2 */
+    /* Fondo de ventana Windows #252526 */
+    --card: 240 2% 15%;
+    --card-foreground: 0 0% 100%;
 
-    --popover: 0 0% 8%;                /* #141414 */
-    --popover-foreground: 60 9% 98%;   /* #f8f8f2 */
+    --popover: 240 2% 15%;
+    --popover-foreground: 0 0% 100%;
 
-    --primary: 135 94% 87%;            /* #a6e22e */
-    --primary-foreground: 0 0% 4%;     /* #0a0a0a */
+    /* Color de acento Windows #0078d7 */
+    --primary: 210 100% 42%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 12%;             /* #1e1e1e */
-    --secondary-foreground: 60 9% 98%; /* #f8f8f2 */
+    /* Control hover Windows #37373d */
+    --secondary: 240 6% 22%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 0 0% 12%;                 /* #1e1e1e */
-    --muted-foreground: 60 9% 70%;     /* #75715e */
+    --muted: 240 6% 22%;
+    --muted-foreground: 0 0% 80%; /* Texto secundario #cccccc */
 
-    --accent: 271 81% 56%;             /* #ae81ff */
-    --accent-foreground: 0 0% 4%;      /* #0a0a0a */
+    --accent: 240 6% 22%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%;          /* #f92672 */
-    --destructive-foreground: 0 0% 4%; /* #0a0a0a */
+    --destructive: 0 62.8% 40%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 12%;                /* #1e1e1e */
-    --input: 0 0% 12%;                 /* #1e1e1e */
-    --ring: 187 100% 77%;              /* #66d9ef */
+    /* Bordes Windows #3c3c3c */
+    --border: 0 0% 51%;
+    --input: 240 2% 15%;
+    --ring: 210 100% 42%; /* Mismo que primary para consistencia */
+    --sidebar-background: rgba(31,31,31,0.85);
   }
   .ocre {
     --background: 35 30% 90%;
@@ -165,15 +171,30 @@ body {
     --destructive: 0 70% 50%;
     --destructive-foreground: 35 40% 98%;
 
-    --border: 30 25% 80%;
+    --border: 30 25% 68%;
     --input: 30 25% 80%;
     --ring: 25 70% 45%;
+    --sidebar-background: rgba(247,243,233,0.85);
   }
   * {
     @apply border-border;
   }
   body {
     @apply bg-background text-foreground;
+  }
+  .bg-sidebar {
+    background-color: var(--sidebar-background) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  header, .sidebar, footer, .dashboard-header, .dashboard-footer {
+    background: var(--sidebar-background) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    border: none !important;
+    box-shadow: none !important;
   }
 }
 
@@ -278,4 +299,40 @@ body {
     linear-gradient(45deg, #3b82f6, #8b5cf6, #ef4444, #f97316, #3b82f6) border-box;
   background-size: 300% 300%;
   animation: gradient-rotate 8s ease-in-out infinite;
+}
+
+/* Scrollbar personalizado para modo claro y ocre */
+:root::-webkit-scrollbar, .ocre::-webkit-scrollbar {
+  width: 12px;
+  background: #f5f5f5;
+}
+:root::-webkit-scrollbar-thumb, .ocre::-webkit-scrollbar-thumb {
+  background: #d1cfc7;
+  border-radius: 6px;
+}
+:root::-webkit-scrollbar-thumb:hover, .ocre::-webkit-scrollbar-thumb:hover {
+  background: #b8b6ad;
+}
+
+/* Scrollbar personalizado para modo oscuro */
+.dark::-webkit-scrollbar {
+  width: 12px;
+  background: #181818;
+}
+.dark::-webkit-scrollbar-thumb {
+  background: #333333;
+  border-radius: 6px;
+}
+.dark::-webkit-scrollbar-thumb:hover {
+  background: #444444;
+}
+
+/* Firefox */
+:root, .ocre {
+  scrollbar-color: #d1cfc7 #f5f5f5;
+  scrollbar-width: thin;
+}
+.dark {
+  scrollbar-color: #333333 #181818;
+  scrollbar-width: thin;
 }

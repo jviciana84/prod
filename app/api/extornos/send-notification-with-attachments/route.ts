@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     console.log("✅ Usuario autenticado:", user.email)
 
     // Obtener datos del extorno
-    const { data: extorno, error: extornoError } = await supabase
+    let { data: extorno, error: extornoError } = await supabase
       .from("extornos")
       .select("*")
       .eq("id", extorno_id)
@@ -80,6 +80,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Extorno not found" }, { status: 404 })
     }
     console.log("📦 Datos de extorno:", extorno)
+
+    // === ARREGLO: Generar y guardar token si no existe en tramitación ===
+    if (tipo === "tramitacion" && !extorno.confirmation_token) {
+      const newToken = crypto.randomUUID();
+      console.log("[DEBUG] Token generado:", newToken);
+      const { error: tokenError } = await supabase
+        .from("extornos")
+        .update({ confirmation_token: newToken })
+        .eq("id", extorno_id);
+      if (tokenError) {
+        console.error("❌ Error guardando confirmation_token:", tokenError);
+        return NextResponse.json({ error: "Error guardando confirmation_token" }, { status: 500 });
+      }
+      // Volver a leer el extorno actualizado
+      const { data: extornoActualizado, error: extornoActualizadoError } = await supabase
+        .from("extornos")
+        .select("*")
+        .eq("id", extorno_id)
+        .single();
+      if (extornoActualizadoError || !extornoActualizado) {
+        console.error("❌ Error recargando extorno tras guardar token:", extornoActualizadoError);
+        return NextResponse.json({ error: "Error recargando extorno tras guardar token" }, { status: 500 });
+      }
+      extorno = extornoActualizado;
+      console.log("[DEBUG] Token guardado en BD tras recarga:", extorno.confirmation_token);
+    }
 
     // Obtener configuración de email de extornos
     let config = null
@@ -278,6 +304,7 @@ export async function POST(request: NextRequest) {
     let subject: string
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || request.nextUrl.origin
     const confirmationLink = `${siteUrl}/extornos/confirmacion?token=${extorno.confirmation_token}`
+    console.log("[DEBUG] Enlace de confirmación enviado en email:", confirmationLink);
 
     // Recopilar todos los documentos adjuntos
     let documentosAdjuntos: any[] = []
@@ -323,9 +350,9 @@ export async function POST(request: NextRequest) {
       case "rechazo":
         htmlContent = generateRechazoEmailHTML(datosRegistro)
         subject = `❌ Extorno #${extorno.id} Rechazado - ${extorno.matricula}`
-        break
+        break;
       default:
-        return NextResponse.json({ error: "Invalid email type" }, { status: 400 })
+        return NextResponse.json({ error: "Invalid email type" }, { status: 400 });
     }
 
     const mailOptions = {
@@ -336,7 +363,7 @@ export async function POST(request: NextRequest) {
       html: htmlContent,
       text: `Notificación de Extorno #${extorno.id} - ${extorno.matricula}`,
       attachments: attachments.length > 0 ? attachments : undefined,
-    }
+    };
 
     console.log("📧 Opciones del email de extorno con adjuntos:", {
       from: mailOptions.from,
@@ -344,33 +371,33 @@ export async function POST(request: NextRequest) {
       cc: mailOptions.cc,
       subject: mailOptions.subject,
       attachmentsCount: attachments.length,
-    })
+    });
 
-    const result = await transporter.sendMail(mailOptions)
-    console.log("✅ Email de extorno con adjuntos enviado exitosamente:", result.messageId)
+    const result = await transporter.sendMail(mailOptions);
+    console.log("✅ Email de extorno con adjuntos enviado exitosamente:", result.messageId);
 
     // Actualizar estado del extorno si es necesario (solo para tramitación y confirmación)
     if (tipo === "tramitacion" && extorno.estado === "pendiente") {
-      const { error: updateError } = await supabase.from("extornos").update({ estado: "tramitado" }).eq("id", extorno_id)
-      if (updateError) console.error("❌ Error actualizando estado a 'tramitado':", updateError)
+      const { error: updateError } = await supabase.from("extornos").update({ estado: "tramitado" }).eq("id", extorno_id);
+      if (updateError) console.error("❌ Error actualizando estado a 'tramitado':", updateError);
     } else if (tipo === "confirmacion" && extorno.estado === "tramitado") {
-      const { error: updateError } = await supabase.from("extornos").update({ estado: "realizado" }).eq("id", extorno_id)
-      if (updateError) console.error("❌ Error actualizando estado a 'realizado':", updateError)
+      const { error: updateError } = await supabase.from("extornos").update({ estado: "realizado" }).eq("id", extorno_id);
+      if (updateError) console.error("❌ Error actualizando estado a 'realizado':", updateError);
     } else if (tipo === "rechazo" && extorno.estado !== "rechazado") {
-      const { error: updateError } = await supabase.from("extornos").update({ estado: "rechazado" }).eq("id", extorno_id)
-      if (updateError) console.error("❌ Error actualizando estado a 'rechazado':", updateError)
+      const { error: updateError } = await supabase.from("extornos").update({ estado: "rechazado" }).eq("id", extorno_id);
+      if (updateError) console.error("❌ Error actualizando estado a 'rechazado':", updateError);
     }
 
-    console.log("📧 === FIN ENVÍO EMAIL EXTORNO CON ADJUNTOS ===")
+    console.log("📧 === FIN ENVÍO EMAIL EXTORNO CON ADJUNTOS ===");
 
     return NextResponse.json({
       success: true,
       message: "Email de extorno con adjuntos enviado exitosamente",
       messageId: result.messageId,
       recipients: { to: finalTo, cc: finalCc },
-    })
+    });
   } catch (error) {
-    console.error("❌ Error crítico enviando email de extorno con adjuntos:", error)
+    console.error("❌ Error crítico enviando email de extorno con adjuntos:", error);
     return NextResponse.json(
       {
         success: false,
@@ -378,6 +405,6 @@ export async function POST(request: NextRequest) {
         error: error instanceof Error ? error.message : "Error desconocido",
       },
       { status: 500 },
-    )
+    );
   }
 }

@@ -33,6 +33,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { useTheme } from "next-themes"
 
 interface SidebarItemProps {
   href: string
@@ -100,14 +101,23 @@ export default function DashboardSidebar({ roles }: DashboardSidebarProps) {
   const pathname = usePathname()
   const isAdmin = roles.includes("admin")
   const [isExpanded, setIsExpanded] = useState(false)
+  const { theme } = useTheme()
+
+  // Definir el color translúcido según el tema
+  let sidebarBg = "rgba(255,255,255,0.85)" // Día por defecto
+  if (theme === "dark") sidebarBg = "rgba(31,31,31,0.85)"
+  if (theme === "ocre") sidebarBg = "rgba(247,243,233,0.85)"
 
   return (
     <aside
       className={cn(
-        "fixed left-0 transition-all duration-300 ease-in-out bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-40 border-r overflow-y-auto scrollbar-hide",
+        "fixed left-0 transition-all duration-300 ease-in-out z-40 overflow-y-auto scrollbar-hide",
         isExpanded ? "w-64" : "w-16",
       )}
       style={{
+        background: sidebarBg,
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
         top: "56px", // Altura exacta del header
         bottom: "33px", // Altura exacta del footer (32.8px redondeado)
         height: "calc(100vh - 89px)", // 100vh - (header 56px + footer 33px)

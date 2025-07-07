@@ -2,18 +2,29 @@
 import { Moon, Sun, Sunset } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 export function ThemeToggle() {
   const { setTheme, theme } = useTheme()
   const [isOpen, setIsOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Determina el icono a mostrar según el tema activo
+  const getIcon = () => {
+    if (!mounted) return null // Evita el error de hidratación
+    if (theme === "dark") return <Moon className="h-5 w-5" />
+    if (theme === "ocre") return <Sunset className="h-5 w-5" />
+    return <Sun className="h-5 w-5" />
+  }
 
   return (
     <div className="relative">
       <Button variant="ghost" size="icon" onClick={() => setIsOpen(!isOpen)} className="relative">
-        <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 ocre:rotate-90 ocre:scale-0" />
-        <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 ocre:rotate-90 ocre:scale-0" />
-        <Sunset className="absolute h-5 w-5 rotate-90 scale-0 transition-all ocre:rotate-0 ocre:scale-100 dark:rotate-90 dark:scale-0" />
+        {getIcon()}
         <span className="sr-only">Cambiar tema</span>
       </Button>
 

@@ -154,7 +154,7 @@ export default function LoginPage() {
             </div>
 
             {/* Botón de emergencia debajo */}
-            <div className="pt-2 border-t border-gray-200 dark:border-gray-800">
+            <div className="pt-2 border-t border-border">
               <details className="text-sm text-muted-foreground">
                 <summary className="cursor-pointer hover:text-foreground transition-colors">
                   ¿Problemas para iniciar sesión?

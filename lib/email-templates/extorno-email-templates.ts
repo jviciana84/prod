@@ -62,6 +62,7 @@ export function generateRegistroEmailHTML(extorno: ExtornoData, tablaAdjuntosHtm
   ]
 
   const content = `
+    <div style="background:#FFB300;color:#fff;padding:40px 0;text-align:center;border-radius:12px 12px 0 0;font-size:1.7em;font-weight:bold;letter-spacing:0.5px;margin-bottom:0;width:100%;">NUEVA SOLICITUD DE EXTORNO</div>
     <p style="margin-bottom: 16px;">Estimados compañeros,</p>
     <p style="margin-bottom: 24px;"><strong>${extorno.registrado_por_nombre}</strong> ha registrado el siguiente extorno:</p>
     <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
