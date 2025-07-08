@@ -26,7 +26,7 @@ export async function GET(request: Request) {
     console.log("🔄 Iniciando carga de usuarios...")
     const startTime = Date.now()
 
-    // Obtener usuarios con sus roles usando una sola consulta optimizada
+    // Obtener usuarios con sus roles usando una consulta simple
     const { data: users, error } = await supabaseAdmin
       .from("profiles")
       .select(`
@@ -67,15 +67,28 @@ export async function GET(request: Request) {
           finalAvatarUrl = "/placeholder.svg"
         }
 
+        // Construir roles desde el campo role de profiles
+        let roles = []
+        if (user.role) {
+          // Si el role es una cadena, dividirla por comas
+          if (typeof user.role === 'string') {
+            roles = user.role.split(", ").map((roleName: string) => ({
+              id: roleName.toLowerCase(),
+              name: roleName.trim(),
+            }))
+          } else {
+            // Si es un solo rol
+            roles = [{
+              id: user.role.toLowerCase(),
+              name: user.role,
+            }]
+          }
+        }
+
         return {
           ...user,
           avatar_url: finalAvatarUrl, // Usar la URL de Blob o placeholder
-          roles: user.role
-            ? user.role.split(", ").map((roleName: string) => ({
-                id: roleName.toLowerCase(),
-                name: roleName.trim(),
-              }))
-            : [],
+          roles: roles,
         }
       }),
     )

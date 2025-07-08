@@ -393,7 +393,7 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
 
       <div className="container flex h-14 max-w-full px-4 md:px-6 lg:px-8 xl:px-10 items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Logo linkTo="/dashboard" />
+          <Logo size="header" linkTo="/dashboard" />
           <div className="hidden md:flex space-x-1">
             {roles.map((role, index) => (
               <Badge key={index} variant="outline" className={`${getRoleBadgeColor(role)}`}>

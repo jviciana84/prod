@@ -6,7 +6,10 @@
     "build": "next build",
     "dev": "next dev",
     "lint": "next lint",
-    "start": "next start"
+    "start": "next start",
+    "update-version": "node scripts/update-version.js",
+    "pre-commit": "npm run update-version && git add lib/version.ts",
+    "install-hooks": "node scripts/install-hooks.js"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",

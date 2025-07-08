@@ -30,13 +30,40 @@ export async function PUT(request: Request, { params }: { params: { userId: stri
       ...(roleName && { role: roleName }),
     }
 
-    console.log("📝 Datos que se van a actualizar:", updateData)
+    console.log("📝 Datos que se van a actualizar en profiles:", updateData)
 
-    const { error } = await supabaseAdmin.from("profiles").update(updateData).eq("id", params.userId)
+    // Actualizar la tabla profiles
+    const { error: profileError } = await supabaseAdmin.from("profiles").update(updateData).eq("id", params.userId)
 
-    if (error) {
-      console.error("Error updating user:", error)
-      return NextResponse.json({ message: error.message }, { status: 500 })
+    if (profileError) {
+      console.error("Error updating profile:", profileError)
+      return NextResponse.json({ message: profileError.message }, { status: 500 })
+    }
+
+    // Si se proporcionó un roleId, actualizar también la tabla user_roles
+    if (roleId) {
+      console.log("🔄 Actualizando tabla user_roles para usuario:", params.userId, "con roleId:", roleId)
+      
+      // Primero eliminar todos los roles existentes del usuario
+      const { error: deleteError } = await supabaseAdmin.from("user_roles").delete().eq("user_id", params.userId)
+
+      if (deleteError) {
+        console.error("Error al eliminar roles existentes:", deleteError)
+        return NextResponse.json({ message: deleteError.message }, { status: 500 })
+      }
+
+      // Luego asignar el nuevo rol
+      const { error: insertError } = await supabaseAdmin.from("user_roles").insert({
+        user_id: params.userId,
+        role_id: roleId,
+      })
+
+      if (insertError) {
+        console.error("Error al asignar nuevo rol:", insertError)
+        return NextResponse.json({ message: insertError.message }, { status: 500 })
+      }
+
+      console.log("✅ Tabla user_roles actualizada exitosamente")
     }
 
     return NextResponse.json({ message: "User updated successfully" })

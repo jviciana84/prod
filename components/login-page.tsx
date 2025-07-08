@@ -88,8 +88,8 @@ export default function LoginPage() {
           <CardHeader className="space-y-1 text-center pt-4 pb-2">
             <div className="flex justify-center">
               {/* Logo con tamaño extra grande */}
-              <div className="w-auto h-[125px] flex items-center justify-center">
-                <Logo size="xl" />
+              <div className="w-auto h-[92.5px] flex items-center justify-center">
+                <Logo size="xxl" />
               </div>
             </div>
             <CardTitle className="text-2xl font-bold tracking-tight mt-0">Iniciar Sesión</CardTitle>
