@@ -1,6 +1,5 @@
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { InfoIcon as InfoCircle } from "lucide-react"
-import PhotosTabs from "@/components/photos/photos-tabs"
 import PhotosSummary from "@/components/photos/photos-summary"
 import { Camera } from "lucide-react"
 
@@ -17,7 +16,7 @@ export default function SummaryPage() {
         <div className="flex items-center gap-3">
           <Camera className="h-8 w-8 text-yellow-600" />
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Resumen de Fotos</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Resumen de Fotografías</h1>
             <p className="text-muted-foreground">Estadísticas y resumen de fotografías</p>
           </div>
         </div>

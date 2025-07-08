@@ -1,7 +1,6 @@
 import type { Metadata } from "next"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { InfoIcon as InfoCircle } from "lucide-react"
-import PhotosTabs from "@/components/photos/photos-tabs"
 import TestPanel from "@/components/auto-assignment/test-panel"
 
 export const metadata: Metadata = {
@@ -21,8 +20,6 @@ export default function TestPage() {
           Gestión y seguimiento de fotografías de vehículos en el inventario
         </p>
       </div>
-
-      <PhotosTabs />
 
       <TestPanel />
     </div>

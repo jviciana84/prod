@@ -160,7 +160,7 @@ export default async function PrematureSalesVehiclesPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Por Fotos Pendientes</CardTitle>
+                            <CardTitle className="text-sm font-medium">Por Fotografías Pendientes</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">

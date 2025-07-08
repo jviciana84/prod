@@ -717,9 +717,9 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
         setFilteredVehicles(sortVehicles(updatedFilteredVehicles))
 
         const statusMessages = {
-          pendiente: "Fotos 360º pendientes",
-          en_proceso: "Fotos 360º en proceso",
-          completado: "Fotos 360º completadas",
+          pendiente: "Fotografías 360º pendientes",
+                  en_proceso: "Fotografías 360º en proceso",
+        completado: "Fotografías 360º completadas",
         }
 
         toast.success(statusMessages[newStatus] || "Estado 360º actualizado")

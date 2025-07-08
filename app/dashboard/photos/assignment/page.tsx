@@ -1,6 +1,5 @@
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { InfoIcon as InfoCircle } from "lucide-react"
-import PhotosTabs from "@/components/photos/photos-tabs"
 import PhotographerAssignments from "@/components/photos/photographer-assignments"
 
 export const metadata = {
@@ -20,8 +19,6 @@ export default function AssignmentPage() {
           Gestión y seguimiento de fotografías de vehículos en el inventario
         </p>
       </div>
-
-      <PhotosTabs />
 
       <PhotographerAssignments />
     </div>

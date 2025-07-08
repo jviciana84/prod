@@ -6,11 +6,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import {
   Search,
   RefreshCw,
-  Printer,
   AlertTriangle,
   Trash2,
   AlertOctagon,
@@ -18,6 +17,14 @@ import {
   CheckCircle,
   Clock,
   XCircle,
+  Camera,
+  Users,
+  AlertCircle,
+  Hash,
+  CheckSquare,
+  Ban,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { differenceInDays } from "date-fns"
@@ -58,6 +65,13 @@ export default function PhotosTable() {
   const [paintStatusFilter, setpaintStatusFilter] = useState<string>("all")
   const [isLoading, setIsLoading] = useState(true)
   const [activePhotoTab, setActivePhotoTab] = useState<string>("all")
+  
+  // Estados para la paginación
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(15)
+  const [paginatedVehicles, setPaginatedVehicles] = useState<PhotoVehicle[]>([])
+  const [totalPages, setTotalPages] = useState(1)
+  
   const supabase = createClientComponentClient()
   const { toast } = useToast()
 
@@ -194,23 +208,58 @@ export default function PhotosTable() {
             .select("license_plate, sold_before_photos_ready")
             .eq("sold_before_photos_ready", true)
 
-          if (!error && soldVehicles) {
-            const soldLicensePlates = soldVehicles.map((v) => v.license_plate)
-            const soldWithoutPhotos = baseFilteredVehicles.filter(
-              (vehicle) => soldLicensePlates.includes(vehicle.license_plate) && !vehicle.photos_completed,
-            )
+          if (error) throw error
 
-            setFilteredVehicles(soldWithoutPhotos)
-          }
-        } catch (err) {
-          console.error("Error al obtener vehículos vendidos sin fotos:", err)
+          const soldLicensePlates = soldVehicles.map((v) => v.license_plate)
+          const soldWithoutPhotos = baseFilteredVehicles.filter((vehicle) =>
+            soldLicensePlates.includes(vehicle.license_plate),
+          )
+
+          setFilteredVehicles(soldWithoutPhotos)
+        } catch (error) {
+          console.error("Error al cargar vehículos vendidos sin fotos:", error)
+          setFilteredVehicles(baseFilteredVehicles)
         }
       }
 
       fetchSoldWithoutPhotos()
-      return
+    } else {
+      setFilteredVehicles(baseFilteredVehicles)
     }
   }, [vehicles, searchTerm, statusFilter, photographerFilter, paintStatusFilter, activePhotoTab])
+
+  // Actualizar la paginación cuando cambian los vehículos filtrados o la página actual
+  useEffect(() => {
+    const totalItems = filteredVehicles.length
+    const calculatedTotalPages = Math.ceil(totalItems / itemsPerPage)
+    setTotalPages(calculatedTotalPages || 1)
+
+    // Asegurarse de que la página actual no exceda el total de páginas
+    const safePage = Math.min(currentPage, calculatedTotalPages || 1)
+    if (safePage !== currentPage) {
+      setCurrentPage(safePage)
+    }
+
+    // Calcular los índices de inicio y fin para la página actual
+    const startIndex = (safePage - 1) * itemsPerPage
+    const endIndex = Math.min(startIndex + itemsPerPage, totalItems)
+
+    // Obtener los elementos para la página actual
+    const currentItems = filteredVehicles.slice(startIndex, endIndex)
+    setPaginatedVehicles(currentItems)
+  }, [filteredVehicles, currentPage, itemsPerPage])
+
+  // Función para cambiar de página
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page)
+    }
+  }
+
+  const handleItemsPerPageChange = (value: string) => {
+    setItemsPerPage(Number.parseInt(value, 10))
+    setCurrentPage(1) // Resetear a la primera página al cambiar el número de filas por página
+  }
 
   const calculatePendingDays = (vehicle: PhotoVehicle) => {
     let days = 0
@@ -478,266 +527,394 @@ export default function PhotosTable() {
 
   return (
     <div className="space-y-4">
-      {/* Resumen de vehículos */}
+      {/* Estadísticas en cards individuales */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {/* Pendientes */}
+        <Card className="p-4 relative">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Pendientes</p>
+              <p className="text-2xl font-bold">{pendingCount}</p>
+            </div>
+            <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-full">
+              <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            </div>
+          </div>
+        </Card>
+
+        {/* Completados */}
+        <Card className="p-4 relative">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Completados</p>
+              <p className="text-2xl font-bold">{completedCount}</p>
+            </div>
+            <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-full">
+              <CheckSquare className="h-4 w-4 text-green-600 dark:text-green-400" />
+            </div>
+          </div>
+        </Card>
+
+        {/* Errores */}
+        <Card className="p-4 relative">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Errores</p>
+              <p className="text-2xl font-bold text-red-500">{errorCount}</p>
+            </div>
+            <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-full">
+              <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+            </div>
+          </div>
+        </Card>
+
+        {/* Aptos */}
+        <Card className="p-4 relative">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Aptos</p>
+              <p className="text-2xl font-bold text-green-500">{aptoCount}</p>
+            </div>
+            <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-full">
+              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+            </div>
+          </div>
+        </Card>
+
+        {/* No Aptos/Pendientes */}
+        <Card className="p-4 relative">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">No Aptos/Pendientes</p>
+              <p className="text-2xl font-bold text-amber-500">{noAptoCount + pendienteCount}</p>
+            </div>
+            <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-full">
+              <Ban className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            </div>
+          </div>
+        </Card>
+
+        {/* Total */}
+        <Card className="p-4 relative">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Total</p>
+              <p className="text-2xl font-bold">{totalCount}</p>
+            </div>
+            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+              <Hash className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Card principal con filtros y tabla */}
       <Card>
-        <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-            <div className="flex flex-col">
-              <span className="text-sm text-muted-foreground">Pendientes</span>
-              <span className="text-2xl font-bold">{pendingCount}</span>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <Camera className="h-6 w-6 text-yellow-600" />
+            <div>
+              <CardTitle>Gestión de Vehículos</CardTitle>
+              <CardDescription>Filtra y gestiona el estado de las fotografías</CardDescription>
             </div>
-            <div className="flex flex-col">
-              <span className="text-sm text-muted-foreground">Completados</span>
-              <span className="text-2xl font-bold">{completedCount}</span>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Filtros */}
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex gap-2">
+              <Button
+                variant={activePhotoTab === "all" ? "default" : "outline"}
+                onClick={() => setActivePhotoTab("all")}
+                size="sm"
+              >
+                Todos
+              </Button>
+              <Button
+                variant={activePhotoTab === "sold_without_photos" ? "default" : "outline"}
+                onClick={() => setActivePhotoTab("sold_without_photos")}
+                size="sm"
+              >
+                Vendidos sin fotografías
+              </Button>
             </div>
-            <div className="flex flex-col">
-              <span className="text-sm text-muted-foreground">Errores</span>
-              <span className="text-2xl font-bold text-red-500">{errorCount}</span>
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por matrícula o modelo..."
+                className="pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
-            <div className="flex flex-col">
-              <span className="text-sm text-muted-foreground">Aptos</span>
-              <span className="text-2xl font-bold text-green-500">{aptoCount}</span>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full md:w-[200px]">
+                <SelectValue placeholder="Filtrar por estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los estados</SelectItem>
+                <SelectItem value="completed">Fotografiados</SelectItem>
+                <SelectItem value="pending">Pendientes</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={photographerFilter} onValueChange={setPhotographerFilter}>
+              <SelectTrigger className="w-full md:w-[200px]">
+                <SelectValue placeholder="Filtrar por fotógrafo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los fotógrafos</SelectItem>
+                <SelectItem value="null">Sin asignar</SelectItem>
+                {photographers.map((photographer) => (
+                  <SelectItem key={photographer.user_id} value={photographer.user_id}>
+                    {photographer.display_name || `Usuario ${photographer.user_id.substring(0, 8)}...`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={paintStatusFilter} onValueChange={setpaintStatusFilter}>
+              <SelectTrigger className="w-full md:w-[200px]">
+                <SelectValue placeholder="Filtrar por pintura" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los estados</SelectItem>
+                <SelectItem value="pendiente">Pendiente</SelectItem>
+                <SelectItem value="apto">Apto</SelectItem>
+                <SelectItem value="no_apto">No apto</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="flex gap-2">
+              <Button variant="outline" size="icon" onClick={fetchData} disabled={isLoading} className="h-10 w-10">
+                <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+              </Button>
             </div>
-            <div className="flex flex-col">
-              <span className="text-sm text-muted-foreground">No Aptos/Pendientes</span>
-              <span className="text-2xl font-bold text-amber-500">{noAptoCount + pendienteCount}</span>
+          </div>
+
+          {/* Tabla */}
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader className="bg-muted">
+                <TableRow>
+                  <TableHead className="font-semibold">MATRÍCULA</TableHead>
+                  <TableHead className="font-semibold">MODELO</TableHead>
+                  <TableHead className="font-semibold">DISPONIBLE</TableHead>
+                  <TableHead className="font-semibold">ESTADO PINTURA</TableHead>
+                  <TableHead className="font-semibold">ASIGNADO</TableHead>
+                  <TableHead className="font-semibold">FOTOGRAFIADO</TableHead>
+                  <TableHead className="font-semibold">DÍAS PENDIENTE</TableHead>
+                  <TableHead className="font-semibold">ACCIONES</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-8">
+                      <div className="flex justify-center items-center">
+                        <RefreshCw className="h-5 w-5 animate-spin mr-2" />
+                        <span>Cargando datos...</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : paginatedVehicles.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-4 text-muted-foreground">
+                      No se encontraron vehículos
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  paginatedVehicles.map((vehicle) => {
+                    const { days, color } = calculatePendingDays(vehicle)
+                    return (
+                      <TableRow key={vehicle.id}>
+                        <TableCell className="font-medium py-0.5">{vehicle.license_plate}</TableCell>
+                        <TableCell className="py-0.5">{vehicle.model}</TableCell>
+                        <TableCell className="py-0.5">
+                          <div className="flex items-center">
+                            <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                            <span>{formatDate(vehicle.disponible)}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-0.5">
+                          {vehicle.estado_pintura === "apto" ? (
+                            <div className="flex items-center justify-center h-8 w-full border border-green-300 dark:border-green-700 rounded-md px-2 text-green-600">
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              {formatDate(vehicle.paint_apto_date || vehicle.paint_status_date)}
+                            </div>
+                          ) : vehicle.estado_pintura === "no_apto" ? (
+                            <button
+                              className="flex items-center justify-center h-8 w-full rounded-md px-2 bg-red-100 text-red-800 border border-red-300 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700 dark:hover:bg-red-800/50 transition-colors"
+                              onClick={() => handlePaintStatusChange(vehicle.id)}
+                            >
+                              <XCircle className="h-4 w-4 mr-1" />
+                              No Apto
+                            </button>
+                          ) : (
+                            <button
+                              className="flex items-center justify-center h-8 w-full rounded-md px-2 bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-300 hover:text-amber-950 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700 dark:hover:bg-amber-800 dark:hover:text-amber-100 transition-colors"
+                              onClick={() => handlePaintStatusChange(vehicle.id)}
+                            >
+                              <Clock className="h-4 w-4 mr-1" />
+                              Pendiente
+                            </button>
+                          )}
+                        </TableCell>
+                        <TableCell className="py-0.5">
+                          <Select
+                            value={vehicle.assigned_to || "null"}
+                            onValueChange={(value) => handlePhotographerChange(vehicle.id, value || null)}
+                          >
+                            <SelectTrigger className="w-full h-8">
+                              <SelectValue placeholder="Sin asignar">
+                                {vehicle.assigned_to
+                                  ? photographers.find((p) => p.user_id === vehicle.assigned_to)?.display_name ||
+                                    "Usuario desconocido"
+                                  : "Sin asignar"}
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="null">Sin asignar</SelectItem>
+                              {photographers.map((photographer) => (
+                                <SelectItem key={photographer.user_id} value={photographer.user_id}>
+                                  {photographer.display_name || `Usuario ${photographer.user_id.substring(0, 8)}...`}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell className="py-0.5">
+                          {vehicle.photos_completed ? (
+                            <div className="flex items-center justify-center h-8 w-full border border-green-300 dark:border-green-700 rounded-md px-2 text-green-600">
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              {formatDate(vehicle.photos_completed_date)}
+                            </div>
+                          ) : (
+                            <button
+                              className="flex items-center justify-center h-8 w-full rounded-md px-2 bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-300 hover:text-amber-950 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700 dark:hover:bg-amber-800 dark:hover:text-amber-100 transition-colors"
+                              onClick={() => handlePhotoStatusChange(vehicle.id, true)}
+                            >
+                              <Clock className="h-4 w-4 mr-1" />
+                              Pendiente
+                            </button>
+                          )}
+                        </TableCell>
+                        <TableCell className="py-0.5">
+                          {typeof days === "number" ? (
+                            <Badge variant="outline" className={color}>
+                              {days}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline">-</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="py-0.5">
+                          <div className="flex items-center space-x-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-red-500 hover:text-red-600"
+                              onClick={() => handleDeleteVehicle(vehicle.id, vehicle.license_plate)}
+                              title="Eliminar"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                            {vehicle.photos_completed && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-amber-500 hover:text-amber-600"
+                                onClick={() => handleMarkAsError(vehicle.id)}
+                                title="Marcar como erróneo"
+                              >
+                                <AlertOctagon className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {vehicle.error_count > 0 && (
+                              <Badge
+                                variant="outline"
+                                className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+                              >
+                                <AlertTriangle className="h-3 w-3 mr-1" />
+                                {vehicle.error_count}
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Paginación */}
+          <div className="flex items-center justify-between px-2 py-4">
+            <div className="flex items-center space-x-2">
+              <p className="text-sm text-muted-foreground">
+                Mostrando {paginatedVehicles.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} a{" "}
+                {Math.min(currentPage * itemsPerPage, filteredVehicles.length)} de {filteredVehicles.length} resultados
+              </p>
             </div>
-            <div className="flex flex-col">
-              <span className="text-sm text-muted-foreground">Total</span>
-              <span className="text-2xl font-bold">{totalCount}</span>
+            <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2">
+                <p className="text-sm font-medium">Filas por página</p>
+                <Select value={`${itemsPerPage}`} onValueChange={handleItemsPerPageChange}>
+                  <SelectTrigger className="h-8 w-[70px]">
+                    <SelectValue placeholder={itemsPerPage} />
+                  </SelectTrigger>
+                  <SelectContent side="top">
+                    {[10, 15, 20, 30, 50].map((pageSize) => (
+                      <SelectItem key={pageSize} value={`${pageSize}`}>
+                        {pageSize}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  className="h-8 w-8 p-0"
+                  onClick={() => goToPage(1)}
+                  disabled={currentPage === 1}
+                >
+                  <span className="sr-only">Ir a la primera página</span>
+                  {"<<"}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-8 w-8 p-0"
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  <span className="sr-only">Ir a la página anterior</span>
+                  {"<"}
+                </Button>
+                <div className="flex w-[100px] items-center justify-center text-sm font-medium">
+                  Página {currentPage} de {totalPages}
+                </div>
+                <Button
+                  variant="outline"
+                  className="h-8 w-8 p-0"
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  <span className="sr-only">Ir a la página siguiente</span>
+                  {">"}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-8 w-8 p-0"
+                  onClick={() => goToPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                >
+                  <span className="sr-only">Ir a la última página</span>
+                  {">>"}
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
-
-      {/* Filtros */}
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="flex gap-2">
-          <Button
-            variant={activePhotoTab === "all" ? "default" : "outline"}
-            onClick={() => setActivePhotoTab("all")}
-            size="sm"
-          >
-            Todos
-          </Button>
-          <Button
-            variant={activePhotoTab === "sold_without_photos" ? "default" : "outline"}
-            onClick={() => setActivePhotoTab("sold_without_photos")}
-            size="sm"
-          >
-            Vendidos sin fotos
-          </Button>
-        </div>
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por matrícula o modelo..."
-            className="pl-10"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full md:w-[200px]">
-            <SelectValue placeholder="Filtrar por estado" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los estados</SelectItem>
-            <SelectItem value="completed">Fotografiados</SelectItem>
-            <SelectItem value="pending">Pendientes</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={photographerFilter} onValueChange={setPhotographerFilter}>
-          <SelectTrigger className="w-full md:w-[200px]">
-            <SelectValue placeholder="Filtrar por fotógrafo" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los fotógrafos</SelectItem>
-            <SelectItem value="null">Sin asignar</SelectItem>
-            {photographers.map((photographer) => (
-              <SelectItem key={photographer.user_id} value={photographer.user_id}>
-                {photographer.display_name || `Usuario ${photographer.user_id.substring(0, 8)}...`}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={paintStatusFilter} onValueChange={setpaintStatusFilter}>
-          <SelectTrigger className="w-full md:w-[200px]">
-            <SelectValue placeholder="Filtrar por pintura" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los estados</SelectItem>
-            <SelectItem value="pendiente">Pendiente</SelectItem>
-            <SelectItem value="apto">Apto</SelectItem>
-            <SelectItem value="no_apto">No apto</SelectItem>
-          </SelectContent>
-        </Select>
-        <div className="flex gap-2">
-          <Button variant="outline" size="icon" onClick={fetchData} disabled={isLoading} className="h-10 w-10">
-            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-          </Button>
-          <Button variant="outline" size="icon" onClick={() => window.print()} className="h-10 w-10">
-            <Printer className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
-      {/* Tabla */}
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader className="bg-muted">
-            <TableRow>
-              <TableHead className="font-semibold">MATRÍCULA</TableHead>
-              <TableHead className="font-semibold">MODELO</TableHead>
-              <TableHead className="font-semibold">DISPONIBLE</TableHead>
-              <TableHead className="font-semibold">ESTADO PINTURA</TableHead>
-              <TableHead className="font-semibold">ASIGNADO</TableHead>
-              <TableHead className="font-semibold">FOTOGRAFIADO</TableHead>
-              <TableHead className="font-semibold">DÍAS PENDIENTE</TableHead>
-              <TableHead className="font-semibold">ACCIONES</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center py-8">
-                  <div className="flex justify-center items-center">
-                    <RefreshCw className="h-5 w-5 animate-spin mr-2" />
-                    <span>Cargando datos...</span>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : filteredVehicles.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center py-4 text-muted-foreground">
-                  No se encontraron vehículos
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredVehicles.map((vehicle) => {
-                const { days, color } = calculatePendingDays(vehicle)
-                return (
-                  <TableRow key={vehicle.id}>
-                    <TableCell className="font-medium py-0.5">{vehicle.license_plate}</TableCell>
-                    <TableCell className="py-0.5">{vehicle.model}</TableCell>
-                    <TableCell className="py-0.5">
-                      <div className="flex items-center">
-                        <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span>{formatDate(vehicle.disponible)}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-0.5">
-                      {vehicle.estado_pintura === "apto" ? (
-                        <div className="flex items-center justify-center h-8 w-full border border-green-300 dark:border-green-700 rounded-md px-2 text-green-600">
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          {formatDate(vehicle.paint_apto_date || vehicle.paint_status_date)}
-                        </div>
-                      ) : vehicle.estado_pintura === "no_apto" ? (
-                        <button
-                          className="flex items-center justify-center h-8 w-full rounded-md px-2 bg-red-100 text-red-800 border border-red-300 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700 dark:hover:bg-red-800/50 transition-colors"
-                          onClick={() => handlePaintStatusChange(vehicle.id)}
-                        >
-                          <XCircle className="h-4 w-4 mr-1" />
-                          No Apto
-                        </button>
-                      ) : (
-                        <button
-                          className="flex items-center justify-center h-8 w-full rounded-md px-2 bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-300 hover:text-amber-950 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700 dark:hover:bg-amber-800 dark:hover:text-amber-100 transition-colors"
-                          onClick={() => handlePaintStatusChange(vehicle.id)}
-                        >
-                          <Clock className="h-4 w-4 mr-1" />
-                          Pendiente
-                        </button>
-                      )}
-                    </TableCell>
-                    <TableCell className="py-0.5">
-                      <Select
-                        value={vehicle.assigned_to || "null"}
-                        onValueChange={(value) => handlePhotographerChange(vehicle.id, value || null)}
-                      >
-                        <SelectTrigger className="w-full h-8">
-                          <SelectValue placeholder="Sin asignar">
-                            {vehicle.assigned_to
-                              ? photographers.find((p) => p.user_id === vehicle.assigned_to)?.display_name ||
-                                "Usuario desconocido"
-                              : "Sin asignar"}
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="null">Sin asignar</SelectItem>
-                          {photographers.map((photographer) => (
-                            <SelectItem key={photographer.user_id} value={photographer.user_id}>
-                              {photographer.display_name || `Usuario ${photographer.user_id.substring(0, 8)}...`}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell className="py-0.5">
-                      {vehicle.photos_completed ? (
-                        <div className="flex items-center justify-center h-8 w-full border border-green-300 dark:border-green-700 rounded-md px-2 text-green-600">
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          {formatDate(vehicle.photos_completed_date)}
-                        </div>
-                      ) : (
-                        <button
-                          className="flex items-center justify-center h-8 w-full rounded-md px-2 bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-300 hover:text-amber-950 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700 dark:hover:bg-amber-800 dark:hover:text-amber-100 transition-colors"
-                          onClick={() => handlePhotoStatusChange(vehicle.id, true)}
-                        >
-                          <Clock className="h-4 w-4 mr-1" />
-                          Pendiente
-                        </button>
-                      )}
-                    </TableCell>
-                    <TableCell className="py-0.5">
-                      {typeof days === "number" ? (
-                        <Badge variant="outline" className={color}>
-                          {days}
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline">-</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="py-0.5">
-                      <div className="flex items-center space-x-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-red-500 hover:text-red-600"
-                          onClick={() => handleDeleteVehicle(vehicle.id, vehicle.license_plate)}
-                          title="Eliminar"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                        {vehicle.photos_completed && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-amber-500 hover:text-amber-600"
-                            onClick={() => handleMarkAsError(vehicle.id)}
-                            title="Marcar como erróneo"
-                          >
-                            <AlertOctagon className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {vehicle.error_count > 0 && (
-                          <Badge
-                            variant="outline"
-                            className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
-                          >
-                            <AlertTriangle className="h-3 w-3 mr-1" />
-                            {vehicle.error_count}
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
     </div>
   )
 }

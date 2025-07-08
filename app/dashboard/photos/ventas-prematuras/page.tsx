@@ -61,7 +61,7 @@ function PrematureSalesTable({ sales }: { sales: any[] }) {
               <tr className="border-b">
                 <th className="text-left p-2">Matrícula</th>
                 <th className="text-left p-2">Vehículo</th>
-                <th className="text-left p-2">Estado Fotos</th>
+                <th className="text-left p-2">Estado Fotografías</th>
                 <th className="text-left p-2">Estado Carrocería</th>
                 <th className="text-left p-2">Razón</th>
                 <th className="text-left p-2">Detectado</th>

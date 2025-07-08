@@ -2,7 +2,6 @@ import type { Metadata } from "next"
 import PhotosTable from "@/components/photos/photos-table"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { InfoIcon as InfoCircle } from "lucide-react"
-import PhotosTabs from "@/components/photos/photos-tabs"
 import { Camera } from "lucide-react"
 
 export const metadata: Metadata = {
@@ -18,13 +17,11 @@ export default function PhotosPage() {
         <div className="flex items-center gap-3">
           <Camera className="h-8 w-8 text-yellow-600" />
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Fotos</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Fotografías</h1>
             <p className="text-muted-foreground">Gestión y subida de fotografías</p>
           </div>
         </div>
       </div>
-
-      <PhotosTabs />
 
       <PhotosTable />
     </div>
