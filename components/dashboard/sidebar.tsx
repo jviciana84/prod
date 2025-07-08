@@ -30,6 +30,7 @@ import {
   Target,
   Mail,
   Car,
+  Truck,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
@@ -115,15 +116,13 @@ export default function DashboardSidebar({ roles }: DashboardSidebarProps) {
   return (
     <aside
       className={cn(
-        "sidebar fixed left-0 transition-all duration-300 ease-in-out z-40 overflow-y-auto scrollbar-hide",
-        isExpanded ? "w-64" : "w-16",
+        "dashboard-sidebar transition-all duration-300 ease-in-out",
+        isExpanded ? "expanded" : "",
       )}
       style={{
         backdropFilter: "blur(8px)",
         WebkitBackdropFilter: "blur(8px)",
-        top: "56px", // Altura exacta del header
-        bottom: "33px", // Altura exacta del footer (32.8px redondeado)
-        height: "calc(100vh - 89px)", // 100vh - (header 56px + footer 33px)
+        backgroundColor: sidebarBg,
       }}
       onMouseEnter={() => setIsExpanded(true)}
       onMouseLeave={() => setIsExpanded(false)}
@@ -300,6 +299,14 @@ export default function DashboardSidebar({ roles }: DashboardSidebarProps) {
           icon={<PackageOpen className="h-5 w-5" />}
           title="Entregas"
           isActive={pathname === "/dashboard/entregas"}
+          isExpanded={isExpanded}
+        />
+
+        <SidebarItem
+          href="/dashboard/recogidas"
+          icon={<Truck className="h-5 w-5" />}
+          title="Solicitar Recogida"
+          isActive={pathname === "/dashboard/recogidas"}
           isExpanded={isExpanded}
         />
 

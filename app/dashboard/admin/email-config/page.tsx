@@ -41,9 +41,15 @@ export default function EmailConfigPage() {
     enabled: true,
     cc_emails: [],
   })
+  const [recogidasConfig, setRecogidasConfig] = useState<{ enabled: boolean; email_agencia: string; cc_emails: string[] }>({
+    enabled: true,
+    email_agencia: "recogidas@mrw.es",
+    cc_emails: [],
+  })
   const [newCcEmail, setNewCcEmail] = useState("")
   const [newExtornosCcEmail, setNewExtornosCcEmail] = useState("")
   const [newEntregasCcEmail, setNewEntregasCcEmail] = useState("")
+  const [newRecogidasCcEmail, setNewRecogidasCcEmail] = useState("")
   const [loading, setLoading] = useState(false)
   const [testEmail, setTestEmail] = useState("")
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -142,6 +148,33 @@ export default function EmailConfigPage() {
         console.warn("⚠️ Error en fetch de entregas:", error instanceof Error ? error.message : String(error))
         setEntregasConfig({
           enabled: true,
+          cc_emails: [],
+        })
+      }
+
+      // Cargar configuración de recogidas
+      try {
+        const recogidasResponse = await fetch("/api/admin/recogidas-email-config")
+        if (recogidasResponse.ok) {
+          const recogidasData = await recogidasResponse.json()
+          setRecogidasConfig({
+            enabled: recogidasData.enabled || true,
+            email_agencia: recogidasData.email_agencia || "recogidas@mrw.es",
+            cc_emails: recogidasData.cc_emails || [],
+          })
+        } else {
+          console.warn("⚠️ Error cargando configuración de recogidas:", recogidasResponse.status)
+          setRecogidasConfig({
+            enabled: true,
+            email_agencia: "recogidas@mrw.es",
+            cc_emails: [],
+          })
+        }
+      } catch (error) {
+        console.warn("⚠️ Error en fetch de recogidas:", error instanceof Error ? error.message : String(error))
+        setRecogidasConfig({
+          enabled: true,
+          email_agencia: "recogidas@mrw.es",
           cc_emails: [],
         })
       }
@@ -246,14 +279,18 @@ export default function EmailConfigPage() {
 
   const saveEntregasConfig = async () => {
     setLoading(true)
+
     try {
       const saveResponse = await fetch("/api/admin/entregas-email-config", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(entregasConfig),
       })
 
       const result = await saveResponse.json()
+
       if (!saveResponse.ok) {
         throw new Error(result.error || `Error ${saveResponse.status}`)
       }
@@ -264,6 +301,42 @@ export default function EmailConfigPage() {
         variant: "default",
       })
     } catch (error) {
+      console.error("❌ Error guardando configuración:", error)
+      toast({
+        title: "Error guardando configuración",
+        description: error.message,
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const saveRecogidasConfig = async () => {
+    setLoading(true)
+
+    try {
+      const saveResponse = await fetch("/api/admin/recogidas-email-config", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(recogidasConfig),
+      })
+
+      const result = await saveResponse.json()
+
+      if (!saveResponse.ok) {
+        throw new Error(result.error || `Error ${saveResponse.status}`)
+      }
+
+      toast({
+        title: "Configuración guardada",
+        description: "La configuración de recogidas ha sido actualizada.",
+        variant: "default",
+      })
+    } catch (error) {
+      console.error("❌ Error guardando configuración:", error)
       toast({
         title: "Error guardando configuración",
         description: error.message,
@@ -320,6 +393,23 @@ export default function EmailConfigPage() {
 
   const removeEntregasCcEmail = (email: string) => {
     setEntregasConfig((prev) => ({
+      ...prev,
+      cc_emails: prev.cc_emails.filter((e) => e !== email),
+    }))
+  }
+
+  const addRecogidasCcEmail = () => {
+    if (newRecogidasCcEmail.trim() && !recogidasConfig.cc_emails.includes(newRecogidasCcEmail.trim())) {
+      setRecogidasConfig((prev) => ({
+        ...prev,
+        cc_emails: [...prev.cc_emails, newRecogidasCcEmail.trim()],
+      }))
+      setNewRecogidasCcEmail("")
+    }
+  }
+
+  const removeRecogidasCcEmail = (email: string) => {
+    setRecogidasConfig((prev) => ({
       ...prev,
       cc_emails: prev.cc_emails.filter((e) => e !== email),
     }))
@@ -571,7 +661,7 @@ export default function EmailConfigPage() {
       </Alert>
 
       <Tabs defaultValue="movimientos" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="movimientos" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             Movimientos
@@ -579,6 +669,10 @@ export default function EmailConfigPage() {
           <TabsTrigger value="entregas" className="flex items-center gap-2">
             <Truck className="h-4 w-4" />
             Entregas
+          </TabsTrigger>
+          <TabsTrigger value="recogidas" className="flex items-center gap-2">
+            <Truck className="h-4 w-4" />
+            Recogidas
           </TabsTrigger>
           <TabsTrigger value="extornos" className="flex items-center gap-2">
             <ArrowRightLeft className="h-4 w-4" />
@@ -811,6 +905,92 @@ export default function EmailConfigPage() {
           <div className="flex justify-end">
             <Button onClick={saveEntregasConfig} disabled={loading}>
               {loading ? "Guardando..." : "Guardar Configuración de Entregas"}
+            </Button>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="recogidas" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Truck className="h-5 w-5" />
+                Estado del Sistema - Recogidas
+              </CardTitle>
+              <CardDescription>
+                Activar o desactivar el envío automático de notificaciones de recogidas
+                <br />
+                <strong>Remitente:</strong> recogidas@controlvo.ovh
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="recogidas-enabled"
+                  checked={recogidasConfig.enabled}
+                  onCheckedChange={(checked) => setRecogidasConfig((prev) => ({ ...prev, enabled: checked }))}
+                />
+                <Label htmlFor="recogidas-enabled">
+                  {recogidasConfig.enabled ? "✅ Envío automático activado" : "❌ Envío automático desactivado"}
+                </Label>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Cuentas en Copia - Recogidas</CardTitle>
+              <CardDescription>Estas cuentas recibirán copia de TODAS las notificaciones de recogidas</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex gap-2">
+                <Input
+                  type="email"
+                  placeholder="correo@ejemplo.com"
+                  value={newRecogidasCcEmail}
+                  onChange={(e) => setNewRecogidasCcEmail(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && addRecogidasCcEmail()}
+                />
+                <Button onClick={addRecogidasCcEmail} size="sm" disabled={!newRecogidasCcEmail}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {recogidasConfig.cc_emails.map((email, index) => (
+                  <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                    {email}
+                    <button onClick={() => removeRecogidasCcEmail(email)} className="ml-1 hover:text-destructive">
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+
+              {recogidasConfig.cc_emails.length === 0 && (
+                <p className="text-sm text-muted-foreground">No hay cuentas configuradas</p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Alert>
+            <Truck className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Proceso automático de recogidas:</strong>
+              <br />
+              1. <strong>Registro:</strong> Email a Usuario 1 (quien registra), Usuario 2 (CC) y Usuario 3 (tramitador)
+              <br />
+              2. <strong>Tramitación:</strong> Email a todos + Usuario 4 (pagador) con botón de confirmación
+              <br />
+              3. <strong>Confirmación:</strong> Email final a todos confirmando que el pago se completó
+              <br />
+              <br />
+              <strong>Las plantillas de email están predefinidas y optimizadas.</strong>
+            </AlertDescription>
+          </Alert>
+
+          <div className="flex justify-end">
+            <Button onClick={saveRecogidasConfig} disabled={loading}>
+              {loading ? "Guardando..." : "Guardar Configuración de Recogidas"}
             </Button>
           </div>
         </TabsContent>

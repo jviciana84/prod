@@ -1,0 +1,128 @@
+/* Estilos para el layout del dashboard con scroll controlado */
+
+/* Contenedor principal */
+.dashboard-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden; /* Evitar scroll en el contenedor principal */
+}
+
+/* Área de contenido principal */
+.dashboard-content-area {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  height: calc(100vh - 56px - 33px); /* 100vh - header - footer */
+}
+
+/* Contenido principal con scroll */
+.dashboard-main-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin-left: 64px; /* Ancho del sidebar colapsado */
+  padding: 1rem;
+  height: 100%;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+
+/* Estilos para la barra de scroll del contenido principal */
+.dashboard-main-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dashboard-main-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dashboard-main-content::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.5);
+  border-radius: 4px;
+}
+
+.dashboard-main-content::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(156, 163, 175, 0.7);
+}
+
+/* Scroll más oscuro para modo nocturno */
+.dark .dashboard-main-content::-webkit-scrollbar-thumb {
+  background-color: rgba(75, 85, 99, 0.6);
+}
+
+.dark .dashboard-main-content::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(75, 85, 99, 0.8);
+}
+
+/* Scroll para Firefox en modo nocturno */
+.dark .dashboard-main-content {
+  scrollbar-color: rgba(75, 85, 99, 0.6) transparent;
+}
+
+/* Sidebar fijo SIN scroll visible */
+.dashboard-sidebar {
+  position: fixed;
+  left: 0;
+  top: 56px; /* Altura del header */
+  bottom: 33px; /* Altura del footer */
+  width: 64px; /* Ancho colapsado */
+  transition: width 0.3s ease-in-out;
+  z-index: 40;
+  overflow: hidden; /* Sin scroll visible */
+}
+
+.dashboard-sidebar.expanded {
+  width: 256px; /* Ancho expandido */
+}
+
+/* Contenido del sidebar con scroll oculto */
+.dashboard-sidebar nav {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.dashboard-sidebar nav::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+
+/* Header fijo */
+.dashboard-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  z-index: 50;
+}
+
+/* Footer fijo */
+.dashboard-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 33px;
+  z-index: 50;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .dashboard-main-content {
+    margin-left: 0;
+    padding: 0.5rem;
+  }
+  
+  .dashboard-sidebar {
+    width: 0;
+    transform: translateX(-100%);
+  }
+  
+  .dashboard-sidebar.expanded {
+    width: 256px;
+    transform: translateX(0);
+  }
+} 

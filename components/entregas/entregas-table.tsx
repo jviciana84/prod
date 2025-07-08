@@ -26,6 +26,7 @@ import {
   FileText,
   FileCheck,
   CreditCard,
+  Truck,
 } from "lucide-react"
 import { parse, isValid } from "date-fns"
 import { toast } from "sonner"
@@ -47,7 +48,7 @@ import { formatDateForDisplay } from "@/lib/date-utils"
 import { getUserAsesorAlias } from "@/lib/user-mapping-improved"
 
 // Tipo de pestaña
-type EntregaTab = "todas" | "con_incidencia" | "sin_incidencia"
+type EntregaTab = "todas" | "con_incidencia" | "sin_incidencia" | "pendientes" | "docu_no_entregada"
 
 // Tipos de incidencias disponibles
 const TIPOS_INCIDENCIA: TipoIncidencia[] = [
@@ -86,6 +87,8 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
     todas: 0,
     con_incidencia: 0,
     sin_incidencia: 0,
+    pendientes: 0,
+    docu_no_entregada: 0,
   })
 
   const [editingCell, setEditingCell] = useState<EditingCell>(null)
@@ -272,6 +275,8 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
       sin_incidencia: data.filter(
         (v) => v.incidencia === false && (!v.tipos_incidencia || v.tipos_incidencia.length === 0),
       ).length,
+      pendientes: data.filter((v) => !v.fecha_entrega && !v.email_enviado).length,
+      docu_no_entregada: data.filter((v) => !v.fecha_entrega).length,
     })
   }
 
@@ -509,6 +514,11 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
     }
   }
 
+  const handleSolicitarRecogida = (entrega: Entrega) => {
+    // Redirigir a la página de recogidas con la matrícula preseleccionada
+    router.push(`/dashboard/recogidas?matricula=${entrega.matricula}`)
+  }
+
   useEffect(() => {
     let filtered = [...entregas]
     if (activeTab === "con_incidencia") {
@@ -517,6 +527,10 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
       filtered = filtered.filter(
         (e) => e.incidencia === false && (!e.tipos_incidencia || e.tipos_incidencia.length === 0),
       )
+    } else if (activeTab === "pendientes") {
+      filtered = filtered.filter((e) => !e.fecha_entrega && !e.email_enviado)
+    } else if (activeTab === "docu_no_entregada") {
+      filtered = filtered.filter((e) => !e.fecha_entrega)
     }
     if (searchQuery.trim() !== "") {
       const query = searchQuery.toLowerCase()
@@ -582,6 +596,18 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
                     <span>Todas</span>
                     <Badge variant="secondary" className="ml-1 text-xs px-1 py-0">
                       {counts.todas}
+                    </Badge>
+                  </TabsTrigger>
+                  <TabsTrigger value="pendientes" className="px-3 py-1 h-7 data-[state=active]:bg-background">
+                    <span>Pendientes</span>
+                    <Badge variant="secondary" className="ml-1 text-xs px-1 py-0">
+                      {counts.pendientes}
+                    </Badge>
+                  </TabsTrigger>
+                  <TabsTrigger value="docu_no_entregada" className="px-3 py-1 h-7 data-[state=active]:bg-background">
+                    <span>Docu. No entregada</span>
+                    <Badge variant="secondary" className="ml-1 text-xs px-1 py-0">
+                      {counts.docu_no_entregada}
                     </Badge>
                   </TabsTrigger>
                   <TabsTrigger value="con_incidencia" className="px-3 py-1 h-7 data-[state=active]:bg-background">
@@ -795,6 +821,17 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
                                   ) : (
                                     <Send className={cn("h-4 w-4", entrega.email_enviado && "text-green-600")} />
                                   )}
+                                </Button>
+
+                                {/* Botón de Solicitar Recogida */}
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-8 w-8 text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                                  title="Solicitar recogida de documentación"
+                                  onClick={() => handleSolicitarRecogida(entrega)}
+                                >
+                                  <Truck className="h-4 w-4" />
                                 </Button>
                               </div>
                             </TableCell>

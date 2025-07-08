@@ -383,7 +383,7 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       {/* Estilos para la animación del eclipse */}
       <style jsx global>{`
         @keyframes eclipseRotate {
@@ -516,11 +516,12 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
             <Button
               ref={avatarRef}
               variant="ghost"
-              className="relative h-10 w-10 rounded-full hover:bg-transparent focus:bg-transparent p-0"
+              className="relative h-[48px] w-[48px] rounded-full hover:bg-transparent focus:bg-transparent p-0"
+              style={{ marginTop: 5, marginBottom: 5 }}
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
               <div className="avatar-eclipse">
-                <Avatar className="h-10 w-10">
+                <Avatar className="h-[48px] w-[48px]">
                   <AvatarImage src={userProfile?.avatar_url || user.user_metadata.avatar_url || "/placeholder.svg"} alt={displayName} />
                   <AvatarFallback>{getInitials(displayName)}</AvatarFallback>
                 </Avatar>
@@ -542,10 +543,10 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
                         onMouseEnter={() => setIsAvatarZoomed(true)}
                         onMouseLeave={() => setIsAvatarZoomed(false)}
                       >
-                        <div className="avatar-eclipse" style={{ marginTop: 5, marginBottom: 5 }}>
-                          <Avatar className="h-[192px] w-[192px]">
+                        <div className="avatar-eclipse">
+                          <Avatar className="h-20 w-20 group-hover:ring-2 group-hover:ring-primary/50 transition-all duration-200">
                             <AvatarImage src={userProfile?.avatar_url || user.user_metadata.avatar_url || "/placeholder.svg"} alt={displayName} />
-                            <AvatarFallback>{getInitials(displayName)}</AvatarFallback>
+                            <AvatarFallback className="text-xl">{getInitials(displayName)}</AvatarFallback>
                           </Avatar>
                         </div>
 

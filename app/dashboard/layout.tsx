@@ -8,6 +8,7 @@ import { getUserRoles } from "@/lib/auth/permissions"
 import { AnimatedGridBackgroundDashboard } from "@/components/ui/animated-grid-background-dashboard"
 import { SessionRefresh } from "@/components/auth/session-refresh"
 import { createServerClient } from "@/lib/supabase/server"
+import "@/styles/dashboard-layout.css"
 
 export default async function DashboardLayout({
   children,
@@ -29,30 +30,32 @@ export default async function DashboardLayout({
   const roles = await getUserRoles()
 
   return (
-    <div className="flex min-h-screen flex-col relative">
+    <div className="dashboard-layout">
       {/* Fondo sólido solo en modo oscuro */}
       <div className="fixed inset-0 -z-10 pointer-events-none dark:block hidden" style={{background: '#111A23'}} />
 
-      {/* Fondo animado tipo blob eliminado, fondo oscuro liso */}
-
-      {/* Fondo animado con cuadrícula y degradado */}
-      {/* <AnimatedGridBackgroundDashboard /> */}
-
       {/* Header siempre visible en la parte superior */}
-      <DashboardHeader user={user} roles={roles} />
+      <div className="dashboard-header">
+        <DashboardHeader user={user} roles={roles} />
+      </div>
 
-      <div className="flex flex-1 overflow-hidden">
+      {/* Área de contenido principal */}
+      <div className="dashboard-content-area">
         {/* Sidebar siempre visible en el lado izquierdo */}
         <DashboardSidebar roles={roles} />
 
-        {/* Contenido principal con scroll independiente - padding ajustado para compensar el sidebar fijo */}
-        <main className="container max-w-full px-4 md:px-6 lg:px-8 xl:px-10 py-6 flex-1 overflow-auto p-4 md:p-5 ml-16">
-          {children}
+        {/* Contenido principal con scroll independiente */}
+        <main className="dashboard-main-content">
+          <div className="container max-w-full px-4 md:px-6 lg:px-8 xl:px-10 py-6">
+            {children}
+          </div>
         </main>
       </div>
 
       {/* Footer siempre visible en la parte inferior */}
-      <DashboardFooter />
+      <div className="dashboard-footer">
+        <DashboardFooter />
+      </div>
 
       {/* SessionRefresh componente */}
       <SessionRefresh />

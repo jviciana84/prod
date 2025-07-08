@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from "@/components/auth/auth-provider"
 import ThemeHtmlSync from "@/components/theme-html-sync"
+import { RoundFavicon } from "@/components/ui/round-favicon"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -14,19 +15,8 @@ export const metadata: Metadata = {
   description: "Sistema de gestión de vehículos",
   generator: 'v0.dev',
   icons: {
-    icon: [
-      {
-        url: '/favicon.ico',
-        sizes: '32x32',
-        type: 'image/x-icon',
-      },
-      {
-        url: '/favicon.png',
-        sizes: '32x32',
-        type: 'image/png',
-      },
-    ],
-    apple: '/favicon.png',
+    icon: '/favicon-round.svg',
+    apple: '/favicon-round.svg',
   },
 }
 
@@ -40,6 +30,7 @@ export default function RootLayout({
       <body className={inter.className} suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <ThemeHtmlSync />
+          <RoundFavicon />
           <AuthProvider>
             {children}
             <Toaster />
