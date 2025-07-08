@@ -578,7 +578,9 @@ export default async function Dashboard() {
     <div className="space-y-6 pb-20">
       <div className="flex flex-col gap-2">
         <div className="flex justify-between items-start">
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <h1 style={{ marginTop: '2.5rem', marginBottom: '1rem', fontWeight: 700, fontSize: '2.2rem', lineHeight: 1.1 }}>
+            Dashboard
+          </h1>
           <DigitalClock />
         </div>
         <div className="flex flex-col gap-1">
