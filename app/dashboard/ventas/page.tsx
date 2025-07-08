@@ -18,21 +18,22 @@ export default function VentasPage() {
 
   return (
     <div className="p-4 md:p-5 space-y-4 pb-20">
-      <Breadcrumbs />
-
-      <div className="flex flex-col gap-2">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold tracking-tight">Gestión Vehículos Vendidos</h1>
-          <Link href="/dashboard/ventas/upload-pdf">
-            <Button variant="outline" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              <span>Subir PDF</span>
-            </Button>
-          </Link>
-        </div>
-        <div className="flex items-center text-muted-foreground">
-          <Car className="mr-2 h-5 w-5 text-green-500" />
-          <span>Control y seguimiento de ventas completadas y en proceso</span>
+      <div className="space-y-2">
+        <Breadcrumbs className="mt-4" />
+        <div className="flex items-center gap-3">
+          <Car className="h-8 w-8 text-green-500" />
+          <div className="flex-1">
+            <div className="flex justify-between items-center">
+              <h1 className="text-3xl font-bold tracking-tight">Gestión Vehículos Vendidos</h1>
+              <Link href="/dashboard/ventas/upload-pdf">
+                <Button variant="outline" className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  <span>Subir PDF</span>
+                </Button>
+              </Link>
+            </div>
+            <p className="text-muted-foreground">Control y seguimiento de ventas completadas y en proceso</p>
+          </div>
         </div>
       </div>
 

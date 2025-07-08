@@ -6,6 +6,8 @@ export const metadata: Metadata = {
   description: "Gestión de ventas de vehículos",
 }
 
+// CAMBIO: Solo padding horizontal mínimo para pruebas de ancho completo
 export default function VentasLayout({ children }: { children: ReactNode }) {
-  return <div className="p-6">{children}</div>
+  // Sin padding lateral, ancho completo
+  return <div className="px-0">{children}</div>
 }

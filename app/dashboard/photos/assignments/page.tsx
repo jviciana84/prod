@@ -43,7 +43,7 @@ export default async function PhotographerAssignmentsPage() {
 
   return (
     <div className="container mx-auto py-6">
-      <Breadcrumbs />
+      <Breadcrumbs className="mt-4" />
       <h1 className="text-2xl font-bold mb-6">Asignaciones de Fotógrafos</h1>
 
       <PhotographerAssignments

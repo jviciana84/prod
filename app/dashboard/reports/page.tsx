@@ -13,8 +13,8 @@ export const metadata: Metadata = {
 export default function ReportsPage() {
   return (
     <div className="p-4 md:p-5 space-y-4 pb-20">
-      <div className="flex flex-col gap-4">
-        <Breadcrumbs
+      <div className="space-y-2">
+        <Breadcrumbs className="mt-4"
           segments={[
             {
               title: "Dashboard",
@@ -26,9 +26,12 @@ export default function ReportsPage() {
             },
           ]}
         />
-        <div className="flex items-center gap-2">
-          <FileBarChart className="h-6 w-6 text-muted-foreground" />
-          <h1 className="text-2xl font-bold tracking-tight">Informes y Reportes</h1>
+        <div className="flex items-center gap-3">
+          <FileBarChart className="h-8 w-8 text-muted-foreground" />
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Informes y Reportes</h1>
+            <p className="text-muted-foreground">Informes y reportes del sistema</p>
+          </div>
         </div>
       </div>
 

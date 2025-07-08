@@ -122,9 +122,9 @@ export default function IncentivosPageClient({
   )
 
   return (
-    <div className="p-4 md:p-6 space-y-6 pb-20">
-      <div className="flex flex-col gap-4">
-        <Breadcrumbs
+    <div className="p-4 md:p-5 space-y-4 pb-20">
+      <div className="space-y-2">
+        <Breadcrumbs className="mt-4"
           segments={[
             {
               title: "Dashboard",
@@ -136,13 +136,13 @@ export default function IncentivosPageClient({
             },
           ]}
         />
-        <div className="flex items-center justify-between">
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2">
-              <Trophy className="h-6 w-6 text-muted-foreground" />
-              <h1 className="text-2xl font-bold tracking-tight">Incentivos</h1>
+        <div className="flex items-center gap-3 justify-between">
+          <div className="flex items-center gap-3">
+            <Trophy className="h-8 w-8 text-muted-foreground" />
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Incentivos</h1>
+              <p className="text-muted-foreground">Gestión y seguimiento de incentivos de ventas</p>
             </div>
-            <p className="text-sm text-muted-foreground">Gestión y seguimiento de incentivos de ventas</p>
           </div>
           <div className="flex gap-2">
             {isAdminOrManagerOrSupervisor && (

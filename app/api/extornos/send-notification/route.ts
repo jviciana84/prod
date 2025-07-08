@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
 
     // Enviar email
     const mailOptions = {
-      from: process.env.EXTORNO_EMAIL,
+      from: `Extorno - Sistema CVO <${process.env.EXTORNO_EMAIL}>`,
       to: recipients.join(", "),
       subject: subject,
       html: emailHTML,

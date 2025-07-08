@@ -40,12 +40,12 @@ export default async function ValidadosPage() {
   return (
     <div className="p-4 md:p-5 space-y-4 pb-20">
       <div className="space-y-2">
-        <Breadcrumbs />
+        <Breadcrumbs className="mt-4" />
         <div className="flex items-center gap-3">
           <CheckCircle className="h-8 w-8 text-green-600" />
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Pedidos Validados</h1>
-            <p className="text-muted-foreground">Seguimiento y gestión de pedidos validados del sistema</p>
+            <h1 className="text-3xl font-bold tracking-tight">Validados</h1>
+            <p className="text-muted-foreground">Control y seguimiento de vehículos validados</p>
           </div>
         </div>
       </div>

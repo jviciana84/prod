@@ -1,0 +1,50 @@
+REMITE Y ASUNTO DE EMAILS EN LA APP
+-----------------------------------
+
+[Recogidas]
+Remitente:
+  Recogidas - Sistema CVO <recogidas@controlvo.ovh>
+Asunto:
+  Recogida Motor Munich {centro_recogida} - Sistema CVO
+
+[Entregas]
+Remitente:
+  Entrega - Sistema CVO <entrega@controlvo.ovh>
+Asunto:
+  Entrega {matricula} {fechaEntrega} {userAlias}
+
+[Extornos]
+Remitente:
+  Sistema de Extornos CVO <{EXTORNO_EMAIL}>
+  (variante: Extorno - Sistema CVO <{EXTORNO_EMAIL}>)
+Asuntos:
+  Nueva Solicitud de Extorno #{id} - {matricula}
+  Extorno en Tramitación #{id} - {matricula}
+  Extorno Confirmado #{id} - {matricula}
+  Extorno Rechazado #{id} - {matricula}
+
+[Incentivos]
+Remitente:
+  Sistema CVO - Incentivos <{SMTP_USER}>
+Asunto:
+  Incentivo {matricula} - {asesor} - {fechaFormateada} - {importe}
+
+[Movimientos]
+Remitente:
+  {config.sender_name} <{config.sender_email}>
+Asunto:
+  Entrega de llaves / documentación - {fecha}
+
+[Admin/Usuarios]
+Remitente:
+  {SMTP_FROM_NAME o APP_CONFIG.name} <{SMTP_FROM_EMAIL}>
+Asunto:
+  Invitación para unirte a {APP_CONFIG.name}
+
+[Pruebas SMTP]
+Remitente:
+  Sistema de Extornos CVO - PRUEBA <{EXTORNO_EMAIL}>
+  Debug CVO <{EXTORNO_EMAIL}>
+Asuntos:
+  🧪 Prueba SMTP - Sistema de Extornos
+  TEST SMTP CVO - {fecha y hora} 

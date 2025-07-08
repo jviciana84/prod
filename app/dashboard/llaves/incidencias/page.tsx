@@ -5,6 +5,8 @@ import { createClientComponentClient } from "@/lib/supabase/client"
 import { KeyDocumentIncidencesTable } from "@/components/keys/key-document-incidences-table"
 import type { IncidenciaHistorialConDetalles } from "@/types/incidencias"
 import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
+import { Breadcrumbs } from "@/components/ui/breadcrumbs"
+import { Key } from "lucide-react"
 
 // Tipos de incidencia específicos para esta página
 const RELEVANT_INCIDENCE_TYPES = ["2ª llave", "CardKey", "Ficha técnica", "Permiso circulación"]
@@ -130,24 +132,66 @@ export default function KeyDocumentIncidencesPage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <BMWMSpinner size="lg" />
+      <div className="p-4 md:p-5 space-y-4 pb-20">
+        <div className="space-y-2">
+          <Breadcrumbs className="mt-4" segments={[
+            { title: "Dashboard", href: "/dashboard" },
+            { title: "Llaves", href: "/dashboard/llaves" },
+            { title: "Incidencias", href: "/dashboard/llaves/incidencias" },
+          ]} />
+          <div className="flex items-center gap-3">
+            <Key className="h-8 w-8 text-muted-foreground" />
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Incidencias de Llaves y Documentación</h1>
+              <p className="text-muted-foreground">Historial y gestión de incidencias relacionadas con llaves y documentación</p>
+            </div>
+          </div>
+        </div>
+        <div className="flex justify-center items-center min-h-[200px]">
+          <BMWMSpinner size="lg" />
+        </div>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="container mx-auto py-10 px-4">
-        <h1 className="text-3xl font-bold mb-8 text-center">Incidencias de Llaves y Documentación</h1>
+      <div className="p-4 md:p-5 space-y-4 pb-20">
+        <div className="space-y-2">
+          <Breadcrumbs className="mt-4" segments={[
+            { title: "Dashboard", href: "/dashboard" },
+            { title: "Llaves", href: "/dashboard/llaves" },
+            { title: "Incidencias", href: "/dashboard/llaves/incidencias" },
+          ]} />
+          <div className="flex items-center gap-3">
+            <Key className="h-8 w-8 text-muted-foreground" />
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Incidencias de Llaves y Documentación</h1>
+              <p className="text-muted-foreground">Historial y gestión de incidencias relacionadas con llaves y documentación</p>
+            </div>
+          </div>
+        </div>
         <p className="text-red-500 text-center">{error}</p>
       </div>
     )
   }
 
   return (
-    <div className="container mx-auto py-10 px-4">
-      <h1 className="text-3xl font-bold mb-8 text-center">Incidencias de Llaves y Documentación</h1>
+    <div className="p-4 md:p-5 space-y-4 pb-20">
+      <div className="space-y-2">
+        <Breadcrumbs className="mt-4" segments={[
+          { title: "Dashboard", href: "/dashboard" },
+          { title: "Llaves", href: "/dashboard/llaves" },
+          { title: "Incidencias", href: "/dashboard/llaves/incidencias" },
+        ]} />
+        <div className="flex items-center gap-3">
+          <Key className="h-8 w-8 text-muted-foreground" />
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Incidencias de Llaves y Documentación</h1>
+            <p className="text-muted-foreground">Historial y gestión de incidencias relacionadas con llaves y documentación</p>
+          </div>
+        </div>
+      </div>
       <KeyDocumentIncidencesTable incidences={incidences} />
     </div>
   )

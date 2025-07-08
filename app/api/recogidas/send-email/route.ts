@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
 
     // Preparar el contenido del email
     const materialesText = recogida.materiales.join(" + ")
-    const asunto = `Recogida Motor Munich ${recogida.centro_recogida} - Sistema CVO`
+    const asunto = `Recogida Motor Munich ${recogida.centro_recogida}`
 
     const emailContent = `
 Estimados compañeros,

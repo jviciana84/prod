@@ -46,7 +46,8 @@ export default async function DashboardLayout({
 
         {/* Contenido principal con scroll independiente */}
         <main className="dashboard-main-content">
-          <div className="container max-w-full px-4 md:px-6 lg:px-8 xl:px-10 py-6">
+          {/* Sin container ni padding lateral, solo padding vertical */}
+          <div className="w-full py-6">
             {children}
           </div>
         </main>

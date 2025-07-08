@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
 
     // Preparar opciones del email
     const mailOptions = {
-      from: `"Sistema CVO - Incentivos" <${process.env.SMTP_USER}>`,
+      from: `Incentivos - Sistema CVO <${process.env.SMTP_USER}>`,
       to: recipients.join(","),
       cc: ccEmails.length > 0 ? ccEmails.join(",") : undefined,
       subject: subject,

@@ -222,7 +222,7 @@ export async function POST(request: NextRequest) {
 
     // Preparar opciones del email
     const mailOptions = {
-      from: `"Entrega - Sistema CVO" <entrega@controlvo.ovh>`,
+      from: `Entrega - Sistema CVO <entrega@controlvo.ovh>`,
       to: allRecipients.join(","),
       subject: subject,
       html: htmlContent,

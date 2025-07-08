@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
 
     // Preparar opciones del email
     const mailOptions = {
-      from: `"${config.sender_name}" <${config.sender_email}>`,
+      from: `Material - Sistema CVO <material@controlvo.ovh>`,
       to: recipientsList.length > 0 ? recipientsList.join(",") : undefined,
       cc: ccEmails.length > 0 ? ccEmails.join(",") : undefined,
       subject: subject,

@@ -237,8 +237,17 @@ export default function KeyHistoryPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-6">
-        <Breadcrumbs items={breadcrumbItems} />
+      <div className="p-4 md:p-5 space-y-4 pb-20">
+        <div className="space-y-2">
+          <Breadcrumbs className="mt-4" items={breadcrumbItems} />
+          <div className="flex items-center gap-3">
+            <History className="h-8 w-8" />
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Historial Completo de Movimientos</h1>
+              <p className="text-muted-foreground">Registro completo de todos los movimientos de llaves y documentos</p>
+            </div>
+          </div>
+        </div>
         <div className="flex items-center justify-center py-12">
           <BMWMSpinner size="lg" />
           <span className="ml-4 text-lg text-muted-foreground">Cargando historial...</span>
@@ -249,8 +258,17 @@ export default function KeyHistoryPage() {
 
   if (error) {
     return (
-      <div className="container mx-auto p-6">
-        <Breadcrumbs items={breadcrumbItems} />
+      <div className="p-4 md:p-5 space-y-4 pb-20">
+        <div className="space-y-2">
+          <Breadcrumbs className="mt-4" items={breadcrumbItems} />
+          <div className="flex items-center gap-3">
+            <History className="h-8 w-8" />
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Historial Completo de Movimientos</h1>
+              <p className="text-muted-foreground">Registro completo de todos los movimientos de llaves y documentos</p>
+            </div>
+          </div>
+        </div>
         <Card>
           <CardContent className="p-6">
             <div className="text-center text-destructive">
@@ -268,28 +286,27 @@ export default function KeyHistoryPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <Breadcrumbs items={breadcrumbItems} />
-
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
+    <div className="p-4 md:p-5 space-y-4 pb-20">
+      <div className="space-y-2">
+        <Breadcrumbs className="mt-4" items={breadcrumbItems} />
+        <div className="flex items-center gap-3 justify-between">
+          <div className="flex items-center gap-3">
             <History className="h-8 w-8" />
-            Historial Completo de Movimientos
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Registro completo de todos los movimientos de llaves y documentos
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={loadAllMovements}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Actualizar
-          </Button>
-          <Button variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Exportar
-          </Button>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Historial Completo de Movimientos</h1>
+              <p className="text-muted-foreground">Registro completo de todos los movimientos de llaves y documentos</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={loadAllMovements}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Actualizar
+            </Button>
+            <Button variant="outline">
+              <Download className="h-4 w-4 mr-2" />
+              Exportar
+            </Button>
+          </div>
         </div>
       </div>
 

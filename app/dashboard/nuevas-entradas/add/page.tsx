@@ -23,7 +23,7 @@ export default async function AddTransportPage() {
   // Cambiar el título y la descripción
   return (
     <div className="space-y-6">
-      <Breadcrumbs />
+      <Breadcrumbs className="mt-4" />
       <h1 className="text-3xl font-bold tracking-tight">Nueva Entrada</h1>
 
       <Card>
