@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { createServerComponentClient } from "@/lib/supabase/server"
+import { supabaseAdmin } from "@/lib/supabaseClient"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import StockStatsDashboard from "@/components/vehicles/stock-stats-dashboard"
 import StockStatsCard from "@/components/vehicles/stock-stats-card"
@@ -10,10 +10,8 @@ export const metadata: Metadata = {
 }
 
 async function getStockData() {
-  const supabase = createServerComponentClient()
-
   // Obtener todos los registros de stock para las estadísticas
-  const { data: stockData, error: stockError } = await supabase
+  const { data: stockData, error: stockError } = await supabaseAdmin
     .from("stock")
     .select("*")
     .order("reception_date", { ascending: false })
@@ -24,7 +22,7 @@ async function getStockData() {
   }
 
   // Obtener datos del historial para análisis de tendencias
-  const { data: historyData, error: historyError } = await supabase
+  const { data: historyData, error: historyError } = await supabaseAdmin
     .from("stock_history")
     .select("*")
     .order("changed_at", { ascending: false })

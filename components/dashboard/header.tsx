@@ -39,6 +39,7 @@ interface UserProfile {
   phone: string | null
   alias: string | null
   position: string | null
+  avatar_url: string | null
   // Otros campos que pueda tener la tabla profiles
 }
 
@@ -92,7 +93,7 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
         // Cargar perfil
         const { data: profileData, error: profileError } = await supabase
           .from("profiles")
-          .select("id, phone, alias, position")
+          .select("id, phone, alias, position, avatar_url")
           .eq("id", user.id)
           .single()
 
@@ -163,24 +164,49 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
   // Manejar eventos de clic fuera del menú
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(event.target as Node) &&
-        avatarRef.current &&
-        !avatarRef.current.contains(event.target as Node) &&
-        notificationsRef.current &&
-        !notificationsRef.current.contains(event.target as Node)
-      ) {
+      const target = event.target as Node
+      
+      // Verificar si el clic fue fuera del menú de avatar
+      const isOutsideAvatarMenu = 
+        menuRef.current && 
+        !menuRef.current.contains(target) &&
+        avatarRef.current && 
+        !avatarRef.current.contains(target)
+      
+      // Verificar si el clic fue fuera del menú de notificaciones
+      const isOutsideNotificationsMenu = 
+        notificationsRef.current && 
+        !notificationsRef.current.contains(target) &&
+        !target.closest('[data-notification-trigger]') // Evitar cerrar si se hace clic en el botón de notificaciones
+      
+      // Cerrar menús si se hace clic fuera
+      if (isOutsideAvatarMenu) {
+        setIsMenuOpen(false)
+      }
+      
+      if (isOutsideNotificationsMenu) {
+        setIsNotificationsOpen(false)
+      }
+    }
+
+    // Manejar tecla Escape
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
         setIsMenuOpen(false)
         setIsNotificationsOpen(false)
       }
     }
 
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside)
+    // Solo agregar los listeners si alguno de los menús está abierto
+    if (isMenuOpen || isNotificationsOpen) {
+      document.addEventListener("mousedown", handleClickOutside)
+      document.addEventListener("keydown", handleEscapeKey)
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside)
+        document.removeEventListener("keydown", handleEscapeKey)
+      }
     }
-  }, [])
+  }, [isMenuOpen, isNotificationsOpen])
 
   // Prevenir scroll cuando el avatar está ampliado
   useEffect(() => {
@@ -348,6 +374,14 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
     }
   }
 
+  const handleNotificationClick = (notification: Notification) => {
+    // Aquí puedes agregar lógica específica para cada notificación
+    console.log("Notificación clickeada:", notification)
+    
+    // Cerrar el menú de notificaciones
+    setIsNotificationsOpen(false)
+  }
+
   return (
     <header className="sticky top-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       {/* Estilos para la animación del eclipse */}
@@ -409,6 +443,7 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
               variant="ghost"
               size="icon"
               className="relative"
+              data-notification-trigger
               onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
             >
               <Bell className="h-5 w-5" />
@@ -445,6 +480,7 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
                         <div
                           key={notif.id}
                           className="py-2 px-1 border-b border-border/50 hover:bg-accent/50 rounded-sm cursor-pointer"
+                          onClick={() => handleNotificationClick(notif)}
                         >
                           <div className="flex items-start gap-2">
                             <div
@@ -485,7 +521,7 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
             >
               <div className="avatar-eclipse">
                 <Avatar className="h-10 w-10">
-                  <AvatarImage src={user.user_metadata.avatar_url || "/placeholder.svg"} alt={displayName} />
+                  <AvatarImage src={userProfile?.avatar_url || user.user_metadata.avatar_url || "/placeholder.svg"} alt={displayName} />
                   <AvatarFallback>{getInitials(displayName)}</AvatarFallback>
                 </Avatar>
               </div>
@@ -506,10 +542,10 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
                         onMouseEnter={() => setIsAvatarZoomed(true)}
                         onMouseLeave={() => setIsAvatarZoomed(false)}
                       >
-                        <div className="avatar-eclipse">
-                          <Avatar className="h-20 w-20 group-hover:ring-2 group-hover:ring-primary/50 transition-all duration-200">
-                            <AvatarImage src={user.user_metadata.avatar_url || "/placeholder.svg"} alt={displayName} />
-                            <AvatarFallback className="text-xl">{getInitials(displayName)}</AvatarFallback>
+                        <div className="avatar-eclipse" style={{ marginTop: 5, marginBottom: 5 }}>
+                          <Avatar className="h-[192px] w-[192px]">
+                            <AvatarImage src={userProfile?.avatar_url || user.user_metadata.avatar_url || "/placeholder.svg"} alt={displayName} />
+                            <AvatarFallback>{getInitials(displayName)}</AvatarFallback>
                           </Avatar>
                         </div>
 
@@ -720,7 +756,7 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
             <div className="avatar-eclipse">
               <Avatar className="h-80 w-80 shadow-xl">
                 <AvatarImage
-                  src={user.user_metadata.avatar_url || "/placeholder.svg"}
+                  src={userProfile?.avatar_url || user.user_metadata.avatar_url || "/placeholder.svg"}
                   alt={displayName}
                   className="object-cover"
                 />

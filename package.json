@@ -9,7 +9,8 @@
     "start": "next start",
     "update-version": "node scripts/update-version.js",
     "pre-commit": "npm run update-version && git add lib/version.ts",
-    "install-hooks": "node scripts/install-hooks.js"
+    "install-hooks": "node scripts/install-hooks.js",
+    "generate-favicon": "npx tsx scripts/generate-favicon.ts"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",
@@ -48,7 +49,7 @@
     "autoprefixer": "^10.4.20",
     "axios": "latest",
     "buffer": "latest",
-    "canvas": "latest",
+    "canvas": "^3.1.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "latest",

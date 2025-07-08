@@ -1,4 +1,4 @@
-import { createServerComponentClient } from "@/lib/supabase/server"
+import { supabaseAdmin } from "@/lib/supabaseClient"
 import { redirect } from "next/navigation"
 import { getUserRoles } from "@/lib/auth/permissions"
 import FooterMessageManager from "@/components/admin/footer-message-manager"
@@ -13,8 +13,7 @@ export default async function FooterMessagesPage() {
   }
 
   // Obtener mensajes del footer
-  const supabase = createServerComponentClient()
-  const { data: messages, error } = await supabase
+  const { data: messages, error } = await supabaseAdmin
     .from("footer_messages")
     .select("*")
     .order("created_at", { ascending: false })

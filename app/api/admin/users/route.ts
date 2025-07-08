@@ -26,7 +26,7 @@ export async function GET(request: Request) {
     console.log("🔄 Iniciando carga de usuarios...")
     const startTime = Date.now()
 
-    // Obtener usuarios con sus roles usando una consulta simple
+    // Obtener usuarios con sus roles usando una consulta que incluya user_roles
     const { data: users, error } = await supabaseAdmin
       .from("profiles")
       .select(`
@@ -39,7 +39,15 @@ export async function GET(request: Request) {
         avatar_url,
         role,
         created_at,
-        welcome_email_sent
+        welcome_email_sent,
+        user_roles (
+          role_id,
+          roles (
+            id,
+            name,
+            description
+          )
+        )
       `)
       .order("created_at", { ascending: false })
 
@@ -67,17 +75,22 @@ export async function GET(request: Request) {
           finalAvatarUrl = "/placeholder.svg"
         }
 
-        // Construir roles desde el campo role de profiles
+        // Construir roles desde la tabla user_roles
         let roles = []
-        if (user.role) {
-          // Si el role es una cadena, dividirla por comas
+        if (user.user_roles && user.user_roles.length > 0) {
+          roles = user.user_roles.map((userRole: any) => ({
+            id: userRole.roles.id,
+            name: userRole.roles.name,
+            description: userRole.roles.description
+          }))
+        } else if (user.role) {
+          // Fallback al campo role de profiles si no hay user_roles
           if (typeof user.role === 'string') {
             roles = user.role.split(", ").map((roleName: string) => ({
               id: roleName.toLowerCase(),
               name: roleName.trim(),
             }))
           } else {
-            // Si es un solo rol
             roles = [{
               id: user.role.toLowerCase(),
               name: user.role,

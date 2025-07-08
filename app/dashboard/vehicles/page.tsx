@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { createServerComponentClient } from "@/lib/supabase/server"
+import { supabaseAdmin } from "@/lib/supabaseClient"
 import StockTable from "@/components/vehicles/stock-table"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 
@@ -9,9 +9,7 @@ export const metadata: Metadata = {
 }
 
 async function getStockData() {
-  const supabase = createServerComponentClient()
-
-  const { data, error } = await supabase.from("stock").select("*").order("reception_date", { ascending: false })
+  const { data, error } = await supabaseAdmin.from("stock").select("*").order("reception_date", { ascending: false })
 
   if (error) {
     console.error("Error al cargar datos de stock:", error)

@@ -1,12 +1,10 @@
-import { createServerComponentClient } from "@/lib/supabase/server"
+import { supabaseAdmin } from "@/lib/supabaseClient"
 import PhotographerAssignments from "@/components/photos/photographer-assignments"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 
 export default async function PhotographerAssignmentsPage() {
-  const supabase = createServerComponentClient()
-
   // Obtener asignaciones de fotógrafos con información de vehículos y fotógrafos
-  const { data: assignments, error } = await supabase
+  const { data: assignments, error } = await supabaseAdmin
     .from("vehicle_photographer_assignments")
     .select(`
       id,
@@ -20,7 +18,7 @@ export default async function PhotographerAssignmentsPage() {
     .order("assigned_at", { ascending: false })
 
   // Obtener fotógrafos activos con sus porcentajes
-  const { data: photographers, error: photographersError } = await supabase
+  const { data: photographers, error: photographersError } = await supabaseAdmin
     .from("photo_assignments")
     .select(`
       id,
@@ -33,7 +31,7 @@ export default async function PhotographerAssignmentsPage() {
     .order("percentage", { ascending: false })
 
   // Obtener estadísticas de asignaciones por fotógrafo
-  const { data: stats, error: statsError } = await supabase
+  const { data: stats, error: statsError } = await supabaseAdmin
     .from("vehicle_photographer_assignments")
     .select(`
       photographer_id,
