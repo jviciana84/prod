@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 import { cookies } from "next/headers"
-import { Resend } from "resend"
-
-const resend = new Resend(process.env.RESEND_API_KEY)
+import nodemailer from "nodemailer"
 
 export async function POST(request: NextRequest) {
   try {
@@ -86,33 +84,64 @@ Sistema CVO
     const to = [emailConfig.email_agencia]
     const cc = [...(emailConfig.cc_emails || []), userProfile?.email].filter(Boolean)
 
-    // Enviar email
-    const { data: emailResult, error: emailError } = await resend.emails.send({
-      from: "recogidas@controlvo.ovh",
-      to,
-      cc,
-      subject: asunto,
-      text: emailContent,
-    })
-
-    if (emailError) {
-      console.error("Error enviando email:", emailError)
-      return NextResponse.json({ error: "Error enviando email" }, { status: 500 })
+    // Verificar variables SMTP
+    if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
+      return NextResponse.json({
+        error: "Configuración SMTP incompleta",
+      }, { status: 500 })
     }
 
-    // Actualizar fecha de envío en la recogida
-    await supabase
-      .from("recogidas_historial")
-      .update({ fecha_envio: new Date().toISOString() })
-      .eq("id", recogidaId)
-
-    return NextResponse.json({ 
-      success: true, 
-      emailId: emailResult?.id,
-      message: "Email enviado correctamente" 
+    // Configuración del transporter
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: Number.parseInt(process.env.SMTP_PORT || "465"),
+      secure: true,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASSWORD,
+      },
+      tls: {
+        rejectUnauthorized: false,
+      },
     })
+
+    // Verificar conexión SMTP
+    try {
+      await transporter.verify()
+    } catch (verifyError) {
+      return NextResponse.json({
+        error: "Error de conexión SMTP",
+        details: verifyError.message,
+      }, { status: 500 })
+    }
+
+    // Opciones del email
+    const mailOptions = {
+      from: `Recogidas - Sistema CVO <recogidas@controlvo.ovh>`,
+      to: to.join(","),
+      cc: cc.length > 0 ? cc.join(",") : undefined,
+      subject: asunto,
+      text: emailContent,
+    }
+
+    // Enviar email
+    try {
+      const result = await transporter.sendMail(mailOptions)
+      // Actualizar fecha de envío en la recogida
+      await supabase
+        .from("recogidas_historial")
+        .update({ fecha_envio: new Date().toISOString() })
+        .eq("id", recogidaId)
+
+      return NextResponse.json({ 
+        success: true, 
+        messageId: result.messageId,
+        message: "Email enviado correctamente" 
+      })
+    } catch (emailError) {
+      return NextResponse.json({ error: "Error enviando email", details: emailError.message }, { status: 500 })
+    }
   } catch (error) {
-    console.error("Error en POST /api/recogidas/send-email:", error)
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
   }
 } 
