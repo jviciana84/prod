@@ -575,7 +575,7 @@ export default async function Dashboard() {
   console.log("DEBUG: Final stats object before rendering:", stats)
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="p-4 md:p-5 space-y-4 pb-20">
       <div className="flex flex-col gap-2">
         <div className="flex justify-between items-start">
           <h1 style={{ marginTop: '2.5rem', marginBottom: '1rem', fontWeight: 700, fontSize: '2.2rem', lineHeight: 1.1 }}>

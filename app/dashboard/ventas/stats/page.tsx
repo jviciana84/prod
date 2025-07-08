@@ -134,7 +134,7 @@ export default async function VentasStatsPage() {
   const currentMonthAdvisorData = Object.values(currentMonthSalesByAdvisor).sort((a, b) => b.count - a.count)
 
   return (
-    <div className="space-y-6">
+    <div className="p-4 md:p-5 space-y-4 pb-20">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Dashboard de Ventas</h1>
         <p className="text-muted-foreground">Análisis y estadísticas de ventas de vehículos</p>
