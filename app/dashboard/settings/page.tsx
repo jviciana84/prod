@@ -8,8 +8,7 @@ import UserNotificationSettings from "@/components/notifications/user-notificati
 import { Settings } from "lucide-react"
 
 export default async function UserSettingsPage() {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(cookieStore)
+  const supabase = await createServerClient()
 
   const {
     data: { session },

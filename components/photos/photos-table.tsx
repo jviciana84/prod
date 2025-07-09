@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -25,10 +25,12 @@ import {
   Ban,
   ChevronLeft,
   ChevronRight,
+  Settings,
 } from "lucide-react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { differenceInDays } from "date-fns"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/hooks/use-auth"
 
 export interface PhotoVehicle {
   id: string
@@ -72,8 +74,33 @@ export default function PhotosTable() {
   const [paginatedVehicles, setPaginatedVehicles] = useState<PhotoVehicle[]>([])
   const [totalPages, setTotalPages] = useState(1)
   
+  // Usar el hook de autenticación
+  const { user, profile, loading: authLoading } = useAuth()
   const supabase = createClientComponentClient()
   const { toast } = useToast()
+
+  // Calcular si es admin basado en el perfil
+  const isAdmin = useMemo(() => {
+    if (!profile?.role) return false
+    
+    const roles = typeof profile.role === 'string' 
+      ? profile.role.split(", ").map(r => r.trim().toLowerCase())
+      : [profile.role.toLowerCase()]
+    
+    console.log("Roles del perfil:", roles)
+    
+    const hasAdminRole = roles.some(role => 
+      role === 'admin' || 
+      role === 'supervisor' || 
+      role === 'director' ||
+      role.includes('admin') ||
+      role.includes('supervisor') ||
+      role.includes('director')
+    )
+    
+    console.log("¿Es admin?", hasAdminRole)
+    return hasAdminRole
+  }, [profile?.role])
 
   useEffect(() => {
     fetchData()
@@ -259,6 +286,11 @@ export default function PhotosTable() {
   const handleItemsPerPageChange = (value: string) => {
     setItemsPerPage(Number.parseInt(value, 10))
     setCurrentPage(1) // Resetear a la primera página al cambiar el número de filas por página
+  }
+
+  const handleOpenAssignments = () => {
+    // Navegar a la página de asignaciones de fotógrafos
+    window.location.href = "/dashboard/photos/assignments"
   }
 
   const calculatePendingDays = (vehicle: PhotoVehicle) => {
@@ -686,6 +718,18 @@ export default function PhotosTable() {
               <Button variant="outline" size="icon" onClick={fetchData} disabled={isLoading} className="h-10 w-10">
                 <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
               </Button>
+              {console.log("Estado isAdmin en render:", isAdmin)}
+              {isAdmin && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleOpenAssignments}
+                  className="h-10 px-3"
+                >
+                  <Settings className="h-4 w-4 mr-2" />
+                  Asignaciones
+                </Button>
+              )}
             </div>
           </div>
 

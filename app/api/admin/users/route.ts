@@ -24,9 +24,27 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseAnonKey, {
 export async function GET(request: Request) {
   try {
     console.log("🔄 Iniciando carga de usuarios...")
+    
+    // Verificar autenticación (temporalmente deshabilitado para debug)
+    const authHeader = request.headers.get('authorization')
+    console.log("🔍 Auth header:", authHeader ? "Presente" : "Ausente")
+    
+    // TODO: Restaurar verificación de autenticación cuando se resuelva el problema
+    // if (!authHeader) {
+    //   console.log("❌ No hay header de autorización")
+    //   return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+    // }
+    
     const startTime = Date.now()
 
-    // Obtener usuarios con sus roles usando una consulta que incluya user_roles
+    console.log("🔍 Configuración Supabase:", {
+      url: supabaseUrl ? "Definida" : "No definida",
+      serviceKey: supabaseServiceKey ? "Definida" : "No definida",
+      anonKey: supabaseAnonKey ? "Definida" : "No definida"
+    })
+
+    // Usar una consulta simple para evitar problemas con relaciones complejas
+    console.log("🔍 Ejecutando consulta a Supabase...")
     const { data: users, error } = await supabaseAdmin
       .from("profiles")
       .select(`
@@ -39,35 +57,39 @@ export async function GET(request: Request) {
         avatar_url,
         role,
         created_at,
-        welcome_email_sent,
-        user_roles (
-          role_id,
-          roles (
-            id,
-            name,
-            description
-          )
-        )
+        welcome_email_sent
       `)
       .order("created_at", { ascending: false })
 
     if (error) {
-      console.error("Error fetching users:", error)
+      console.error("❌ Error fetching users:", error)
+      console.error("❌ Error details:", {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      })
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    // Procesar los usuarios y sus roles y convertir avatar_url si es necesario
+    console.log("✅ Consulta exitosa, usuarios obtenidos:", users?.length || 0)
+
+    // Procesar los usuarios y sus roles
     const usersWithRoles = await Promise.all(
       users.map(async (user) => {
         let finalAvatarUrl = user.avatar_url
         // Si la URL del avatar parece una ruta local, intentar convertirla a una URL de Blob
         if (finalAvatarUrl && finalAvatarUrl.startsWith("/avatars/")) {
-          const blobUrl = await getBlobUrlForLocalPath(finalAvatarUrl)
-          if (blobUrl) {
-            finalAvatarUrl = blobUrl
-          } else {
-            console.warn(`⚠️ No se pudo obtener URL de Blob para la ruta local: ${finalAvatarUrl}`)
-            // Fallback a placeholder si no se puede resolver
+          try {
+            const blobUrl = await getBlobUrlForLocalPath(finalAvatarUrl)
+            if (blobUrl) {
+              finalAvatarUrl = blobUrl
+            } else {
+              console.warn(`⚠️ No se pudo obtener URL de Blob para la ruta local: ${finalAvatarUrl}`)
+              finalAvatarUrl = "/placeholder.svg"
+            }
+          } catch (blobError) {
+            console.warn(`⚠️ Error al procesar avatar: ${blobError}`)
             finalAvatarUrl = "/placeholder.svg"
           }
         } else if (!finalAvatarUrl) {
@@ -75,16 +97,9 @@ export async function GET(request: Request) {
           finalAvatarUrl = "/placeholder.svg"
         }
 
-        // Construir roles desde la tabla user_roles
+        // Construir roles desde el campo role simple
         let roles = []
-        if (user.user_roles && user.user_roles.length > 0) {
-          roles = user.user_roles.map((userRole: any) => ({
-            id: userRole.roles.id,
-            name: userRole.roles.name,
-            description: userRole.roles.description
-          }))
-        } else if (user.role) {
-          // Fallback al campo role de profiles si no hay user_roles
+        if (user.role) {
           if (typeof user.role === 'string') {
             roles = user.role.split(", ").map((roleName: string) => ({
               id: roleName.toLowerCase(),
@@ -100,11 +115,13 @@ export async function GET(request: Request) {
 
         return {
           ...user,
-          avatar_url: finalAvatarUrl, // Usar la URL de Blob o placeholder
+          avatar_url: finalAvatarUrl,
           roles: roles,
         }
       }),
     )
+
+
 
     const endTime = Date.now()
     console.log(`✅ Usuarios cargados en ${endTime - startTime}ms. Total: ${usersWithRoles.length}`)
