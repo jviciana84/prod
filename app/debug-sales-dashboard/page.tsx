@@ -46,8 +46,16 @@ export default function DebugSalesDashboardPage() {
     setError(null)
     
     try {
+      console.log("🔍 Iniciando fetch de debug data...")
       const response = await fetch("/api/debug-sales-dashboard")
+      console.log("📡 Response status:", response.status)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
       const data = await response.json()
+      console.log("📊 Debug data recibida:", data)
       
       if (data.success) {
         setDebugData(data)
@@ -55,6 +63,7 @@ export default function DebugSalesDashboardPage() {
         setError(data.error || "Error desconocido")
       }
     } catch (err) {
+      console.error("❌ Error en fetchDebugData:", err)
       setError(err instanceof Error ? err.message : "Error de conexión")
     } finally {
       setLoading(false)
@@ -62,19 +71,25 @@ export default function DebugSalesDashboardPage() {
   }
 
   useEffect(() => {
+    console.log("🚀 Componente montado, iniciando fetch...")
     fetchDebugData()
   }, [])
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString("es-ES", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      timeZoneName: "short"
-    })
+    try {
+      return new Date(dateString).toLocaleString("es-ES", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        timeZoneName: "short"
+      })
+    } catch (error) {
+      console.error("Error formateando fecha:", dateString, error)
+      return dateString
+    }
   }
 
   const formatCurrency = (amount: number) => {
@@ -83,6 +98,8 @@ export default function DebugSalesDashboardPage() {
       currency: "EUR"
     }).format(amount)
   }
+
+  console.log("🔄 Renderizando componente con:", { loading, error, debugData })
 
   if (loading) {
     return (
@@ -116,6 +133,7 @@ export default function DebugSalesDashboardPage() {
   if (!debugData) {
     return (
       <div className="p-4 md:p-5 space-y-4">
+        <h1 className="text-3xl font-bold">Debug Dashboard Ventas</h1>
         <p>No hay datos disponibles</p>
         <Button onClick={fetchDebugData}>Cargar datos</Button>
       </div>
@@ -242,7 +260,7 @@ export default function DebugSalesDashboardPage() {
       </div>
 
       {/* Ejemplos de fechas */}
-      {debugData.sampleDates.length > 0 && (
+      {debugData.sampleDates && debugData.sampleDates.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Ejemplos de Fechas de Ventas</CardTitle>
