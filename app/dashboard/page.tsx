@@ -14,6 +14,12 @@ import { SalesRanking } from "@/components/dashboard/sales-ranking"
 import { WorkshopDaysCard } from "@/components/dashboard/workshop-days-card"
 import { BMWLogo, MINILogo } from "@/components/ui/brand-logos"
 import { differenceInDays, parseISO } from "date-fns"
+import { 
+  getFirstDayOfCurrentMonth, 
+  getFirstDayOfPreviousMonth, 
+  getLastDayOfPreviousMonth,
+  getDateDebugInfo 
+} from "@/lib/date-utils"
 
 // Helper function to calculate percentage change
 const calculatePercentageChange = (current: number, previous: number): string => {
@@ -339,22 +345,13 @@ export default async function Dashboard() {
   const bmwStockCount = 0
   const miniStockCount = 0
 
-  // Fechas para el mes actual
-  const currentDate = new Date()
-  const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).toISOString()
+  // Fechas para el mes actual - USANDO FUNCIONES UTILITARIAS
+  const dateDebugInfo = getDateDebugInfo()
+  const firstDayOfMonth = getFirstDayOfCurrentMonth()
+  const firstDayOfPreviousMonth = getFirstDayOfPreviousMonth()
+  const lastDayOfPreviousMonth = getLastDayOfPreviousMonth()
 
-  // Fechas para el mes anterior
-  const previousMonthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)
-  const firstDayOfPreviousMonth = previousMonthDate.toISOString()
-  const lastDayOfPreviousMonth = new Date(
-    currentDate.getFullYear(),
-    currentDate.getMonth(),
-    0,
-    23,
-    59,
-    59,
-    999,
-  ).toISOString()
+  console.log("🔍 DEBUG: Información de fechas:", dateDebugInfo)
 
   // Obtener ventas del mes actual - INCLUIR TODAS LAS VENTAS (coches y motos)
   const { data: salesData } = await supabase

@@ -74,22 +74,7 @@ export function isValidSpanishDate(spanishDate: string): boolean {
   }
 }
 
-/**
- * Formatea una fecha para mostrar en la UI (siempre en formato español)
- */
-export function formatDateForDisplay(dateString: string | null | undefined): string {
-  if (!dateString) return "-"
 
-  try {
-    const date = parseISO(dateString)
-    if (!isValid(date)) return "-"
-
-    return format(date, "dd/MM/yyyy", { locale: es })
-  } catch (error) {
-    console.error("Error formatting date:", error)
-    return "-"
-  }
-}
 
 /**
  * Prepara una fecha para enviar a la base de datos (siempre en formato ISO)
@@ -158,4 +143,117 @@ export function safeFormatToSpanish(dateValue: any): string {
   }
 
   return stringValue
+}
+
+/**
+ * Utilidades para manejo de fechas de manera consistente
+ * entre desarrollo y producción
+ */
+
+/**
+ * Obtiene el primer día del mes actual en UTC
+ */
+export function getFirstDayOfCurrentMonth(): string {
+  const now = new Date()
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString()
+}
+
+/**
+ * Obtiene el primer día del mes anterior en UTC
+ */
+export function getFirstDayOfPreviousMonth(): string {
+  const now = new Date()
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)).toISOString()
+}
+
+/**
+ * Obtiene el último día del mes anterior en UTC
+ */
+export function getLastDayOfPreviousMonth(): string {
+  const now = new Date()
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 0, 23, 59, 59, 999)).toISOString()
+}
+
+/**
+ * Obtiene el primer día de un mes específico en UTC
+ */
+export function getFirstDayOfMonth(year: number, month: number): string {
+  return new Date(Date.UTC(year, month - 1, 1)).toISOString()
+}
+
+/**
+ * Obtiene el último día de un mes específico en UTC
+ */
+export function getLastDayOfMonth(year: number, month: number): string {
+  return new Date(Date.UTC(year, month, 0, 23, 59, 59, 999)).toISOString()
+}
+
+/**
+ * Formatea una fecha para mostrar en la interfaz (versión mejorada)
+ */
+export function formatDateForDisplay(date: string | Date): string {
+  const dateObj = typeof date === 'string' ? new Date(date) : date
+  return dateObj.toLocaleDateString('es-ES', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+}
+
+/**
+ * Convierte una fecha DD/MM/YYYY a formato ISO
+ */
+export function convertDateFormat(dateString: string | null): string | null {
+  if (!dateString || dateString.trim() === "") return null
+
+  // Si ya es una fecha válida en formato ISO, retornarla
+  try {
+    const testDate = new Date(dateString)
+    if (!isNaN(testDate.getTime()) && dateString.includes("-")) {
+      return dateString // Ya está en formato correcto
+    }
+  } catch {
+    // Continuar con la conversión
+  }
+
+  // Buscar patrón DD/MM/YYYY o DD-MM-YYYY
+  const datePattern = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/
+  const match = dateString.match(datePattern)
+
+  if (!match) return null
+
+  const [, day, month, year] = match
+  const dayNum = Number.parseInt(day, 10)
+  const monthNum = Number.parseInt(month, 10)
+  const yearNum = Number.parseInt(year, 10)
+
+  // Validar rangos
+  if (dayNum < 1 || dayNum > 31 || monthNum < 1 || monthNum > 12) {
+    return null
+  }
+
+  // Formatear como YYYY-MM-DD
+  const formattedDate = `${yearNum}-${monthNum.toString().padStart(2, "0")}-${dayNum.toString().padStart(2, "0")}`
+
+  // Verificar que la fecha sea válida
+  const testDate = new Date(formattedDate)
+  if (isNaN(testDate.getTime())) return null
+
+  return formattedDate
+}
+
+/**
+ * Obtiene información de debug sobre fechas
+ */
+export function getDateDebugInfo() {
+  const now = new Date()
+  return {
+    currentDate: now.toISOString(),
+    currentDateLocal: now.toString(),
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    firstDayOfCurrentMonth: getFirstDayOfCurrentMonth(),
+    firstDayOfPreviousMonth: getFirstDayOfPreviousMonth(),
+    lastDayOfPreviousMonth: getLastDayOfPreviousMonth(),
+    environment: process.env.NODE_ENV || "development"
+  }
 }
