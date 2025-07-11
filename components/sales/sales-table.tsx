@@ -30,10 +30,11 @@ import {
   Banknote,
 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { differenceInDays } from "date-fns"
+import { differenceInDays, addDays, format } from "date-fns"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 
 // Importar la función de servidor para sincronizar vehículos validados
 import { syncValidatedVehicle } from "@/server-actions/validation-actions"
@@ -191,9 +192,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
 
   // Estados para la paginación
   const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(15)
-  const [paginatedVehicles, setPaginatedVehicles] = useState<SoldVehicle[]>([])
-  const [totalPages, setTotalPages] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(20)
 
   // Contadores para las pestañas
   const [counts, setCounts] = useState({
@@ -318,8 +317,6 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
       if (!salesData || salesData.length === 0) {
         setVehicles([])
         setFilteredVehicles([])
-        setPaginatedVehicles([])
-        setTotalPages(1)
         setCounts({ all: 0, car: 0, motorcycle: 0, not_validated: 0, finished: 0 })
         setLoading(false)
         return
@@ -439,26 +436,35 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
     setCurrentPage(1)
   }, [searchQuery, vehicles, orValues, activeTab, sortVehicles])
 
-  // Actualizar la paginación cuando cambian los vehículos filtrados o la página actual
-  useEffect(() => {
-    const totalItems = filteredVehicles.length
-    const calculatedTotalPages = Math.ceil(totalItems / itemsPerPage)
-    setTotalPages(calculatedTotalPages || 1)
+  // Calcular los vehículos a mostrar según la página y el filtro de fechas
+  const [showDateFilter, setShowDateFilter] = useState(false)
+  const [dateFilter, setDateFilter] = useState<{ startDate: Date | null; endDate: Date | null }>({ startDate: null, endDate: null })
+  const filteredByDate = filteredVehicles.filter((vehicle) => {
+    if (!dateFilter.startDate && !dateFilter.endDate) return true
+    const saleDate = vehicle.sale_date ? new Date(vehicle.sale_date) : null
+    if (!saleDate) return false
+    if (dateFilter.startDate && saleDate < dateFilter.startDate) return false
+    if (dateFilter.endDate && saleDate > dateFilter.endDate) return false
+    return true
+  })
+  const totalRows = filteredByDate.length
+  const totalPages = Math.max(1, Math.ceil(totalRows / itemsPerPage))
+  const paginatedRows = filteredByDate.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
 
-    // Asegurarse de que la página actual no exceda el total de páginas
-    const safePage = Math.min(currentPage, calculatedTotalPages || 1)
-    if (safePage !== currentPage) {
-      setCurrentPage(safePage)
+  // Función para obtener los números de página a mostrar
+  const getPageNumbers = () => {
+    const maxPagesToShow = 5
+    let start = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2))
+    let end = start + maxPagesToShow - 1
+    if (end > totalPages) {
+      end = totalPages
+      start = Math.max(1, end - maxPagesToShow + 1)
     }
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+  }
 
-    // Calcular los índices de inicio y fin para la página actual
-    const startIndex = (safePage - 1) * itemsPerPage
-    const endIndex = Math.min(startIndex + itemsPerPage, totalItems)
-
-    // Obtener los elementos para la página actual
-    const currentItems = filteredVehicles.slice(startIndex, endIndex)
-    setPaginatedVehicles(currentItems)
-  }, [filteredVehicles, currentPage, itemsPerPage])
+  // Resetear página si cambia el filtro o el tamaño
+  useEffect(() => { setCurrentPage(1) }, [itemsPerPage, filteredByDate])
 
   // Función para cambiar de página
   const goToPage = (page: number) => {
@@ -1241,6 +1247,15 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
     1 + // Peritado/PDF
     1 // Pre-entrega
 
+  // Justo antes del return (
+  const quickFilters = [
+    { label: "Últimos 7 días", days: 7 },
+    { label: "Últimos 30 días", days: 30 },
+    { label: "Últimos 90 días", days: 90 },
+    { label: "Último año", days: 365 },
+  ]
+  // ...
+
   return (
     <TooltipProvider>
       <div className="space-y-4 p-2">
@@ -1310,19 +1325,32 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
               >
                 {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
               </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={toggleHiddenColumns}
-                className="h-9 w-9"
-                title="Mostrar/ocultar columnas"
-              >
-                {Object.values(hiddenColumns).every((value) => !value) ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant={dateFilter.startDate || dateFilter.endDate ? "outline" : "outline"}
+                  size="icon"
+                  onClick={() => setShowDateFilter(true)}
+                  className={dateFilter.startDate || dateFilter.endDate
+                    ? "h-9 w-9 border border-blue-500 text-blue-300 bg-transparent shadow-[0_0_0_2px_rgba(59,130,246,0.2)]"
+                    : "h-9 w-9"}
+                  title="Filtrar por fecha"
+                >
+                  <Calendar className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={toggleHiddenColumns}
+                  className="h-9 w-9"
+                  title="Mostrar/ocultar columnas"
+                >
+                  {Object.values(hiddenColumns).every((value) => !value) ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
             </div>
 
             <TabsList className="h-9 bg-muted/50">
@@ -1406,7 +1434,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ) : paginatedVehicles.length === 0 ? (
+                    ) : paginatedRows.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={visibleColumnCount} className="text-center py-8">
                           <div className="flex flex-col items-center justify-center text-muted-foreground">
@@ -1416,7 +1444,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      paginatedVehicles.map((vehicle, index) => (
+                      paginatedRows.map((vehicle, index) => (
                         <TableRow
                           key={vehicle.id}
                           className={cn("h-8 hover:bg-muted/30", index % 2 === 0 ? "bg-black/5 dark:bg-black/20" : "")}
@@ -1962,79 +1990,103 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                   </TableBody>
                 </Table>
               </div>
+              {/* Subcard paginador */}
+              <div className="mt-2 rounded-lg border bg-card shadow-sm px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="text-sm text-muted-foreground">
+                  Mostrando {totalRows === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}
+                  -{Math.min(currentPage * itemsPerPage, totalRows)} de <span className="font-bold">{totalRows}</span> resultados
+                </div>
+                <div className="flex items-center gap-2">
+                  {/* Selector de filas por página a la izquierda */}
+                  <div className="flex items-center gap-1 mr-4">
+                    <span className="text-xs">Filas por página:</span>
+                    <Select value={itemsPerPage.toString()} onValueChange={v => setItemsPerPage(Number(v))}>
+                      <SelectTrigger className="h-8 w-[70px]">
+                        <SelectValue placeholder={itemsPerPage} />
+                      </SelectTrigger>
+                      <SelectContent side="top">
+                        {[10, 20, 30, 50].map((size) => (
+                          <SelectItem key={size} value={size.toString()}>{size}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {/* Flechas y números de página */}
+                  <Button variant="outline" size="icon" onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="h-8 w-8">{'<<'}</Button>
+                  <Button variant="outline" size="icon" onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1} className="h-8 w-8">{'<'}</Button>
+                  {getPageNumbers().map((n) => (
+                    <Button key={n} variant={n === currentPage ? "default" : "outline"} size="icon" onClick={() => setCurrentPage(n)} className="h-8 w-8 font-bold">{n}</Button>
+                  ))}
+                  <Button variant="outline" size="icon" onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage === totalPages} className="h-8 w-8">{'>'}</Button>
+                  <Button variant="outline" size="icon" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="h-8 w-8">{'>>'}</Button>
+                </div>
+              </div>
             </TabsContent>
           ))}
         </Tabs>
-
-        {/* Paginación */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between px-2">
-            <div className="flex items-center space-x-2">
-              <p className="text-sm text-muted-foreground">
-                Mostrando {(currentPage - 1) * itemsPerPage + 1} a{" "}
-                {Math.min(currentPage * itemsPerPage, filteredVehicles.length)} de {filteredVehicles.length} resultados
-              </p>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="flex items-center space-x-2">
-                <p className="text-sm font-medium">Filas por página</p>
-                <Select value={`${itemsPerPage}`} onValueChange={handleItemsPerPageChange}>
-                  <SelectTrigger className="h-8 w-[70px]">
-                    <SelectValue placeholder={itemsPerPage} />
-                  </SelectTrigger>
-                  <SelectContent side="top">
-                    {[10, 15, 20, 30, 50].map((pageSize) => (
-                      <SelectItem key={pageSize} value={`${pageSize}`}>
-                        {pageSize}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+        <Dialog open={showDateFilter} onOpenChange={setShowDateFilter}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Filtro de Fechas</DialogTitle>
+              <DialogDescription>Selecciona un rango de fechas para filtrar las ventas</DialogDescription>
+            </DialogHeader>
+            <div className="mb-4">
+              <div className="font-semibold mb-2">Filtros rápidos</div>
+              <div className="flex flex-wrap gap-2 mb-4">
+                {quickFilters.map((f) => (
+                  <Button
+                    key={f.label}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const end = new Date()
+                      const start = addDays(end, -f.days + 1)
+                      setDateFilter({ startDate: start, endDate: end })
+                    }}
+                  >
+                    {f.label}
+                  </Button>
+                ))}
               </div>
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="outline"
-                  className="h-8 w-8 p-0"
-                  onClick={() => goToPage(1)}
-                  disabled={currentPage === 1}
-                >
-                  <span className="sr-only">Ir a la primera página</span>
-                  {"<<"}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="h-8 w-8 p-0"
-                  onClick={() => goToPage(currentPage - 1)}
-                  disabled={currentPage === 1}
-                >
-                  <span className="sr-only">Ir a la página anterior</span>
-                  {"<"}
-                </Button>
-                <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                  Página {currentPage} de {totalPages}
+              <div className="font-semibold mb-2">Rango personalizado</div>
+              <div className="flex gap-2 mb-2">
+                <div className="flex-1">
+                  <label className="block text-xs mb-1">Fecha inicio</label>
+                  <Input
+                    type="date"
+                    value={dateFilter.startDate ? format(dateFilter.startDate, "yyyy-MM-dd") : ""}
+                    onChange={e => setDateFilter(df => ({ ...df, startDate: e.target.value ? new Date(e.target.value) : null }))}
+                  />
                 </div>
-                <Button
-                  variant="outline"
-                  className="h-8 w-8 p-0"
-                  onClick={() => goToPage(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                >
-                  <span className="sr-only">Ir a la página siguiente</span>
-                  {">"}
+                <div className="flex-1">
+                  <label className="block text-xs mb-1">Fecha fin</label>
+                  <Input
+                    type="date"
+                    value={dateFilter.endDate ? format(dateFilter.endDate, "yyyy-MM-dd") : ""}
+                    onChange={e => setDateFilter(df => ({ ...df, endDate: e.target.value ? new Date(e.target.value) : null }))}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-between items-center mt-4">
+                <Button variant="ghost" size="sm" onClick={() => setDateFilter({ startDate: null, endDate: null })}>
+                  Limpiar
                 </Button>
-                <Button
-                  variant="outline"
-                  className="h-8 w-8 p-0"
-                  onClick={() => goToPage(totalPages)}
-                  disabled={currentPage === totalPages}
-                >
-                  <span className="sr-only">Ir a la última página</span>
-                  {">>"}
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setShowDateFilter(false)}>
+                    Cancelar
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => setShowDateFilter(false)}
+                    disabled={!dateFilter.startDate && !dateFilter.endDate}
+                  >
+                    Aplicar
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          </DialogContent>
+        </Dialog>
       </div>
     </TooltipProvider>
   )

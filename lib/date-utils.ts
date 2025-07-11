@@ -192,11 +192,13 @@ export function getLastDayOfMonth(year: number, month: number): string {
  * Formatea una fecha para mostrar en la interfaz (versión mejorada)
  */
 export function formatDateForDisplay(date: string | Date): string {
+  if (!date) return "-"
   const dateObj = typeof date === 'string' ? new Date(date) : date
+  if (!dateObj || isNaN(dateObj.getTime())) return "-"
   return dateObj.toLocaleDateString('es-ES', {
     year: 'numeric',
-    month: 'long',
-    day: 'numeric'
+    month: '2-digit',
+    day: '2-digit'
   })
 }
 
