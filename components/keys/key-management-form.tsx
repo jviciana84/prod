@@ -100,15 +100,15 @@ export function KeyManagementForm({ onMovementRegistered }: KeyManagementFormPro
   const verifyLicensePlate = (licensePlate: string) => {
     if (!licensePlate) {
       setLicenseError(null)
-      return false
+      return true // Permitir
     }
 
     const upperLicense = licensePlate.toUpperCase()
     const isValid = validLicensePlates.includes(upperLicense)
 
     if (!isValid) {
-      setLicenseError("La matrícula no existe en el sistema")
-      return false
+      setLicenseError("La matrícula no existe en el sistema (se permitirá el registro igualmente)")
+      return true // Permitir, solo advertir
     } else {
       setLicenseError(null)
       return true
@@ -256,25 +256,31 @@ export function KeyManagementForm({ onMovementRegistered }: KeyManagementFormPro
 
   // Función para añadir una entrada pendiente
   const addPendingEntry = () => {
+    console.log("🔍 DEBUG: addPendingEntry llamada")
     const values = form.getValues()
+    console.log("🔍 DEBUG: Valores del formulario:", values)
 
     // Validar el formulario
     if (!values.license_plate || !values.from_user_id || !values.item_type || !values.to_user_id) {
+      console.log("❌ DEBUG: Validación fallida - campos faltantes")
       toast.error("Por favor, completa todos los campos obligatorios")
       return
     }
 
-    // Verificar matrícula antes de añadir
-    if (!verifyLicensePlate(values.license_plate)) {
-      toast.error("La matrícula no es válida")
-      return
-    }
+    console.log("✅ DEBUG: Validación pasada, verificando matrícula...")
+
+    // Verificar matrícula antes de añadir (solo advertir, no bloquear)
+    verifyLicensePlate(values.license_plate)
+
+    console.log("✅ DEBUG: Verificación de matrícula completada")
 
     // Obtener nombres para mostrar
     const vehicleLabel = values.license_plate
     const fromUserLabel = users.find((u) => u.id === values.from_user_id)?.full_name || values.from_user_id
     const itemTypeLabel = ITEM_TYPES.find((i) => i.value === values.item_type)?.label || values.item_type
     const toUserLabel = users.find((u) => u.id === values.to_user_id)?.full_name || values.to_user_id
+
+    console.log("🔍 DEBUG: Labels generados:", { vehicleLabel, fromUserLabel, itemTypeLabel, toUserLabel })
 
     // Añadir a pendientes
     const newEntry = {
@@ -286,7 +292,12 @@ export function KeyManagementForm({ onMovementRegistered }: KeyManagementFormPro
       id: Date.now().toString(),
     }
 
+    console.log("🔍 DEBUG: Nueva entrada creada:", newEntry)
+    console.log("🔍 DEBUG: Entradas pendientes actuales:", pendingEntries.length)
+
     setPendingEntries([...pendingEntries, newEntry])
+
+    console.log("✅ DEBUG: Entrada añadida a pendientes")
 
     // Limpiar el formulario excepto la matrícula
     form.setValue("from_user_id", "")
@@ -303,6 +314,8 @@ export function KeyManagementForm({ onMovementRegistered }: KeyManagementFormPro
     setTimeout(() => {
       licenseInputRef.current?.focus()
     }, 100)
+
+    console.log("✅ DEBUG: addPendingEntry completada")
   }
 
   // Función para eliminar una entrada pendiente
@@ -362,9 +375,33 @@ export function KeyManagementForm({ onMovementRegistered }: KeyManagementFormPro
         console.log("Tipo de elemento:", entry.item_type)
 
         // Obtener el ID del vehículo a partir de la matrícula
-        const vehicleId = getVehicleIdFromLicensePlate(entry.license_plate)
-        if (!vehicleId) {
-          throw new Error(`No se pudo encontrar el ID del vehículo para la matrícula ${entry.license_plate}`)
+        let vehicleId = getVehicleIdFromLicensePlate(entry.license_plate)
+        
+        // Si no hay ID válido, crear un registro temporal en sales_vehicles
+        if (!vehicleId || vehicleId === entry.license_plate.toUpperCase()) {
+          console.log("🔍 DEBUG: Creando registro temporal en sales_vehicles para matrícula:", entry.license_plate)
+          
+          const { data: newVehicle, error: createError } = await supabase
+            .from("sales_vehicles")
+            .insert({
+              license_plate: entry.license_plate.toUpperCase(),
+              model: "Vehículo no registrado",
+              vehicle_type: "Coche",
+              sale_date: new Date().toISOString(),
+              advisor: "Sistema",
+              payment_method: "Efectivo",
+              payment_status: "Pendiente"
+            })
+            .select("id")
+            .single()
+          
+          if (createError) {
+            console.error("❌ Error creando vehículo temporal:", createError)
+            throw new Error(`Error al crear registro temporal: ${createError.message}`)
+          }
+          
+          vehicleId = newVehicle.id
+          console.log("✅ DEBUG: Vehículo temporal creado con ID:", vehicleId)
         }
 
         // Determinar si es un movimiento de llave o documento
