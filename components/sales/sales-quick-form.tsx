@@ -7,10 +7,11 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { toast } from "sonner"
-import { Check, ChevronsUpDown, Search, Loader2, AlertCircle } from "lucide-react"
+import { Check, ChevronsUpDown, Search, Loader2, AlertCircle, FileText } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { fixCorruptedCookies, clearCorruptedSession } from "@/utils/fix-auth"
+import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -468,352 +469,362 @@ export function SalesQuickForm({ onSaleRegistered }: { onSaleRegistered?: () => 
       <CardContent className="p-0">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
-            <div className="grid grid-cols-2 md:grid-cols-7 gap-2">
-              <FormField
-                control={form.control}
-                name="matricula"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col space-y-1">
-                    <FormLabel className="text-xs">Matrícula</FormLabel>
-                    <div className="relative">
+            <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-2 items-end">
+              <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
+                <FormField
+                  control={form.control}
+                  name="matricula"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col space-y-1">
+                      <FormLabel className="text-xs">Matrícula</FormLabel>
+                      <div className="relative">
+                        <FormControl>
+                          <Input
+                            placeholder="1234ABC"
+                            {...field}
+                            value={field.value.toUpperCase()}
+                            className={cn(
+                              "uppercase pr-10 h-8 text-sm",
+                              "placeholder:text-xs placeholder:text-muted-foreground/70",
+                              "overflow-hidden text-ellipsis whitespace-nowrap",
+                            )}
+                            ref={matriculaRef}
+                            onChange={(e) => handleMatriculaChange(e, field.onChange)}
+                            onKeyDown={handleMatriculaKeyDown}
+                          />
+                        </FormControl>
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                          {isBuscando ? (
+                            <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                          ) : (
+                            field.value && <Search className="h-3 w-3 text-muted-foreground" />
+                          )}
+                        </div>
+                      </div>
+                      <FormMessage className="text-xs" />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="modelo"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col space-y-1">
+                      <FormLabel className="text-xs">Modelo</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="1234ABC"
+                          placeholder="M3 Competition"
                           {...field}
-                          value={field.value.toUpperCase()}
+                          ref={modeloRef}
                           className={cn(
-                            "uppercase pr-10 h-8 text-sm",
+                            "h-8 text-sm",
                             "placeholder:text-xs placeholder:text-muted-foreground/70",
                             "overflow-hidden text-ellipsis whitespace-nowrap",
                           )}
-                          ref={matriculaRef}
-                          onChange={(e) => handleMatriculaChange(e, field.onChange)}
-                          onKeyDown={handleMatriculaKeyDown}
-                        />
-                      </FormControl>
-                      <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                        {isBuscando ? (
-                          <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                        ) : (
-                          field.value && <Search className="h-3 w-3 text-muted-foreground" />
-                        )}
-                      </div>
-                    </div>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="modelo"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col space-y-1">
-                    <FormLabel className="text-xs">Modelo</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="M3 Competition"
-                        {...field}
-                        ref={modeloRef}
-                        className={cn(
-                          "h-8 text-sm",
-                          "placeholder:text-xs placeholder:text-muted-foreground/70",
-                          "overflow-hidden text-ellipsis whitespace-nowrap",
-                        )}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault()
-                            if (asesorTriggerRef.current) {
-                              asesorTriggerRef.current.focus()
-                              setAsesorOpen(true)
-                            }
-                          }
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="asesor"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col space-y-1">
-                    <FormLabel className="text-xs">Asesor</FormLabel>
-                    <Popover open={asesorOpen} onOpenChange={setAsesorOpen}>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            ref={asesorTriggerRef}
-                            variant="outline"
-                            role="combobox"
-                            className={cn(
-                              "w-full justify-between font-normal h-8 text-sm",
-                              !field.value && "text-muted-foreground",
-                              "overflow-hidden text-ellipsis whitespace-nowrap",
-                            )}
-                            onClick={() => setAsesorOpen(true)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault()
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault()
+                              if (asesorTriggerRef.current) {
+                                asesorTriggerRef.current.focus()
                                 setAsesorOpen(true)
                               }
-                            }}
-                          >
-                            <span className="truncate">
-                              {loadingAsesores ? (
-                                <span className="flex items-center">
-                                  <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                                  Cargando...
-                                </span>
-                              ) : field.value ? (
-                                asesores.find((asesor) => asesor.value === field.value)?.label || field.value
-                              ) : (
-                                "Seleccionar asesor"
+                            }
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage className="text-xs" />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="asesor"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col space-y-1">
+                      <FormLabel className="text-xs">Asesor</FormLabel>
+                      <Popover open={asesorOpen} onOpenChange={setAsesorOpen}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              ref={asesorTriggerRef}
+                              variant="outline"
+                              role="combobox"
+                              className={cn(
+                                "w-full justify-between font-normal h-8 text-sm",
+                                !field.value && "text-muted-foreground",
+                                "overflow-hidden text-ellipsis whitespace-nowrap",
                               )}
-                            </span>
-                            <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
-                        <Command>
-                          <CommandInput placeholder="Buscar asesor..." />
-                          <CommandList>
-                            <CommandEmpty>No se encontraron resultados.</CommandEmpty>
-                            <CommandGroup>
-                              {loadingAsesores ? (
-                                <div className="flex items-center justify-center p-2">
-                                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                  <span>Cargando asesores...</span>
-                                </div>
-                              ) : asesores.length === 0 ? (
-                                <div className="p-2 text-center text-sm text-muted-foreground">
-                                  No se encontraron asesores de ventas
-                                </div>
-                              ) : (
-                                asesores.map((asesor) => (
+                              onClick={() => setAsesorOpen(true)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault()
+                                  setAsesorOpen(true)
+                                }
+                              }}
+                            >
+                              <span className="truncate">
+                                {loadingAsesores ? (
+                                  <span className="flex items-center">
+                                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                    Cargando...
+                                  </span>
+                                ) : field.value ? (
+                                  asesores.find((asesor) => asesor.value === field.value)?.label || field.value
+                                ) : (
+                                  "Seleccionar asesor"
+                                )}
+                              </span>
+                              <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+                          <Command>
+                            <CommandInput placeholder="Buscar asesor..." />
+                            <CommandList>
+                              <CommandEmpty>No se encontraron resultados.</CommandEmpty>
+                              <CommandGroup>
+                                {loadingAsesores ? (
+                                  <div className="flex items-center justify-center p-2">
+                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                    <span>Cargando asesores...</span>
+                                  </div>
+                                ) : asesores.length === 0 ? (
+                                  <div className="p-2 text-center text-sm text-muted-foreground">
+                                    No se encontraron asesores de ventas
+                                  </div>
+                                ) : (
+                                  asesores.map((asesor) => (
+                                    <CommandItem
+                                      key={asesor.value}
+                                      value={asesor.label} // Usamos el nombre para la búsqueda
+                                      onSelect={() => {
+                                        form.setValue("asesor", asesor.value)
+                                        setAsesorOpen(false)
+                                        setTimeout(() => {
+                                          if (formaPagoTriggerRef.current) {
+                                            formaPagoTriggerRef.current.focus()
+                                            setFormaPagoOpen(true)
+                                          }
+                                        }, 100)
+                                      }}
+                                    >
+                                      {asesor.label}
+                                      <Check
+                                        className={cn(
+                                          "ml-auto h-3 w-3",
+                                          asesor.value === field.value ? "opacity-100" : "opacity-0",
+                                        )}
+                                      />
+                                    </CommandItem>
+                                  ))
+                                )}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage className="text-xs" />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="formaPago"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col space-y-1">
+                      <FormLabel className="text-xs">Forma de pago</FormLabel>
+                      <Popover open={formaPagoOpen} onOpenChange={setFormaPagoOpen}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              ref={formaPagoTriggerRef}
+                              variant="outline"
+                              role="combobox"
+                              className={cn(
+                                "w-full justify-between font-normal h-8 text-sm",
+                                !field.value && "text-muted-foreground",
+                                "overflow-hidden text-ellipsis whitespace-nowrap",
+                              )}
+                              onClick={() => setFormaPagoOpen(true)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault()
+                                  setFormaPagoOpen(true)
+                                }
+                              }}
+                            >
+                              <span className="truncate">
+                                {field.value
+                                  ? FORMAS_PAGO.find((forma) => forma.value === field.value)?.label
+                                  : "Seleccionar forma de pago"}
+                              </span>
+                              <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+                          <Command>
+                            <CommandInput placeholder="Buscar forma de pago..." />
+                            <CommandList>
+                              <CommandEmpty>No se encontraron resultados.</CommandEmpty>
+                              <CommandGroup>
+                                {FORMAS_PAGO.map((forma) => (
                                   <CommandItem
-                                    key={asesor.value}
-                                    value={asesor.label} // Usamos el nombre para la búsqueda
+                                    key={forma.value}
+                                    value={forma.value}
                                     onSelect={() => {
-                                      form.setValue("asesor", asesor.value)
-                                      setAsesorOpen(false)
+                                      form.setValue("formaPago", forma.value)
+                                      setFormaPagoOpen(false)
                                       setTimeout(() => {
-                                        if (formaPagoTriggerRef.current) {
-                                          formaPagoTriggerRef.current.focus()
-                                          setFormaPagoOpen(true)
+                                        if (tipoDocTriggerRef.current) {
+                                          tipoDocTriggerRef.current.focus()
+                                          setTipoDocOpen(true)
                                         }
                                       }, 100)
                                     }}
                                   >
-                                    {asesor.label}
+                                    {forma.label}
                                     <Check
                                       className={cn(
                                         "ml-auto h-3 w-3",
-                                        asesor.value === field.value ? "opacity-100" : "opacity-0",
+                                        forma.value === field.value ? "opacity-100" : "opacity-0",
                                       )}
                                     />
                                   </CommandItem>
-                                ))
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage className="text-xs" />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="tipoDoc"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col space-y-1">
+                      <FormLabel className="text-xs">Tipo doc.</FormLabel>
+                      <Popover open={tipoDocOpen} onOpenChange={setTipoDocOpen}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              ref={tipoDocTriggerRef}
+                              variant="outline"
+                              role="combobox"
+                              className={cn(
+                                "w-full justify-between font-normal h-8 text-sm",
+                                !field.value && "text-muted-foreground",
+                                "overflow-hidden text-ellipsis whitespace-nowrap",
                               )}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
+                              onClick={() => setTipoDocOpen(true)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault()
+                                  setTipoDocOpen(true)
+                                }
+                              }}
+                            >
+                              <span className="truncate">
+                                {field.value
+                                  ? TIPOS_DOCUMENTO.find((tipo) => tipo.value === field.value)?.label
+                                  : "Seleccionar tipo"}
+                              </span>
+                              <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+                          <Command>
+                            <CommandInput placeholder="Buscar tipo..." />
+                            <CommandList>
+                              <CommandEmpty>No se encontraron resultados.</CommandEmpty>
+                              <CommandGroup>
+                                {TIPOS_DOCUMENTO.map((tipo) => (
+                                  <CommandItem
+                                    key={tipo.value}
+                                    value={tipo.value}
+                                    onSelect={() => {
+                                      form.setValue("tipoDoc", tipo.value)
+                                      setTipoDocOpen(false)
+                                      setTimeout(() => {
+                                        precioRef.current?.focus()
+                                      }, 100)
+                                    }}
+                                  >
+                                    {tipo.label}
+                                    <Check
+                                      className={cn(
+                                        "ml-auto h-3 w-3",
+                                        tipo.value === field.value ? "opacity-100" : "opacity-0",
+                                      )}
+                                    />
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage className="text-xs" />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="formaPago"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col space-y-1">
-                    <FormLabel className="text-xs">Forma de pago</FormLabel>
-                    <Popover open={formaPagoOpen} onOpenChange={setFormaPagoOpen}>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            ref={formaPagoTriggerRef}
-                            variant="outline"
-                            role="combobox"
-                            className={cn(
-                              "w-full justify-between font-normal h-8 text-sm",
-                              !field.value && "text-muted-foreground",
-                              "overflow-hidden text-ellipsis whitespace-nowrap",
-                            )}
-                            onClick={() => setFormaPagoOpen(true)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault()
-                                setFormaPagoOpen(true)
-                              }
-                            }}
-                          >
-                            <span className="truncate">
-                              {field.value
-                                ? FORMAS_PAGO.find((forma) => forma.value === field.value)?.label
-                                : "Seleccionar forma de pago"}
-                            </span>
-                            <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
-                        <Command>
-                          <CommandInput placeholder="Buscar forma de pago..." />
-                          <CommandList>
-                            <CommandEmpty>No se encontraron resultados.</CommandEmpty>
-                            <CommandGroup>
-                              {FORMAS_PAGO.map((forma) => (
-                                <CommandItem
-                                  key={forma.value}
-                                  value={forma.value}
-                                  onSelect={() => {
-                                    form.setValue("formaPago", forma.value)
-                                    setFormaPagoOpen(false)
-                                    setTimeout(() => {
-                                      if (tipoDocTriggerRef.current) {
-                                        tipoDocTriggerRef.current.focus()
-                                        setTipoDocOpen(true)
-                                      }
-                                    }, 100)
-                                  }}
-                                >
-                                  {forma.label}
-                                  <Check
-                                    className={cn(
-                                      "ml-auto h-3 w-3",
-                                      forma.value === field.value ? "opacity-100" : "opacity-0",
-                                    )}
-                                  />
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="tipoDoc"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col space-y-1">
-                    <FormLabel className="text-xs">Tipo doc.</FormLabel>
-                    <Popover open={tipoDocOpen} onOpenChange={setTipoDocOpen}>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            ref={tipoDocTriggerRef}
-                            variant="outline"
-                            role="combobox"
-                            className={cn(
-                              "w-full justify-between font-normal h-8 text-sm",
-                              !field.value && "text-muted-foreground",
-                              "overflow-hidden text-ellipsis whitespace-nowrap",
-                            )}
-                            onClick={() => setTipoDocOpen(true)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault()
-                                setTipoDocOpen(true)
-                              }
-                            }}
-                          >
-                            <span className="truncate">
-                              {field.value
-                                ? TIPOS_DOCUMENTO.find((tipo) => tipo.value === field.value)?.label
-                                : "Seleccionar tipo"}
-                            </span>
-                            <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
-                        <Command>
-                          <CommandInput placeholder="Buscar tipo..." />
-                          <CommandList>
-                            <CommandEmpty>No se encontraron resultados.</CommandEmpty>
-                            <CommandGroup>
-                              {TIPOS_DOCUMENTO.map((tipo) => (
-                                <CommandItem
-                                  key={tipo.value}
-                                  value={tipo.value}
-                                  onSelect={() => {
-                                    form.setValue("tipoDoc", tipo.value)
-                                    setTipoDocOpen(false)
-                                    setTimeout(() => {
-                                      precioRef.current?.focus()
-                                    }, 100)
-                                  }}
-                                >
-                                  {tipo.label}
-                                  <Check
-                                    className={cn(
-                                      "ml-auto h-3 w-3",
-                                      tipo.value === field.value ? "opacity-100" : "opacity-0",
-                                    )}
-                                  />
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="precio"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col space-y-1">
-                    <FormLabel className="text-xs">Precio</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="25000"
-                        {...field}
-                        ref={precioRef}
-                        className={cn(
-                          "h-8 text-sm",
-                          "placeholder:text-xs placeholder:text-muted-foreground/70",
-                          "overflow-hidden text-ellipsis whitespace-nowrap",
-                        )}
-                        type="text"
-                        inputMode="numeric"
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault()
-                            submitRef.current?.focus()
-                          }
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
-
-              <div className="flex flex-col space-y-1">
-                <FormLabel className="text-xs opacity-0">Acción</FormLabel>
+                <FormField
+                  control={form.control}
+                  name="precio"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col space-y-1">
+                      <FormLabel className="text-xs">Precio</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="25000"
+                          {...field}
+                          ref={precioRef}
+                          className={cn(
+                            "h-8 text-sm",
+                            "placeholder:text-xs placeholder:text-muted-foreground/70",
+                            "overflow-hidden text-ellipsis whitespace-nowrap",
+                          )}
+                          type="text"
+                          inputMode="numeric"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault()
+                              submitRef.current?.focus()
+                            }
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage className="text-xs" />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="flex flex-col gap-2 min-w-[140px] w-full md:w-[140px]">
+                <Link href="/dashboard/ventas/upload-pdf" className="w-full">
+                  <Button
+                    variant="outline"
+                    className="h-8 text-sm w-full flex items-center gap-2 justify-center"
+                    type="button"
+                  >
+                    <FileText className="h-4 w-4" />
+                    <span>Subir PDF</span>
+                  </Button>
+                </Link>
                 <Button
                   type="submit"
                   disabled={isSubmitting || !!errorMessage}
                   ref={submitRef}
-                  className="h-8 text-sm relative overflow-hidden transition-all duration-200"
+                  className="h-8 text-sm w-full relative overflow-hidden transition-all duration-200 flex items-center justify-center"
                 >
                   <span
                     className={cn(

@@ -156,6 +156,7 @@ type VehicleTab = "car" | "motorcycle" | "not_validated" | "all" | "finished"
 
 interface SalesTableProps {
   onRefreshRequest?: () => void
+  onRefresh?: () => void
 }
 
 export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
@@ -381,6 +382,11 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
     // Notificar que se ha realizado una actualización
     if (onRefreshRequest) {
       onRefreshRequest()
+    }
+    
+    // Llamar a la función onRefresh si está disponible
+    if (onRefresh) {
+      onRefresh()
     }
   }
 

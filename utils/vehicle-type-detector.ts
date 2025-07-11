@@ -73,7 +73,6 @@ export function detectVehicleType(model: string | null): "Moto" | "Coche" {
     "adventure",
     "rallye",
     "sport",
-    "touring",
     "urban",
   ]
 
