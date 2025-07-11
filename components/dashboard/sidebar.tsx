@@ -172,6 +172,13 @@ export default function DashboardSidebar({ roles }: DashboardSidebarProps) {
               isExpanded={isExpanded}
             />
             <SidebarItem
+              href="/dashboard/admin/blob-files"
+              icon={<PackageOpen className="h-5 w-5" />}
+              title="Archivos Blob"
+              isActive={pathname === "/dashboard/admin/blob-files"}
+              isExpanded={isExpanded}
+            />
+            <SidebarItem
               href="/dashboard/admin/configuracion"
               icon={<Settings className="h-5 w-5" />}
               title="Configuración Sistema"
