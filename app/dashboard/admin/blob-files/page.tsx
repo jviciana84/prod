@@ -6,6 +6,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { listBlobFiles, deleteFromBlob } from "@/lib/blob/index";
 
+async function fetchBlobs() {
+  const res = await fetch("/api/blob/list");
+  if (!res.ok) throw new Error("Error al listar archivos: " + (await res.text()));
+  const { blobs } = await res.json();
+  return blobs;
+}
+
+async function deleteBlob(pathname: string) {
+  const res = await fetch("/api/blob/delete", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ pathname }),
+  });
+  if (!res.ok) throw new Error("Error al borrar archivo: " + (await res.text()));
+  return true;
+}
+
 export default function BlobFilesAdminPage() {
   const [blobs, setBlobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -18,7 +35,7 @@ export default function BlobFilesAdminPage() {
   async function loadBlobs() {
     setLoading(true);
     try {
-      const data = await listBlobFiles();
+      const data = await fetchBlobs();
       setBlobs(data);
     } catch (e: any) {
       toast.error("Error al cargar archivos: " + (e.message || e.error_description || e.error || e.toString()));
@@ -30,7 +47,7 @@ export default function BlobFilesAdminPage() {
   async function handleDelete(path: string) {
     setDeleting(path);
     try {
-      await deleteFromBlob(path);
+      await deleteBlob(path);
       toast.success("Archivo eliminado correctamente");
       setBlobs((prev) => prev.filter((b) => b.pathname !== path));
     } catch (e: any) {
