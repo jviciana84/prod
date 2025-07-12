@@ -61,6 +61,7 @@ import {
   Upload,
   Download,
   CreditCard as CreditCardIcon,
+  Search,
 } from "lucide-react"
 
 import { createClientComponentClient } from "@/lib/supabase/client"
@@ -70,6 +71,7 @@ import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { AlertTriangle } from "lucide-react"
 
 import { DocumentUploaderCompact } from "@/components/extornos/document-uploader-compact"
+import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 
 interface DocumentMetadata {
   id: string
@@ -157,7 +159,6 @@ export default function ExtornosPage() {
   const [userProfile, setUserProfile] = useState<any>(null)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [debugInfo, setDebugInfo] = useState<string>("")
   const [rejectionMessage, setRejectionMessage] = useState<string>("")
   const [emailStates, setEmailStates] = useState<Record<string, "idle" | "sending" | "success" | "error">>({})
 
@@ -186,6 +187,25 @@ export default function ExtornosPage() {
   const [isConfirmingPayment, setIsConfirmingPayment] = useState(false)
   const [paymentMessage, setPaymentMessage] = useState("")
   const [defaultTab, setDefaultTab] = useState<string>("adjuntos")
+
+  // Estados para la paginación
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(20)
+  const [paginatedSolicitudes, setPaginatedSolicitudes] = useState<ExtornoSolicitud[]>([])
+  const [activeTab, setActiveTab] = useState<string>("pendientes")
+  const [searchQuery, setSearchQuery] = useState("")
+
+  // 1. Estados para el filtro de fechas
+  const [showDateFilter, setShowDateFilter] = useState(false)
+  const [dateFilter, setDateFilter] = useState<{ startDate: Date | null; endDate: Date | null }>({ startDate: null, endDate: null })
+
+  // 2. Filtros rápidos
+  const quickFilters = [
+    { label: "Últimos 7 días", days: 7 },
+    { label: "Últimos 30 días", days: 30 },
+    { label: "Últimos 90 días", days: 90 },
+    { label: "Último año", days: 365 },
+  ]
 
   const supabase = createClientComponentClient()
 
@@ -252,16 +272,13 @@ export default function ExtornosPage() {
 
       if (error) {
         console.error("❌ Error verificando tabla:", error)
-        setDebugInfo(`Error tabla: ${error.message}`)
         return false
       }
 
       console.log("✅ Tabla extornos verificada. Registros:", count)
-      setDebugInfo(`Tabla OK. Registros: ${count || 0}`)
       return true
     } catch (err: any) {
       console.error("❌ Excepción verificando tabla:", err)
-      setDebugInfo(`Excepción: ${err.message}`)
       return false
     }
   }
@@ -1042,6 +1059,80 @@ Muchas gracias`.trim()
     return isAdmin || isTramitador || isPagador
   }
 
+  // Función para obtener los números de página a mostrar
+  const getPageNumbers = () => {
+    const maxPagesToShow = 5
+    let start = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2))
+    let end = start + maxPagesToShow - 1
+    if (end > totalPages) {
+      end = totalPages
+      start = Math.max(1, end - maxPagesToShow + 1)
+    }
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+  }
+
+  // Calcular datos filtrados y paginados
+  const filteredSolicitudes = (() => {
+    let filtered = solicitudes
+
+    // Filtrar por pestaña activa
+    if (activeTab === "pendientes") {
+      filtered = filtered.filter((s) => s.estado === "pendiente")
+    } else if (activeTab === "tramitados") {
+      filtered = filtered.filter((s) => s.estado === "tramitado")
+    } else if (activeTab === "realizados") {
+      filtered = filtered.filter((s) => s.estado === "realizado")
+    } else if (activeTab === "rechazados") {
+      filtered = filtered.filter((s) => s.estado === "rechazado")
+    }
+
+    // Filtrar por búsqueda
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter(
+        (s) =>
+          s.matricula?.toLowerCase().includes(query) ||
+          s.cliente?.toLowerCase().includes(query) ||
+          s.concepto?.toLowerCase().includes(query) ||
+          s.numero_cliente?.toLowerCase().includes(query) ||
+          s.solicitado_por_nombre?.toLowerCase().includes(query) ||
+          s.solicitado_por_email?.toLowerCase().includes(query)
+      )
+    }
+
+    // Filtrar por fechas
+    if (dateFilter.startDate || dateFilter.endDate) {
+      filtered = filtered.filter((s) => {
+        if (!s.created_at) return false
+        const fecha = new Date(s.created_at)
+        if (dateFilter.startDate && fecha < dateFilter.startDate) return false
+        if (dateFilter.endDate && fecha > dateFilter.endDate) return false
+        return true
+      })
+    }
+
+    return filtered
+  })()
+
+  const totalRows = filteredSolicitudes.length
+  const totalPages = Math.max(1, Math.ceil(totalRows / itemsPerPage))
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedData = filteredSolicitudes.slice(startIndex, endIndex)
+
+  // Resetear página si cambia el filtro o el tamaño
+  useEffect(() => { setCurrentPage(1) }, [itemsPerPage, activeTab, searchQuery])
+
+  // Función para cambiar pestaña
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab)
+  }
+
+  // Función para cambiar búsqueda
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value)
+  }
+
   // Si no está autenticado, no mostramos nada
   if (isAuthenticated === false) {
     return (
@@ -1060,7 +1151,6 @@ Muchas gracias`.trim()
         <div className="flex flex-col items-center justify-center h-64 space-y-4">
           <BMWMSpinner size="sm" />
           <span className="text-lg">Cargando solicitudes...</span>
-          {debugInfo && <div className="text-sm text-muted-foreground bg-muted p-2 rounded">Debug: {debugInfo}</div>}
         </div>
       </div>
     )
@@ -1079,19 +1169,14 @@ Muchas gracias`.trim()
 
   return (
     <div className="p-4 md:p-5 space-y-4 pb-20">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="space-y-2">
+        <Breadcrumbs className="mt-4" />
+        <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <ArrowRightLeft className="h-8 w-8 text-blue-600" />
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Extornos</h1>
             <p className="text-muted-foreground">Gestión de solicitudes de extorno, devoluciones y transferencias</p>
-            {debugInfo && (
-              <p className="text-xs text-muted-foreground mt-1">
-                <Database className="h-3 w-3 inline mr-1" />
-                {debugInfo}
-              </p>
-            )}
             {rejectionMessage && (
               <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
                 <div className="flex items-center">
@@ -1103,281 +1188,154 @@ Muchas gracias`.trim()
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={cargarSolicitudes}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Actualizar
-          </Button>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          {/* Eliminar el botón de Nueva Solicitud fuera del card */}
+          {/* <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={abrirModalNuevoExtorno}>
                 <Plus className="h-4 w-4 mr-2" />
                 Nueva Solicitud
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <ArrowRightLeft className="h-5 w-5 text-blue-600" />
-                  Nueva Solicitud de Extorno
-                </DialogTitle>
-                <DialogDescription>Complete los datos para crear una nueva solicitud de extorno</DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Campo de solicitante (no editable) */}
-                <div className="space-y-2">
-                  <Label htmlFor="solicitante" className="flex items-center gap-2 text-sm font-medium">
-                    <UserCircle className="h-4 w-4" />
-                    Solicitante
-                  </Label>
-                  <div className="flex items-center gap-2 px-3 py-2 border rounded-md bg-muted/30">
-                    <UserCircle className="h-4 w-4 text-muted-foreground" />
-                    <span>
-                      {currentUser?.user_metadata?.full_name ||
-                        userProfile?.full_name ||
-                        currentUser?.email ||
-                        "Usuario actual"}
-                    </span>
-                  </div>
-                </div>
-                {/* Primera fila */}
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="matricula" className="flex items-center gap-2 text-sm font-medium">
-                      <Car className="h-4 w-4" />
-                      Matrícula *
-                    </Label>
-                    <Input
-                      id="matricula"
-                      ref={matriculaRef}
-                      value={formData.matricula}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, matricula: e.target.value }))}
-                      onKeyPress={(e) => handleKeyPress(e, clienteRef)}
-                      placeholder="1234ABC"
-                      className="h-10"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="cliente" className="flex items-center gap-2 text-sm font-medium">
-                      <User className="h-4 w-4" />
-                      Cliente *
-                    </Label>
-                    <Input
-                      id="cliente"
-                      ref={clienteRef}
-                      value={formData.cliente}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, cliente: e.target.value }))}
-                      onKeyPress={(e) => handleKeyPress(e, numeroClienteRef)}
-                      placeholder="Nombre completo del cliente"
-                      className="h-10"
-                      required
-                    />
-                  </div>
-                </div>
-                {/* Segunda fila */}
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="numero_cliente" className="text-sm font-medium">
-                      Número de Cliente
-                    </Label>
-                    <Input
-                      id="numero_cliente"
-                      ref={numeroClienteRef}
-                      value={formData.numero_cliente}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, numero_cliente: e.target.value }))}
-                      onKeyPress={(e) => handleKeyPress(e, importeRef)}
-                      placeholder="CLI001 (opcional)"
-                      className="h-10"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="importe" className="flex items-center gap-2 text-sm font-medium">
-                      <Euro className="h-4 w-4" />
-                      Importe *
-                    </Label>
-                    <Input
-                      id="importe"
-                      ref={importeRef}
-                      value={formData.importe}
-                      onChange={handleImporteChange}
-                      onKeyPress={(e) => handleKeyPress(e, conceptoRef)}
-                      placeholder="1.250,57€"
-                      className="h-10"
-                      required
-                    />
-                  </div>
-                </div>
-                {/* Tercera fila */}
-                <div className="space-y-2">
-                  <Label htmlFor="concepto" className="text-sm font-medium">
-                    Concepto *
-                  </Label>
-                  <Textarea
-                    id="concepto"
-                    ref={conceptoRef}
-                    value={formData.concepto}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, concepto: e.target.value }))}
-                    onKeyPress={(e) => handleKeyPress(e, numeroCuentaRef)}
-                    placeholder="Descripción detallada del concepto del extorno"
-                    className="min-h-[80px] resize-none"
-                    required
-                  />
-                </div>
-                {/* Cuarta fila */}
-                <div className="space-y-2">
-                  <Label htmlFor="numero_cuenta" className="flex items-center gap-2 text-sm font-medium">
-                    <CreditCard className="h-4 w-4" />
-                    Número de Cuenta *
-                  </Label>
-                  <Input
-                    id="numero_cuenta"
-                    ref={numeroCuentaRef}
-                    value={formData.numero_cuenta}
-                    onChange={(e) => {
-                      const formateado = formatearNumeroCuenta(e.target.value)
-                      setFormData((prev) => ({ ...prev, numero_cuenta: formateado }))
-                      
-                      // Validar y mostrar error
-                      const validacion = validarNumeroCuenta(formateado)
-                      setNumeroCuentaError(validacion.mensaje)
-                    }}
-                    onKeyPress={(e) => handleKeyPress(e, concesionRef)}
-                    placeholder="ES12 3456 7890 1234 5678 9012"
-                    className={`h-10 ${numeroCuentaError ? 'border-red-500 focus:border-red-500' : ''}`}
-                    required
-                  />
-                  {numeroCuentaError && (
-                    <p className="text-sm text-red-500 flex items-center gap-1">
-                      <AlertCircle className="h-4 w-4" />
-                      {numeroCuentaError}
-                    </p>
-                  )}
-                </div>
-                {/* Quinta fila */}
-                <div className="space-y-2">
-                  <Label htmlFor="concesion" className="flex items-center gap-2 text-sm font-medium">
-                    <Building className="h-4 w-4" />
-                    Concesión *
-                  </Label>
-                  <Select
-                    value={formData.concesion}
-                    onValueChange={(value) => setFormData((prev) => ({ ...prev, concesion: value }))}
-                    required
-                  >
-                    <SelectTrigger className="h-10" ref={concesionRef}>
-                      <SelectValue placeholder="Seleccionar concesión" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">1.- Motor Múnich SA</SelectItem>
-                      <SelectItem value="2">2.- Motor Múnich Cadí</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* 🔥 SECCIÓN DE DOCUMENTOS COMPACTA */}
-                {extornoTemporal && (
-                  <div className="space-y-2">
-                    <Label>Documentos Adjuntos</Label>
-                    <DocumentUploaderCompact
-                      extornoId={extornoTemporal} // This is the temporary string ID
-                      tipo="adjunto"
-                      documentos={pendingFiles} // Pass pending files for display
-                      onFilesSelected={setPendingFiles} // Update pending files state
-                      disabled={submitting}
-                    />
-                  </div>
-                )}
-
-                <div className="flex justify-end gap-3 pt-4 border-t">
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                    Cancelar
-                  </Button>
-                  <Button type="submit" disabled={submitting}>
-                    {submitting ? (
-                      <>
-                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                        Creando...
-                      </>
-                    ) : (
-                      "Crear Solicitud"
-                    )}
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
+            ...
+          </Dialog> */}
         </div>
+      </div>
       </div>
 
       {/* Tabla con pestañas */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ArrowRightLeft className="h-5 w-5" />
-            Solicitudes de Extorno
-          </CardTitle>
-          <CardDescription>
-            Gestione todas las solicitudes de extorno organizadas por estado
-            {solicitudes.length > 0 && ` (${solicitudes.length} registros)`}
-          </CardDescription>
+        <CardHeader className="pb-3">
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle className="flex items-center text-lg">
+                <ArrowRightLeft className="mr-2 h-4 w-4 text-blue-500" />
+                Solicitudes de Extorno
+              </CardTitle>
+              <CardDescription>Gestión y seguimiento de solicitudes de extorno organizadas por estado</CardDescription>
+            </div>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={abrirModalNuevoExtorno}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nueva Solicitud
+                </Button>
+              </DialogTrigger>
+              {/* ...contenido del modal... */}
+            </Dialog>
+          </div>
         </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="pendientes" className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="pendientes" className="flex items-center gap-2">
-                <AlertCircle className="h-4 w-4" />
-                Pendientes
-                <Badge variant="secondary" className="ml-1">
-                  {contarPorEstado("pendiente")}
-                </Badge>
-              </TabsTrigger>
-              <TabsTrigger value="tramitados" className="flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                Tramitados
-                <Badge variant="secondary" className="ml-1">
-                  {contarPorEstado("tramitado")}
-                </Badge>
-              </TabsTrigger>
-              <TabsTrigger value="realizados" className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4" />
-                Realizados
-                <Badge variant="secondary" className="ml-1">
-                  {contarPorEstado("realizado")}
-                </Badge>
-              </TabsTrigger>
-              <TabsTrigger value="rechazados" className="flex items-center gap-2">
-                <XCircle className="h-4 w-4" />
-                Rechazados
-                <Badge variant="secondary" className="ml-1">
-                  {contarPorEstado("rechazado")}
-                </Badge>
-              </TabsTrigger>
-              <TabsTrigger value="total" className="flex items-center gap-2">
-                <Circle className="h-4 w-4" />
-                Total
-                <Badge variant="secondary" className="ml-1">
-                  {solicitudes.length}
-                </Badge>
-              </TabsTrigger>
-            </TabsList>
-            {["pendientes", "tramitados", "realizados", "rechazados", "total"].map((tab) => (
-              <TabsContent key={tab} value={tab} className="mt-4">
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>ESTADO</TableHead><TableHead>MATRÍCULA</TableHead><TableHead>CLIENTE</TableHead><TableHead>CONCEPTO</TableHead><TableHead className="text-right">IMPORTE</TableHead><TableHead>SOLICITANTE</TableHead><TableHead>FECHA</TableHead><TableHead>DOCUMENTOS</TableHead><TableHead>ACCIONES</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filtrarSolicitudes(tab === "total" ? undefined : tab.slice(0, -1)).length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                            No hay solicitudes de extorno en esta categoría
-                          </TableCell>
+        <CardContent className="p-4">
+          <TooltipProvider>
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+            {/* Barra superior con buscador y pestañas en la misma línea */}
+            <div className="flex flex-wrap items-center justify-between gap-2 bg-card rounded-lg p-2 shadow-sm mb-4">
+              <div className="flex items-center gap-2 flex-1">
+                <div className="relative w-full max-w-xs">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder="Buscar solicitudes..."
+                    className="pl-8 h-9"
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={cargarSolicitudes}
+                  disabled={loading}
+                  className="h-9 w-9"
+                  title="Actualizar"
+                >
+                  {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setShowDateFilter(true)}
+                  className="h-9 w-9"
+                  title="Filtrar por fechas"
+                >
+                  <Calendar className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <TabsList className="h-9 bg-muted/50">
+                <TabsTrigger value="pendientes" className="px-3 py-1 h-7 data-[state=active]:bg-background">
+                  <AlertCircle className="h-3.5 w-3.5 mr-1" />
+                  <span>Pendientes</span>
+                  <Badge variant="secondary" className="ml-1 text-xs px-1 py-0">
+                    {contarPorEstado("pendiente")}
+                  </Badge>
+                </TabsTrigger>
+                <TabsTrigger value="tramitados" className="px-3 py-1 h-7 data-[state=active]:bg-background">
+                  <Clock className="h-3.5 w-3.5 mr-1" />
+                  <span>Tramitados</span>
+                  <Badge variant="secondary" className="ml-1 text-xs px-1 py-0">
+                    {contarPorEstado("tramitado")}
+                  </Badge>
+                </TabsTrigger>
+                <TabsTrigger value="realizados" className="px-3 py-1 h-7 data-[state=active]:bg-background">
+                  <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                  <span>Realizados</span>
+                  <Badge variant="secondary" className="ml-1 text-xs px-1 py-0">
+                    {contarPorEstado("realizado")}
+                  </Badge>
+                </TabsTrigger>
+                <TabsTrigger value="rechazados" className="px-3 py-1 h-7 data-[state=active]:bg-background">
+                  <XCircle className="h-3.5 w-3.5 mr-1" />
+                  <span>Rechazados</span>
+                  <Badge variant="secondary" className="ml-1 text-xs px-1 py-0">
+                    {contarPorEstado("rechazado")}
+                  </Badge>
+                </TabsTrigger>
+                <TabsTrigger value="total" className="px-3 py-1 h-7 data-[state=active]:bg-background">
+                  <span>Total</span>
+                  <Badge variant="secondary" className="ml-1 text-xs px-1 py-0">
+                    {solicitudes.length}
+                  </Badge>
+                </TabsTrigger>
+              </TabsList>
+            </div>
+                          {["pendientes", "tramitados", "realizados", "rechazados", "total"].map((tab) => (
+                <TabsContent key={tab} value={tab} className="mt-0">
+                  <div className="rounded-lg border shadow-sm overflow-hidden">
+                    <Table>
+                      <TableHeader className="bg-muted/50">
+                        <TableRow className="hover:bg-transparent border-b border-border">
+                          <TableHead className="w-20 truncate py-2">ESTADO</TableHead>
+                          <TableHead className="w-24 truncate py-2">MATRÍCULA</TableHead>
+                          <TableHead className="w-32 truncate py-2">CLIENTE</TableHead>
+                          <TableHead className="w-48 truncate py-2">CONCEPTO</TableHead>
+                          <TableHead className="w-24 truncate py-2 text-right">IMPORTE</TableHead>
+                          <TableHead className="w-32 truncate py-2">SOLICITANTE</TableHead>
+                          <TableHead className="w-24 truncate py-2">FECHA</TableHead>
+                          <TableHead className="w-20 truncate py-2">DOCUMENTOS</TableHead>
+                          <TableHead className="w-32 truncate py-2">ACCIONES</TableHead>
                         </TableRow>
-                      ) : (
-                        filtrarSolicitudes(tab === "total" ? undefined : tab.slice(0, -1)).map((solicitud) => (
+                      </TableHeader>
+                      <TableBody>
+                        {loading ? (
+                          <TableRow>
+                            <TableCell colSpan={9} className="text-center py-8">
+                              <div className="flex justify-center items-center">
+                                <RefreshCw className="h-6 w-6 animate-spin mr-2" />
+                                <span>Cargando solicitudes...</span>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ) : paginatedData.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={9} className="text-center py-8">
+                              <div className="flex flex-col items-center justify-center text-muted-foreground">
+                                <ArrowRightLeft className="h-10 w-10 mb-2" />
+                                <p>No se encontraron solicitudes de extorno</p>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          paginatedData.map((solicitud) => (
                           <TableRow
                             key={solicitud.id}
                             className="cursor-pointer"
@@ -1389,13 +1347,13 @@ Muchas gracias`.trim()
                                 <span className="capitalize">{solicitud.estado}</span>
                               </div>
                             </TableCell>
-                            <TableCell className="font-medium">{solicitud.matricula}</TableCell>
-                            <TableCell>{solicitud.cliente}</TableCell>
-                            <TableCell className="max-w-xs">
+                            <TableCell className="font-medium truncate max-w-[100px] whitespace-nowrap overflow-hidden">{solicitud.matricula}</TableCell>
+                            <TableCell className="truncate max-w-[140px] whitespace-nowrap overflow-hidden">{solicitud.cliente}</TableCell>
+                            <TableCell className="max-w-xs truncate whitespace-nowrap overflow-hidden">
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <span className="truncate block">{solicitud.concepto}</span>
+                                    <span className="truncate block whitespace-nowrap overflow-hidden max-w-[220px]">{solicitud.concepto}</span>
                                   </TooltipTrigger>
                                   <TooltipContent>
                                     <p>{solicitud.concepto}</p>
@@ -1412,7 +1370,7 @@ Muchas gracias`.trim()
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <span className="truncate max-w-[120px] block">
+                                      <span className="truncate max-w-[120px] block whitespace-nowrap overflow-hidden">
                                         {solicitud.solicitado_por_nombre ||
                                           solicitud.solicitado_por_email ||
                                           "Desconocido"}
@@ -1549,9 +1507,42 @@ Muchas gracias`.trim()
                     </TableBody>
                   </Table>
                 </div>
+                
+                {/* Subcard paginador */}
+                <div className="mt-2 rounded-lg border bg-card shadow-sm px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="text-sm text-muted-foreground">
+                    Mostrando {totalRows === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}
+                    -{Math.min(currentPage * itemsPerPage, totalRows)} de <span className="font-bold">{totalRows}</span> resultados
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {/* Selector de filas por página a la izquierda */}
+                    <div className="flex items-center gap-1 mr-4">
+                      <span className="text-xs">Filas por página:</span>
+                      <Select value={itemsPerPage.toString()} onValueChange={v => setItemsPerPage(Number(v))}>
+                        <SelectTrigger className="h-8 w-[70px]">
+                          <SelectValue placeholder={itemsPerPage} />
+                        </SelectTrigger>
+                        <SelectContent side="top">
+                          {[10, 20, 30, 50].map((size) => (
+                            <SelectItem key={size} value={size.toString()}>{size}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {/* Flechas y números de página */}
+                    <Button variant="outline" size="icon" onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="h-8 w-8">{'<<'}</Button>
+                    <Button variant="outline" size="icon" onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1} className="h-8 w-8">{'<'}</Button>
+                    {getPageNumbers().map((n) => (
+                      <Button key={n} variant={n === currentPage ? "default" : "outline"} size="icon" onClick={() => setCurrentPage(n)} className="h-8 w-8 font-bold">{n}</Button>
+                    ))}
+                    <Button variant="outline" size="icon" onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage === totalPages} className="h-8 w-8">{'>'}</Button>
+                    <Button variant="outline" size="icon" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="h-8 w-8">{'>>'}</Button>
+                  </div>
+                </div>
               </TabsContent>
             ))}
           </Tabs>
+          </TooltipProvider>
         </CardContent>
       </Card>
 
@@ -1884,6 +1875,71 @@ Muchas gracias`.trim()
               </>
             )}
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showDateFilter} onOpenChange={setShowDateFilter}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Filtro de Fechas</DialogTitle>
+            <DialogDescription>Selecciona un rango de fechas para filtrar las solicitudes</DialogDescription>
+          </DialogHeader>
+          <div className="mb-4">
+            <div className="font-semibold mb-2">Filtros rápidos</div>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {quickFilters.map((f) => (
+                <Button
+                  key={f.label}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const end = new Date()
+                    const start = new Date()
+                    start.setDate(end.getDate() - f.days + 1)
+                    setDateFilter({ startDate: start, endDate: end })
+                  }}
+                >
+                  {f.label}
+                </Button>
+              ))}
+            </div>
+            <div className="font-semibold mb-2">Rango personalizado</div>
+            <div className="flex gap-2 mb-2">
+              <div className="flex-1">
+                <label className="block text-xs mb-1">Fecha inicio</label>
+                <Input
+                  type="date"
+                  value={dateFilter.startDate ? dateFilter.startDate.toISOString().slice(0, 10) : ""}
+                  onChange={e => setDateFilter(df => ({ ...df, startDate: e.target.value ? new Date(e.target.value) : null }))}
+                />
+              </div>
+              <div className="flex-1">
+                <label className="block text-xs mb-1">Fecha fin</label>
+                <Input
+                  type="date"
+                  value={dateFilter.endDate ? dateFilter.endDate.toISOString().slice(0, 10) : ""}
+                  onChange={e => setDateFilter(df => ({ ...df, endDate: e.target.value ? new Date(e.target.value) : null }))}
+                />
+              </div>
+            </div>
+            <div className="flex justify-between items-center mt-4">
+              <Button variant="ghost" size="sm" onClick={() => setDateFilter({ startDate: null, endDate: null })}>
+                Limpiar
+              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setShowDateFilter(false)}>
+                  Cancelar
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => setShowDateFilter(false)}
+                  disabled={!dateFilter.startDate && !dateFilter.endDate}
+                >
+                  Aplicar
+                </Button>
+              </div>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

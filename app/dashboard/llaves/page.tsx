@@ -101,18 +101,14 @@ export default function KeysManagementPage() {
 
   return (
     <div className="p-4 md:p-5 space-y-4 pb-20">
-      {/* Breadcrumbs */}
-      <div className="mb-4">
-        <Breadcrumbs items={[
-          { label: "Llaves", href: "/dashboard/llaves" },
-        ]} />
-      </div>
-      {/* Header Section */}
-      <div className="flex items-center gap-3 mb-2">
-        <Key className="h-7 w-7 text-blue-500" />
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Gestión de Llaves</h1>
-          <p className="text-muted-foreground text-lg">Control y seguimiento de llaves y documentación vehicular</p>
+      <div className="space-y-2">
+        <Breadcrumbs className="mt-4" />
+        <div className="flex items-center gap-3">
+          <Key className="h-7 w-7 text-blue-500" />
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Gestión de Llaves</h1>
+            <p className="text-muted-foreground text-lg">Control y seguimiento de llaves y documentación vehicular</p>
+          </div>
         </div>
       </div>
 

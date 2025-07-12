@@ -491,10 +491,10 @@ export function InformesIncidencias() {
 
             <div className="mt-8">
               <h3 className="text-lg font-medium mb-3">Detalle de Incidencias ({getPeriodoTexto()})</h3>
-              <p className="text-sm text-muted-foreground mb-2">
+              <div className="text-sm text-muted-foreground mb-2">
                 Total de entregas en el período:{" "}
                 {loading ? <Skeleton className="h-4 w-10 inline-block" /> : totalEntregasEnPeriodo}
-              </p>
+              </div>
               {loading ? (
                 <Skeleton className="h-64 w-full" />
               ) : (
