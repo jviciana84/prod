@@ -13,12 +13,13 @@ interface EditTransportPageProps {
 
 export default async function EditTransportPage({ params }: EditTransportPageProps) {
   const cookieStore = cookies()
-  const supabase = createServerClient(cookieStore)
+  const supabase = await createServerClient(cookieStore)
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  if (!supabase?.auth?.getSession) {
+    throw new Error("Supabase auth no está disponible en este entorno")
+  }
 
+  const { data: { session } } = await supabase.auth.getSession()
   if (!session) {
     redirect("/")
   }

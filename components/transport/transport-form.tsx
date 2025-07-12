@@ -83,27 +83,30 @@ export default function TransportForm({ transport, locations }: TransportFormPro
       if (
         !formData.license_plate ||
         !formData.model ||
-        !formData.origin_location_id ||
         !purchaseDate ||
-        !formData.expense_type_id
+        !formData.purchase_price
       ) {
-        throw new Error("Por favor, completa todos los campos obligatorios")
+        throw new Error("Matrícula, modelo, precio de compra y fecha de compra son obligatorios")
       }
 
       // Obtener el nombre del tipo de gasto seleccionado
-      const selectedExpenseType = expenseTypes.find(
-        (type) => type.id === Number.parseInt(formData.expense_type_id.toString()),
-      )
-      const expenseCharge = selectedExpenseType?.name || null
+      let expenseCharge = null
+      if (formData.expense_type_id) {
+        const selectedExpenseType = expenseTypes.find(
+          (type) => type.id === Number.parseInt(formData.expense_type_id.toString()),
+        )
+        expenseCharge = selectedExpenseType?.name || null
+      }
 
       // Preparar datos para enviar - incluir tanto expense_type_id como expense_charge
       const dataToSend = {
         license_plate: formData.license_plate,
         model: formData.model,
-        origin_location_id: formData.origin_location_id,
-        expense_type_id: formData.expense_type_id,
-        expense_charge: expenseCharge, // ✅ Agregar el nombre del tipo de gasto
+        origin_location_id: formData.origin_location_id || null,
+        expense_type_id: formData.expense_type_id || null,
+        expense_charge: expenseCharge,
         purchase_date: purchaseDate.toISOString().split("T")[0],
+        purchase_price: formData.purchase_price,
       }
 
       console.log("Datos a enviar:", dataToSend)

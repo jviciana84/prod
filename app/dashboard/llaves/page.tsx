@@ -9,6 +9,7 @@ import { createClientComponentClient } from "@/lib/supabase/client"
 import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { KeyDocumentIncidencesCard } from "@/components/keys/key-document-incidences-card"
 import { Key, Search, Clock } from "lucide-react"
+import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 
 // Define SPECIAL_USERS here or import from a shared location
 const SPECIAL_USERS = [
@@ -23,6 +24,7 @@ export default function KeysManagementPage() {
   const [recentMovements, setRecentMovements] = useState<any[]>([])
   const [usersForDisplay, setUsersForDisplay] = useState<any[]>([])
   const [vehiclesForDisplay, setVehiclesForDisplay] = useState<any[]>([])
+  const [externalVehicles, setExternalVehicles] = useState<any[]>([])
   const supabase = createClientComponentClient()
 
   const loadPageData = useCallback(async () => {
@@ -54,6 +56,13 @@ export default function KeysManagementPage() {
         ...(salesVehiclesData || []).map((v) => ({ ...v, source: "sales_vehicles" })),
       ].filter((v) => v.license_plate)
       setVehiclesForDisplay(allVehicles)
+
+      // Fetch external material vehicles
+      const { data: externalVehiclesData, error: externalVehiclesError } = await supabase
+        .from("external_material_vehicles")
+        .select("id, license_plate")
+      if (externalVehiclesError) throw externalVehiclesError
+      setExternalVehicles(externalVehiclesData || [])
 
       // Fetch key movements
       const { data: keyMovements, error: keyError } = await supabase
@@ -92,6 +101,12 @@ export default function KeysManagementPage() {
 
   return (
     <div className="p-4 md:p-5 space-y-4 pb-20">
+      {/* Breadcrumbs */}
+      <div className="mb-4">
+        <Breadcrumbs items={[
+          { label: "Llaves", href: "/dashboard/llaves" },
+        ]} />
+      </div>
       {/* Header Section */}
       <div className="flex items-center gap-3 mb-2">
         <Key className="h-7 w-7 text-blue-500" />
@@ -154,7 +169,7 @@ export default function KeysManagementPage() {
                   <BMWMSpinner size="sm" />
                 </div>
               ) : (
-                <RecentKeyMovements movements={recentMovements} users={usersForDisplay} vehicles={vehiclesForDisplay} />
+                <RecentKeyMovements movements={recentMovements} users={usersForDisplay} vehicles={[...vehiclesForDisplay, ...externalVehicles]} />
               )}
             </CardContent>
           </Card>

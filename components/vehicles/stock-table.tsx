@@ -24,14 +24,18 @@ import {
   CheckCircle,
   Timer,
   AlertTriangle,
+  Car,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { BMWMSpinner } from "../ui/bmw-m-spinner"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { type StockItem, STATUS_OPTIONS, WORK_CENTER_OPTIONS } from "@/lib/types/stock"
 import { formatDateForDisplay } from "@/lib/date-utils"
+import { addDays, format } from "date-fns"
+import ReusablePagination from "@/components/ui/reusable-pagination"
 
 // Definición de prioridades
 enum Priority {
@@ -48,6 +52,7 @@ interface StockItemWithPriority extends StockItem {
 
 interface StockTableProps {
   initialStock?: StockItem[]
+  onRefresh?: () => void
 }
 
 // Estilos para las animaciones de prioridad
@@ -84,7 +89,7 @@ const formatTimeElapsed = (seconds: number | null | undefined): string => {
   }
 }
 
-export default function StockTable({ initialStock = [] }: StockTableProps) {
+export default function StockTable({ initialStock = [], onRefresh }: StockTableProps) {
   const [stock, setStock] = useState<StockItem[]>(initialStock)
   const [filteredStock, setFilteredStock] = useState<StockItem[]>(initialStock)
   const [displayedStock, setDisplayedStock] = useState<StockItem[]>([])
@@ -103,12 +108,21 @@ export default function StockTable({ initialStock = [] }: StockTableProps) {
   const [editingOR, setEditingOR] = useState<string | null>(null)
   const [orValues, setOrValues] = useState<Record<string, string>>({})
   const [paintStatus, setPaintStatus] = useState<Record<string, string>>({})
-  const [showTimers, setShowTimers] = useState<boolean>(false)
+  const [showDateFilter, setShowDateFilter] = useState(false)
+  const [dateFilter, setDateFilter] = useState<{ startDate: Date | null; endDate: Date | null }>({ startDate: null, endDate: null })
 
   const supabase = getSupabaseClient()
   const { toast } = useToast()
   const externalProviderInputRef = useRef<HTMLInputElement>(null)
   const orInputRef = useRef<HTMLInputElement>(null)
+
+  // Filtros rápidos para fechas
+  const quickFilters = [
+    { label: "Últimos 7 días", days: 7 },
+    { label: "Últimos 30 días", days: 30 },
+    { label: "Últimos 90 días", days: 90 },
+    { label: "Último año", days: 365 },
+  ]
 
   // Añade este useEffect después de la declaración de las variables de estado
   useEffect(() => {
@@ -221,10 +235,23 @@ export default function StockTable({ initialStock = [] }: StockTableProps) {
       )
     }
 
+    // Aplicar filtro de fechas
+    if (dateFilter.startDate || dateFilter.endDate) {
+      filtered = filtered.filter((item) => {
+        if (!item.reception_date) return false
+        const receptionDate = new Date(item.reception_date)
+        
+        if (dateFilter.startDate && receptionDate < dateFilter.startDate) return false
+        if (dateFilter.endDate && receptionDate > dateFilter.endDate) return false
+        
+        return true
+      })
+    }
+
     setFilteredStock(filtered)
     setTotalPages(Math.max(1, Math.ceil(filtered.length / itemsPerPage)))
     setCurrentPage(1) // Resetear a la primera página cuando cambian los filtros
-  }, [searchTerm, stock, activeTab, itemsPerPage, orValues])
+  }, [searchTerm, stock, activeTab, itemsPerPage, orValues, dateFilter])
 
   // Función para calcular la prioridad de un vehículo
   const calculatePriority = useCallback(
@@ -336,6 +363,20 @@ export default function StockTable({ initialStock = [] }: StockTableProps) {
       console.error("Error al cargar datos de stock:", err)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  // Función para actualizar manualmente los datos
+  const handleManualRefresh = () => {
+    fetchStock()
+    toast({
+      title: "Actualizando datos",
+      description: "Obteniendo los últimos registros de stock",
+    })
+    
+    // Llamar a la función onRefresh si está disponible
+    if (onRefresh) {
+      onRefresh()
     }
   }
 
@@ -507,24 +548,12 @@ export default function StockTable({ initialStock = [] }: StockTableProps) {
     return formatDateForDisplay(dateString)
   }
 
-  // Función para actualizar manualmente los datos
-  const handleRefresh = () => {
-    fetchStock()
-    toast({
-      title: "Actualizando datos",
-      description: "Obteniendo los últimos registros de stock",
-    })
-  }
-
   // Cambiar de página
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
   }
 
-  // Cambiar número de elementos por página
-  const handleItemsPerPageChange = (value: string) => {
-    setItemsPerPage(Number.parseInt(value))
-  }
+
 
   // Función para cambiar el orden
   const toggleSortDirection = () => {
@@ -839,11 +868,6 @@ export default function StockTable({ initialStock = [] }: StockTableProps) {
     }
   }
 
-  // Alternar visualización de tiempos
-  const toggleTimers = () => {
-    setShowTimers(!showTimers)
-  }
-
   // Modificar la función para actualizar el centro de trabajo
   const handleWorkCenterChange = async (item: StockItem, value: string) => {
     try {
@@ -934,511 +958,458 @@ export default function StockTable({ initialStock = [] }: StockTableProps) {
       `}</style>
 
       {/* Barra de búsqueda y filtros */}
-      <div className="flex flex-col md:flex-row gap-4 mb-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por matrícula o modelo..."
-            className="pl-10"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full md:w-auto">
-          <TabsList className="grid grid-cols-5 w-full md:w-[600px]">
-            <TabsTrigger value="all" className="flex items-center gap-1">
-              <Filter className="h-4 w-4" />
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <div className="flex flex-wrap items-center justify-between gap-2 bg-card rounded-lg p-2 shadow-sm mb-4">
+          <div className="flex items-center gap-2 flex-1">
+            <div className="relative w-full max-w-xs">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Buscar..."
+                className="pl-8 h-9"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={dateFilter.startDate || dateFilter.endDate ? "outline" : "outline"}
+                size="icon"
+                onClick={() => setShowDateFilter(true)}
+                className={dateFilter.startDate || dateFilter.endDate
+                  ? "h-9 w-9 border border-blue-500 text-blue-300 bg-transparent shadow-[0_0_0_2px_rgba(59,130,246,0.2)]"
+                  : "h-9 w-9"}
+                title="Filtrar por fecha"
+              >
+                <Calendar className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={toggleSortDirection}
+                className="h-9 w-9"
+                title="Ordenar"
+              >
+                <ArrowUpDown className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          <TabsList className="h-9 bg-muted/50">
+            <TabsTrigger value="all" className="px-3 py-1 h-7 data-[state=active]:bg-background">
+              <Filter className="h-3.5 w-3.5 mr-1" />
               <span>Todos</span>
             </TabsTrigger>
-            <TabsTrigger value="pending" className="flex items-center gap-1">
-              <Clock className="h-4 w-4" />
+            <TabsTrigger value="pending" className="px-3 py-1 h-7 data-[state=active]:bg-background">
+              <Clock className="h-3.5 w-3.5 mr-1" />
               <span>Pendientes</span>
             </TabsTrigger>
-            <TabsTrigger value="in_process" className="flex items-center gap-1">
-              <Wrench className="h-4 w-4" />
+            <TabsTrigger value="in_process" className="px-3 py-1 h-7 data-[state=active]:bg-background">
+              <Wrench className="h-3.5 w-3.5 mr-1" />
               <span>En proceso</span>
             </TabsTrigger>
-            <TabsTrigger value="completed" className="flex items-center gap-1">
-              <CheckCircle className="h-4 w-4" />
+            <TabsTrigger value="completed" className="px-3 py-1 h-7 data-[state=active]:bg-background">
+              <CheckCircle className="h-3.5 w-3.5 mr-1" />
               <span>Completados</span>
             </TabsTrigger>
-            <TabsTrigger value="premature_sales" className="flex items-center gap-1">
-              <AlertTriangle className="h-4 w-4" />
+            <TabsTrigger value="premature_sales" className="px-3 py-1 h-7 data-[state=active]:bg-background">
+              <AlertTriangle className="h-3.5 w-3.5 mr-1" />
               <span>Ventas Prematuras</span>
             </TabsTrigger>
           </TabsList>
-        </Tabs>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="outline" size="icon" onClick={toggleTimers} className="h-10 w-10">
-                <Timer className={`h-4 w-4 ${showTimers ? "text-blue-500" : ""}`} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{showTimers ? "Ocultar tiempos de proceso" : "Mostrar tiempos de proceso"}</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="outline" size="icon" onClick={toggleSortDirection} className="h-10 w-10">
-                <ArrowUpDown className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              {sortDirection === "asc" ? "Ordenar: Más antiguo primero" : "Ordenar: Más reciente primero"}
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="outline" size="icon" onClick={handleRefresh} disabled={isLoading} className="h-10 w-10">
-                <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Actualizar datos</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
+        </div>
 
-      <div className="rounded-md border shadow-sm overflow-hidden">
-        <Table>
-          <TableHeader className="bg-muted">
-            <TableRow>
-              <TableHead className="text-xs">MATRÍCULA</TableHead>
-              <TableHead className="text-xs">MODELO</TableHead>
-              <TableHead className="text-xs">TIPO</TableHead>
-              <TableHead className="text-xs">VENTA</TableHead>
-              <TableHead className="text-xs">DÍAS</TableHead>
-              <TableHead className="text-xs">OR</TableHead>
-              <TableHead className="text-xs">CARGO GASTOS</TableHead>
-              <TableHead className="text-xs">ESTADO CARROCERIA</TableHead>
-              <TableHead className="text-xs">ESTADO MECÁNICA</TableHead>
-              <TableHead className="text-xs">PERITADO</TableHead>
-              <TableHead className="text-xs">CENTRO TRABAJO</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={16} className="text-center py-8">
-                  <div className="flex justify-center items-center">
-                    <BMWMSpinner size={20} />
-                    <span className="ml-2">Cargando datos...</span>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : displayedStock.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={16} className="text-center py-4 text-muted-foreground">
-                  No se encontraron vehículos en stock
-                </TableCell>
-              </TableRow>
-            ) : (
-              displayedStock.map((item) => {
-                const isUpdating = pendingUpdates.has(item.id)
-                const isEditing = editingId === item.id
-                const isEditingOR = editingOR === item.id
-                const isPhotographed = photoStatus[item.license_plate] || false
-                const paintStatusValue = paintStatus[item.license_plate] || ""
-
-                return (
-                  <TableRow
-                    key={item.id}
-                    className={cn("transition-colors", isEditing && "bg-blue-50 dark:bg-blue-900/20")}
-                  >
-                    <TableCell className="py-0.5 font-medium">
-                      <div className="flex items-center gap-2">
-                        {(item as StockItemWithPriority).calculatedPriority === Priority.HIGH && (
-                          <div className={priorityStyles.container}>
-                            <div className={priorityStyles.high.dot} title="Prioridad alta" />
-                            <div className={priorityStyles.high.wave} />
-                          </div>
-                        )}
-                        {(item as StockItemWithPriority).calculatedPriority === Priority.MEDIUM && (
-                          <div className={priorityStyles.container}>
-                            <div className={priorityStyles.medium.dot} title="Prioridad media" />
-                            <div className={priorityStyles.medium.wave} />
-                          </div>
-                        )}
-                        {(item as StockItemWithPriority).calculatedPriority === Priority.LOW && (
-                          <div className={priorityStyles.container}>
-                            <div className={priorityStyles.low.dot} title="Prioridad baja" />
-                            <div className={priorityStyles.low.wave} />
-                          </div>
-                        )}
-                        {item.license_plate}
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-0.5">{item.model}</TableCell>
-                    <TableCell className="py-0.5">{item.vehicle_type || "-"}</TableCell>
-                    <TableCell className="py-0.5">
-                      <div className="flex items-center gap-1">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Calendar className="h-4 w-4 text-muted-foreground" />
-                            </TooltipTrigger>
-                            <TooltipContent>Fecha de venta</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        <span>{formatDate(item.reception_date)}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-0.5">
-                      {item.reception_date
-                        ? Math.ceil(
-                            (new Date().getTime() - new Date(item.reception_date).getTime()) / (1000 * 60 * 60 * 24),
-                          )
-                        : "-"}
-                    </TableCell>
-                    <TableCell className="py-0.5 w-32">
-                      {isEditingOR ? (
-                        <div className="flex items-center">
-                          <Input
-                            ref={orInputRef}
-                            value={orValues[item.id] || "ORT"}
-                            onChange={(e) => handleORChange(item.id, e.target.value)}
-                            onBlur={() => handleORSave(item.id)}
-                            onKeyDown={(e) => handleORKeyDown(e, item.id)}
-                            className="h-8 text-sm font-mono"
-                            style={{ minWidth: "14ch", width: "14ch" }}
-                            autoFocus
-                          />
-                        </div>
-                      ) : (
-                        <div
-                          className="h-8 flex items-center px-2 border border-gray-300 rounded-md cursor-pointer font-mono overflow-hidden"
-                          style={{ minWidth: "14ch", width: "auto", maxWidth: "14ch" }}
-                          onClick={() => handleOREdit(item.id)}
-                        >
-                          <span className="truncate w-full" title={orValues[item.id] || "ORT"}>
-                            {orValues[item.id] || "ORT"}
-                          </span>
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell className="py-0.5">{item.expense_type_name || item.expense_charge || "-"}</TableCell>
-                    <TableCell className="py-0.5">
-                      {isEditing ? (
-                        <Select
-                          value={editFormData.body_status || item.body_status}
-                          onValueChange={(value) => handleEditFormChange("body_status", value)}
-                        >
-                          <SelectTrigger className="h-8 text-sm">
-                            <SelectValue placeholder="Seleccionar estado" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {STATUS_OPTIONS.map((option) => (
-                              <SelectItem key={option.value} value={option.value}>
-                                {option.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : item.body_status === "apto" ? (
-                        <div className="flex flex-col">
-                          <div className="flex items-center justify-center h-8 w-full border border-green-300 dark:border-green-700 rounded-md px-2 text-green-600">
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            {item.body_status_date ? formatDate(item.body_status_date) : "Apto"}
-                          </div>
-                          {showTimers && item.body_total_time && (
-                            <div className="text-xs text-gray-500 mt-1 text-center">
-                              Tiempo total: {formatTimeElapsed(item.body_total_time)}
-                            </div>
-                          )}
-                        </div>
-                      ) : item.body_status === "en_proceso" ? (
-                        <div className="flex items-center">
-                          <button
-                            className="flex items-center justify-center h-8 w-full rounded-md px-2 bg-blue-100 text-blue-800 border border-blue-300 hover:bg-blue-300 hover:text-blue-950 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700 dark:hover:bg-blue-800 dark:hover:text-blue-100 transition-colors"
-                            onClick={() => handleBodyStatusToggle(item)}
-                            disabled={isUpdating || isEditing}
-                          >
-                            <Wrench className="h-4 w-4 mr-1" />
-                            <span className="whitespace-nowrap">En proceso</span>
-                          </button>
-                          {showTimers && item.body_pending_time && (
-                            <div className="text-xs text-gray-500 ml-2">
-                              {formatTimeElapsed(item.body_pending_time)}
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <button
-                          className="flex items-center justify-center h-8 w-full rounded-md px-2 bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-300 hover:text-amber-950 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700 dark:hover:bg-amber-800 dark:hover:text-amber-100 transition-colors"
-                          onClick={() => handleBodyStatusToggle(item)}
-                          disabled={isUpdating || isEditing}
-                        >
-                          <Clock className="h-4 w-4 mr-1" />
-                          Pendiente
-                        </button>
-                      )}
-                    </TableCell>
-                    <TableCell className="py-0.5">
-                      {isEditing ? (
-                        <Select
-                          value={editFormData.mechanical_status || item.mechanical_status}
-                          onValueChange={(value) => handleEditFormChange("mechanical_status", value)}
-                        >
-                          <SelectTrigger className="h-8 text-sm">
-                            <SelectValue placeholder="Seleccionar estado" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {STATUS_OPTIONS.map((option) => (
-                              <SelectItem key={option.value} value={option.value}>
-                                {option.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : item.mechanical_status === "apto" ? (
-                        <div className="flex flex-col">
-                          <div className="flex items-center justify-center h-8 w-full border border-green-300 dark:border-green-700 rounded-md px-2 text-green-600">
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            {item.mechanical_status_date ? formatDate(item.mechanical_status_date) : "Apto"}
-                          </div>
-                          {showTimers && item.mechanical_total_time && (
-                            <div className="text-xs text-gray-500 mt-1 text-center">
-                              Tiempo total: {formatTimeElapsed(item.mechanical_total_time)}
-                            </div>
-                          )}
-                        </div>
-                      ) : item.mechanical_status === "en_proceso" ? (
-                        <div className="flex items-center">
-                          <button
-                            className="flex items-center justify-center h-8 w-full rounded-md px-2 bg-blue-100 text-blue-800 border border-blue-300 hover:bg-blue-300 hover:text-blue-950 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700 dark:hover:bg-blue-800 dark:hover:text-blue-100 transition-colors"
-                            onClick={() => handleMechanicalStatusToggle(item)}
-                            disabled={isUpdating || isEditing}
-                          >
-                            <Wrench className="h-4 w-4 mr-1" />
-                            <span className="whitespace-nowrap">En proceso</span>
-                          </button>
-                          {showTimers && item.mechanical_pending_time && (
-                            <div className="text-xs text-gray-500 ml-2">
-                              {formatTimeElapsed(item.mechanical_pending_time)}
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <button
-                          className="flex items-center justify-center h-8 w-full rounded-md px-2 bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-300 hover:text-amber-950 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700 dark:hover:bg-amber-800 dark:hover:text-amber-100 transition-colors"
-                          onClick={() => handleMechanicalStatusToggle(item)}
-                          disabled={isUpdating || isEditing}
-                        >
-                          <Clock className="h-4 w-4 mr-1" />
-                          Pendiente
-                        </button>
-                      )}
-                    </TableCell>
-                    <TableCell className="py-0.5">
-                      {item.inspection_date ? (
-                        <div className="flex items-center justify-center h-8 w-full border border-green-300 dark:border-green-700 rounded-md px-2 text-green-600">
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          {formatDate(item.inspection_date)}
-                        </div>
-                      ) : (
-                        <button
-                          className="flex items-center justify-center h-8 w-full rounded-md px-2 bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-300 hover:text-amber-950 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700 dark:hover:bg-amber-800 dark:hover:text-amber-100 transition-colors"
-                          onClick={() => handleInspectionToggle(item)}
-                          disabled={isUpdating || isEditing}
-                        >
-                          <Clock className="h-4 w-4 mr-1" />
-                          Pendiente
-                        </button>
-                      )}
-                    </TableCell>
-                    <TableCell className="py-0.5">
-                      {isEditing ? (
-                        <div className="space-y-2">
-                          <Select
-                            value={editFormData.work_center || item.work_center || ""}
-                            onValueChange={(value) => handleEditFormChange("work_center", value)}
-                          >
-                            <SelectTrigger className="h-8 text-sm">
-                              <SelectValue placeholder="Seleccionar centro" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {WORK_CENTER_OPTIONS.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
-                                  {option.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-
-                          {(editFormData.work_center === "Externo" ||
-                            (item.work_center === "Externo" && editFormData.work_center === undefined)) && (
-                            <Input
-                              ref={externalProviderInputRef}
-                              placeholder="Nombre del proveedor"
-                              value={editFormData.external_provider || item.external_provider || ""}
-                              onChange={(e) => handleEditFormChange("external_provider", e.target.value)}
-                              className="h-8 text-sm"
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault()
-                                  handleSaveEdit()
-                                }
-                              }}
-                              onBlur={handleSaveEdit}
-                            />
-                          )}
-                        </div>
-                      ) : (
-                        <Select
-                          value={item.work_center || "Terrassa"}
-                          onValueChange={(value) => handleWorkCenterChange(item, value)}
-                        >
-                          <SelectTrigger className="h-8 text-sm">
-                            <SelectValue placeholder="Seleccionar centro">
-                              <div className="flex items-center gap-1">
-                                <span>
-                                  {item.work_center || "Terrassa"}
-                                  {item.work_center === "Externo" && item.external_provider && (
-                                    <span className="text-xs text-muted-foreground ml-1">
-                                      ({item.external_provider})
-                                    </span>
-                                  )}
-                                </span>
-                              </div>
-                            </SelectValue>
-                          </SelectTrigger>
-                          <SelectContent>
-                            {WORK_CENTER_OPTIONS.map((option) => (
-                              <SelectItem key={option.value} value={option.value}>
-                                {option.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    </TableCell>
-                    <TableCell className="py-0.5 text-right">
-                      <div className="flex justify-end gap-2">
-                        {isEditing ? (
-                          <>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={handleSaveEdit}
-                                    disabled={isUpdating}
-                                    className="h-8 w-8 text-green-500 hover:text-green-700 hover:bg-green-100"
-                                  >
-                                    <Save className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Guardar cambios</TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={handleCancelEdit}
-                                    disabled={isUpdating}
-                                    className="h-8 w-8 text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Cancelar edición</TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </>
-                        ) : (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleEditClick(item)}
-                                  disabled={isUpdating}
-                                  className="h-8 w-8"
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Editar estados</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        )}
+        {/* Contenido de las pestañas */}
+        <TabsContent value="all" className="mt-0">
+          <div className="rounded-lg border shadow-sm overflow-hidden mb-0">
+            <Table>
+              <TableHeader className="bg-muted/50">
+                <TableRow className="hover:bg-transparent border-b border-border">
+                  <TableHead className="text-xs py-2">MATRÍCULA</TableHead>
+                  <TableHead className="text-xs py-2">MODELO</TableHead>
+                  <TableHead className="text-xs py-2">TIPO</TableHead>
+                  <TableHead className="text-xs py-2">VENTA</TableHead>
+                  <TableHead className="text-xs py-2">DÍAS</TableHead>
+                  <TableHead className="text-xs py-2">OR</TableHead>
+                  <TableHead className="text-xs py-2">CARGO GASTOS</TableHead>
+                  <TableHead className="text-xs py-2">ESTADO CARROCERIA</TableHead>
+                  <TableHead className="text-xs py-2">ESTADO MECÁNICA</TableHead>
+                  <TableHead className="text-xs py-2">PERITADO</TableHead>
+                  <TableHead className="text-xs py-2">CENTRO TRABAJO</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={16} className="text-center py-8">
+                      <div className="flex justify-center items-center">
+                        <BMWMSpinner size={20} />
+                        <span className="ml-2">Cargando datos...</span>
                       </div>
                     </TableCell>
                   </TableRow>
-                )
-              })
-            )}
-          </TableBody>
-        </Table>
+                ) : displayedStock.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={16} className="text-center py-8">
+                      <div className="flex flex-col items-center justify-center text-muted-foreground">
+                        <Car className="h-10 w-10 mb-2" />
+                        <p>No se encontraron vehículos en stock</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  displayedStock.map((item, index) => {
+                    const isUpdating = pendingUpdates.has(item.id)
+                    const isEditing = editingId === item.id
+                    const isEditingOR = editingOR === item.id
+                    const isPhotographed = photoStatus[item.license_plate] || false
+                    const paintStatusValue = paintStatus[item.license_plate] || ""
 
-        {/* Paginación */}
-        {filteredStock.length > 0 && (
-          <div className="flex flex-col md:flex-row justify-between items-center mt-4 gap-4">
-            <div className="text-sm text-muted-foreground">
-              Mostrando {(currentPage - 1) * itemsPerPage + 1} a{" "}
-              {Math.min(currentPage * itemsPerPage, filteredStock.length)} de {filteredStock.length} vehículos
+                    return (
+                      <TableRow
+                        key={item.id}
+                        className={cn("h-8 hover:bg-muted/30", index % 2 === 0 ? "bg-black/5 dark:bg-black/20" : "", isEditing && "bg-blue-50 dark:bg-blue-900/20")}
+                      >
+                        <TableCell className="py-0.5 font-medium">
+                          <div className="flex items-center gap-2">
+                            {(item as StockItemWithPriority).calculatedPriority === Priority.HIGH && (
+                              <div className={priorityStyles.container}>
+                                <div className={priorityStyles.high.dot} title="Prioridad alta" />
+                                <div className={priorityStyles.high.wave} />
+                              </div>
+                            )}
+                            {(item as StockItemWithPriority).calculatedPriority === Priority.MEDIUM && (
+                              <div className={priorityStyles.container}>
+                                <div className={priorityStyles.medium.dot} title="Prioridad media" />
+                                <div className={priorityStyles.medium.wave} />
+                              </div>
+                            )}
+                            {(item as StockItemWithPriority).calculatedPriority === Priority.LOW && (
+                              <div className={priorityStyles.container}>
+                                <div className={priorityStyles.low.dot} title="Prioridad baja" />
+                                <div className={priorityStyles.low.wave} />
+                              </div>
+                            )}
+                            {item.license_plate}
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-0.5">{item.model}</TableCell>
+                        <TableCell className="py-0.5">{item.vehicle_type || "-"}</TableCell>
+                        <TableCell className="py-0.5">
+                          <div className="flex items-center gap-1">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                                </TooltipTrigger>
+                                <TooltipContent>Fecha de venta</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            <span>{formatDate(item.reception_date)}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-0.5">
+                          {item.reception_date
+                            ? Math.ceil(
+                                (new Date().getTime() - new Date(item.reception_date).getTime()) / (1000 * 60 * 60 * 24),
+                              )
+                            : "-"}
+                        </TableCell>
+                        <TableCell className="py-0.5 w-32">
+                          {isEditingOR ? (
+                            <div className="flex items-center">
+                              <Input
+                                ref={orInputRef}
+                                value={orValues[item.id] || "ORT"}
+                                onChange={(e) => handleORChange(item.id, e.target.value)}
+                                onBlur={() => handleORSave(item.id)}
+                                onKeyDown={(e) => handleORKeyDown(e, item.id)}
+                                className="h-8 text-sm font-mono"
+                                style={{ minWidth: "14ch", width: "14ch" }}
+                                autoFocus
+                              />
+                            </div>
+                          ) : (
+                            <div
+                              className="h-8 flex items-center px-2 border border-gray-300 rounded-md cursor-pointer font-mono overflow-hidden"
+                              style={{ minWidth: "14ch", width: "auto", maxWidth: "14ch" }}
+                              onClick={() => handleOREdit(item.id)}
+                            >
+                              <span className="truncate w-full" title={orValues[item.id] || "ORT"}>
+                                {orValues[item.id] || "ORT"}
+                              </span>
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="py-0.5">{item.expense_type_name || item.expense_charge || "-"}</TableCell>
+                        <TableCell className="py-0.5">
+                          {isEditing ? (
+                            <Select
+                              value={editFormData.body_status || item.body_status}
+                              onValueChange={(value) => handleEditFormChange("body_status", value)}
+                            >
+                              <SelectTrigger className="h-8 text-sm">
+                                <SelectValue placeholder="Seleccionar estado" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {STATUS_OPTIONS.map((option) => (
+                                  <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : item.body_status === "apto" ? (
+                            <div className="flex flex-col">
+                              <div className="flex items-center justify-center h-8 w-full border border-green-300 dark:border-green-700 rounded-md px-2 text-green-600">
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                {item.body_status_date ? formatDate(item.body_status_date) : "Apto"}
+                              </div>
+                            </div>
+                          ) : item.body_status === "en_proceso" ? (
+                            <div className="flex items-center">
+                              <button
+                                className="flex items-center justify-center h-8 w-full rounded-md px-2 bg-blue-100 text-blue-800 border border-blue-300 hover:bg-blue-300 hover:text-blue-950 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700 dark:hover:bg-blue-800 dark:hover:text-blue-100 transition-colors"
+                                onClick={() => handleBodyStatusToggle(item)}
+                                disabled={isUpdating || isEditing}
+                              >
+                                <Wrench className="h-4 w-4 mr-1" />
+                                <span className="whitespace-nowrap">En proceso</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              className="flex items-center justify-center h-8 w-full rounded-md px-2 bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-300 hover:text-amber-950 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700 dark:hover:bg-amber-800 dark:hover:text-amber-100 transition-colors"
+                              onClick={() => handleBodyStatusToggle(item)}
+                              disabled={isUpdating || isEditing}
+                            >
+                              <Clock className="h-4 w-4 mr-1" />
+                              Pendiente
+                            </button>
+                          )}
+                        </TableCell>
+                        <TableCell className="py-0.5">
+                          {isEditing ? (
+                            <Select
+                              value={editFormData.mechanical_status || item.mechanical_status}
+                              onValueChange={(value) => handleEditFormChange("mechanical_status", value)}
+                            >
+                              <SelectTrigger className="h-8 text-sm">
+                                <SelectValue placeholder="Seleccionar estado" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {STATUS_OPTIONS.map((option) => (
+                                  <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : item.mechanical_status === "apto" ? (
+                            <div className="flex flex-col">
+                              <div className="flex items-center justify-center h-8 w-full border border-green-300 dark:border-green-700 rounded-md px-2 text-green-600">
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                {item.mechanical_status_date ? formatDate(item.mechanical_status_date) : "Apto"}
+                              </div>
+                            </div>
+                          ) : item.mechanical_status === "en_proceso" ? (
+                            <div className="flex items-center">
+                              <button
+                                className="flex items-center justify-center h-8 w-full rounded-md px-2 bg-blue-100 text-blue-800 border border-blue-300 hover:bg-blue-300 hover:text-blue-950 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700 dark:hover:bg-blue-800 dark:hover:text-blue-100 transition-colors"
+                                onClick={() => handleMechanicalStatusToggle(item)}
+                                disabled={isUpdating || isEditing}
+                              >
+                                <Wrench className="h-4 w-4 mr-1" />
+                                <span className="whitespace-nowrap">En proceso</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              className="flex items-center justify-center h-8 w-full rounded-md px-2 bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-300 hover:text-amber-950 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700 dark:hover:bg-amber-800 dark:hover:text-amber-100 transition-colors"
+                              onClick={() => handleMechanicalStatusToggle(item)}
+                              disabled={isUpdating || isEditing}
+                            >
+                              <Clock className="h-4 w-4 mr-1" />
+                              Pendiente
+                            </button>
+                          )}
+                        </TableCell>
+                        <TableCell className="py-0.5">
+                          {item.inspection_date ? (
+                            <div className="flex items-center justify-center h-8 w-full border border-green-300 dark:border-green-700 rounded-md px-2 text-green-600">
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              {formatDate(item.inspection_date)}
+                            </div>
+                          ) : (
+                            <button
+                              className="flex items-center justify-center h-8 w-full rounded-md px-2 bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-300 hover:text-amber-950 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700 dark:hover:bg-amber-800 dark:hover:text-amber-100 transition-colors"
+                              onClick={() => handleInspectionToggle(item)}
+                              disabled={isUpdating || isEditing}
+                            >
+                              <Clock className="h-4 w-4 mr-1" />
+                              Pendiente
+                            </button>
+                          )}
+                        </TableCell>
+                        <TableCell className="py-0.5">
+                          {isEditing ? (
+                            <div className="space-y-2">
+                              <Select
+                                value={editFormData.work_center || item.work_center || ""}
+                                onValueChange={(value) => handleEditFormChange("work_center", value)}
+                              >
+                                <SelectTrigger className="h-8 text-sm">
+                                  <SelectValue placeholder="Seleccionar centro" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {WORK_CENTER_OPTIONS.map((option) => (
+                                    <SelectItem key={option.value} value={option.value}>
+                                      {option.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+
+                              {(editFormData.work_center === "Externo" ||
+                                (item.work_center === "Externo" && editFormData.work_center === undefined)) && (
+                                <Input
+                                  ref={externalProviderInputRef}
+                                  placeholder="Nombre del proveedor"
+                                  value={editFormData.external_provider || item.external_provider || ""}
+                                  onChange={(e) => handleEditFormChange("external_provider", e.target.value)}
+                                  className="h-8 text-sm"
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault()
+                                      handleSaveEdit()
+                                    }
+                                  }}
+                                  onBlur={handleSaveEdit}
+                                />
+                              )}
+                            </div>
+                          ) : (
+                            <Select
+                              value={item.work_center || "Terrassa"}
+                              onValueChange={(value) => handleWorkCenterChange(item, value)}
+                            >
+                              <SelectTrigger className="h-8 text-sm">
+                                <SelectValue placeholder="Seleccionar centro">
+                                  <div className="flex items-center gap-1">
+                                    <span>
+                                      {item.work_center || "Terrassa"}
+                                      {item.work_center === "Externo" && item.external_provider && (
+                                        <span className="text-xs text-muted-foreground ml-1">
+                                          ({item.external_provider})
+                                        </span>
+                                      )}
+                                    </span>
+                                  </div>
+                                </SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                {WORK_CENTER_OPTIONS.map((option) => (
+                                  <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          {/* Paginación fuera del div de la tabla */}
+          {filteredStock.length > 0 && (
+            <div className="mt-4 rounded-lg border bg-card shadow-sm px-0 py-0">
+              <ReusablePagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={filteredStock.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={handlePageChange}
+                onItemsPerPageChange={(value) => {
+                  setItemsPerPage(value)
+                  setCurrentPage(1)
+                }}
+                itemsPerPageOptions={[5, 10, 20, 50]}
+                showItemsPerPage={true}
+                showFirstLastButtons={true}
+              />
             </div>
+          )}
+        </TabsContent>
+      </Tabs>
 
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <span className="text-sm">Filas por página:</span>
-                <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
-                  <SelectTrigger className="w-[80px] h-8">
-                    <SelectValue placeholder="10" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="5">5</SelectItem>
-                    <SelectItem value="10">10</SelectItem>
-                    <SelectItem value="20">20</SelectItem>
-                    <SelectItem value="50">50</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center space-x-2">
+      {/* Modal de filtro de fechas */}
+      <Dialog open={showDateFilter} onOpenChange={setShowDateFilter}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Filtro de Fechas</DialogTitle>
+            <DialogDescription>Selecciona un rango de fechas para filtrar por fecha de recepción</DialogDescription>
+          </DialogHeader>
+          <div className="mb-4">
+            <div className="font-semibold mb-2">Filtros rápidos</div>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {quickFilters.map((f) => (
                 <Button
+                  key={f.label}
                   variant="outline"
                   size="sm"
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="h-8 w-8 p-0"
+                  onClick={() => {
+                    const end = new Date()
+                    const start = addDays(end, -f.days + 1)
+                    setDateFilter({ startDate: start, endDate: end })
+                  }}
                 >
-                  <ChevronLeft className="h-4 w-4" />
+                  {f.label}
                 </Button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <Button
-                    key={page}
-                    variant={currentPage === page ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handlePageChange(page)}
-                    className="h-8 w-8 p-0"
-                  >
-                    {page}
-                  </Button>
-                ))}
+              ))}
+            </div>
+            <div className="font-semibold mb-2">Rango personalizado</div>
+            <div className="flex gap-2 mb-2">
+              <div className="flex-1">
+                <label className="block text-xs mb-1">Fecha inicio</label>
+                <Input
+                  type="date"
+                  value={dateFilter.startDate ? format(dateFilter.startDate, "yyyy-MM-dd") : ""}
+                  onChange={e => setDateFilter(df => ({ ...df, startDate: e.target.value ? new Date(e.target.value) : null }))}
+                />
+              </div>
+              <div className="flex-1">
+                <label className="block text-xs mb-1">Fecha fin</label>
+                <Input
+                  type="date"
+                  value={dateFilter.endDate ? format(dateFilter.endDate, "yyyy-MM-dd") : ""}
+                  onChange={e => setDateFilter(df => ({ ...df, endDate: e.target.value ? new Date(e.target.value) : null }))}
+                />
+              </div>
+            </div>
+            <div className="flex justify-between items-center mt-4">
+              <Button variant="ghost" size="sm" onClick={() => setDateFilter({ startDate: null, endDate: null })}>
+                Limpiar
+              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setShowDateFilter(false)}>
+                  Cancelar
+                </Button>
                 <Button
-                  variant="outline"
                   size="sm"
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="h-8 w-8 p-0"
+                  onClick={() => setShowDateFilter(false)}
+                  disabled={!dateFilter.startDate && !dateFilter.endDate}
                 >
-                  <ChevronRight className="h-4 w-4" />
+                  Aplicar
                 </Button>
               </div>
             </div>
           </div>
-        )}
-      </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

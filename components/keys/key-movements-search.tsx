@@ -62,22 +62,37 @@ export function KeyMovementsSearch() {
     setError(null)
 
     try {
-      const { data: vehicles, error: vehiclesError } = await supabase
+      // Buscar en sales_vehicles
+      const { data: vehiclesSales, error: vehiclesError } = await supabase
         .from("sales_vehicles")
         .select("id, license_plate")
         .ilike("license_plate", `%${licensePlate}%`)
-
       if (vehiclesError) throw vehiclesError
 
-      if (!vehicles || vehicles.length === 0) {
+      // Buscar en nuevas_entradas
+      const { data: vehiclesStock, error: stockError } = await supabase
+        .from("nuevas_entradas")
+        .select("id, license_plate")
+        .ilike("license_plate", `%${licensePlate}%`)
+      if (stockError) throw stockError
+
+      // Buscar en external_material_vehicles
+      const { data: vehiclesExternal, error: extError } = await supabase
+        .from("external_material_vehicles")
+        .select("id, license_plate")
+        .ilike("license_plate", `%${licensePlate}%`)
+      if (extError) throw extError
+
+      // Unir todos los IDs
+      const allVehicles = [...(vehiclesSales || []), ...(vehiclesStock || []), ...(vehiclesExternal || [])]
+      if (allVehicles.length === 0) {
         setMovements([])
         setLoading(false)
         return
       }
-
-      const vehicleIds = vehicles.map((v) => v.id)
+      const vehicleIds = allVehicles.map((v) => v.id)
       const vehicleMap: Record<string, string> = {}
-      vehicles.forEach((v) => {
+      allVehicles.forEach((v) => {
         vehicleMap[v.id] = v.license_plate
       })
 

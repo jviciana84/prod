@@ -107,7 +107,7 @@ export function KeyManagementForm({ onMovementRegistered }: KeyManagementFormPro
     const isValid = validLicensePlates.includes(upperLicense)
 
     if (!isValid) {
-      setLicenseError("La matrícula no existe en el sistema (se permitirá el registro igualmente)")
+      setLicenseError("⚠️ La matrícula no existe en el sistema")
       return true // Permitir, solo advertir
     } else {
       setLicenseError(null)
@@ -376,32 +376,42 @@ export function KeyManagementForm({ onMovementRegistered }: KeyManagementFormPro
 
         // Obtener el ID del vehículo a partir de la matrícula
         let vehicleId = getVehicleIdFromLicensePlate(entry.license_plate)
-        
-        // Si no hay ID válido, crear un registro temporal en sales_vehicles
-        if (!vehicleId || vehicleId === entry.license_plate.toUpperCase()) {
-          console.log("🔍 DEBUG: Creando registro temporal en sales_vehicles para matrícula:", entry.license_plate)
-          
-          const { data: newVehicle, error: createError } = await supabase
-            .from("sales_vehicles")
-            .insert({
-              license_plate: entry.license_plate.toUpperCase(),
-              model: "Vehículo no registrado",
-              vehicle_type: "Coche",
-              sale_date: new Date().toISOString(),
-              advisor: "Sistema",
-              payment_method: "Efectivo",
-              payment_status: "Pendiente"
-            })
+
+        // Buscar en nuevas_entradas si no existe en sales_vehicles
+        if (!vehicleId) {
+          const { data: stockVehicle } = await supabase
+            .from("nuevas_entradas")
             .select("id")
+            .eq("license_plate", entry.license_plate.toUpperCase())
             .single()
-          
-          if (createError) {
-            console.error("❌ Error creando vehículo temporal:", createError)
-            throw new Error(`Error al crear registro temporal: ${createError.message}`)
+          if (stockVehicle) {
+            vehicleId = stockVehicle.id
           }
-          
-          vehicleId = newVehicle.id
-          console.log("✅ DEBUG: Vehículo temporal creado con ID:", vehicleId)
+        }
+
+        // Si no existe en ninguna, buscar o crear en external_material_vehicles
+        if (!vehicleId) {
+          // Buscar primero
+          const { data: extVehicle } = await supabase
+            .from("external_material_vehicles")
+            .select("id")
+            .eq("license_plate", entry.license_plate.toUpperCase())
+            .single()
+          if (extVehicle) {
+            vehicleId = extVehicle.id
+          } else {
+            // Crear
+            const { data: newExtVehicle, error: extError } = await supabase
+              .from("external_material_vehicles")
+              .insert({ license_plate: entry.license_plate.toUpperCase() })
+              .select("id")
+              .single()
+            if (extError) {
+              console.error("❌ Error creando vehículo externo:", extError)
+              throw new Error(`Error al crear registro externo: ${extError.message}`)
+            }
+            vehicleId = newExtVehicle.id
+          }
         }
 
         // Determinar si es un movimiento de llave o documento
@@ -740,7 +750,11 @@ export function KeyManagementForm({ onMovementRegistered }: KeyManagementFormPro
                       }}
                     />
                   </FormControl>
-                  {licenseError && <p className="text-sm text-red-500 mt-1">{licenseError}</p>}
+                  {licenseError && (
+                    <div className="flex items-center gap-2 mt-1 p-2 bg-red-50 border border-red-200 rounded-md">
+                      <span className="text-red-600 text-sm font-medium">{licenseError}</span>
+                    </div>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}

@@ -169,12 +169,57 @@ export async function isUserAdmin(): Promise<boolean> {
     console.log("⚙️ [isUserAdmin] Verificando si el usuario es administrador...")
     const roles = await getUserRoles()
     console.log("✅ [isUserAdmin] Roles obtenidos para verificación de admin:", roles)
-    // Verificar cualquier rol de administrador
-    const isAdmin = roles.some((role) => role === "admin" || role === "administrador" || role.includes("admin"))
+    
+    // Verificar cualquier rol de administrador (considerando mayúsculas/minúsculas)
+    const isAdmin = roles.some((role) => {
+      const lowerRole = role.toLowerCase()
+      return lowerRole === "admin" || 
+             lowerRole === "administrador" || 
+             lowerRole === "administración" ||
+             lowerRole.includes("admin")
+    })
+    
     console.log("🛡️ [isUserAdmin] Resultado de verificación de admin:", isAdmin)
     return isAdmin
   } catch (error) {
     console.error("❌ [isUserAdmin] Error inesperado al verificar si es admin:", error)
+    return false
+  }
+}
+
+// Función para verificar si el usuario es supervisor o director
+export async function isUserSupervisorOrDirector(): Promise<boolean> {
+  try {
+    console.log("⚙️ [isUserSupervisorOrDirector] Verificando si el usuario es supervisor o director...")
+    const roles = await getUserRoles()
+    console.log("✅ [isUserSupervisorOrDirector] Roles obtenidos:", roles)
+    
+    // Verificar roles de supervisión (considerando mayúsculas/minúsculas)
+    const isSupervisorOrDirector = roles.some((role) => {
+      const lowerRole = role.toLowerCase()
+      return lowerRole === "supervisor" || 
+             lowerRole === "director" ||
+             lowerRole.includes("supervisor") ||
+             lowerRole.includes("director")
+    })
+    
+    console.log("🛡️ [isUserSupervisorOrDirector] Resultado:", isSupervisorOrDirector)
+    return isSupervisorOrDirector
+  } catch (error) {
+    console.error("❌ [isUserSupervisorOrDirector] Error inesperado:", error)
+    return false
+  }
+}
+
+// Función para verificar si el usuario puede editar (admin, supervisor, director)
+export async function canUserEdit(): Promise<boolean> {
+  try {
+    const isAdmin = await isUserAdmin()
+    const isSupervisorOrDirector = await isUserSupervisorOrDirector()
+    
+    return isAdmin || isSupervisorOrDirector
+  } catch (error) {
+    console.error("❌ [canUserEdit] Error inesperado:", error)
     return false
   }
 }

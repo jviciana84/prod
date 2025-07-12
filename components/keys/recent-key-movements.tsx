@@ -33,8 +33,17 @@ export function RecentKeyMovements({ movements, users, vehicles }: RecentKeyMove
 
   const getLicensePlate = (vehicleId: string) => {
     if (!vehicleId) return "N/A"
-    const vehicle = vehicles.find((v) => v.id === vehicleId)
-    return vehicle?.license_plate || vehicleId
+    // Buscar en sales_vehicles
+    const vehicleSales = vehicles.find((v) => v.id === vehicleId)
+    if (vehicleSales) return vehicleSales.license_plate
+    // Buscar en nuevas_entradas
+    if (window?.externalMaterialVehicles) {
+      const vehicleStock = window.externalMaterialVehicles.find((v: any) => v.id === vehicleId)
+      if (vehicleStock) return vehicleStock.license_plate
+    }
+    // Buscar en external_material_vehicles (fetch si no está en memoria)
+    // Si no está, mostrar el id
+    return vehicleId
   }
 
   // Elimina la función `getItemIcon` ya que `getItemIconUpdated` es más completa.
@@ -138,57 +147,32 @@ export function RecentKeyMovements({ movements, users, vehicles }: RecentKeyMove
         return (
           <div
             key={movement.id}
-            className="flex items-center justify-between p-2 border rounded-md hover:bg-muted/30 transition-colors text-sm"
+            className="flex items-center justify-between p-2 border rounded-md hover:bg-muted/30 transition-colors text-xs gap-2 min-h-8"
           >
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <div className="flex items-center gap-1">
-                {getItemIconUpdated(getItemLabel(movement))}
-                <span className="font-medium text-xs">{getLicensePlate(movement.vehicle_id)}</span>
-              </div>
-              <Badge className={`text-xs border ${getItemBadgeColor(movement)} px-1 py-0`}>
-                {getItemLabel(movement)}
-              </Badge>
+            {/* Matrícula y tipo */}
+            <div className="flex items-center gap-2 min-w-0">
+              {getItemIconUpdated(getItemLabel(movement))}
+              <span className="font-semibold truncate max-w-[70px]">{getLicensePlate(movement.vehicle_id)}</span>
+              <Badge className={`border ${getItemBadgeColor(movement)} px-1 py-0.5 font-normal`}>{getItemLabel(movement)}</Badge>
             </div>
 
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {/* From User */}
-              <div className="flex items-center gap-1">
-                <Avatar className="h-6 w-6">
-                  <AvatarImage src={fromUser.avatar || "/placeholder.svg?height=24&width=24"} />
-                  <AvatarFallback className="text-xs">{fromUser.initials}</AvatarFallback>
-                </Avatar>
-                <span className="text-xs font-medium text-muted-foreground">{fromUser.name.split(" ")[0]}</span>
-              </div>
-
+            {/* Usuarios y flecha */}
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <span className="text-muted-foreground font-medium truncate max-w-[60px]">{fromUser.name.split(" ")[0]}</span>
               <ArrowRight className="h-3 w-3 text-muted-foreground" />
-
-              {/* To User */}
-              <div className="flex items-center gap-1">
-                <Avatar className="h-6 w-6">
-                  <AvatarImage src={toUser.avatar || "/placeholder.svg?height=24&width=24"} />
-                  <AvatarFallback className="text-xs">{toUser.initials}</AvatarFallback>
-                </Avatar>
-                <span className="text-xs font-medium text-muted-foreground">{toUser.name.split(" ")[0]}</span>
-              </div>
-              {movement.reason && (
-                <div className="text-xs text-muted-foreground mt-1">
-                  <span className="font-semibold">Motivo:</span> {movement.reason}
-                </div>
-              )}
-              {movement.notes && (
-                <div className="text-xs text-muted-foreground mt-1">
-                  <span className="font-semibold">Notas:</span> {movement.notes}
-                </div>
-              )}
-
-              <Badge variant="outline" className="text-xs px-1 py-0 flex items-center gap-1">
-                {getStatusIcon(movement)}
-              </Badge>
-
-              <span className="text-xs text-muted-foreground">
-                {format(new Date(movement.created_at), "dd/MM/yyyy HH:mm", { locale: es })}
-              </span>
+              <span className="text-muted-foreground font-medium truncate max-w-[60px]">{toUser.name.split(" ")[0]}</span>
             </div>
+
+            {/* Motivo si existe */}
+            {/* Eliminado: no mostrar reason ni observaciones */}
+
+            {/* Estado y fecha */}
+            <Badge variant="outline" className="px-1 py-0 flex items-center gap-1 border-muted-foreground/20">
+              {getStatusIcon(movement)}
+            </Badge>
+            <span className="text-muted-foreground tabular-nums min-w-[90px] text-right">
+              {format(new Date(movement.created_at), "dd/MM/yyyy HH:mm", { locale: es })}
+            </span>
           </div>
         )
       })}

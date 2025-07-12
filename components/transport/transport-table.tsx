@@ -20,11 +20,17 @@ import {
   CheckCircle,
   ArrowUpDown,
   X,
+  ChevronsUpDown,
+  Check,
 } from "lucide-react"
 import { format, parseISO, differenceInDays } from "date-fns"
 import { es } from "date-fns/locale"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
+import { useRef } from "react"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Command, CommandList, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
+import { canUserEditClient } from "@/lib/auth/permissions-client"
 
 interface TransportTableProps {
   initialTransports: any[]
@@ -46,9 +52,31 @@ export default function TransportTable({
   const [activeFilter, setActiveFilter] = useState("pending") // pending, received, all
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [currentPage, setCurrentPage] = useState(1)
+  const [editingCell, setEditingCell] = useState<{id: number, field: string} | null>(null)
+  const [cellValue, setCellValue] = useState("")
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  const [expenseTypes, setExpenseTypes] = useState<any[]>([])
+  const [originPopoverOpen, setOriginPopoverOpen] = useState(false)
+  const [expensePopoverOpen, setExpensePopoverOpen] = useState(false)
+  const [canEdit, setCanEdit] = useState(false)
 
   const supabase = createClientComponentClient()
   const { toast } = useToast()
+
+  // Verificar permisos de edición
+  useEffect(() => {
+    const checkEditPermissions = async () => {
+      try {
+        const hasEditPermission = await canUserEditClient()
+        setCanEdit(hasEditPermission)
+      } catch (error) {
+        console.error("Error verificando permisos de edición:", error)
+        setCanEdit(false)
+      }
+    }
+    
+    checkEditPermissions()
+  }, [])
 
   // Actualizar los transportes cuando cambian los initialTransports
   useEffect(() => {
@@ -283,6 +311,35 @@ export default function TransportTable({
   const totalPages = Math.ceil(filteredTransports.length / rowsPerPage)
   const paginatedData = filteredTransports.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage)
 
+  // Guardar celda secundaria en Supabase
+  const saveCell = async (id: number, field: string, value: any) => {
+    setIsLoading(true)
+    try {
+      const { error } = await supabase.from("nuevas_entradas").update({ [field]: value }).eq("id", id)
+      if (error) throw error
+      // Actualizar localmente
+      const updated = transports.map((item) =>
+        item && item.id === id ? { ...item, [field]: value } : item
+      )
+      setTransports(updated)
+      applyFilters(updated, searchTerm, activeFilter)
+      setEditingCell(null)
+    } catch (error) {
+      toast({ title: "Error", description: "No se pudo guardar el cambio", variant: "destructive" })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    // Cargar tipos de gastos
+    const fetchExpenseTypes = async () => {
+      const { data } = await supabase.from("expense_types").select("*").order("name")
+      if (data) setExpenseTypes(data)
+    }
+    fetchExpenseTypes()
+  }, [supabase])
+
   return (
     <div className="space-y-4">
       {/* Estilos para las animaciones personalizadas */}
@@ -371,7 +428,7 @@ export default function TransportTable({
               <TableRow className="bg-muted/50 hover:bg-muted/50">
                 <TableHead className="text-sm font-medium py-3 text-foreground">MATRÍCULA</TableHead>
                 <TableHead className="text-sm font-medium py-3 text-foreground">MODELO</TableHead>
-                <TableHead className="text-sm font-medium py-3 text-foreground">PRECIO</TableHead>
+                <TableHead className="text-sm font-medium py-3 text-foreground">PRECIO DE COMPRA</TableHead>
                 <TableHead className="text-sm font-medium py-3 text-foreground">SEDE ORIGEN</TableHead>
                 <TableHead className="text-sm font-medium py-3 text-foreground">CARGO GASTOS</TableHead>
                 <TableHead className="text-sm font-medium py-3 text-foreground">DÍA COMPRA</TableHead>
@@ -439,10 +496,141 @@ export default function TransportTable({
                       </TableCell>
                       <TableCell className="py-3 text-foreground">{transport.model || "-"}</TableCell>
                       <TableCell className="py-3 text-foreground">
-                        {transport.purchase_price ? `${transport.purchase_price.toLocaleString("es-ES")} €` : "-"}
+                        {canEdit && editingCell && editingCell.id === transport.id && editingCell.field === "purchase_price" ? (
+                          <input
+                            ref={inputRef}
+                            type="number"
+                            className="border rounded px-2 py-1 text-sm w-full"
+                            value={cellValue}
+                            onChange={e => setCellValue(e.target.value)}
+                            onBlur={() => saveCell(transport.id, "purchase_price", cellValue ? Number(cellValue) : null)}
+                            onKeyDown={e => {
+                              if (e.key === "Enter") {
+                                saveCell(transport.id, "purchase_price", cellValue ? Number(cellValue) : null)
+                              }
+                            }}
+                            autoFocus
+                          />
+                        ) : (
+                          <span
+                            className={canEdit ? "block cursor-pointer hover:bg-muted/50 rounded px-1" : "block px-1"}
+                            onClick={() => {
+                              if (canEdit) {
+                                setEditingCell({id: transport.id, field: "purchase_price"})
+                                setCellValue(transport.purchase_price ? transport.purchase_price.toString() : "")
+                              }
+                            }}
+                          >
+                            {transport.purchase_price ? `${transport.purchase_price.toLocaleString("es-ES")} €` : <span className="text-muted-foreground">-</span>}
+                          </span>
+                        )}
                       </TableCell>
-                      <TableCell className="py-3 text-foreground">{transport.origin_location?.name || "-"}</TableCell>
-                      <TableCell className="py-3 text-foreground">{transport.expense_type?.name || "-"}</TableCell>
+                      <TableCell className="py-3 text-foreground">
+                        {canEdit && editingCell && editingCell.id === transport.id && editingCell.field === "origin_location_id" ? (
+                          <Popover open={originPopoverOpen} onOpenChange={setOriginPopoverOpen}>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                className="w-full justify-between"
+                                onClick={() => setOriginPopoverOpen(true)}
+                              >
+                                {locations.find((loc) => loc.id === Number(cellValue))?.name || "Seleccionar sede"}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[220px] p-0">
+                              <Command>
+                                <CommandInput placeholder="Buscar sede..." />
+                                <CommandList>
+                                  <CommandGroup>
+                                    {locations.map((loc) => (
+                                      <CommandItem
+                                        key={loc.id}
+                                        value={loc.id.toString()}
+                                        onSelect={() => {
+                                          setCellValue(loc.id.toString())
+                                          setOriginPopoverOpen(false)
+                                          saveCell(transport.id, "origin_location_id", loc.id)
+                                        }}
+                                      >
+                                        <Check className={cn("mr-2 h-4 w-4", cellValue == loc.id ? "opacity-100" : "opacity-0")} />
+                                        {loc.name}
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                        ) : (
+                          <span
+                            className={canEdit ? "block cursor-pointer hover:bg-muted/50 rounded px-1" : "block px-1"}
+                            onClick={() => {
+                              if (canEdit) {
+                                setEditingCell({id: transport.id, field: "origin_location_id"})
+                                setCellValue(transport.origin_location_id ? transport.origin_location_id.toString() : "")
+                                setOriginPopoverOpen(true)
+                              }
+                            }}
+                          >
+                            {transport.origin_location?.name || <span className="text-muted-foreground">-</span>}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="py-3 text-foreground">
+                        {canEdit && editingCell && editingCell.id === transport.id && editingCell.field === "expense_type_id" ? (
+                          <Popover open={expensePopoverOpen} onOpenChange={setExpensePopoverOpen}>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                className="w-full justify-between"
+                                onClick={() => setExpensePopoverOpen(true)}
+                              >
+                                {expenseTypes.find((et) => et.id === Number(cellValue))?.name || "Seleccionar gasto"}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[220px] p-0">
+                              <Command>
+                                <CommandInput placeholder="Buscar gasto..." />
+                                <CommandList>
+                                  <CommandGroup>
+                                    {expenseTypes.map((et) => (
+                                      <CommandItem
+                                        key={et.id}
+                                        value={et.id.toString()}
+                                        onSelect={() => {
+                                          setCellValue(et.id.toString())
+                                          setExpensePopoverOpen(false)
+                                          saveCell(transport.id, "expense_type_id", et.id)
+                                        }}
+                                      >
+                                        <Check className={cn("mr-2 h-4 w-4", cellValue == et.id ? "opacity-100" : "opacity-0")} />
+                                        {et.name}
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                        ) : (
+                          <span
+                            className={canEdit ? "block cursor-pointer hover:bg-muted/50 rounded px-1" : "block px-1"}
+                            onClick={() => {
+                              if (canEdit) {
+                                setEditingCell({id: transport.id, field: "expense_type_id"})
+                                setCellValue(transport.expense_type_id ? transport.expense_type_id.toString() : "")
+                                setExpensePopoverOpen(true)
+                              }
+                            }}
+                          >
+                            {transport.expense_type?.name || <span className="text-muted-foreground">-</span>}
+                          </span>
+                        )}
+                      </TableCell>
                       <TableCell className="py-3">
                         <div className="flex items-center gap-1">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -483,14 +671,6 @@ export default function TransportTable({
                       </TableCell>
                       <TableCell className="py-3 text-right">
                         <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => transport && handleEdit(transport.id)}
-                          >
-                            <SquarePen className="h-4 w-4" />
-                          </Button>
                           <Button
                             variant="ghost"
                             size="icon"
