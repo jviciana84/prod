@@ -102,8 +102,8 @@ export default function AssignmentStats() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {stats.photographers.map((photographer) => (
-              <TableRow key={photographer.id}>
+            {stats.photographers.map((photographer, index) => (
+              <TableRow key={`photographer-${photographer.userId}-${index}`}>
                 <TableCell className="font-medium">{photographer.name}</TableCell>
                 <TableCell>
                   {photographer.isActive ? (

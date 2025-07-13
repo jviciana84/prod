@@ -6,7 +6,7 @@ import { KeyMovementsSearch } from "@/components/keys/key-movements-search"
 import { RecentKeyMovements } from "@/components/keys/recent-key-movements"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { createClientComponentClient } from "@/lib/supabase/client"
-import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
+import { Loader2 } from "lucide-react"
 import { KeyDocumentIncidencesCard } from "@/components/keys/key-document-incidences-card"
 import { Key, Search, Clock } from "lucide-react"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
@@ -162,7 +162,7 @@ export default function KeysManagementPage() {
             <CardContent className="p-4">
               {loading ? (
                 <div className="flex justify-center py-4">
-                  <BMWMSpinner size="sm" />
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>
               ) : (
                 <RecentKeyMovements movements={recentMovements} users={usersForDisplay} vehicles={[...vehiclesForDisplay, ...externalVehicles]} />

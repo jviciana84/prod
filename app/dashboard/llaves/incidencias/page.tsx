@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { createClientComponentClient } from "@/lib/supabase/client"
 import { KeyDocumentIncidencesTable } from "@/components/keys/key-document-incidences-table"
 import type { IncidenciaHistorialConDetalles } from "@/types/incidencias"
-import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
+import { Loader2 } from "lucide-react"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { Key } from "lucide-react"
 
@@ -148,7 +148,7 @@ export default function KeyDocumentIncidencesPage() {
           </div>
         </div>
         <div className="flex justify-center items-center min-h-[200px]">
-          <BMWMSpinner size="lg" />
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       </div>
     )

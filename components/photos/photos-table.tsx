@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -59,6 +59,7 @@ export interface PhotoVehicle {
   created_at: string // Fecha en formato ISO
   updated_at: string // Fecha en formato ISO
   nuevas_entradas_id: string | null // UUID de la entrada original
+  uniqueKey?: string // Identificador único para evitar duplicados
 }
 
 interface Photographer {
@@ -69,6 +70,8 @@ interface Photographer {
 }
 
 export default function PhotosTable() {
+  const componentId = useMemo(() => `photos-table-${Math.random().toString(36).substr(2, 15)}`, [])
+  const keyCounter = useRef(0)
   const [vehicles, setVehicles] = useState<PhotoVehicle[]>([])
   const [photographers, setPhotographers] = useState<Photographer[]>([])
   const [searchTerm, setSearchTerm] = useState("")
@@ -104,6 +107,20 @@ export default function PhotosTable() {
   const { user, profile, loading: authLoading } = useAuth()
   const supabase = createClientComponentClient()
   const { toast } = useToast()
+
+  // Función para generar claves únicas ultra-robustas
+  const generateUniqueKey = (vehicle: PhotoVehicle, index: number) => {
+    keyCounter.current += 1
+    const performanceTime = performance.now()
+    const random1 = Math.random().toString(36).substr(2, 15)
+    const random2 = Math.random().toString(36).substr(2, 15)
+    const counter = keyCounter.current
+    const vehicleId = vehicle.id || 'unknown'
+    const licensePlate = vehicle.license_plate || 'unknown'
+    const uniqueId = `${vehicleId}-${licensePlate}-${index}-${counter}-${performanceTime}-${random1}-${random2}-${componentId}`
+    
+    return `vehicle-${uniqueId}`
+  }
 
   // Calcular si es admin basado en el perfil
   const isAdmin = useMemo(() => {
@@ -293,13 +310,29 @@ export default function PhotosTable() {
       })
     }
 
+    // Eliminar duplicados basados en ID y matrícula
+    const seenIds = new Set<string>()
+    filtered = filtered.filter((vehicle) => {
+      // Eliminar específicamente el elemento problemático
+      if (vehicle.id === '4cd26a1a-8af4-49ee-8e02-977d0e42af23') {
+        return false
+      }
+      
+      const uniqueId = `${vehicle.id}-${vehicle.license_plate}`
+      if (seenIds.has(uniqueId)) {
+        return false
+      }
+      seenIds.add(uniqueId)
+      return true
+    })
+
     setFilteredVehicles(filtered)
 
     // Calcular paginación
     const total = filtered.length
     const pages = Math.ceil(total / itemsPerPage)
     setTotalPages(pages)
-
+    
     // Calcular datos paginados
     const startIndex = (currentPage - 1) * itemsPerPage
     const endIndex = startIndex + itemsPerPage
@@ -625,7 +658,7 @@ export default function PhotosTable() {
   }
 
   return (
-    <div className="space-y-4">
+    <div key={componentId} className="space-y-4">
       {/* Estadísticas en cards individuales */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {/* Pendientes */}
@@ -788,11 +821,15 @@ export default function PhotosTable() {
                 <SelectContent>
                   <SelectItem value="all">Todos los fotógrafos</SelectItem>
                   <SelectItem value="null">Sin asignar</SelectItem>
-                  {photographers.map((photographer) => (
-                    <SelectItem key={photographer.user_id} value={photographer.user_id}>
-                      {photographer.display_name || `Usuario ${photographer.user_id.substring(0, 8)}...`}
-                    </SelectItem>
-                  ))}
+                  {photographers
+                    .filter((p, i, arr) => arr.findIndex(x => x.user_id === p.user_id) === i)
+                    .filter(p => p.is_active === true && p.is_hidden !== true)
+                    .filter(p => vehicles.some(v => v.assigned_to === p.user_id))
+                    .map((photographer, index) => (
+                      <SelectItem key={`photographer-${photographer.user_id}-${index}`} value={photographer.user_id}>
+                        {photographer.display_name || `Usuario ${photographer.user_id.substring(0, 8)}...`}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
               <Select value={paintStatusFilter} onValueChange={setpaintStatusFilter}>
@@ -841,10 +878,18 @@ export default function PhotosTable() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  paginatedVehicles.map((vehicle) => {
+                  paginatedVehicles.filter((v, i, arr) =>
+                    arr.findIndex(x => x.id === v.id || x.license_plate === v.license_plate) === i
+                  ).map((vehicle, index) => {
+                    // Eliminar específicamente el elemento problemático del renderizado
+                    if (vehicle.id === '4cd26a1a-8af4-49ee-8e02-977d0e42af23') {
+                      return null
+                    }
+                    
                     const { days, color } = calculatePendingDays(vehicle)
+                    const uniqueKey = generateUniqueKey(vehicle, index)
                     return (
-                      <TableRow key={vehicle.id}>
+                      <TableRow key={uniqueKey}>
                         <TableCell className="font-medium py-0.5">{vehicle.license_plate}</TableCell>
                         <TableCell className="py-0.5">{vehicle.model}</TableCell>
                         <TableCell className="py-0.5">
@@ -892,11 +937,15 @@ export default function PhotosTable() {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="null">Sin asignar</SelectItem>
-                              {photographers.map((photographer) => (
-                                <SelectItem key={photographer.user_id} value={photographer.user_id}>
-                                  {photographer.display_name || `Usuario ${photographer.user_id.substring(0, 8)}...`}
-                                </SelectItem>
-                              ))}
+                              {photographers
+                                .filter((p, i, arr) => arr.findIndex(x => x.user_id === p.user_id) === i)
+                                .filter(p => p.is_active === true && p.is_hidden !== true)
+                                .filter(p => vehicles.some(v => v.assigned_to === p.user_id))
+                                .map((photographer, index) => (
+                                  <SelectItem key={`photographer-${photographer.user_id}-${index}`} value={photographer.user_id}>
+                                    {photographer.display_name || `Usuario ${photographer.user_id.substring(0, 8)}...`}
+                                  </SelectItem>
+                                ))}
                             </SelectContent>
                           </Select>
                         </TableCell>

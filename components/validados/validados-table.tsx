@@ -29,12 +29,18 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
+import { ReusablePagination } from "@/components/ui/reusable-pagination"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { formatDateForDisplay } from "@/lib/date-utils"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar as CalendarIcon } from "lucide-react"
+import { Calendar as CalendarComponent } from "@/components/ui/calendar"
+import { format } from "date-fns"
+import { es } from "date-fns/locale"
 
 // Tipo para los pedidos validados - ACTUALIZADO con todos los campos
 type PedidoValidado = {
@@ -152,6 +158,16 @@ export function ValidadosTable({ onRefreshRequest }: ValidadosTableProps) {
 
   // Estado para la vista simplificada - CAMBIAR A TRUE POR DEFECTO
   const [isSimplifiedView, setIsSimplifiedView] = useState(true)
+
+  // Estados para el filtro de fechas temporal
+  const [dateRange, setDateRange] = useState<{
+    from: Date | undefined
+    to: Date | undefined
+  }>({
+    from: undefined,
+    to: undefined,
+  })
+  const [isDateFilterOpen, setIsDateFilterOpen] = useState(false)
 
   const supabase = createClientComponentClient()
 
@@ -536,6 +552,32 @@ export function ValidadosTable({ onRefreshRequest }: ValidadosTableProps) {
     }, 0)
   }
 
+  // Función para aplicar filtro de fechas temporal
+  const applyDateRangeFilter = (data: PedidoValidado[]) => {
+    if (!dateRange.from && !dateRange.to) {
+      return data
+    }
+
+    return data.filter((pedido) => {
+      const pedidoDate = new Date(pedido.fecha)
+      
+      if (dateRange.from && pedidoDate < dateRange.from) {
+        return false
+      }
+      
+      if (dateRange.to && pedidoDate > dateRange.to) {
+        return false
+      }
+      
+      return true
+    })
+  }
+
+  // Función para limpiar filtro de fechas
+  const clearDateRangeFilter = () => {
+    setDateRange({ from: undefined, to: undefined })
+  }
+
   // Filtrar pedidos según la búsqueda, la pestaña activa y los filtros de fecha
   useEffect(() => {
     let filtered = [...pedidos]
@@ -583,11 +625,14 @@ export function ValidadosTable({ onRefreshRequest }: ValidadosTableProps) {
       })
     }
 
+    // Aplicar filtro de fechas temporal
+    filtered = applyDateRangeFilter(filtered)
+
     setFilteredPedidos(filtered)
 
     // Resetear a la primera página cuando cambia el filtro
     setCurrentPage(1)
-  }, [searchQuery, pedidos, activeTab, activeFilters])
+  }, [searchQuery, pedidos, activeTab, activeFilters, dateRange])
 
   // Actualizar la paginación cuando cambian los pedidos filtrados o la página actual
   useEffect(() => {
@@ -684,7 +729,7 @@ export function ValidadosTable({ onRefreshRequest }: ValidadosTableProps) {
 
   // Verificar si hay filtros de fecha activos
   const hasActiveDateFilters = () => {
-    return activeFilters.years.length > 0 || activeFilters.months.length > 0
+    return activeFilters.years.length > 0 || activeFilters.months.length > 0 || (dateRange.from || dateRange.to)
   }
 
   // Limpiar todos los filtros de fecha
@@ -700,6 +745,7 @@ export function ValidadosTable({ onRefreshRequest }: ValidadosTableProps) {
       }))
     })
     setActiveFilters({ years: [], months: [] })
+    clearDateRangeFilter()
   }
 
   // Componente para celda con tooltip
@@ -756,6 +802,61 @@ export function ValidadosTable({ onRefreshRequest }: ValidadosTableProps) {
               >
                 {isSimplifiedView ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
               </Button>
+
+              {/* Botón de filtro de fechas temporal */}
+              <Popover open={isDateFilterOpen} onOpenChange={setIsDateFilterOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className={cn(
+                      "h-9 w-9",
+                      (dateRange.from || dateRange.to) && "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                    )}
+                    title="Filtrar por rango de fechas"
+                  >
+                    <CalendarIcon className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <CalendarComponent
+                    initialFocus
+                    mode="range"
+                    defaultMonth={dateRange.from}
+                    selected={dateRange}
+                    onSelect={(range) => {
+                      setDateRange(range || { from: undefined, to: undefined })
+                      setIsDateFilterOpen(false)
+                    }}
+                    numberOfMonths={2}
+                    locale={es}
+                  />
+                  {(dateRange.from || dateRange.to) && (
+                    <div className="p-3 border-t">
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm text-muted-foreground">
+                          {dateRange.from && (
+                            <span>Desde: {format(dateRange.from, "dd/MM/yyyy", { locale: es })}</span>
+                          )}
+                          {dateRange.to && (
+                            <span className="ml-2">
+                              Hasta: {format(dateRange.to, "dd/MM/yyyy", { locale: es })}
+                            </span>
+                          )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={clearDateRangeFilter}
+                          className="h-6 text-xs"
+                        >
+                          Limpiar
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
             </div>
 
             <TabsList className="h-9 bg-muted/50">
@@ -917,7 +1018,7 @@ export function ValidadosTable({ onRefreshRequest }: ValidadosTableProps) {
                     <TableRow>
                       <TableCell colSpan={isSimplifiedView ? 8 : 25} className="text-center py-8">
                         <div className="flex flex-col items-center justify-center text-muted-foreground">
-                          <Calendar className="h-10 w-10 mb-2" />
+                          <CalendarIcon className="h-10 w-10 mb-2" />
                           <p>No se encontraron pedidos validados</p>
                         </div>
                       </TableCell>
@@ -932,7 +1033,7 @@ export function ValidadosTable({ onRefreshRequest }: ValidadosTableProps) {
                         <TableCell className="py-1">
                           <CellWithTooltip value={formatDate(pedido.fecha)}>
                             <div className="flex items-center">
-                              <Calendar className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+                              <CalendarIcon className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
                               <span className="truncate">{formatDate(pedido.fecha)}</span>
                             </div>
                           </CellWithTooltip>
@@ -1337,7 +1438,7 @@ export function ValidadosTable({ onRefreshRequest }: ValidadosTableProps) {
                       <TableRow>
                         <TableCell colSpan={isSimplifiedView ? 8 : 25} className="text-center py-8">
                           <div className="flex flex-col items-center justify-center text-muted-foreground">
-                            <Calendar className="h-10 w-10 mb-2" />
+                            <CalendarIcon className="h-10 w-10 mb-2" />
                             <p>No se encontraron pedidos validados</p>
                           </div>
                         </TableCell>
@@ -1352,7 +1453,7 @@ export function ValidadosTable({ onRefreshRequest }: ValidadosTableProps) {
                           <TableCell className="py-1">
                             <CellWithTooltip value={formatDate(pedido.fecha)}>
                               <div className="flex items-center">
-                                <Calendar className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+                                <CalendarIcon className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
                                 <span className="truncate">{formatDate(pedido.fecha)}</span>
                               </div>
                             </CellWithTooltip>
@@ -1625,82 +1726,21 @@ export function ValidadosTable({ onRefreshRequest }: ValidadosTableProps) {
         </Tabs>
 
         {/* Paginación */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2">
-          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-            <span>
-              Mostrando {filteredPedidos.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}-
-              {Math.min(currentPage * itemsPerPage, filteredPedidos.length)} de {filteredPedidos.length} registros
-            </span>
-            <div className="flex items-center space-x-1">
-              <span>|</span>
-              <span>Filas por página:</span>
-              <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
-                <SelectTrigger className="w-[70px] h-8 border-none">
-                  <SelectValue placeholder={itemsPerPage} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="5">5</SelectItem>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="15">15</SelectItem>
-                  <SelectItem value="20">20</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-1">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => goToPage(1)}
-              disabled={currentPage === 1}
-              className="h-8 w-8"
-            >
-              <ChevronsLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => goToPage(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="h-8 w-8"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-
-            {/* Números de página */}
-            {getPageNumbers().map((pageNumber) => (
-              <Button
-                key={pageNumber}
-                variant={pageNumber === currentPage ? "default" : "outline"}
-                size="sm"
-                onClick={() => goToPage(pageNumber)}
-                className={cn("h-8 w-8 px-0", pageNumber === currentPage ? "bg-primary text-primary-foreground" : "")}
-              >
-                {pageNumber}
-              </Button>
-            ))}
-
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => goToPage(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="h-8 w-8"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => goToPage(totalPages)}
-              disabled={currentPage === totalPages}
-              className="h-8 w-8"
-            >
-              <ChevronsRight className="h-4 w-4" />
-            </Button>
-          </div>
+        <div className="mt-2 rounded-lg border bg-card shadow-sm">
+          <ReusablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredPedidos.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={goToPage}
+            onItemsPerPageChange={(value) => {
+              setItemsPerPage(value)
+              setCurrentPage(1)
+            }}
+            itemsPerPageOptions={[5, 10, 15, 20, 50]}
+            showItemsPerPage={true}
+            showFirstLastButtons={true}
+          />
         </div>
       </div>
     </TooltipProvider>

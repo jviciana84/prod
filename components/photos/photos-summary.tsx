@@ -309,8 +309,8 @@ export default function PhotosSummary() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    photographers.map((photographer) => (
-                      <TableRow key={photographer.id}>
+                    photographers.map((photographer, index) => (
+                      <TableRow key={`photographer-${photographer.user_id}-${index}`}>
                         <TableCell className="font-medium">{photographer.display_name}</TableCell>
                         <TableCell>{photographer.total_assigned}</TableCell>
                         <TableCell>{photographer.total_completed}</TableCell>
@@ -476,7 +476,7 @@ export default function PhotosSummary() {
                       .filter((v) => v.error_count > 0)
                       .sort((a, b) => b.error_count - a.error_count)
                       .map((vehicle) => (
-                        <TableRow key={vehicle.id}>
+                        <TableRow key={`vehicle-${vehicle.id}-${vehicle.license_plate}`}>
                           <TableCell className="font-medium">{vehicle.license_plate}</TableCell>
                           <TableCell>{vehicle.model}</TableCell>
                           <TableCell>

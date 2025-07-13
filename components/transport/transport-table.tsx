@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import {
-  Calendar,
+  Calendar as CalendarIcon,
   Clock,
   Filter,
   RefreshCw,
@@ -22,15 +22,18 @@ import {
   X,
   ChevronsUpDown,
   Check,
+  Loader2,
 } from "lucide-react"
 import { format, parseISO, differenceInDays } from "date-fns"
 import { es } from "date-fns/locale"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 import { useRef } from "react"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Command, CommandList, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
 import { canUserEditClient } from "@/lib/auth/permissions-client"
+import { ReusablePagination } from "@/components/ui/reusable-pagination"
+import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 
 interface TransportTableProps {
   initialTransports: any[]
@@ -60,6 +63,16 @@ export default function TransportTable({
   const [expensePopoverOpen, setExpensePopoverOpen] = useState(false)
   const [canEdit, setCanEdit] = useState(false)
 
+  // Estados para el filtro de fechas temporal
+  const [dateRange, setDateRange] = useState<{
+    from: Date | undefined
+    to: Date | undefined
+  }>({
+    from: undefined,
+    to: undefined,
+  })
+  const [isDateFilterOpen, setIsDateFilterOpen] = useState(false)
+
   const supabase = createClientComponentClient()
   const { toast } = useToast()
 
@@ -82,7 +95,7 @@ export default function TransportTable({
   useEffect(() => {
     setTransports(initialTransports)
     applyFilters(initialTransports, searchTerm, activeFilter)
-  }, [initialTransports])
+  }, [initialTransports, dateRange])
 
   // Aplicar filtros (búsqueda y estado)
   const applyFilters = (data: any[], search: string, filter: string) => {
@@ -108,7 +121,36 @@ export default function TransportTable({
       result = result.filter((t) => t && t.is_received)
     }
 
+    // Aplicar filtro de fechas temporal
+    result = applyDateRangeFilter(result)
+
     setFilteredTransports(result)
+  }
+
+  // Función para aplicar filtro de fechas temporal
+  const applyDateRangeFilter = (data: any[]) => {
+    if (!dateRange.from && !dateRange.to) {
+      return data
+    }
+
+    return data.filter((transport) => {
+      const transportDate = new Date(transport.purchase_date)
+      
+      if (dateRange.from && transportDate < dateRange.from) {
+        return false
+      }
+      
+      if (dateRange.to && transportDate > dateRange.to) {
+        return false
+      }
+      
+      return true
+    })
+  }
+
+  // Función para limpiar filtro de fechas
+  const clearDateRangeFilter = () => {
+    setDateRange({ from: undefined, to: undefined })
   }
 
   // Manejar cambio en la búsqueda
@@ -416,9 +458,71 @@ export default function TransportTable({
           <ArrowUpDown className="h-4 w-4" />
         </Button>
 
-        <Button variant="outline" size="icon" onClick={refreshData} disabled={isLoading}>
-          <RefreshCw className="h-4 w-4" />
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={refreshData}
+          disabled={isLoading}
+          className="h-9 w-9"
+          title="Actualizar datos"
+        >
+          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
         </Button>
+
+        {/* Botón de filtro de fechas temporal */}
+        <Popover open={isDateFilterOpen} onOpenChange={setIsDateFilterOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              className={cn(
+                "h-9 w-9",
+                (dateRange.from || dateRange.to) && "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+              )}
+              title="Filtrar por rango de fechas"
+            >
+              <CalendarIcon className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="end">
+            <CalendarComponent
+              initialFocus
+              mode="range"
+              defaultMonth={dateRange.from}
+              selected={dateRange}
+              onSelect={(range) => {
+                setDateRange(range || { from: undefined, to: undefined })
+                setIsDateFilterOpen(false)
+              }}
+              numberOfMonths={2}
+              locale={es}
+            />
+            {(dateRange.from || dateRange.to) && (
+              <div className="p-3 border-t">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-muted-foreground">
+                    {dateRange.from && (
+                      <span>Desde: {format(dateRange.from, "dd/MM/yyyy", { locale: es })}</span>
+                    )}
+                    {dateRange.to && (
+                      <span className="ml-2">
+                        Hasta: {format(dateRange.to, "dd/MM/yyyy", { locale: es })}
+                      </span>
+                    )}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearDateRangeFilter}
+                    className="h-6 text-xs"
+                  >
+                    Limpiar
+                  </Button>
+                </div>
+              </div>
+            )}
+          </PopoverContent>
+        </Popover>
       </div>
 
       <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
@@ -633,7 +737,7 @@ export default function TransportTable({
                       </TableCell>
                       <TableCell className="py-3">
                         <div className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                           <span className="text-foreground">{formatDate(transport.purchase_date)}</span>
                         </div>
                       </TableCell>
@@ -690,88 +794,21 @@ export default function TransportTable({
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row justify-between items-center mt-4 gap-4">
-        <div className="text-sm text-muted-foreground">
-          Mostrando {paginatedData.length > 0 ? (currentPage - 1) * rowsPerPage + 1 : 0} a{" "}
-          {Math.min(currentPage * rowsPerPage, filteredTransports.length)} de {filteredTransports.length} registros
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm">Filas por página:</span>
-            <select
-              className="flex h-8 w-[80px] items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              value={rowsPerPage}
-              onChange={(e) => setRowsPerPage(Number(e.target.value))}
-            >
-              <option value={5}>5</option>
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-            </select>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="lucide lucide-chevron-left h-4 w-4"
-              >
-                <path d="m15 18-6-6 6-6"></path>
-              </svg>
-            </Button>
-
-            {/* Mostrar números de página */}
-            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-              const pageNum = i + 1
-              return (
-                <Button
-                  key={pageNum}
-                  variant={currentPage === pageNum ? "default" : "outline"}
-                  size="icon"
-                  onClick={() => setCurrentPage(pageNum)}
-                >
-                  {pageNum}
-                </Button>
-              )
-            })}
-
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages || totalPages === 0}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="lucide lucide-chevron-right h-4 w-4"
-              >
-                <path d="m9 18 6-6-6-6"></path>
-              </svg>
-            </Button>
-          </div>
-        </div>
+      <div className="mt-2 rounded-lg border bg-card shadow-sm">
+        <ReusablePagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filteredTransports.length}
+          itemsPerPage={rowsPerPage}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={(value) => {
+            setRowsPerPage(value)
+            setCurrentPage(1)
+          }}
+          itemsPerPageOptions={[5, 10, 25, 50]}
+          showItemsPerPage={true}
+          showFirstLastButtons={true}
+        />
       </div>
     </div>
   )

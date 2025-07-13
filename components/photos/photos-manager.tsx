@@ -390,8 +390,8 @@ export default function PhotosManager({ initialVehicles, photographers }: Photos
           <SelectContent>
             <SelectItem value="all">Todos los fotógrafos</SelectItem>
             <SelectItem value="null">Sin asignar</SelectItem>
-            {photographers.map((photographer) => (
-              <SelectItem key={photographer.id} value={photographer.user_id}>
+            {photographers.filter((p, i, arr) => arr.findIndex(x => x.user_id === p.user_id) === i).map((photographer, index) => (
+              <SelectItem key={`photographer-${photographer.user_id}-${index}`} value={photographer.user_id}>
                 {photographer.display_name}
               </SelectItem>
             ))}
@@ -438,10 +438,12 @@ export default function PhotosManager({ initialVehicles, photographers }: Photos
                 </TableCell>
               </TableRow>
             ) : (
-              filteredVehicles.map((vehicle) => {
+              filteredVehicles.filter((v, i, arr) =>
+                arr.findIndex(x => x.id === v.id || x.license_plate === v.license_plate) === i
+              ).map((vehicle) => {
                 const pendingDays = calculatePendingDays(vehicle)
                 return (
-                  <TableRow key={vehicle.id}>
+                  <TableRow key={`vehicle-${vehicle.id}-${vehicle.license_plate}`}>
                     <TableCell className="font-medium py-0.5">{vehicle.license_plate}</TableCell>
                     <TableCell className="py-0.5">{vehicle.model}</TableCell>
                     <TableCell className="py-0.5">
@@ -475,8 +477,8 @@ export default function PhotosManager({ initialVehicles, photographers }: Photos
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="null">Sin asignar</SelectItem>
-                          {photographers.map((photographer) => (
-                            <SelectItem key={photographer.id} value={photographer.user_id}>
+                          {photographers.filter((p, i, arr) => arr.findIndex(x => x.user_id === p.user_id) === i).map((photographer, index) => (
+                            <SelectItem key={`photographer-${photographer.user_id}-${index}`} value={photographer.user_id}>
                               {photographer.display_name}
                             </SelectItem>
                           ))}

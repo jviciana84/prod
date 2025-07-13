@@ -16,7 +16,6 @@ import {
   Loader2,
   Trophy,
   Eye,
-  Calendar,
   AlertCircle,
   ChevronDown,
   Car,
@@ -46,6 +45,12 @@ import type { Entrega, TipoIncidencia } from "@/types/entregas"
 import { enviarEntregaAIncentivos } from "@/server-actions/incentivos-actions"
 import { formatDateForDisplay } from "@/lib/date-utils"
 import { getUserAsesorAlias } from "@/lib/user-mapping-improved"
+import { ReusablePagination } from "@/components/ui/reusable-pagination"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar as CalendarIcon } from "lucide-react"
+import { Calendar as CalendarComponent } from "@/components/ui/calendar"
+import { format } from "date-fns"
+import { es } from "date-fns/locale"
 
 // Tipo de pestaña
 type EntregaTab = "todas" | "con_incidencia" | "sin_incidencia" | "pendientes" | "docu_no_entregada"
@@ -96,6 +101,16 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [enviandoIncentivo, setEnviandoIncentivo] = useState<string | null>(null)
   const [enviandoEmail, setEnviandoEmail] = useState<string | null>(null)
+
+  // Estados para el filtro de fechas temporal
+  const [dateRange, setDateRange] = useState<{
+    from: Date | undefined
+    to: Date | undefined
+  }>({
+    from: undefined,
+    to: undefined,
+  })
+  const [isDateFilterOpen, setIsDateFilterOpen] = useState(false)
 
   // Estados para el usuario y perfil
   const [user, setUser] = useState<any>(null)
@@ -519,33 +534,73 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
     router.push(`/dashboard/recogidas?matricula=${entrega.matricula}`)
   }
 
+  // Función para aplicar filtro de fechas temporal
+  const applyDateRangeFilter = (data: Entrega[]) => {
+    if (!dateRange.from && !dateRange.to) {
+      return data
+    }
+
+    return data.filter((entrega) => {
+      const entregaDate = new Date(entrega.fecha_venta)
+      
+      if (dateRange.from && entregaDate < dateRange.from) {
+        return false
+      }
+      
+      if (dateRange.to && entregaDate > dateRange.to) {
+        return false
+      }
+      
+      return true
+    })
+  }
+
+  // Función para limpiar filtro de fechas
+  const clearDateRangeFilter = () => {
+    setDateRange({ from: undefined, to: undefined })
+  }
+
+  // Aplicar filtros y actualizar contadores
   useEffect(() => {
     let filtered = [...entregas]
+
+    // Filtrar por pestaña activa
     if (activeTab === "con_incidencia") {
-      filtered = filtered.filter((e) => e.incidencia === true || (e.tipos_incidencia && e.tipos_incidencia.length > 0))
+      filtered = filtered.filter((e) => e.tipos_incidencia && e.tipos_incidencia.length > 0)
     } else if (activeTab === "sin_incidencia") {
-      filtered = filtered.filter(
-        (e) => e.incidencia === false && (!e.tipos_incidencia || e.tipos_incidencia.length === 0),
-      )
+      filtered = filtered.filter((e) => !e.tipos_incidencia || e.tipos_incidencia.length === 0)
     } else if (activeTab === "pendientes") {
-      filtered = filtered.filter((e) => !e.fecha_entrega && !e.email_enviado)
-    } else if (activeTab === "docu_no_entregada") {
       filtered = filtered.filter((e) => !e.fecha_entrega)
+    } else if (activeTab === "docu_no_entregada") {
+      filtered = filtered.filter((e) => e.tipos_incidencia && e.tipos_incidencia.some((t) => ["2ª llave", "CardKey", "Ficha técnica", "Permiso circulación"].includes(t)))
     }
-    if (searchQuery.trim() !== "") {
+
+    // Filtrar por búsqueda
+    if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase()
       filtered = filtered.filter(
         (e) =>
           e.matricula?.toLowerCase().includes(query) ||
           e.modelo?.toLowerCase().includes(query) ||
           e.asesor?.toLowerCase().includes(query) ||
-          e.or?.toLowerCase().includes(query) ||
-          e.observaciones?.toLowerCase().includes(query),
+          e.or?.toLowerCase().includes(query),
       )
     }
+
+    // Aplicar filtro de fechas temporal
+    filtered = applyDateRangeFilter(filtered)
+
     setFilteredEntregas(filtered)
-    setCurrentPage(1)
-  }, [searchQuery, entregas, activeTab])
+    actualizarContadores(filtered)
+
+    // Calcular paginación
+    const totalPages = Math.ceil(filtered.length / itemsPerPage)
+    setTotalPages(totalPages)
+
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    setPaginatedEntregas(filtered.slice(startIndex, endIndex))
+  }, [entregas, searchQuery, activeTab, currentPage, itemsPerPage, dateRange])
 
   useEffect(() => {
     const totalItems = filteredEntregas.length
@@ -590,6 +645,61 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
                   >
                     {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                   </Button>
+
+                  {/* Botón de filtro de fechas temporal */}
+                  <Popover open={isDateFilterOpen} onOpenChange={setIsDateFilterOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className={cn(
+                          "h-9 w-9",
+                          (dateRange.from || dateRange.to) && "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                        )}
+                        title="Filtrar por rango de fechas"
+                      >
+                        <CalendarIcon className="h-4 w-4" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="end">
+                      <CalendarComponent
+                        initialFocus
+                        mode="range"
+                        defaultMonth={dateRange.from}
+                        selected={dateRange}
+                        onSelect={(range) => {
+                          setDateRange(range || { from: undefined, to: undefined })
+                          setIsDateFilterOpen(false)
+                        }}
+                        numberOfMonths={2}
+                        locale={es}
+                      />
+                      {(dateRange.from || dateRange.to) && (
+                        <div className="p-3 border-t">
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm text-muted-foreground">
+                              {dateRange.from && (
+                                <span>Desde: {format(dateRange.from, "dd/MM/yyyy", { locale: es })}</span>
+                              )}
+                              {dateRange.to && (
+                                <span className="ml-2">
+                                  Hasta: {format(dateRange.to, "dd/MM/yyyy", { locale: es })}
+                                </span>
+                              )}
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={clearDateRangeFilter}
+                              className="h-6 text-xs"
+                            >
+                              Limpiar
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <TabsList className="h-9 bg-muted/50">
                   <TabsTrigger value="todas" className="px-3 py-1 h-7 data-[state=active]:bg-background">
@@ -661,7 +771,7 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
                           >
                             <TableCell className="py-1">
                               <div className="flex items-center">
-                                <Calendar className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+                                <CalendarIcon className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
                                 {formatDateDisplay(entrega.fecha_venta)}
                               </div>
                             </TableCell>
@@ -682,7 +792,7 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
                                 />
                               ) : (
                                 <div className="flex items-center">
-                                  <Calendar className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+                                  <CalendarIcon className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
                                   {formatDateDisplay(entrega.fecha_entrega)}
                                 </div>
                               )}
@@ -842,26 +952,21 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
                   </Table>
                 </div>
                 {/* Paginación */}
-                <div className="flex items-center justify-end space-x-2 py-4">
-                  <span className="text-sm text-muted-foreground">
-                    Página {currentPage} de {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    Anterior
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                  >
-                    Siguiente
-                  </Button>
+                <div className="mt-2 rounded-lg border bg-card shadow-sm">
+                  <ReusablePagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={paginatedEntregas.length}
+                    itemsPerPage={itemsPerPage}
+                    onPageChange={setCurrentPage}
+                    onItemsPerPageChange={(value) => {
+                      setItemsPerPage(value)
+                      setCurrentPage(1)
+                    }}
+                    itemsPerPageOptions={[10, 20, 30, 50]}
+                    showItemsPerPage={true}
+                    showFirstLastButtons={true}
+                  />
                 </div>
               </TabsContent>
             </Tabs>

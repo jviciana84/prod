@@ -676,7 +676,7 @@ export default function PhotographerAssignments() {
                       const isHidden = photographer?.is_hidden || false
                       const isLocked = photographer?.is_locked || false
                       return (
-                        <TableRow key={user.id} className={isHidden ? "opacity-60" : ""}>
+                        <TableRow key={`user-${user.id}-${index}-${user.id}-${index}`} className={isHidden ? "opacity-60" : ""}>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               {user.avatar_url && (
@@ -827,8 +827,8 @@ export default function PhotographerAssignments() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {photographerStats.map((stat) => (
-                    <TableRow key={stat.id}>
+                  {photographerStats.map((stat, index) => (
+                    <TableRow key={`stat-${stat.id}-${index}`}>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {stat.avatar_url && (
@@ -885,8 +885,8 @@ export default function PhotographerAssignments() {
                       onChange={(e) => setSelectedUserId(e.target.value)}
                     >
                       <option value="">Seleccionar usuario...</option>
-                      {allUsers.map((user) => (
-                        <option key={user.id} value={user.id}>
+                                        {allUsers.map((user, index) => (
+                    <option key={`option-${user.id}-${index}`} value={user.id}>
                           {user.email} {user.full_name ? `(${user.full_name})` : ""}
                         </option>
                       ))}
@@ -1009,8 +1009,8 @@ export default function PhotographerAssignments() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    allUsers.map((user) => (
-                      <TableRow key={user.id}>
+                                    allUsers.map((user, index) => (
+                  <TableRow key={`debug-user-${user.id}-${index}`}>
                         <TableCell>{user.email}</TableCell>
                         <TableCell>{user.full_name || "—"}</TableCell>
                         <TableCell className="font-mono text-xs">{user.id}</TableCell>

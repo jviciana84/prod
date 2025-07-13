@@ -31,6 +31,7 @@ import {
   Mail,
   Car,
   Truck,
+  Headphones,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
@@ -361,6 +362,13 @@ export default function DashboardSidebar({ roles }: DashboardSidebarProps) {
             isExpanded={isExpanded}
           />
         )}
+        <SidebarItem
+          href="/dashboard/admin/soporte"
+          icon={<Headphones className="h-5 w-5" />}
+          title="Soporte (Tickets)"
+          isActive={pathname === "/dashboard/admin/soporte"}
+          isExpanded={isExpanded}
+        />
       </nav>
     </aside>
   )

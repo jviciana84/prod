@@ -40,6 +40,7 @@ import { calculateIncentiveAmount, getCurrentIncentivosConfig } from "@/lib/ince
 import type { Incentivo } from "@/types/incentivos"
 import { Checkbox } from "@/components/ui/checkbox"
 import { WarrantyDetailModal } from "@/components/modals/warranty-detail-modal"
+import { ReusablePagination } from "@/components/ui/reusable-pagination"
 
 type IncentivosTab = "todos" | "pendientes" | "tramitados" | "financiados" | "contado"
 
@@ -977,81 +978,21 @@ export function IncentivosTable({
           </TabsContent>
         </Tabs>
 
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2">
-          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-            <span>
-              Mostrando {filteredIncentivos.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}-
-              {Math.min(currentPage * itemsPerPage, filteredIncentivos.length)} de {filteredIncentivos.length} registros
-            </span>
-            <div className="flex items-center space-x-1">
-              <span>|</span>
-              <span>Filas por página:</span>
-              <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
-                <SelectTrigger className="w-[70px] h-8 border-none">
-                  <SelectValue placeholder={itemsPerPage} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="5">5</SelectItem>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="15">15</SelectItem>
-                  <SelectItem value="20">20</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-1">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => goToPage(1)}
-              disabled={currentPage === 1}
-              className="h-8 w-8"
-            >
-              <ChevronsLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => goToPage(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="h-8 w-8"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-
-            {getPageNumbers().map((pageNumber) => (
-              <Button
-                key={pageNumber}
-                variant={pageNumber === currentPage ? "default" : "outline"}
-                size="sm"
-                onClick={() => goToPage(pageNumber)}
-                className={cn("h-8 w-8 px-0", pageNumber === currentPage ? "bg-primary text-primary-foreground" : "")}
-              >
-                {pageNumber}
-              </Button>
-            ))}
-
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => goToPage(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="h-8 w-8"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => goToPage(totalPages)}
-              disabled={currentPage === totalPages}
-              className="h-8 w-8"
-            >
-              <ChevronsRight className="h-4 w-4" />
-            </Button>
-          </div>
+        <div className="mt-2 rounded-lg border bg-card shadow-sm">
+          <ReusablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredIncentivos.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={goToPage}
+            onItemsPerPageChange={(value) => {
+              setItemsPerPage(value)
+              setCurrentPage(1)
+            }}
+            itemsPerPageOptions={[5, 10, 15, 20, 50]}
+            showItemsPerPage={true}
+            showFirstLastButtons={true}
+          />
         </div>
       </div>
 
