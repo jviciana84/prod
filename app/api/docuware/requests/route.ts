@@ -1,48 +1,70 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { createClient } from "@supabase/supabase-js"
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient()
+    console.log("🚀 Iniciando GET /api/docuware/requests")
+    
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    console.log("✅ Cliente Supabase creado")
 
     console.log("📧 Obteniendo solicitudes Docuware...")
 
-    // Obtener solicitudes con sus materiales
+    // Obtener solo las solicitudes básicas
     const { data: requests, error } = await supabase
       .from("docuware_requests")
-      .select(`
-        *,
-        docuware_request_materials (
-          id,
-          material_type,
-          material_label,
-          selected,
-          observations
-        )
-      `)
+      .select("*")
       .order("created_at", { ascending: false })
 
     if (error) {
       console.error("❌ Error obteniendo solicitudes:", error)
+      console.error("❌ Detalles del error:", JSON.stringify(error, null, 2))
       return NextResponse.json({ error: "Error obteniendo solicitudes" }, { status: 500 })
     }
 
     console.log(`✅ Solicitudes obtenidas: ${requests?.length || 0}`)
-    console.log("📋 Datos de solicitudes:", JSON.stringify(requests, null, 2))
+    
+    // Obtener materiales para cada solicitud
+    const requestsWithMaterials = []
+    
+    if (requests) {
+      for (const request of requests) {
+        const { data: materials, error: materialsError } = await supabase
+          .from("docuware_request_materials")
+          .select("*")
+          .eq("docuware_request_id", request.id)
+        
+        if (materialsError) {
+          console.error(`❌ Error obteniendo materiales para ${request.id}:`, materialsError)
+        }
+        
+        requestsWithMaterials.push({
+          ...request,
+          docuware_request_materials: materials || []
+        })
+      }
+    }
+    
+    console.log("📋 Datos de solicitudes con materiales:", JSON.stringify(requestsWithMaterials, null, 2))
 
     return NextResponse.json({
       success: true,
-      requests: requests || []
+      requests: requestsWithMaterials
     })
   } catch (error) {
     console.error("❌ Error crítico:", error)
+    console.error("❌ Stack trace:", error instanceof Error ? error.stack : "No stack trace")
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
     const body = await request.json()
 
     console.log("📧 Procesando solicitudes confirmadas...")
