@@ -75,6 +75,58 @@ export async function POST(request: NextRequest) {
       console.log("Email guardado en received_emails:", savedEmail.id)
     }
 
+    // Verificar si es un email de Docuware (para material@controlvo.ovh)
+    const toEmails = Array.isArray(body.envelope.to) ? body.envelope.to : [body.envelope.to]
+    const isDocuwareEmail = toEmails.some(email => email.includes('material@controlvo.ovh'))
+    
+    if (isDocuwareEmail) {
+      console.log("Detectado email de Docuware, procesando...")
+      
+      // Preparar datos para el procesador de Docuware
+      const docuwarePayload = {
+        from: body.envelope.from,
+        to: toEmails,
+        subject: body.headers?.subject || "Sin asunto",
+        textBody: body.plain || "",
+        htmlBody: body.html || "",
+        date: new Date().toISOString(),
+        messageId: savedEmail?.id || ""
+      }
+      
+      // Llamar al procesador de Docuware
+      try {
+        const docuwareResponse = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://controlvo.ovh'}/api/docuware/email-processor`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(docuwarePayload)
+        })
+        
+        const docuwareResult = await docuwareResponse.json()
+        
+        if (docuwareResult.success) {
+          console.log("Email de Docuware procesado exitosamente:", docuwareResult)
+          
+          // Marcar el email como procesado
+          await supabase
+            .from("received_emails")
+            .update({ processed: true, processed_at: new Date().toISOString() })
+            .eq("id", savedEmail.id)
+          
+          return NextResponse.json({ 
+            success: true, 
+            message: "Email de Docuware procesado correctamente",
+            docuwareResult
+          })
+        } else {
+          console.error("Error procesando email de Docuware:", docuwareResult)
+        }
+      } catch (docuwareError: any) {
+        console.error("Error llamando al procesador de Docuware:", docuwareError)
+      }
+    }
+
     let extractedFields: Record<string, string> = {}
     let extractionSource: "pdf" | "email_body" | null = null
     let pdfFilename: string | null = null
