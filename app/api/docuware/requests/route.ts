@@ -20,7 +20,6 @@ export async function GET(request: NextRequest) {
           observations
         )
       `)
-      .eq("status", "pending")
       .order("created_at", { ascending: false })
 
     if (error) {
@@ -29,6 +28,7 @@ export async function GET(request: NextRequest) {
     }
 
     console.log(`✅ Solicitudes obtenidas: ${requests?.length || 0}`)
+    console.log("📋 Datos de solicitudes:", JSON.stringify(requests, null, 2))
 
     return NextResponse.json({
       success: true,

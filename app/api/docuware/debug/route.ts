@@ -21,12 +21,22 @@ export async function GET(request: NextRequest) {
       .limit(10)
     
     // Verificar emails recibidos para material@controlvo.ovh
-    const { data: receivedEmails, error: emailsError } = await supabase
-      .from('received_emails')
-      .select('*')
-      .ilike('to_email', '%material@controlvo.ovh%')
-      .order('received_at', { ascending: false })
-      .limit(10)
+    let receivedEmails = null
+    let emailsError = null
+    
+    try {
+      const { data, error } = await supabase
+        .from('received_emails')
+        .select('*')
+        .ilike('to_email', '%material@controlvo.ovh%')
+        .order('received_at', { ascending: false })
+        .limit(10)
+      
+      receivedEmails = data
+      emailsError = error
+    } catch (e) {
+      emailsError = e
+    }
     
     return NextResponse.json({
       success: true,
