@@ -4,9 +4,11 @@ import { useState, useEffect, useCallback } from "react"
 import { KeyManagementForm } from "@/components/keys/key-management-form"
 import { KeyMovementsSearch } from "@/components/keys/key-movements-search"
 import { RecentKeyMovements } from "@/components/keys/recent-key-movements"
+import { DocuwareRequestsModal } from "@/components/keys/docuware-requests-modal"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { createClientComponentClient } from "@/lib/supabase/client"
-import { Loader2 } from "lucide-react"
+import { Loader2, FileText } from "lucide-react"
 import { KeyDocumentIncidencesCard } from "@/components/keys/key-document-incidences-card"
 import { Key, Search, Clock } from "lucide-react"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
@@ -25,6 +27,7 @@ export default function KeysManagementPage() {
   const [usersForDisplay, setUsersForDisplay] = useState<any[]>([])
   const [vehiclesForDisplay, setVehiclesForDisplay] = useState<any[]>([])
   const [externalVehicles, setExternalVehicles] = useState<any[]>([])
+  const [docuwareModalOpen, setDocuwareModalOpen] = useState(false)
   const supabase = createClientComponentClient()
 
   const loadPageData = useCallback(async () => {
@@ -119,9 +122,20 @@ export default function KeysManagementPage() {
           {/* Registration Form */}
           <Card className="shadow-sm">
             <CardHeader className="pb-4">
-              <div className="flex items-center gap-2">
-                <Key className="h-5 w-5 text-green-500" />
-                <CardTitle>Registro de Movimientos</CardTitle>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Key className="h-5 w-5 text-green-500" />
+                  <CardTitle>Registro de Movimientos</CardTitle>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="flex items-center gap-2"
+                  onClick={() => setDocuwareModalOpen(true)}
+                >
+                  <FileText className="h-4 w-4" />
+                  Solicitudes Docuware
+                </Button>
               </div>
               <CardDescription>Registra entregas y recepciones de llaves y documentación</CardDescription>
             </CardHeader>
@@ -171,6 +185,12 @@ export default function KeysManagementPage() {
           </Card>
         </div>
       </div>
+
+      {/* Modal de Solicitudes Docuware */}
+      <DocuwareRequestsModal 
+        open={docuwareModalOpen} 
+        onOpenChange={setDocuwareModalOpen} 
+      />
     </div>
   )
 }
