@@ -68,9 +68,35 @@ export async function middleware(request: NextRequest) {
 
   // Refrescar la sesión del usuario si existe, pero sin modificar cookies existentes
   try {
-    await supabase.auth.getUser()
+    const { data: { user }, error } = await supabase.auth.getUser()
+    
+    if (error) {
+      console.error("Error al obtener usuario en middleware:", error)
+    }
+
+    // Check if user is authenticated for protected routes
+    const isProtectedRoute = !request.nextUrl.pathname.startsWith('/auth/') && 
+                           request.nextUrl.pathname !== '/' && 
+                           !request.nextUrl.pathname.startsWith('/api/') &&
+                           !request.nextUrl.pathname.startsWith('/_next/') &&
+                           !request.nextUrl.pathname.includes('favicon')
+
+    if (isProtectedRoute && !user) {
+      console.log("Redirecting unauthenticated user to login:", request.nextUrl.pathname)
+      return NextResponse.redirect(new URL('/', request.url))
+    }
   } catch (error) {
     console.error("Error al obtener usuario en middleware:", error)
+    // Redirect to login on error for protected routes
+    const isProtectedRoute = !request.nextUrl.pathname.startsWith('/auth/') && 
+                           request.nextUrl.pathname !== '/' && 
+                           !request.nextUrl.pathname.startsWith('/api/') &&
+                           !request.nextUrl.pathname.startsWith('/_next/') &&
+                           !request.nextUrl.pathname.includes('favicon')
+    
+    if (isProtectedRoute) {
+      return NextResponse.redirect(new URL('/', request.url))
+    }
   }
 
   return response
