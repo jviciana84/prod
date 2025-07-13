@@ -12,6 +12,7 @@ import { Loader2, FileText } from "lucide-react"
 import { KeyDocumentIncidencesCard } from "@/components/keys/key-document-incidences-card"
 import { Key, Search, Clock } from "lucide-react"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
+import { toast } from "sonner"
 
 // Define SPECIAL_USERS here or import from a shared location
 const SPECIAL_USERS = [
@@ -27,7 +28,8 @@ export default function KeysManagementPage() {
   const [usersForDisplay, setUsersForDisplay] = useState<any[]>([])
   const [vehiclesForDisplay, setVehiclesForDisplay] = useState<any[]>([])
   const [externalVehicles, setExternalVehicles] = useState<any[]>([])
-  const [docuwareModalOpen, setDocuwareModalOpen] = useState(false)
+  const [docuwareModalOpen, setDocuwareModalOpen] = useState(false);
+  const [docuwareSyncing, setDocuwareSyncing] = useState(false);
   const supabase = createClientComponentClient()
 
   const loadPageData = useCallback(async () => {
@@ -102,6 +104,19 @@ export default function KeysManagementPage() {
     loadPageData()
   }, [loadPageData])
 
+  const handleOpenDocuwareModal = async () => {
+    setDocuwareSyncing(true);
+    try {
+      await fetch("/api/process-emails");
+      setDocuwareModalOpen(true);
+    } catch (e) {
+      toast.error("Error al sincronizar mails");
+      setDocuwareModalOpen(true);
+    } finally {
+      setDocuwareSyncing(false);
+    }
+  };
+
   return (
     <div className="p-4 md:p-5 space-y-4 pb-20">
       <div className="space-y-2">
@@ -131,10 +146,11 @@ export default function KeysManagementPage() {
                   variant="outline" 
                   size="sm"
                   className="flex items-center gap-2"
-                  onClick={() => setDocuwareModalOpen(true)}
+                  onClick={handleOpenDocuwareModal}
+                  disabled={docuwareSyncing}
                 >
                   <FileText className="h-4 w-4" />
-                  Solicitudes Docuware
+                  {docuwareSyncing ? "Sincronizando..." : "Solicitudes Docuware"}
                 </Button>
               </div>
               <CardDescription>Registra entregas y recepciones de llaves y documentación</CardDescription>

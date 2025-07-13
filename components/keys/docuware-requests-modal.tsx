@@ -562,8 +562,9 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
           </div>
 
           {loading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <div className="flex flex-col items-center justify-center py-12 gap-4">
+              <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
+              <div className="text-lg font-medium text-muted-foreground">Consultando datos...</div>
             </div>
           ) : (
             /* Pestañas */
