@@ -25,6 +25,9 @@ async function processEmail(email: ParsedMail) {
     messageId: email.messageId || ""
   }
 
+  // Log antes de llamar al procesador
+  console.log("Llamando a /api/docuware/email-processor con payload:", payload);
+
   // Llamar al procesador Docuware
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
   const res = await fetch(`${siteUrl}/api/docuware/email-processor`, {
@@ -33,6 +36,8 @@ async function processEmail(email: ParsedMail) {
     body: JSON.stringify(payload)
   })
   const result = await res.json()
+  // Log de la respuesta
+  console.log("Respuesta de /api/docuware/email-processor:", result);
   return { ...payload, docuwareResult: result }
 }
 

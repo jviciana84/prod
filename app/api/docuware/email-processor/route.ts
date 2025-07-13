@@ -107,10 +107,18 @@ export async function POST(request: NextRequest) {
     }
     
     // Extraer materiales del cuerpo
-    const materials = extractMaterialsFromBody(body.textBody)
-    
+    let materials = extractMaterialsFromBody(body.textBody)
+
+    // Si no se encuentran materiales pero el asunto es válido, añadir ambos por defecto
+    if (materials.length === 0 && subjectData.licensePlate && subjectData.date && subjectData.requester) {
+      materials = [
+        { type: "second_key", label: "2ª Llave" },
+        { type: "technical_sheet", label: "Ficha Técnica" }
+      ];
+    }
+
     if (materials.length === 0) {
-      console.log("No se encontraron materiales en el cuerpo del email")
+      console.log("No se encontraron materiales en el cuerpo del email y el asunto no es válido")
       return NextResponse.json({ 
         success: false, 
         message: "No se encontraron materiales válidos en el email"
