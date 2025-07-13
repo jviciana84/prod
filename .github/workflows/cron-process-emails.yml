@@ -1,0 +1,14 @@
+name: Procesar emails Docuware (CRON)
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'  # Cada 5 minutos
+  workflow_dispatch:       # Permite ejecutarlo manualmente desde GitHub
+
+jobs:
+  process-emails:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Llamar al endpoint de procesamiento de emails
+        run: |
+          curl -sS https://www.controlvo.ovh/api/process-emails 

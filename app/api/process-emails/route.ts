@@ -3,7 +3,6 @@ import imaps from "imap-simple"
 import { simpleParser } from "mailparser"
 import type { ParsedMail } from "mailparser"
 
-// Configuración para la conexión IMAP
 const config = {
   imap: {
     user: process.env.IMAP_USER || "",
@@ -11,27 +10,30 @@ const config = {
     host: process.env.IMAP_HOST || "",
     port: Number.parseInt(process.env.IMAP_PORT || "993", 10),
     tls: process.env.IMAP_TLS === "true",
-    // Se elimina authTimeout para usar el valor por defecto de la librería
   },
 }
 
-// Función para procesar un email
 async function processEmail(email: ParsedMail) {
-  console.log(`Procesando email de: ${email.from?.text}`)
-  console.log(`Asunto: ${email.subject}`)
-
-  const attachments = email.attachments.map((att) => ({
-    filename: att.filename,
-    contentType: att.contentType,
-    size: att.size,
-  }))
-
-  return {
-    from: email.from?.text,
-    subject: email.subject,
-    date: email.date,
-    attachments,
+  // Preparar payload para el procesador Docuware
+  const payload = {
+    from: email.from?.text || "",
+    to: email.to ? (Array.isArray(email.to) ? email.to.map(t => t.address) : [email.to.address]) : [],
+    subject: email.subject || "",
+    textBody: email.text || "",
+    htmlBody: email.html || "",
+    date: email.date ? email.date.toISOString() : new Date().toISOString(),
+    messageId: email.messageId || ""
   }
+
+  // Llamar al procesador Docuware
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+  const res = await fetch(`${siteUrl}/api/docuware/email-processor`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  })
+  const result = await res.json()
+  return { ...payload, docuwareResult: result }
 }
 
 export async function GET() {
@@ -74,7 +76,7 @@ export async function GET() {
     }
 
     return NextResponse.json({
-      message: `Proceso completado. Se procesaron ${processedEmails.length} correos.`,
+      message: `Proceso completado. Se procesaron ${processedEmails.length} correos y se intentaron registrar en Docuware.`,
       processedEmails,
     })
   } catch (error: any) {
