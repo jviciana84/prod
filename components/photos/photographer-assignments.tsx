@@ -9,7 +9,7 @@ import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { useToast } from "@/hooks/use-toast"
-import { RefreshCw, Plus, Save, Trash2, AlertCircle, Info, Users, CheckCircle } from "lucide-react"
+import { RefreshCw, Plus, Save, Trash2, AlertCircle, Info, Users, CheckCircle, Eye, EyeOff, Settings, ChevronDown, Lock, Unlock, Calendar, BarChart2, BarChart } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
@@ -22,6 +22,8 @@ interface Photographer {
   full_name?: string
   percentage: number
   is_active: boolean
+  is_hidden?: boolean
+  is_locked?: boolean
   avatar_url?: string
 }
 
@@ -35,7 +37,7 @@ interface UserInfo {
 
 export default function PhotographerAssignments() {
   const [photographers, setPhotographers] = useState<Photographer[]>([])
-  const [availableUsers, setAvailableUsers] = useState<UserInfo[]>([])
+  const [allUsers, setAllUsers] = useState<UserInfo[]>([])
   const [selectedUserId, setSelectedUserId] = useState<string>("")
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -46,6 +48,8 @@ export default function PhotographerAssignments() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const supabase = createClientComponentClient()
   const { toast } = useToast()
+  const [showHidden, setShowHidden] = useState(false)
+  const [showExtras, setShowExtras] = useState(false)
 
   // Para añadir fotógrafo manualmente
   const [newEmail, setNewEmail] = useState("")
@@ -127,21 +131,17 @@ export default function PhotographerAssignments() {
               avatar_url: userInfo?.avatar_url,
               percentage: p.percentage || 0,
               is_active: p.is_active || false,
+              is_hidden: p.is_hidden || false,
+              is_locked: p.is_locked || false,
             }
           }) || []
 
         setPhotographers(formattedPhotographers)
+        setAllUsers(allUsers)
 
-        // Calcular el porcentaje total
-        const total = formattedPhotographers.filter((p) => p.is_active).reduce((sum, p) => sum + p.percentage, 0)
+        // Calcular el porcentaje total (solo fotógrafos activos y no ocultos)
+        const total = formattedPhotographers.filter((p) => p.is_active && !p.is_hidden).reduce((sum, p) => sum + p.percentage, 0)
         setTotalPercentage(total)
-
-        // 4. Filtrar usuarios disponibles (que no son fotógrafos)
-        const existingPhotographerIds = formattedPhotographers.map((p) => p.user_id)
-        const filteredUsers = allUsers.filter((user) => !existingPhotographerIds.includes(user.id))
-        setAvailableUsers(filteredUsers)
-
-        addDebugInfo(`Usuarios disponibles para añadir: ${filteredUsers.length}`)
 
         if (formattedPhotographers.length === 0) {
           setSuccessMessage("No hay fotógrafos asignados. Puedes añadir fotógrafos desde la pestaña 'Añadir Usuarios'.")
@@ -197,19 +197,22 @@ export default function PhotographerAssignments() {
                 email: userInfo?.email || `Usuario ${p.user_id.substring(0, 8)}...`,
                 percentage: p.percentage || 0,
                 is_active: p.is_active || false,
+                is_hidden: p.is_hidden || false,
+                is_locked: p.is_locked || false,
               }
             }) || []
 
           setPhotographers(formattedPhotographers)
+          setAllUsers(allUsers)
 
-          // Calcular el porcentaje total
-          const total = formattedPhotographers.filter((p) => p.is_active).reduce((sum, p) => sum + p.percentage, 0)
+          // Calcular el porcentaje total (solo fotógrafos activos y no ocultos)
+          const total = formattedPhotographers.filter((p) => p.is_active && !p.is_hidden).reduce((sum, p) => sum + p.percentage, 0)
           setTotalPercentage(total)
 
           // Filtrar usuarios disponibles
           const existingPhotographerIds = formattedPhotographers.map((p) => p.user_id)
           const filteredUsers = allUsers.filter((user) => !existingPhotographerIds.includes(user.id))
-          setAvailableUsers(filteredUsers)
+          // setAvailableUsers(filteredUsers) // This line was removed as per the edit hint
 
           addDebugInfo(`Usuarios disponibles para añadir: ${filteredUsers.length}`)
         } catch (dbError) {
@@ -230,8 +233,8 @@ export default function PhotographerAssignments() {
 
             setPhotographers(basicPhotographers)
 
-            // Calcular el porcentaje total
-            const total = basicPhotographers.filter((p) => p.is_active).reduce((sum, p) => sum + p.percentage, 0)
+            // Calcular el porcentaje total (solo fotógrafos activos y no ocultos)
+            const total = basicPhotographers.filter((p) => p.is_active && !p.is_hidden).reduce((sum, p) => sum + p.percentage, 0)
             setTotalPercentage(total)
           }
 
@@ -257,8 +260,8 @@ export default function PhotographerAssignments() {
     updatedPhotographers[index].percentage = value[0]
     setPhotographers(updatedPhotographers)
 
-    // Actualizar el porcentaje total
-    const total = updatedPhotographers.filter((p) => p.is_active).reduce((sum, p) => sum + p.percentage, 0)
+    // Actualizar el porcentaje total (solo fotógrafos activos y no ocultos)
+    const total = updatedPhotographers.filter((p) => p.is_active && !p.is_hidden).reduce((sum, p) => sum + p.percentage, 0)
     setTotalPercentage(total)
   }
 
@@ -268,9 +271,16 @@ export default function PhotographerAssignments() {
     updatedPhotographers[index].is_active = value
     setPhotographers(updatedPhotographers)
 
-    // Actualizar el porcentaje total
-    const total = updatedPhotographers.filter((p) => p.is_active).reduce((sum, p) => sum + p.percentage, 0)
+    // Actualizar el porcentaje total (solo fotógrafos activos y no ocultos)
+    const total = updatedPhotographers.filter((p) => p.is_active && !p.is_hidden).reduce((sum, p) => sum + p.percentage, 0)
     setTotalPercentage(total)
+  }
+
+  // Cambiar el estado de bloqueo solo en el estado local
+  const handleLockChange = (index: number, value: boolean) => {
+    const updatedPhotographers = [...photographers]
+    updatedPhotographers[index].is_locked = value
+    setPhotographers(updatedPhotographers)
   }
 
   // Guardar cambios
@@ -278,8 +288,8 @@ export default function PhotographerAssignments() {
     setIsSaving(true)
     setSuccessMessage(null)
     try {
-      // Verificar que los porcentajes suman 100%
-      const activePhotographers = photographers.filter((p) => p.is_active)
+      // Verificar que los porcentajes suman 100% (solo fotógrafos activos y no ocultos)
+      const activePhotographers = photographers.filter((p) => p.is_active && !p.is_hidden)
       const totalPercentage = activePhotographers.reduce((sum, p) => sum + p.percentage, 0)
 
       if (activePhotographers.length > 0 && totalPercentage !== 100) {
@@ -289,17 +299,19 @@ export default function PhotographerAssignments() {
             "Los porcentajes de fotógrafos activos deben sumar 100%. Actualmente suman " + totalPercentage + "%.",
           variant: "destructive",
         })
+        setIsSaving(false)
         return
       }
 
-      // Actualizar cada fotógrafo
+      // Guardar todos los cambios de porcentaje e is_locked
       for (const photographer of photographers) {
         // Eliminar campos que no están en la tabla
         const { email, full_name, avatar_url, ...updateData } = photographer
-
-        const { error } = await supabase.from("fotos_asignadas").update(updateData).eq("id", photographer.id)
-
-        if (error) throw error
+        // Solo actualiza si el fotógrafo ya existe en la base de datos
+        if (photographer.id) {
+          const { error } = await supabase.from("fotos_asignadas").update(updateData).eq("id", photographer.id)
+          if (error) throw error
+        }
       }
 
       setSuccessMessage("Los cambios en las asignaciones de fotógrafos se han guardado correctamente.")
@@ -307,6 +319,7 @@ export default function PhotographerAssignments() {
         title: "Cambios guardados",
         description: "Los cambios en las asignaciones de fotógrafos se han guardado correctamente.",
       })
+      fetchData()
     } catch (error) {
       console.error("Error al guardar cambios:", error)
       toast({
@@ -332,7 +345,7 @@ export default function PhotographerAssignments() {
 
     try {
       // Obtener el usuario seleccionado
-      const selectedUser = availableUsers.find((user) => user.id === selectedUserId)
+      const selectedUser = allUsers.find((user) => user.id === selectedUserId)
 
       if (!selectedUser) {
         toast({
@@ -465,37 +478,56 @@ export default function PhotographerAssignments() {
     }
   }
 
-  // Distribuir porcentajes equitativamente entre fotógrafos activos
+  // Distribuir porcentajes equitativamente entre fotógrafos activos (respetando bloqueos)
   const distributePercentages = () => {
-    const activePhotographers = photographers.filter((p) => p.is_active)
+    const activePhotographers = photographers.filter((p) => p.is_active && !p.is_hidden)
+    const lockedPhotographers = activePhotographers.filter((p) => p.is_locked)
+    const unlockedPhotographers = activePhotographers.filter((p) => !p.is_locked)
 
-    if (activePhotographers.length === 0) {
+    if (unlockedPhotographers.length === 0) {
       toast({
         title: "Error",
-        description: "No hay fotógrafos activos para distribuir porcentajes.",
+        description: "No hay fotógrafos activos y desbloqueados para distribuir porcentajes.",
         variant: "destructive",
       })
       return
     }
 
-    const equalPercentage = Math.floor(100 / activePhotographers.length)
-    let remainder = 100 - equalPercentage * activePhotographers.length
+    // Calcular el porcentaje total bloqueado
+    const totalLockedPercentage = lockedPhotographers.reduce((sum, p) => sum + p.percentage, 0)
+    const availablePercentage = 100 - totalLockedPercentage
+
+    if (availablePercentage < 0) {
+      toast({
+        title: "Error",
+        description: `Los fotógrafos bloqueados suman ${totalLockedPercentage}%. No hay porcentaje disponible para distribuir.`,
+        variant: "destructive",
+      })
+      return
+    }
+
+    const equalPercentage = Math.floor(availablePercentage / unlockedPhotographers.length)
+    let remainder = availablePercentage - equalPercentage * unlockedPhotographers.length
 
     const updatedPhotographers = [...photographers]
 
     updatedPhotographers.forEach((photographer) => {
-      if (photographer.is_active) {
-        photographer.percentage = equalPercentage
+      if (photographer.is_active && !photographer.is_hidden) {
+        if (photographer.is_locked) {
+          // Mantener el porcentaje bloqueado sin cambios
+        } else {
+          // Asignar porcentaje equitativo a los desbloqueados
+          photographer.percentage = equalPercentage
+        }
       } else {
         photographer.percentage = 0
       }
     })
 
-    // Distribuir el resto entre los primeros fotógrafos activos
+    // Distribuir el resto entre los primeros fotógrafos desbloqueados
     if (remainder > 0) {
-      const index = 0
       for (const photographer of updatedPhotographers) {
-        if (photographer.is_active && remainder > 0) {
+        if (photographer.is_active && !photographer.is_hidden && !photographer.is_locked && remainder > 0) {
           photographer.percentage += 1
           remainder -= 1
         }
@@ -503,183 +535,344 @@ export default function PhotographerAssignments() {
     }
 
     setPhotographers(updatedPhotographers)
-    setTotalPercentage(100)
+    
+    // Calcular el nuevo total (solo fotógrafos activos y no ocultos)
+    const newTotal = updatedPhotographers
+      .filter((p) => p.is_active && !p.is_hidden)
+      .reduce((sum, p) => sum + p.percentage, 0)
+    setTotalPercentage(newTotal)
   }
 
+  // Simulación de datos de estadísticas (en la práctica, estos vendrán de la base de datos o props)
+  const photographerStats = photographers.map((p) => ({
+    id: p.id,
+    avatar_url: p.avatar_url,
+    name: p.full_name || p.email,
+    photos_done: Math.floor(Math.random() * 100), // Simulado
+    avg_apto_days: (Math.random() * 5 + 1).toFixed(1), // Simulado
+    avg_photos_days: (Math.random() * 5 + 1).toFixed(1), // Simulado
+  })).filter((stat) => stat.photos_done > 0)
+
   return (
-    <div className="space-y-6">
-      <Tabs defaultValue="photographers" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="photographers">Fotógrafos</TabsTrigger>
-          <TabsTrigger value="add-users">Añadir Usuarios</TabsTrigger>
-          <TabsTrigger value="debug">Diagnóstico</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="photographers" className="space-y-6">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold">Asignación de Fotógrafos</h2>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={fetchData} disabled={isLoading}>
-                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
-                Actualizar
-              </Button>
-              <Button size="sm" onClick={handleSaveChanges} disabled={isSaving}>
-                <Save className="h-4 w-4 mr-2" />
-                Guardar Cambios
-              </Button>
+    <div className="space-y-6 relative">
+      {/* Card de porcentaje total: 100% ancho */}
+      <div>
+        <Card>
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <div className="flex flex-col gap-0">
+              <div className="flex items-center gap-2">
+                <BarChart2 className="h-5 w-5 text-green-500" />
+                <CardTitle className="text-lg">Porcentaje total asignado</CardTitle>
+              </div>
+              <CardDescription>Gestiona el reparto de porcentaje entre los fotógrafos activos</CardDescription>
             </div>
-          </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={distributePercentages}
+              disabled={photographers.filter((p) => p.is_active && !p.is_hidden).length === 0}
+            >
+              Distribuir Equitativamente
+            </Button>
+          </CardHeader>
+          <CardContent className="p-4">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <span className="font-medium">Porcentaje total asignado:</span>
+                <Badge variant={totalPercentage === 100 ? "default" : "destructive"} className="ml-2">
+                  {totalPercentage}%
+                </Badge>
+                {totalPercentage !== 100 && photographers.filter((p) => p.is_active && !p.is_hidden).length > 0 && (
+                  <span className="ml-3 text-sm text-amber-600 whitespace-nowrap">
+                    {totalPercentage < 100
+                      ? `Faltan ${100 - totalPercentage}% por asignar`
+                      : `Hay ${totalPercentage - 100}% asignados de más`}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 mt-2">
+              <div
+                className={`h-2.5 rounded-full ${totalPercentage === 100 ? "bg-green-500" : "bg-amber-500"}`}
+                style={{ width: `${Math.min(100, totalPercentage)}%` }}
+              ></div>
+            </div>
+            {/* Información sobre fotógrafos bloqueados */}
+            {(() => {
+              const lockedPhotographers = photographers.filter((p) => p.is_active && !p.is_hidden && p.is_locked)
+              const totalLockedPercentage = lockedPhotographers.reduce((sum, p) => sum + p.percentage, 0)
+              if (lockedPhotographers.length > 0) {
+                return (
+                  <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-md">
+                    <div className="flex items-center gap-2 text-sm text-blue-700">
+                      <Lock className="h-4 w-4" />
+                      <span className="font-medium">
+                        {lockedPhotographers.length} fotógrafo{lockedPhotographers.length > 1 ? 's' : ''} bloqueado{lockedPhotographers.length > 1 ? 's' : ''}: {totalLockedPercentage}%
+                      </span>
+                    </div>
+                    <p className="text-xs text-blue-600 mt-1">
+                      Los fotógrafos bloqueados mantienen su porcentaje fijo y no se ven afectados por el reparto equitativo.
+                    </p>
+                  </div>
+                )
+              }
+              return null
+            })()}
+          </CardContent>
+        </Card>
+      </div>
 
-          {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          {successMessage && (
-            <Alert variant="default" className="bg-green-50 border-green-200 text-green-800">
-              <CheckCircle className="h-4 w-4" />
-              <AlertTitle>Éxito</AlertTitle>
-              <AlertDescription>{successMessage}</AlertDescription>
-            </Alert>
-          )}
-
-          {/* Indicador de porcentaje total */}
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <span className="font-medium">Porcentaje total asignado:</span>
-                  <Badge variant={totalPercentage === 100 ? "default" : "destructive"} className="ml-2">
-                    {totalPercentage}%
-                  </Badge>
+      {/* Fila con cards de fotógrafos asignados y estadísticas */}
+      <div className="flex flex-col md:flex-row gap-6">
+        {/* Card de fotógrafos asignados: 2/3 */}
+        <div className="md:w-2/3 flex flex-col">
+          <Card className="flex-1 flex flex-col h-full">
+            <CardHeader className="pb-2 flex flex-row items-center justify-between">
+              <div className="flex flex-col gap-0">
+                <div className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-amber-500" />
+                  <CardTitle className="text-lg">Fotógrafos Asignados</CardTitle>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={distributePercentages}
-                  disabled={photographers.filter((p) => p.is_active).length === 0}
-                >
-                  Distribuir Equitativamente
+                <CardDescription>Activa, bloquea y gestiona los fotógrafos disponibles</CardDescription>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="icon" onClick={() => setShowHidden((v) => !v)} title={showHidden ? "Ocultar usuarios ocultos" : "Ver usuarios ocultos"}>
+                  {showHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+                <Button variant="outline" size="icon" onClick={fetchData} disabled={isLoading} title="Actualizar">
+                  <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+                </Button>
+                <Button variant="outline" size="icon" onClick={handleSaveChanges} disabled={isSaving} title="Guardar Cambios">
+                  <Save className="h-4 w-4" />
                 </Button>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 mt-2">
-                <div
-                  className={`h-2.5 rounded-full ${totalPercentage === 100 ? "bg-green-500" : "bg-amber-500"}`}
-                  style={{ width: `${Math.min(100, totalPercentage)}%` }}
-                ></div>
-              </div>
-              {totalPercentage !== 100 && photographers.filter((p) => p.is_active).length > 0 && (
-                <p className="text-sm text-amber-600 mt-2">
-                  {totalPercentage < 100
-                    ? `Faltan ${100 - totalPercentage}% por asignar`
-                    : `Hay ${totalPercentage - 100}% asignados de más`}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Tabla de fotógrafos */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle>Fotógrafos Asignados</CardTitle>
-              <CardDescription>{photographers.length} fotógrafos encontrados</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Usuario</TableHead>
-                    <TableHead>Porcentaje</TableHead>
-                    <TableHead>Activo</TableHead>
-                    <TableHead>Acciones</TableHead>
+                    <TableHead style={{ minWidth: 220 }}>Usuario</TableHead>
+                    <TableHead style={{ minWidth: 220, width: 260 }}>Porcentaje</TableHead>
+                    <TableHead style={{ width: 80 }}>Activo</TableHead>
+                    <TableHead style={{ width: 100, paddingLeft: 0 }}>Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {photographers.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center py-4 text-muted-foreground">
-                        No hay fotógrafos asignados
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    photographers.map((photographer, index) => (
-                      <TableRow key={photographer.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full overflow-hidden bg-muted">
-                              {photographer.avatar_url ? (
-                                <img
-                                  src={photographer.avatar_url || "/placeholder.svg"}
-                                  alt={photographer.full_name || photographer.email || "Avatar"}
-                                  className="h-full w-full object-cover"
-                                />
-                              ) : (
-                                <div className="h-full w-full flex items-center justify-center bg-primary/10 text-primary font-medium">
-                                  {(
-                                    photographer.full_name?.charAt(0) ||
-                                    photographer.email?.charAt(0) ||
-                                    "U"
-                                  ).toUpperCase()}
-                                </div>
+                  {[...allUsers]
+                    .filter((user) => {
+                      const photographer = photographers.find((p) => p.user_id === user.id)
+                      if (showHidden) return true
+                      return !photographer?.is_hidden
+                    })
+                    .sort((a, b) => {
+                      const aActive = photographers.find((p) => p.user_id === a.id)?.is_active ? 1 : 0
+                      const bActive = photographers.find((p) => p.user_id === b.id)?.is_active ? 1 : 0
+                      return bActive - aActive
+                    })
+                    .map((user, index) => {
+                      const photographer = photographers.find((p) => p.user_id === user.id)
+                      const isActive = photographer?.is_active || false
+                      const percentage = photographer?.percentage ?? 0
+                      const isHidden = photographer?.is_hidden || false
+                      const isLocked = photographer?.is_locked || false
+                      return (
+                        <TableRow key={user.id} className={isHidden ? "opacity-60" : ""}>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              {user.avatar_url && (
+                                <img src={user.avatar_url} alt="avatar" className="w-8 h-8 rounded-full" />
                               )}
+                              <div>
+                                <div className="font-medium">{user.full_name || user.email}</div>
+                                <div className="text-xs text-muted-foreground">{user.email}</div>
+                              </div>
                             </div>
-                            <div>
-                              <div className="font-bold">{photographer.full_name || "Sin nombre"}</div>
-                              <div className="text-sm text-muted-foreground">{photographer.email}</div>
+                          </TableCell>
+                          <TableCell className="w-40" style={{ minWidth: 220, width: 260 }}>
+                            <div className="flex items-center gap-2">
+                              <Slider
+                                value={[percentage]}
+                                min={0}
+                                max={100}
+                                step={1}
+                                onValueChange={(value) => {
+                                  if (photographer) {
+                                    handlePercentageChange(photographers.findIndex((p) => p.user_id === user.id), value)
+                                  }
+                                }}
+                                disabled={!isActive || isLocked}
+                                className="w-[160px] md:w-[200px] lg:w-[220px] xl:w-[240px]"
+                              />
+                              <div className="flex items-center gap-1">
+                                <span className="text-sm font-mono">{percentage}%</span>
+                                {isLocked && <Lock className="h-3 w-3 text-blue-500" title="Porcentaje bloqueado" />}
+                              </div>
                             </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-4">
-                            <Slider
-                              value={[photographer.percentage]}
-                              min={0}
-                              max={100}
-                              step={5}
-                              className="w-[200px]"
-                              onValueChange={(value) => handlePercentageChange(index, value)}
-                              disabled={!photographer.is_active}
+                          </TableCell>
+                          <TableCell>
+                            <Switch
+                              checked={isActive}
+                              onCheckedChange={async (value) => {
+                                if (photographer) {
+                                  handleActiveChange(photographers.findIndex((p) => p.user_id === user.id), value)
+                                } else if (value) {
+                                  // Si no existe, crear el registro en la base de datos y en el estado
+                                  setIsSaving(true)
+                                  try {
+                                    const { data, error } = await supabase
+                                      .from("fotos_asignadas")
+                                      .insert({
+                                        user_id: user.id,
+                                        percentage: 0,
+                                        is_active: true,
+                                        created_at: new Date().toISOString(),
+                                        updated_at: new Date().toISOString(),
+                                      })
+                                      .select()
+                                    if (error) throw error
+                                    fetchData()
+                                  } catch (e) {
+                                    toast({
+                                      title: "Error",
+                                      description: "No se pudo activar el usuario como fotógrafo.",
+                                      variant: "destructive",
+                                    })
+                                  } finally {
+                                    setIsSaving(false)
+                                  }
+                                }
+                              }}
                             />
-                            <span className="font-medium w-12 text-right">{photographer.percentage}%</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Switch
-                            checked={photographer.is_active}
-                            onCheckedChange={(value) => handleActiveChange(index, value)}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-red-500 hover:text-red-600"
-                            onClick={() => handleDeletePhotographer(photographer.id, photographer.email || "")}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
+                          </TableCell>
+                          <TableCell className="flex gap-2 pl-0" style={{ width: 100, paddingLeft: 0 }}>
+                            {photographer && (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  title={isLocked ? "Desbloquear porcentaje" : "Bloquear porcentaje"}
+                                  onClick={() => handleLockChange(photographers.findIndex((p) => p.user_id === user.id), !isLocked)}
+                                  disabled={!isActive}
+                                >
+                                  {isLocked ? <Unlock className="h-4 w-4 text-blue-500" /> : <Lock className="h-4 w-4 text-muted-foreground" />}
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  title={isHidden ? "Mostrar usuario" : "Ocultar usuario"}
+                                  onClick={async () => {
+                                    setIsSaving(true)
+                                    try {
+                                      const { error } = await supabase
+                                        .from("fotos_asignadas")
+                                        .update({ is_hidden: !isHidden, updated_at: new Date().toISOString() })
+                                        .eq("id", photographer.id)
+                                      if (error) throw error
+                                      fetchData()
+                                    } catch (e) {
+                                      toast({
+                                        title: "Error",
+                                        description: "No se pudo cambiar la visibilidad del usuario.",
+                                        variant: "destructive",
+                                      })
+                                    } finally {
+                                      setIsSaving(false)
+                                    }
+                                  }}
+                                >
+                                  {isHidden ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4" />}
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDeletePhotographer(photographer.id, user.email || "")}
+                                  disabled={isSaving}
+                                >
+                                  <Trash2 className="h-4 w-4 text-red-500" />
+                                </Button>
+                              </>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
                 </TableBody>
               </Table>
             </CardContent>
           </Card>
-        </TabsContent>
+        </div>
+        {/* Card de estadísticas: 1/3 */}
+        <div className="md:w-1/3 flex flex-col">
+          <Card className="flex-1 flex flex-col h-full">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <div className="flex flex-col gap-0">
+                <div className="flex items-center gap-2">
+                  <BarChart className="h-5 w-5 text-violet-500" />
+                  <CardTitle className="text-lg">Estadísticas</CardTitle>
+                </div>
+                <CardDescription>Resumen de actividad y tiempos por fotógrafo</CardDescription>
+              </div>
+              <Button variant="outline" size="icon" title="Filtrar por fecha">
+                <Calendar className="h-5 w-5" />
+              </Button>
+            </CardHeader>
+            <CardContent className="overflow-auto p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Fotógrafo</TableHead>
+                    <TableHead>Fotos</TableHead>
+                    <TableHead>Prom. apto</TableHead>
+                    <TableHead>Prom. fotos</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {photographerStats.map((stat) => (
+                    <TableRow key={stat.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {stat.avatar_url && (
+                            <img src={stat.avatar_url} alt="avatar" className="w-8 h-8 rounded-full" />
+                          )}
+                          <span className="font-medium text-sm">{stat.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">{stat.photos_done}</TableCell>
+                      <TableCell className="text-center">{stat.avg_apto_days} d</TableCell>
+                      <TableCell className="text-center">{stat.avg_photos_days} d</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+      {/* Botón de expandir extras debajo de ambos cards */}
+      <div className="flex justify-end mt-2">
+        <button
+          className="flex items-center gap-1 px-3 py-1 rounded bg-muted hover:bg-muted/70 border border-border text-muted-foreground text-xs shadow transition-colors"
+          title={showExtras ? "Ocultar utilidades" : "Mostrar utilidades"}
+          onClick={() => setShowExtras((v) => !v)}
+        >
+          <ChevronDown className="h-4 w-4" />
+          <ChevronDown className="h-4 w-4 -ml-2" />
+          <ChevronDown className="h-4 w-4 -ml-2" />
+        </button>
+      </div>
 
-        <TabsContent value="add-users" className="space-y-6">
+      {/* Resto del contenido: cards extras, etc. */}
+      {/* Cards extras: Añadir Usuarios y Diagnóstico */}
+      {showExtras && (
+        <div className="space-y-6 animate-fade-in">
           {/* Añadir nuevo fotógrafo desde la lista */}
           <Card>
             <CardHeader>
               <CardTitle>Añadir Fotógrafo desde Lista de Usuarios</CardTitle>
-              <CardDescription>{availableUsers.length} usuarios disponibles encontrados</CardDescription>
+              <CardDescription>{allUsers.length} usuarios disponibles encontrados</CardDescription>
             </CardHeader>
             <CardContent>
-              {availableUsers.length > 0 ? (
+              {allUsers.length > 0 ? (
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="user-select" className="mb-2 block">
@@ -692,7 +885,7 @@ export default function PhotographerAssignments() {
                       onChange={(e) => setSelectedUserId(e.target.value)}
                     >
                       <option value="">Seleccionar usuario...</option>
-                      {availableUsers.map((user) => (
+                      {allUsers.map((user) => (
                         <option key={user.id} value={user.id}>
                           {user.email} {user.full_name ? `(${user.full_name})` : ""}
                         </option>
@@ -757,9 +950,8 @@ export default function PhotographerAssignments() {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
 
-        <TabsContent value="debug" className="space-y-6">
+          {/* Debug Info */}
           <Card>
             <CardHeader>
               <CardTitle>Información de Diagnóstico</CardTitle>
@@ -794,6 +986,7 @@ export default function PhotographerAssignments() {
             </CardContent>
           </Card>
 
+          {/* Usuarios Encontrados */}
           <Card>
             <CardHeader>
               <CardTitle>Usuarios Encontrados</CardTitle>
@@ -809,14 +1002,14 @@ export default function PhotographerAssignments() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {availableUsers.length === 0 ? (
+                  {allUsers.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={3} className="text-center py-4 text-muted-foreground">
                         No se encontraron usuarios
                       </TableCell>
                     </TableRow>
                   ) : (
-                    availableUsers.map((user) => (
+                    allUsers.map((user) => (
                       <TableRow key={user.id}>
                         <TableCell>{user.email}</TableCell>
                         <TableCell>{user.full_name || "—"}</TableCell>
@@ -828,8 +1021,8 @@ export default function PhotographerAssignments() {
               </Table>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
     </div>
   )
 }

@@ -62,6 +62,7 @@ import {
   Download,
   CreditCard as CreditCardIcon,
   Search,
+  Loader2,
 } from "lucide-react"
 
 import { createClientComponentClient } from "@/lib/supabase/client"
@@ -72,6 +73,7 @@ import { AlertTriangle } from "lucide-react"
 
 import { DocumentUploaderCompact } from "@/components/extornos/document-uploader-compact"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
+import { cn } from "@/lib/utils"
 
 interface DocumentMetadata {
   id: string
@@ -1145,17 +1147,6 @@ Muchas gracias`.trim()
     )
   }
 
-  if (loading) {
-    return (
-      <div className="p-4 md:p-5 space-y-4">
-        <div className="flex flex-col items-center justify-center h-64 space-y-4">
-          <BMWMSpinner size="sm" />
-          <span className="text-lg">Cargando solicitudes...</span>
-        </div>
-      </div>
-    )
-  }
-
   if (error) {
     return (
       <div className="p-4 md:p-5 space-y-4">
@@ -1248,7 +1239,7 @@ Muchas gracias`.trim()
                   className="h-9 w-9"
                   title="Actualizar"
                 >
-                  {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                 </Button>
                 <Button
                   variant="outline"
@@ -1320,7 +1311,7 @@ Muchas gracias`.trim()
                           <TableRow>
                             <TableCell colSpan={9} className="text-center py-8">
                               <div className="flex justify-center items-center">
-                                <RefreshCw className="h-6 w-6 animate-spin mr-2" />
+                                <Loader2 className="h-6 w-6 animate-spin mr-2" />
                                 <span>Cargando solicitudes...</span>
                               </div>
                             </TableCell>
@@ -1335,10 +1326,13 @@ Muchas gracias`.trim()
                             </TableCell>
                           </TableRow>
                         ) : (
-                          paginatedData.map((solicitud) => (
+                          paginatedData.map((solicitud, index) => (
                           <TableRow
                             key={solicitud.id}
-                            className="cursor-pointer"
+                            className={cn(
+                              "cursor-pointer",
+                              index % 2 === 0 ? "bg-black/5 dark:bg-black/20" : ""
+                            )}
                             onClick={() => verDetalles(solicitud, "adjuntos")}
                           >
                             <TableCell>
@@ -1817,7 +1811,7 @@ Muchas gracias`.trim()
                                 >
                                   {isConfirmingPayment ? (
                                     <>
-                                      <BMWMSpinner size="sm" className="mr-2" />
+                                      <Loader2 className="h-6 w-6 animate-spin mr-2" />
                                       Confirmando...
                                     </>
                                   ) : (

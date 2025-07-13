@@ -1,0 +1,1 @@
+ALTER TABLE fotos_asignadas ADD COLUMN is_hidden boolean NOT NULL DEFAULT false; 

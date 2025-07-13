@@ -154,9 +154,9 @@ export type SoldVehicle = {
 // Tipo para las pestañas de tipo de vehículo
 type VehicleTab = "car" | "motorcycle" | "not_validated" | "all" | "finished"
 
-interface SalesTableProps {
+type SalesTableProps = {
   onRefreshRequest?: () => void
-  onRefresh?: () => void
+  onRefresh?: () => void // Definir como opcional
 }
 
 export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
@@ -385,7 +385,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
     }
     
     // Llamar a la función onRefresh si está disponible
-    if (onRefresh) {
+    if (typeof onRefresh === 'function') {
       onRefresh()
     }
   }

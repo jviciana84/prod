@@ -150,7 +150,7 @@ export default function DashboardSidebar({ roles }: DashboardSidebarProps) {
         {isAdmin && (
           <SidebarGroup
             title="Administración"
-            icon={<Users className="h-5 w-5" />}
+            icon={<Settings className="h-5 w-5" />}
             defaultOpen={pathname.startsWith("/dashboard/admin")}
             isExpanded={isExpanded}
           >
@@ -352,21 +352,15 @@ export default function DashboardSidebar({ roles }: DashboardSidebarProps) {
           isExpanded={isExpanded}
         />
 
-        <SidebarItem
-          href="/dashboard/reports"
-          icon={<BarChart className="h-5 w-5" />}
-          title="Informes"
-          isActive={pathname === "/dashboard/reports"}
-          isExpanded={isExpanded}
-        />
-
-        <SidebarItem
-          href="/dashboard/settings"
-          icon={<Settings className="h-5 w-5" />}
-          title="Configuración"
-          isActive={pathname === "/dashboard/settings"}
-          isExpanded={isExpanded}
-        />
+        {(roles.includes("admin") || roles.includes("Director") || roles.includes("Supervisor")) && (
+          <SidebarItem
+            href="/dashboard/reports"
+            icon={<BarChart className="h-5 w-5" />}
+            title="Informes"
+            isActive={pathname === "/dashboard/reports"}
+            isExpanded={isExpanded}
+          />
+        )}
       </nav>
     </aside>
   )

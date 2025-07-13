@@ -26,11 +26,21 @@ import {
   ChevronLeft,
   ChevronRight,
   Settings,
+  Loader2,
 } from "lucide-react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { differenceInDays } from "date-fns"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/use-auth"
+import { cn } from "@/lib/utils"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 export interface PhotoVehicle {
   id: string
@@ -73,6 +83,22 @@ export default function PhotosTable() {
   const [itemsPerPage, setItemsPerPage] = useState(15)
   const [paginatedVehicles, setPaginatedVehicles] = useState<PhotoVehicle[]>([])
   const [totalPages, setTotalPages] = useState(1)
+  
+  // Estados para filtro de fechas
+  const [showDateFilter, setShowDateFilter] = useState(false)
+  const [dateFilter, setDateFilter] = useState<{
+    from: Date | undefined
+    to: Date | undefined
+  }>({
+    from: undefined,
+    to: undefined,
+  })
+  const [quickFilters] = useState([
+    { label: "Hoy", days: 0 },
+    { label: "Últimos 7 días", days: 7 },
+    { label: "Últimos 30 días", days: 30 },
+    { label: "Últimos 90 días", days: 90 },
+  ])
   
   // Usar el hook de autenticación
   const { user, profile, loading: authLoading } = useAuth()
@@ -199,82 +225,123 @@ export default function PhotosTable() {
 
   const [filteredVehicles, setFilteredVehicles] = useState<PhotoVehicle[]>([])
 
+  // Función para aplicar filtro de fechas
+  const applyDateFilter = (from: Date | undefined, to: Date | undefined) => {
+    setDateFilter({ from, to })
+    setCurrentPage(1)
+  }
+
+  // Función para aplicar filtro rápido
+  const applyQuickFilter = (days: number) => {
+    const today = new Date()
+    const from = days === 0 ? today : new Date(today.getTime() - days * 24 * 60 * 60 * 1000)
+    applyDateFilter(from, today)
+  }
+
+  // Función para limpiar filtro de fechas
+  const clearDateFilter = () => {
+    setDateFilter({ from: undefined, to: undefined })
+    setCurrentPage(1)
+  }
+
+  // Calcular datos filtrados y paginados
   useEffect(() => {
-    const baseFilteredVehicles = vehicles.filter((vehicle) => {
-      const matchesSearch =
-        searchTerm === "" ||
+    let filtered = vehicles
+
+    // Filtro por búsqueda
+    if (searchTerm) {
+      filtered = filtered.filter((vehicle) =>
         vehicle.license_plate.toLowerCase().includes(searchTerm.toLowerCase()) ||
         vehicle.model.toLowerCase().includes(searchTerm.toLowerCase())
-
-      const matchesStatus =
-        statusFilter === "all" ||
-        (statusFilter === "completed" && vehicle.photos_completed) ||
-        (statusFilter === "pending" && !vehicle.photos_completed)
-
-      const matchesPhotographer =
-        photographerFilter === "all" ||
-        (photographerFilter === "null" && !vehicle.assigned_to) ||
-        vehicle.assigned_to === photographerFilter
-
-      const matchesPaintStatus = paintStatusFilter === "all" || vehicle.estado_pintura === paintStatusFilter
-
-      return matchesSearch && matchesStatus && matchesPhotographer && matchesPaintStatus
-    })
-
-    if (activePhotoTab === "all") {
-      setFilteredVehicles(baseFilteredVehicles)
-      return
+      )
     }
 
-    if (activePhotoTab === "sold_without_photos") {
-      // Obtener vehículos vendidos sin fotos completadas
-      const fetchSoldWithoutPhotos = async () => {
-        try {
-          const { data: soldVehicles, error } = await supabase
-            .from("sales_vehicles")
-            .select("license_plate, sold_before_photos_ready")
-            .eq("sold_before_photos_ready", true)
-
-          if (error) throw error
-
-          const soldLicensePlates = soldVehicles.map((v) => v.license_plate)
-          const soldWithoutPhotos = baseFilteredVehicles.filter((vehicle) =>
-            soldLicensePlates.includes(vehicle.license_plate),
-          )
-
-          setFilteredVehicles(soldWithoutPhotos)
-        } catch (error) {
-          console.error("Error al cargar vehículos vendidos sin fotos:", error)
-          setFilteredVehicles(baseFilteredVehicles)
-        }
+    // Filtro por estado de fotografía
+    if (statusFilter !== "all") {
+      if (statusFilter === "completed") {
+        filtered = filtered.filter((vehicle) => vehicle.photos_completed)
+      } else if (statusFilter === "pending") {
+        filtered = filtered.filter((vehicle) => !vehicle.photos_completed)
       }
+    }
 
-      fetchSoldWithoutPhotos()
+    // Filtro por fotógrafo
+    if (photographerFilter !== "all") {
+      filtered = filtered.filter((vehicle) => vehicle.assigned_to === photographerFilter)
+    }
+
+    // Filtro por estado de pintura
+    if (paintStatusFilter !== "all") {
+      filtered = filtered.filter((vehicle) => vehicle.estado_pintura === paintStatusFilter)
+    }
+
+    // Filtro por fechas
+    if (dateFilter.from || dateFilter.to) {
+      filtered = filtered.filter((vehicle) => {
+        const vehicleDate = new Date(vehicle.disponible)
+        const fromDate = dateFilter.from ? new Date(dateFilter.from.setHours(0, 0, 0, 0)) : null
+        const toDate = dateFilter.to ? new Date(dateFilter.to.setHours(23, 59, 59, 999)) : null
+
+        if (fromDate && toDate) {
+          return vehicleDate >= fromDate && vehicleDate <= toDate
+        } else if (fromDate) {
+          return vehicleDate >= fromDate
+        } else if (toDate) {
+          return vehicleDate <= toDate
+        }
+        return true
+      })
+    }
+
+    setFilteredVehicles(filtered)
+
+    // Calcular paginación
+    const total = filtered.length
+    const pages = Math.ceil(total / itemsPerPage)
+    setTotalPages(pages)
+
+    // Calcular datos paginados
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    const paginated = filtered.slice(startIndex, endIndex)
+    setPaginatedVehicles(paginated)
+  }, [vehicles, searchTerm, statusFilter, photographerFilter, paintStatusFilter, currentPage, itemsPerPage, dateFilter])
+
+  // Función para obtener números de página
+  const getPageNumbers = () => {
+    const pages = []
+    const maxVisible = 5
+    
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i)
+      }
     } else {
-      setFilteredVehicles(baseFilteredVehicles)
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) {
+          pages.push(i)
+        }
+        pages.push("...")
+        pages.push(totalPages)
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1)
+        pages.push("...")
+        for (let i = totalPages - 3; i <= totalPages; i++) {
+          pages.push(i)
+        }
+      } else {
+        pages.push(1)
+        pages.push("...")
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+          pages.push(i)
+        }
+        pages.push("...")
+        pages.push(totalPages)
+      }
     }
-  }, [vehicles, searchTerm, statusFilter, photographerFilter, paintStatusFilter, activePhotoTab])
-
-  // Actualizar la paginación cuando cambian los vehículos filtrados o la página actual
-  useEffect(() => {
-    const totalItems = filteredVehicles.length
-    const calculatedTotalPages = Math.ceil(totalItems / itemsPerPage)
-    setTotalPages(calculatedTotalPages || 1)
-
-    // Asegurarse de que la página actual no exceda el total de páginas
-    const safePage = Math.min(currentPage, calculatedTotalPages || 1)
-    if (safePage !== currentPage) {
-      setCurrentPage(safePage)
-    }
-
-    // Calcular los índices de inicio y fin para la página actual
-    const startIndex = (safePage - 1) * itemsPerPage
-    const endIndex = Math.min(startIndex + itemsPerPage, totalItems)
-
-    // Obtener los elementos para la página actual
-    const currentItems = filteredVehicles.slice(startIndex, endIndex)
-    setPaginatedVehicles(currentItems)
-  }, [filteredVehicles, currentPage, itemsPerPage])
+    
+    return pages
+  }
 
   // Función para cambiar de página
   const goToPage = (page: number) => {
@@ -642,7 +709,7 @@ export default function PhotosTable() {
 
       {/* Card principal con filtros y tabla */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <div className="flex items-center gap-3">
             <Camera className="h-6 w-6 text-yellow-600" />
             <div>
@@ -650,86 +717,95 @@ export default function PhotosTable() {
               <CardDescription>Filtra y gestiona el estado de las fotografías</CardDescription>
             </div>
           </div>
+          {profile?.role && ["admin", "Supervisor", "Director"].some(r => profile.role.split(",").map(x => x.trim()).includes(r)) && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleOpenAssignments}
+              className="h-10 px-3"
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Asignaciones
+            </Button>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Filtros */}
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex gap-2">
-              <Button
-                variant={activePhotoTab === "all" ? "default" : "outline"}
-                onClick={() => setActivePhotoTab("all")}
-                size="sm"
-              >
-                Todos
+          {/* Filtros organizados: buscador y botones a la izquierda, tabs y selects a la derecha */}
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between w-full">
+            <div className="flex items-center gap-2 min-w-[340px] w-full md:w-auto">
+              <div className="relative max-w-xs" style={{ flex: '0 0 220px' }}>
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Input
+                        placeholder="Buscar"
+                        className="pl-10 h-8"
+                        style={{ minWidth: 180, maxWidth: 220 }}
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Buscar por matrícula o modelo
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <Button variant="outline" size="icon" onClick={fetchData} disabled={isLoading} className="h-8 w-8 p-0 !important">
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
               </Button>
               <Button
-                variant={activePhotoTab === "sold_without_photos" ? "default" : "outline"}
-                onClick={() => setActivePhotoTab("sold_without_photos")}
-                size="sm"
+                variant="outline"
+                size="icon"
+                onClick={() => setShowDateFilter(true)}
+                className={cn(
+                  "h-8 w-8 p-0 !important",
+                  (dateFilter.from || dateFilter.to) && "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-300"
+                )}
+                title="Filtrar por fecha"
               >
-                Vendidos sin fotografías
+                <Calendar className="h-4 w-4" />
               </Button>
             </div>
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por matrícula o modelo..."
-                className="pl-10"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full md:w-[200px]">
-                <SelectValue placeholder="Filtrar por estado" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los estados</SelectItem>
-                <SelectItem value="completed">Fotografiados</SelectItem>
-                <SelectItem value="pending">Pendientes</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={photographerFilter} onValueChange={setPhotographerFilter}>
-              <SelectTrigger className="w-full md:w-[200px]">
-                <SelectValue placeholder="Filtrar por fotógrafo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los fotógrafos</SelectItem>
-                <SelectItem value="null">Sin asignar</SelectItem>
-                {photographers.map((photographer) => (
-                  <SelectItem key={photographer.user_id} value={photographer.user_id}>
-                    {photographer.display_name || `Usuario ${photographer.user_id.substring(0, 8)}...`}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={paintStatusFilter} onValueChange={setpaintStatusFilter}>
-              <SelectTrigger className="w-full md:w-[200px]">
-                <SelectValue placeholder="Filtrar por pintura" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los estados</SelectItem>
-                <SelectItem value="pendiente">Pendiente</SelectItem>
-                <SelectItem value="apto">Apto</SelectItem>
-                <SelectItem value="no_apto">No apto</SelectItem>
-              </SelectContent>
-            </Select>
-            <div className="flex gap-2">
-              <Button variant="outline" size="icon" onClick={fetchData} disabled={isLoading} className="h-10 w-10">
-                <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-              </Button>
-              {console.log("Estado isAdmin en render:", isAdmin)}
-              {isAdmin && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleOpenAssignments}
-                  className="h-10 px-3"
-                >
-                  <Settings className="h-4 w-4 mr-2" />
-                  Asignaciones
-                </Button>
-              )}
+            <div className="flex flex-wrap gap-2 items-center justify-end w-full">
+              <Button variant={activePhotoTab === "all" ? "default" : "outline"} onClick={() => setActivePhotoTab("all")} size="sm">Todos</Button>
+              <Button variant={activePhotoTab === "sold_without_photos" ? "default" : "outline"} onClick={() => setActivePhotoTab("sold_without_photos")} size="sm">Vendidos sin fotografías</Button>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full md:w-[200px]">
+                  <SelectValue placeholder="Filtrar por estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los estados</SelectItem>
+                  <SelectItem value="completed">Fotografiados</SelectItem>
+                  <SelectItem value="pending">Pendientes</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={photographerFilter} onValueChange={setPhotographerFilter}>
+                <SelectTrigger className="w-full md:w-[200px]">
+                  <SelectValue placeholder="Filtrar por fotógrafo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los fotógrafos</SelectItem>
+                  <SelectItem value="null">Sin asignar</SelectItem>
+                  {photographers.map((photographer) => (
+                    <SelectItem key={photographer.user_id} value={photographer.user_id}>
+                      {photographer.display_name || `Usuario ${photographer.user_id.substring(0, 8)}...`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={paintStatusFilter} onValueChange={setpaintStatusFilter}>
+                <SelectTrigger className="w-full md:w-[200px]">
+                  <SelectValue placeholder="Filtrar por pintura" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los estados</SelectItem>
+                  <SelectItem value="pendiente">Pendiente</SelectItem>
+                  <SelectItem value="apto">Apto</SelectItem>
+                  <SelectItem value="no_apto">No apto</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -890,75 +966,102 @@ export default function PhotosTable() {
             </Table>
           </div>
 
-          {/* Paginación */}
-          <div className="flex items-center justify-between px-2 py-4">
-            <div className="flex items-center space-x-2">
-              <p className="text-sm text-muted-foreground">
-                Mostrando {paginatedVehicles.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} a{" "}
-                {Math.min(currentPage * itemsPerPage, filteredVehicles.length)} de {filteredVehicles.length} resultados
-              </p>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="flex items-center space-x-2">
-                <p className="text-sm font-medium">Filas por página</p>
-                <Select value={`${itemsPerPage}`} onValueChange={handleItemsPerPageChange}>
-                  <SelectTrigger className="h-8 w-[70px]">
-                    <SelectValue placeholder={itemsPerPage} />
-                  </SelectTrigger>
-                  <SelectContent side="top">
-                    {[10, 15, 20, 30, 50].map((pageSize) => (
-                      <SelectItem key={pageSize} value={`${pageSize}`}>
-                        {pageSize}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="outline"
-                  className="h-8 w-8 p-0"
-                  onClick={() => goToPage(1)}
-                  disabled={currentPage === 1}
-                >
-                  <span className="sr-only">Ir a la primera página</span>
-                  {"<<"}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="h-8 w-8 p-0"
-                  onClick={() => goToPage(currentPage - 1)}
-                  disabled={currentPage === 1}
-                >
-                  <span className="sr-only">Ir a la página anterior</span>
-                  {"<"}
-                </Button>
-                <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                  Página {currentPage} de {totalPages}
+              {/* Subcard paginador */}
+              <div className="mt-2 rounded-lg border bg-card shadow-sm px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="text-sm text-muted-foreground">
+                  Mostrando {paginatedVehicles.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} a{" "}
+                  {Math.min(currentPage * itemsPerPage, filteredVehicles.length)} de {filteredVehicles.length} resultados
                 </div>
-                <Button
-                  variant="outline"
-                  className="h-8 w-8 p-0"
-                  onClick={() => goToPage(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                >
-                  <span className="sr-only">Ir a la página siguiente</span>
-                  {">"}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="h-8 w-8 p-0"
-                  onClick={() => goToPage(totalPages)}
-                  disabled={currentPage === totalPages}
-                >
-                  <span className="sr-only">Ir a la última página</span>
-                  {">>"}
-                </Button>
+                <div className="flex items-center gap-2">
+                  {/* Selector de filas por página a la izquierda */}
+                  <div className="flex items-center gap-1 mr-4">
+                    <span className="text-xs">Filas por página:</span>
+                    <Select value={itemsPerPage.toString()} onValueChange={v => setItemsPerPage(Number(v))}>
+                      <SelectTrigger className="h-8 w-[70px]">
+                        <SelectValue placeholder={itemsPerPage} />
+                      </SelectTrigger>
+                      <SelectContent side="top">
+                        {[10, 15, 20, 30, 50].map((size) => (
+                          <SelectItem key={size} value={size.toString()}>{size}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {/* Flechas y números de página */}
+                  <Button variant="outline" size="icon" onClick={() => goToPage(1)} disabled={currentPage === 1} className="h-8 w-8">{'<<'}</Button>
+                  <Button variant="outline" size="icon" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1} className="h-8 w-8">{'<'}</Button>
+                  {getPageNumbers().map((n) => (
+                    <Button key={n} variant={n === currentPage ? "default" : "outline"} size="icon" onClick={() => typeof n === "number" && goToPage(n)} className="h-8 w-8 font-bold" disabled={n === "..."}>{n}</Button>
+                  ))}
+                  <Button variant="outline" size="icon" onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages} className="h-8 w-8">{'>'}</Button>
+                  <Button variant="outline" size="icon" onClick={() => goToPage(totalPages)} disabled={currentPage === totalPages} className="h-8 w-8">{'>>'}</Button>
+                </div>
               </div>
+            </CardContent>
+          </Card>
+
+      {/* Modal de filtro de fechas */}
+      <Dialog open={showDateFilter} onOpenChange={setShowDateFilter}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Filtrar por fecha de disponibilidad</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-sm font-medium">Filtros rápidos</Label>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                {quickFilters.map((filter) => (
+                  <Button
+                    key={filter.days}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => applyQuickFilter(filter.days)}
+                    className="justify-start"
+                  >
+                    {filter.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="from-date" className="text-sm font-medium">
+                Desde
+              </Label>
+              <Input
+                id="from-date"
+                type="date"
+                value={dateFilter.from?.toISOString().split("T")[0] || ""}
+                onChange={(e) => {
+                  const date = e.target.value ? new Date(e.target.value) : undefined
+                  applyDateFilter(date, dateFilter.to)
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="to-date" className="text-sm font-medium">
+                Hasta
+              </Label>
+              <Input
+                id="to-date"
+                type="date"
+                value={dateFilter.to?.toISOString().split("T")[0] || ""}
+                onChange={(e) => {
+                  const date = e.target.value ? new Date(e.target.value) : undefined
+                  applyDateFilter(dateFilter.from, date)
+                }}
+              />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={clearDateFilter}>
+                Limpiar
+              </Button>
+              <Button onClick={() => setShowDateFilter(false)}>
+                Aplicar
+              </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
