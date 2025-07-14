@@ -175,7 +175,7 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
     setOrValues(initialORValues)
   }, [stock])
 
-  // Actualizar filteredStock cuando cambie el término de búsqueda, los datos o la pestaña activa
+  // useEffect de filtrado y paginación (ejemplo, debes ubicar el correcto)
   useEffect(() => {
     let filtered = stock
 
@@ -251,7 +251,15 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
     setFilteredStock(filtered)
     setTotalPages(Math.max(1, Math.ceil(filtered.length / itemsPerPage)))
     setCurrentPage(1) // Resetear a la primera página cuando cambian los filtros
-  }, [searchTerm, stock, activeTab, itemsPerPage, orValues, dateFilter])
+  }, [
+    stock,
+    searchTerm,
+    activeTab,
+    itemsPerPage,
+    orValues,
+    dateFilter?.startDate ? new Date(dateFilter.startDate).getTime() : null,
+    dateFilter?.endDate ? new Date(dateFilter.endDate).getTime() : null
+  ])
 
   // Función para calcular la prioridad de un vehículo
   const calculatePriority = useCallback(

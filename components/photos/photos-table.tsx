@@ -292,7 +292,7 @@ export default function PhotosTable() {
       filtered = filtered.filter((vehicle) => vehicle.estado_pintura === paintStatusFilter)
     }
 
-    // Filtro por fechas
+    // Filtro por fechas - usar valores primitivos en lugar del objeto
     if (dateFilter.from || dateFilter.to) {
       filtered = filtered.filter((vehicle) => {
         const vehicleDate = new Date(vehicle.disponible)
@@ -338,7 +338,17 @@ export default function PhotosTable() {
     const endIndex = startIndex + itemsPerPage
     const paginated = filtered.slice(startIndex, endIndex)
     setPaginatedVehicles(paginated)
-  }, [vehicles, searchTerm, statusFilter, photographerFilter, paintStatusFilter, currentPage, itemsPerPage, dateFilter])
+  }, [
+    vehicles, 
+    searchTerm, 
+    statusFilter, 
+    photographerFilter, 
+    paintStatusFilter, 
+    currentPage, 
+    itemsPerPage, 
+    dateFilter.from?.getTime(), // Usar getTime() para valores primitivos
+    dateFilter.to?.getTime()    // Usar getTime() para valores primitivos
+  ])
 
   // Función para obtener números de página
   const getPageNumbers = () => {
