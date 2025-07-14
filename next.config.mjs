@@ -10,6 +10,7 @@ const nextConfig = {
     unoptimized: true,
   },
   serverExternalPackages: ['pdf-parse'],
+  // Configuración de webpack simplificada
   webpack: (config, { isServer }) => {
     if (isServer) {
       config.externals = config.externals || []
@@ -17,8 +18,9 @@ const nextConfig = {
         'pdf-parse': 'commonjs pdf-parse'
       })
     }
+    
     return config
-  }
+  },
 }
 
 export default nextConfig

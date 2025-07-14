@@ -17,26 +17,27 @@ function extractDataFromSubject(subject: string): {
   date: string | null
   requester: string | null
   source: string | null
+  receiverAlias: string | null
 } {
-  // Formato esperado: "Nuevo pedido 8745MBS || 11/1/2024 || GABRIEL CAMPOS HORACIO || JORDIVI"
-  const pattern = /Nuevo pedido\s+([A-Z0-9]+)\s*\|\|\s*(\d{1,2}\/\d{1,2}\/\d{4})\s*\|\|\s*([^|]+)\s*\|\|\s*([^|]+)/i
-  
-  const match = subject.match(pattern)
-  
-  if (match) {
-    return {
-      licensePlate: match[1].trim(),
-      date: match[2].trim(),
-      requester: match[3].trim(),
-      source: match[4].trim()
-    }
+  // Formato esperado: "Nuevo pedido 8745MBS || 11/1/2024 || GABRIEL CAMPOS HORACIO || JORDIVI" o con un campo extra al final
+  const parts = subject.split("||").map(p => p.trim());
+  let licensePlate = null, date = null, requester = null, source = null, receiverAlias = null;
+  if (parts.length >= 4) {
+    licensePlate = parts[0].replace("Nuevo pedido ", "").trim();
+    date = parts[1];
+    requester = parts[2];
+    source = parts[3];
+    // Si hay 5 campos, el alias es el quinto; si hay 4, el alias es el cuarto
+    let rawAlias = parts.length >= 5 ? parts[4] : parts[3];
+    receiverAlias = rawAlias ? rawAlias.toLowerCase().replace(/\s+/g, "") : null;
+    console.log("[DEBUG] Alias extraído del asunto:", rawAlias, "| Alias normalizado:", receiverAlias);
   }
-  
   return {
-    licensePlate: null,
-    date: null,
-    requester: null,
-    source: null
+    licensePlate,
+    date,
+    requester,
+    source,
+    receiverAlias
   }
 }
 
@@ -112,6 +113,7 @@ export async function POST(request: NextRequest) {
     console.log('   Date:', subjectData.date)
     console.log('   Requester:', subjectData.requester)
     console.log('   Source:', subjectData.source)
+    console.log('   Receiver Alias:', subjectData.receiverAlias)
     
     if (!subjectData.licensePlate) {
       console.log('❌ No se pudo extraer matrícula del asunto')
@@ -147,12 +149,29 @@ export async function POST(request: NextRequest) {
     if (body.messageId) {
       const { data: existingRequest, error: checkError } = await supabase
         .from('docuware_requests')
-        .select('id')
+        .select('id, receiver_alias')
         .eq('message_id', body.messageId)
-        .single()
+        .maybeSingle()
       
       if (existingRequest) {
         console.log('❌ Ya existe una solicitud con este messageId:', body.messageId)
+        
+        // Solo actualizar receiver_alias si es necesario
+        if (!existingRequest.receiver_alias && subjectData.receiverAlias) {
+          console.log(`🔄 Actualizando receiver_alias en solicitud existente: ${subjectData.receiverAlias}`)
+          
+          const { error: updateError } = await supabase
+            .from('docuware_requests')
+            .update({ receiver_alias: subjectData.receiverAlias })
+            .eq('id', existingRequest.id)
+          
+          if (updateError) {
+            console.error('❌ Error actualizando receiver_alias:', updateError)
+          } else {
+            console.log('✅ receiver_alias actualizado correctamente')
+          }
+        }
+        
         return NextResponse.json({
           success: false,
           message: 'Ya existe una solicitud con este messageId',
@@ -167,34 +186,35 @@ export async function POST(request: NextRequest) {
     // Convertir fecha
     const requestDate = subjectData.date ? new Date(subjectData.date) : new Date()
     
-    // Reconocer materiales en el cuerpo del email
-    const materials = extractMaterialsFromBody(body.textBody || '')
-    console.log('🔍 Materiales reconocidos:', materials)
-    
-    // Si no se encontraron materiales, crear materiales por defecto
-    if (materials.length === 0) {
-      console.log('⚠️ No se encontraron materiales, creando por defecto')
-      materials.push(
-        { type: 'second_key', label: '2ª Llave' },
-        { type: 'technical_sheet', label: 'Ficha Técnica' }
-      )
-    }
+    // Siempre crear ambos materiales por defecto para evitar problemas
+    const materials = [
+      { type: 'second_key', label: '2ª Llave' },
+      { type: 'technical_sheet', label: 'Ficha Técnica' }
+    ]
+    console.log('🔍 Materiales por defecto:', materials)
     
     console.log('📝 Insertando solicitud en base de datos...')
+    
+    // Preparar objeto de inserción con log detallado
+    const solicitudData = {
+      email_subject: body.subject,
+      email_body: body.textBody,
+      license_plate: subjectData.licensePlate || '',
+      requester: subjectData.requester || '',
+      request_date: requestDate,
+      status: 'pending',
+      observations: '', // Dejar vacío para que se rellene manualmente desde el modal
+      message_id: body.messageId || null, // Guardar el identificador único del email
+      receiver_alias: subjectData.receiverAlias || null // Guardar el alias del destinatario
+    }
+    
+    console.log('🔍 [DEBUG] Objeto a insertar en docuware_requests:', JSON.stringify(solicitudData, null, 2))
+    console.log('🔍 [DEBUG] receiver_alias que se va a guardar:', solicitudData.receiver_alias)
     
     // Insertar solicitud
     const { data: solicitudInsertada, error: errorSolicitud } = await supabase
       .from('docuware_requests')
-      .insert({
-        email_subject: body.subject,
-        email_body: body.textBody,
-        license_plate: subjectData.licensePlate || '',
-        requester: subjectData.requester || '',
-        request_date: requestDate,
-        status: 'pending',
-        observations: '', // Dejar vacío para que se rellene manualmente desde el modal
-        message_id: body.messageId || null // Guardar el identificador único del email
-      })
+      .insert(solicitudData)
       .select()
       .single()
     

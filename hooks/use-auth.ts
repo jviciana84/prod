@@ -9,7 +9,7 @@ interface AuthState {
   user: User | null
   loading: boolean
   error: string | null
-  profile: { full_name: string | null; role: string | null } | null // Añadir el perfil
+  profile: { id: string; full_name: string | null; role: string | null; avatar_url: string | null } | null // Añadir el perfil con id
 }
 
 export function useAuth() {
@@ -49,7 +49,7 @@ export function useAuth() {
           // Obtener el perfil del usuario de la tabla 'profiles'
           const { data: profileData, error: profileError } = await supabase
             .from("profiles")
-            .select("full_name, role, avatar_url") // Seleccionar también el avatar
+            .select("id, full_name, role, avatar_url") // Seleccionar también el id y avatar
             .eq("id", session.user.id)
             .single()
 
@@ -94,7 +94,7 @@ export function useAuth() {
           // Obtener el perfil del usuario de la tabla 'profiles' en cada cambio de estado
           const { data: profileData, error: profileError } = await supabase
             .from("profiles")
-            .select("full_name, role, avatar_url")
+            .select("id, full_name, role, avatar_url")
             .eq("id", session.user.id)
             .single()
 

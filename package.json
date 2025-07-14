@@ -10,7 +10,10 @@
     "update-version": "node scripts/update-version.js",
     "pre-commit": "npm run update-version && git add lib/version.ts",
     "install-hooks": "node scripts/install-hooks.js",
-    "generate-favicon": "npx tsx scripts/generate-favicon.ts"
+    "generate-favicon": "npx tsx scripts/generate-favicon.ts",
+    "clear-cache": "node scripts/clear-cache.js",
+    "clean": "npm run clear-cache && npm run build",
+    "optimize": "node scripts/optimize-build.js"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",

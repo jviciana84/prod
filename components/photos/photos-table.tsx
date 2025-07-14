@@ -174,7 +174,7 @@ export default function PhotosTable() {
       // Solo hacer la consulta si hay IDs de usuario
       let usersData = []
       if (userIds.length > 0) {
-        // Primero intentar obtener datos de profiles (con alias y full_name)
+        // Obtener datos de profiles (con alias y full_name)
         const { data: profiles, error: profilesError } = await supabase
           .from("profiles")
           .select("id, alias, full_name")
@@ -182,31 +182,19 @@ export default function PhotosTable() {
 
         if (!profilesError && profiles) {
           usersData = profiles
-        } else {
-          // Si no hay profiles, usar auth.users como fallback
-          const { data: users, error: usersError } = await supabase
-            .from("auth.users")
-            .select("id, email")
-            .in("id", userIds)
-
-          if (!usersError) {
-            usersData = users || []
-          }
         }
       }
 
       // Combinar datos de fotógrafos con datos de usuarios
       const formattedPhotographers = photographersData.map((p) => {
         const user = usersData.find((u) => u.id === p.user_id)
-        let displayName = `Usuario ${p.user_id.substring(0, 8)}...`
+        let displayName = `Fotógrafo ${p.user_id.substring(0, 8)}...`
 
         if (user) {
           if (user.alias) {
             displayName = user.alias
           } else if (user.full_name) {
             displayName = user.full_name
-          } else if (user.email) {
-            displayName = user.email
           }
         }
 
@@ -222,9 +210,16 @@ export default function PhotosTable() {
       setPhotographers(formattedPhotographers || [])
     } catch (error) {
       console.error("Error al cargar datos:", error)
+      
+      // Mostrar error específico
+      let errorMessage = "No se pudieron cargar los datos. Por favor, inténtalo de nuevo."
+      if (error instanceof Error) {
+        errorMessage = error.message
+      }
+      
       toast({
-        title: "Error",
-        description: "No se pudieron cargar los datos. Por favor, inténtalo de nuevo.",
+        title: "Error de conexión",
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {

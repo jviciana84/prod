@@ -173,15 +173,15 @@ export async function GET() {
     
     let processedCount = 0
     let insertedCount = 0
-    
+
     for (const item of messages) {
       try {
         console.log(`\n🔄 Procesando email ${processedCount + 1}/${messages.length}:`)
-        const all = item.parts.find((part) => part.which === "")
-        if (all) {
-          const rawEmail = all.body
-          const parsedEmail = await simpleParser(rawEmail)
-          const processedData = await processEmail(parsedEmail)
+      const all = item.parts.find((part) => part.which === "")
+      if (all) {
+        const rawEmail = all.body
+        const parsedEmail = await simpleParser(rawEmail)
+        const processedData = await processEmail(parsedEmail)
           console.log(`   From: ${parsedEmail.from}`)
           console.log(`   To: ${parsedEmail.to}`)
           console.log(`   Subject: ${parsedEmail.subject}`)
@@ -239,7 +239,7 @@ export async function GET() {
     console.log(`\n📊 RESUMEN:`)
     console.log(`   Emails procesados: ${processedCount}`)
     console.log(`   Solicitudes insertadas: ${insertedCount}`)
-    
+
     if (connection) {
       connection.end()
     }

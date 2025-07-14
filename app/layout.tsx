@@ -1,5 +1,5 @@
 import type React from "react"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -10,7 +10,11 @@ import { RoundFavicon } from "@/components/ui/round-favicon"
 import { ThemeScript } from "@/components/theme-script"
 import { ThemeInitializer } from "@/components/theme-initializer"
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({ 
+  subsets: ["latin"],
+  display: 'swap',
+  variable: '--font-inter',
+})
 
 export const metadata: Metadata = {
   title: "CVO Dashboard",
@@ -20,6 +24,12 @@ export const metadata: Metadata = {
     icon: '/favicon-round.svg',
     apple: '/favicon-round.svg',
   },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#000000',
 }
 
 export default function RootLayout({
@@ -32,9 +42,15 @@ export default function RootLayout({
       <head>
         <ThemeScript />
       </head>
-      <body className={inter.className} suppressHydrationWarning>
+      <body className={`${inter.className} antialiased`} suppressHydrationWarning>
         <ThemeInitializer />
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+        <ThemeProvider 
+          attribute="class" 
+          defaultTheme="dark" 
+          enableSystem 
+          disableTransitionOnChange
+          storageKey="theme"
+        >
           <ThemeHtmlSync />
           <RoundFavicon />
           <AuthProvider>
