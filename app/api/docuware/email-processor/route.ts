@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { createClient } from "@supabase/supabase-js"
 
 interface DocuwareEmailPayload {
   from: string
@@ -76,130 +76,185 @@ function extractMaterialsFromBody(body: string): Array<{
 
 export async function POST(request: NextRequest) {
   try {
-    console.log("=== PROCESADOR DE EMAILS DOCUWARE ===")
+    console.log('=== PROCESADOR DOCUWARE INICIADO ===')
     
     const body: DocuwareEmailPayload = await request.json()
+    console.log('📧 Email recibido:')
+    console.log('   From:', body.from)
+    console.log('   To:', body.to)
+    console.log('   Subject:', body.subject)
+    console.log('   MessageId:', body.messageId)
+    console.log('   TextBody length:', body.textBody?.length || 0)
     
     // Verificar que el email es para material@controlvo.ovh
-    if (!body.to.includes('material@controlvo.ovh')) {
-      console.log("Email no es para material@controlvo.ovh, ignorando")
-      return NextResponse.json({ success: true, message: "Email ignorado - no es para material@controlvo.ovh" })
+    const isForMaterial = body.to.some(email => 
+      email.toLowerCase().includes('material@controlvo.ovh')
+    )
+    
+    console.log('🎯 Verificación de destinatario:')
+    console.log('   Emails to:', body.to)
+    console.log('   Es para material@controlvo.ovh:', isForMaterial)
+    
+    if (!isForMaterial) {
+      console.log('❌ Email no es para material@controlvo.ovh, ignorando')
+      return NextResponse.json({
+        success: false,
+        message: 'Email no es para material@controlvo.ovh',
+        inserted: false,
+        reason: 'Destinatario incorrecto'
+      })
     }
-    
-    console.log("Procesando email de Docuware:", {
-      from: body.from,
-      subject: body.subject,
-      date: body.date
-    })
-    
-    const supabase = createClient()
     
     // Extraer datos del asunto
     const subjectData = extractDataFromSubject(body.subject)
+    console.log('📋 Datos extraídos del asunto:')
+    console.log('   License Plate:', subjectData.licensePlate)
+    console.log('   Date:', subjectData.date)
+    console.log('   Requester:', subjectData.requester)
+    console.log('   Source:', subjectData.source)
     
-    if (!subjectData.licensePlate || !subjectData.date || !subjectData.requester) {
-      console.log("No se pudieron extraer datos del asunto:", subjectData)
-      return NextResponse.json({ 
-        success: false, 
-        message: "Formato de asunto no válido",
-        extractedData: subjectData
+    if (!subjectData.licensePlate) {
+      console.log('❌ No se pudo extraer matrícula del asunto')
+      return NextResponse.json({
+        success: false,
+        message: 'No se pudo extraer matrícula del asunto',
+        inserted: false,
+        reason: 'Formato de asunto incorrecto'
       })
     }
     
-    // Extraer materiales del cuerpo
-    let materials = extractMaterialsFromBody(body.textBody)
-
-    // Si no se encuentran materiales pero el asunto es válido, añadir ambos por defecto
-    if (materials.length === 0 && subjectData.licensePlate && subjectData.date && subjectData.requester) {
-      materials = [
-        { type: "second_key", label: "2ª Llave" },
-        { type: "technical_sheet", label: "Ficha Técnica" }
-      ];
+    // Verificar variables de entorno
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.log('❌ Variables de entorno de Supabase no definidas')
+      return NextResponse.json({
+        success: false,
+        message: 'Variables de entorno de Supabase no definidas',
+        inserted: false,
+        reason: 'Configuración faltante'
+      })
     }
-
+    
+    console.log('✅ Variables de entorno verificadas')
+    
+    const supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    )
+    
+    console.log('✅ Cliente Supabase creado')
+    
+    // Verificar si ya existe una solicitud con este messageId
+    if (body.messageId) {
+      const { data: existingRequest, error: checkError } = await supabase
+        .from('docuware_requests')
+        .select('id')
+        .eq('message_id', body.messageId)
+        .single()
+      
+      if (existingRequest) {
+        console.log('❌ Ya existe una solicitud con este messageId:', body.messageId)
+        return NextResponse.json({
+          success: false,
+          message: 'Ya existe una solicitud con este messageId',
+          inserted: false,
+          reason: 'Duplicado'
+        })
+      }
+    }
+    
+    console.log('✅ No hay duplicados, procediendo con inserción')
+    
+    // Convertir fecha
+    const requestDate = subjectData.date ? new Date(subjectData.date) : new Date()
+    
+    // Reconocer materiales en el cuerpo del email
+    const materials = extractMaterialsFromBody(body.textBody || '')
+    console.log('🔍 Materiales reconocidos:', materials)
+    
+    // Si no se encontraron materiales, crear materiales por defecto
     if (materials.length === 0) {
-      console.log("No se encontraron materiales en el cuerpo del email y el asunto no es válido")
-      return NextResponse.json({ 
-        success: false, 
-        message: "No se encontraron materiales válidos en el email"
-      })
+      console.log('⚠️ No se encontraron materiales, creando por defecto')
+      materials.push(
+        { type: 'second_key', label: '2ª Llave' },
+        { type: 'technical_sheet', label: 'Ficha Técnica' }
+      )
     }
     
-    // Convertir fecha del formato dd/mm/yyyy a yyyy-mm-dd
-    const dateParts = subjectData.date.split('/')
-    const requestDate = `${dateParts[2]}-${dateParts[1].padStart(2, '0')}-${dateParts[0].padStart(2, '0')}`
+    console.log('📝 Insertando solicitud en base de datos...')
     
-    // Crear la solicitud principal
-    const { data: docuwareRequest, error: requestError } = await supabase
+    // Insertar solicitud
+    const { data: solicitudInsertada, error: errorSolicitud } = await supabase
       .from('docuware_requests')
       .insert({
         email_subject: body.subject,
         email_body: body.textBody,
-        license_plate: subjectData.licensePlate.toUpperCase(),
-        requester: subjectData.source,
+        license_plate: subjectData.licensePlate || '',
+        requester: subjectData.requester || '',
         request_date: requestDate,
         status: 'pending',
-        observations: ''
+        observations: '', // Dejar vacío para que se rellene manualmente desde el modal
+        message_id: body.messageId || null // Guardar el identificador único del email
       })
       .select()
       .single()
     
-    if (requestError) {
-      console.error("Error creando solicitud Docuware:", requestError)
-      return NextResponse.json({ 
-        success: false, 
-        message: "Error creando solicitud",
-        error: requestError.message
+    if (errorSolicitud) {
+      console.error('❌ Error insertando solicitud:', errorSolicitud)
+      return NextResponse.json({
+        success: false,
+        message: 'Error insertando solicitud en base de datos',
+        error: errorSolicitud.message,
+        inserted: false,
+        reason: 'Error en inserción de solicitud'
       })
     }
     
-    console.log("Solicitud Docuware creada:", docuwareRequest.id)
+    console.log('✅ Solicitud insertada correctamente:', solicitudInsertada.id)
     
-    // Crear los materiales solicitados
-    const materialsToInsert = materials.map(material => ({
-      docuware_request_id: docuwareRequest.id,
-      material_type: material.type,
-      material_label: material.label,
-      selected: true,
-      observations: ''
-    }))
-    
-    const { data: materialsData, error: materialsError } = await supabase
-      .from('docuware_request_materials')
-      .insert(materialsToInsert)
-      .select()
-    
-    if (materialsError) {
-      console.error("Error creando materiales:", materialsError)
-      return NextResponse.json({ 
-        success: false, 
-        message: "Error creando materiales",
-        error: materialsError.message
-      })
+    // Insertar materiales
+    const materiales = []
+    for (const material of materials) {
+      try {
+        const { data: materialInsertado, error: errorMaterial } = await supabase
+          .from('docuware_request_materials')
+          .insert({
+            docuware_request_id: solicitudInsertada.id,
+            material_type: material.type,
+            material_label: material.label,
+            selected: false
+          })
+          .select()
+          .single()
+        
+        if (errorMaterial) {
+          console.error(`❌ Error insertando material ${material.label}:`, errorMaterial)
+        } else {
+          console.log(`✅ Material insertado: ${material.label}`)
+          materiales.push(materialInsertado)
+        }
+      } catch (error) {
+        console.error(`❌ Error procesando material ${material.label}:`, error)
+      }
     }
     
-    console.log("Materiales creados:", materialsData.length)
+    console.log('🎉 PROCESAMIENTO COMPLETADO EXITOSAMENTE')
     
     return NextResponse.json({
       success: true,
-      message: "Email de Docuware procesado correctamente",
-      requestId: docuwareRequest.id,
-      materialsCount: materialsData.length,
-      extractedData: {
-        licensePlate: subjectData.licensePlate,
-        date: subjectData.date,
-        requester: subjectData.requester,
-        source: subjectData.source,
-        materials: materials
-      }
+      message: `Solicitud procesada correctamente. ${materiales.length} materiales registrados.`,
+      solicitud: solicitudInsertada,
+      materiales: materiales,
+      inserted: true
     })
     
   } catch (error: any) {
-    console.error("Error procesando email de Docuware:", error)
-    return NextResponse.json({ 
-      success: false, 
-      message: "Error interno del servidor",
-      error: error.message
-    }, { status: 500 })
+    console.error('❌ Error general en procesador Docuware:', error)
+    return NextResponse.json({
+      success: false,
+      message: 'Error procesando email',
+      error: error.message,
+      inserted: false,
+      reason: 'Error general'
+    })
   }
 } 

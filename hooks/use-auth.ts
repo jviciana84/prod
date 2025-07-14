@@ -49,7 +49,7 @@ export function useAuth() {
           // Obtener el perfil del usuario de la tabla 'profiles'
           const { data: profileData, error: profileError } = await supabase
             .from("profiles")
-            .select("full_name, role") // Seleccionar las columnas necesarias
+            .select("full_name, role, avatar_url") // Seleccionar también el avatar
             .eq("id", session.user.id)
             .single()
 
@@ -94,7 +94,7 @@ export function useAuth() {
           // Obtener el perfil del usuario de la tabla 'profiles' en cada cambio de estado
           const { data: profileData, error: profileError } = await supabase
             .from("profiles")
-            .select("full_name, role")
+            .select("full_name, role, avatar_url")
             .eq("id", session.user.id)
             .single()
 

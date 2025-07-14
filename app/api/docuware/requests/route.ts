@@ -5,7 +5,7 @@ export async function GET(request: NextRequest) {
   try {
     console.log("🚀 Iniciando GET /api/docuware/requests")
     
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const supabaseUrl = process.env.SUPABASE_URL!
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
     console.log("✅ Cliente Supabase creado")
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const supabaseUrl = process.env.SUPABASE_URL!
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
     const body = await request.json()

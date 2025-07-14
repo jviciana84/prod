@@ -14,6 +14,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { FileText, Key, CreditCard, FileCheck, Printer, Plus, Loader2, ChevronDown } from "lucide-react"
 import { toast } from "sonner"
+import { useAuth } from "@/hooks/use-auth"
+import { createClientComponentClient } from "@/lib/supabase/client"
 
 interface DocuwareRequest {
   id: string
@@ -24,6 +26,7 @@ interface DocuwareRequest {
   request_date: string
   status: "pending" | "confirmed" | "completed"
   observations?: string
+  receiver_alias?: string // Nuevo campo para el alias del receptor
   docuware_request_materials: Array<{
     id: string
     material_type: string
@@ -47,11 +50,14 @@ const MATERIAL_OPTIONS = [
 ]
 
 export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsModalProps) {
+  const { user, profile } = useAuth();
+  const supabase = createClientComponentClient();
   const [requests, setRequests] = useState<DocuwareRequest[]>([])
   const [selectedRequests, setSelectedRequests] = useState<string[]>([])
   const [activeTab, setActiveTab] = useState("second_keys")
   const [loading, setLoading] = useState(false)
   const [confirming, setConfirming] = useState(false)
+  const [receiverProfiles, setReceiverProfiles] = useState<Record<string, { full_name: string, avatar_url: string }>>({})
 
   // Cargar datos cuando se abre el modal
   useEffect(() => {
@@ -59,6 +65,36 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
       loadRequests()
     }
   }, [open])
+
+  // Buscar perfiles de los alias de recibe (case-insensitive, sin espacios)
+  useEffect(() => {
+    async function fetchReceiverProfiles() {
+      const aliasSet = new Set<string>();
+      requests.forEach(r => {
+        if (r.receiver_alias) aliasSet.add(r.receiver_alias.trim());
+      });
+      if (aliasSet.size === 0) return;
+
+      const profilesMap: Record<string, { full_name: string, avatar_url: string }> = {};
+
+      for (const alias of aliasSet) {
+        // Buscar el perfil por alias, insensible a mayúsculas/minúsculas
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("alias, full_name, avatar_url")
+          .ilike("alias", alias);
+
+        if (!error && data && data.length > 0) {
+          profilesMap[alias.toLowerCase()] = {
+            full_name: data[0].full_name,
+            avatar_url: data[0].avatar_url
+          };
+        }
+      }
+      setReceiverProfiles(profilesMap);
+    }
+    if (requests.length > 0) fetchReceiverProfiles();
+  }, [requests, supabase]);
 
   const loadRequests = async () => {
     setLoading(true)
@@ -86,6 +122,33 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
         ? prev.filter(id => id !== requestId)
         : [...prev, requestId]
     )
+  }
+
+  const handleMaterialToggle = async (materialId: string, selected: boolean) => {
+    try {
+      const response = await fetch("/api/docuware/update-material", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          materialId,
+          selected
+        })
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        toast.success(selected ? "Material marcado como completado" : "Material marcado como pendiente")
+        loadRequests() // Recargar datos
+      } else {
+        toast.error("Error actualizando material")
+      }
+    } catch (error) {
+      console.error("Error actualizando material:", error)
+      toast.error("Error actualizando material")
+    }
   }
 
   const handleObservationsChange = (requestId: string, observations: string) => {
@@ -352,6 +415,31 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
     request.docuware_request_materials?.some(m => m.material_type === "technical_sheet") || false
   )
 
+  // Contar materiales pendientes individuales
+  const pendingSecondKeyMaterials = requests.flatMap(request => 
+    request.docuware_request_materials?.filter(m => 
+      m.material_type === "second_key" && !m.selected
+    ) || []
+  )
+  
+  const pendingTechnicalSheetMaterials = requests.flatMap(request => 
+    request.docuware_request_materials?.filter(m => 
+      m.material_type === "technical_sheet" && !m.selected
+    ) || []
+  )
+
+  // Debug logs
+  console.log("🔍 Debug modal - Total requests:", requests.length)
+  console.log("🔍 Debug modal - Pending 2ª llaves:", pendingSecondKeyMaterials.length)
+  console.log("🔍 Debug modal - Pending fichas técnicas:", pendingTechnicalSheetMaterials.length)
+  console.log("🔍 Debug modal - Requests data:", requests.map(r => ({
+    id: r.id,
+    materials: r.docuware_request_materials?.map(m => ({
+      type: m.material_type,
+      selected: m.selected
+    }))
+  })))
+
   // Función para obtener materiales adicionales (solo Card Key y Permiso Circulación)
   const getAdditionalMaterials = (materials: any[]) => {
     return materials.filter(m => 
@@ -370,6 +458,9 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
     
     const additionalMaterials = getAdditionalMaterials(materials)
     
+    const aliasKey = request.receiver_alias?.trim().toLowerCase();
+    const receiverProfile = aliasKey ? receiverProfiles[aliasKey] : null;
+
     if (!mainMaterial) return null
 
     return (
@@ -378,8 +469,8 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
               <Checkbox
-                checked={selectedRequests.includes(request.id)}
-                onCheckedChange={() => handleRequestToggle(request.id)}
+                checked={mainMaterial.selected}
+                onCheckedChange={(checked) => handleMaterialToggle(mainMaterial.id, checked)}
                 className="h-5 w-5"
               />
               
@@ -390,17 +481,17 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
                   <div className="text-xs text-muted-foreground">{parsed.date}</div>
                 </div>
                 
-                {/* Avatar entrega */}
+                {/* Avatar entrega: SIEMPRE usuario logado */}
                 <div className="flex items-center gap-2">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src="" />
+                    <AvatarImage src={profile?.avatar_url || user?.user_metadata?.avatar_url || "/placeholder.svg"} />
                     <AvatarFallback className="text-xs bg-green-100 text-green-700">
-                      {getInitials("Usuario Actual")}
+                      {getInitials(profile?.full_name || user?.user_metadata?.full_name || user?.email || "?")}
                     </AvatarFallback>
                   </Avatar>
                   <div className="text-xs">
                     <div className="font-medium">Entrega</div>
-                    <div className="text-muted-foreground">Usuario Actual</div>
+                    <div className="text-muted-foreground">{profile?.full_name || user?.user_metadata?.full_name || user?.email || "Usuario"}</div>
                   </div>
                 </div>
                 
@@ -410,21 +501,21 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
                 {/* Avatar recibe */}
                 <div className="flex items-center gap-2">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src="" />
+                    <AvatarImage src={receiverProfile?.avatar_url || "/placeholder.svg"} />
                     <AvatarFallback className="text-xs bg-blue-100 text-blue-700">
-                      {getInitials(parsed.requester)}
+                      {getInitials(receiverProfile?.full_name || request.receiver_alias || "?")}
                     </AvatarFallback>
                   </Avatar>
                   <div className="text-xs">
                     <div className="font-medium">Recibe</div>
-                    <div className="text-muted-foreground">{parsed.requester}</div>
+                    <div className="text-muted-foreground">{receiverProfile?.full_name || request.receiver_alias}</div>
                   </div>
                 </div>
               </div>
             </div>
             
-            <Badge variant={request.status === "pending" ? "secondary" : "default"}>
-              {request.status === "pending" ? "Pendiente" : "Completado"}
+            <Badge variant={mainMaterial.selected ? "default" : "secondary"}>
+              {mainMaterial.selected ? "Completado" : "Pendiente"}
             </Badge>
           </div>
         </CardHeader>
@@ -501,8 +592,8 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
             {/* Observaciones */}
             <Input
               placeholder="Observaciones..."
-              value={request.observations || ""}
-              onChange={(e) => handleObservationsChange(request.id, e.target.value)}
+              value={mainMaterial.observations || ""}
+              onChange={(e) => handleMaterialObservationsChange(request.id, mainMaterial.id, e.target.value)}
               className="h-7 text-sm flex-1 ml-2 min-w-0"
             />
           </div>
@@ -526,13 +617,8 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Badge variant="secondary">
-                {requests.filter(r => r.status === "pending").length} pendientes
+                {pendingSecondKeyMaterials.length + pendingTechnicalSheetMaterials.length} materiales pendientes
               </Badge>
-              {selectedRequests.length > 0 && (
-                <Badge variant="default">
-                  {selectedRequests.length} seleccionadas
-                </Badge>
-              )}
             </div>
             <div className="flex items-center gap-2">
               <Button 
@@ -572,11 +658,11 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="second_keys" className="flex items-center gap-2">
                   <Key className="h-4 w-4" />
-                  2ª Llaves ({secondKeyRequests.length})
+                  2ª Llaves ({pendingSecondKeyMaterials.length})
                 </TabsTrigger>
                 <TabsTrigger value="technical_sheets" className="flex items-center gap-2">
                   <FileText className="h-4 w-4" />
-                  Fichas Técnicas ({technicalSheetRequests.length})
+                  Fichas Técnicas ({pendingTechnicalSheetMaterials.length})
                 </TabsTrigger>
               </TabsList>
 
