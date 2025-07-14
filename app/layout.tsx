@@ -7,6 +7,8 @@ import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from "@/components/auth/auth-provider"
 import ThemeHtmlSync from "@/components/theme-html-sync"
 import { RoundFavicon } from "@/components/ui/round-favicon"
+import { ThemeScript } from "@/components/theme-script"
+import { ThemeInitializer } from "@/components/theme-initializer"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -27,7 +29,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" suppressHydrationWarning>
+      <head>
+        <ThemeScript />
+      </head>
       <body className={inter.className} suppressHydrationWarning>
+        <ThemeInitializer />
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <ThemeHtmlSync />
           <RoundFavicon />

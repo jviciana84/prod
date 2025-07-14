@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -35,7 +35,6 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { useTheme } from "next-themes"
 
 interface SidebarItemProps {
   href: string
@@ -103,27 +102,6 @@ export default function DashboardSidebar({ roles }: DashboardSidebarProps) {
   const pathname = usePathname()
   const isAdmin = roles.includes("admin")
   const [isExpanded, setIsExpanded] = useState(false)
-  const { theme, resolvedTheme } = useTheme()
-  
-  // Determinar el tema actual para evitar flash
-  const currentTheme = resolvedTheme || theme || "dark"
-  
-  // Establecer el color inicial basado en el tema actual
-  const getInitialBg = () => {
-    if (currentTheme === "dark") return "rgba(31,31,31,0.85)"
-    if (currentTheme === "ocre") return "rgba(247,243,233,0.85)"
-    return "rgba(255,255,255,0.85)" // light por defecto
-  }
-  
-  const [sidebarBg, setSidebarBg] = useState(getInitialBg())
-
-  // Definir el color translúcido según el tema usando useEffect para evitar hidratación
-  useEffect(() => {
-    let bg = "rgba(255,255,255,0.85)" // Día por defecto
-    if (currentTheme === "dark") bg = "rgba(31,31,31,0.85)"
-    if (currentTheme === "ocre") bg = "rgba(247,243,233,0.85)"
-    setSidebarBg(bg)
-  }, [currentTheme])
 
   return (
     <aside
@@ -134,7 +112,6 @@ export default function DashboardSidebar({ roles }: DashboardSidebarProps) {
       style={{
         backdropFilter: "blur(8px)",
         WebkitBackdropFilter: "blur(8px)",
-        backgroundColor: sidebarBg,
       }}
       onMouseEnter={() => setIsExpanded(true)}
       onMouseLeave={() => setIsExpanded(false)}

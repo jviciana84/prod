@@ -17,6 +17,23 @@ import { toast } from "sonner"
 import { useAuth } from "@/hooks/use-auth"
 import { createClientComponentClient } from "@/lib/supabase/client"
 
+// Importar la función de resolución automática de forma segura
+let autoResolveIncident: any = null
+try {
+  const autoResolveModule = require("@/lib/auto-resolve-incidents")
+  autoResolveIncident = autoResolveModule.autoResolveIncident
+} catch (error) {
+  console.warn("No se pudo cargar el módulo de resolución automática:", error)
+}
+
+// Usuarios especiales del sistema (igual que en el formulario)
+const SPECIAL_USERS = [
+  { id: "comerciales", full_name: "COMERCIALES" },
+  { id: "taller", full_name: "TALLER" },
+  { id: "limpieza", full_name: "LIMPIEZA" },
+  { id: "custodia", full_name: "CUSTODIA" },
+]
+
 interface DocuwareRequest {
   id: string
   email_subject: string
@@ -53,11 +70,11 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
   const { user, profile } = useAuth();
   const supabase = createClientComponentClient();
   const [requests, setRequests] = useState<DocuwareRequest[]>([])
-  const [selectedRequests, setSelectedRequests] = useState<string[]>([])
-  const [activeTab, setActiveTab] = useState("second_keys")
   const [loading, setLoading] = useState(false)
   const [confirming, setConfirming] = useState(false)
-  const [receiverProfiles, setReceiverProfiles] = useState<Record<string, { full_name: string, avatar_url: string }>>({})
+  const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]) // Cambio: seleccionar materiales, no solicitudes
+  const [activeTab, setActiveTab] = useState("second_keys")
+  const [receiverProfiles, setReceiverProfiles] = useState<Record<string, any>>({})
 
   // Cargar datos cuando se abre el modal
   useEffect(() => {
@@ -66,26 +83,28 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
     }
   }, [open])
 
-  // Buscar perfiles de los alias de recibe (case-insensitive, sin espacios)
+  // Buscar perfiles de los alias de recibe (case-insensitive, sin espacios, robusto)
   useEffect(() => {
     async function fetchReceiverProfiles() {
       const aliasSet = new Set<string>();
       requests.forEach(r => {
-        if (r.receiver_alias) aliasSet.add(r.receiver_alias.trim());
+        if (r.receiver_alias) aliasSet.add(r.receiver_alias.trim().toLowerCase());
       });
       if (aliasSet.size === 0) return;
 
-      const profilesMap: Record<string, { full_name: string, avatar_url: string }> = {};
+      const profilesMap: Record<string, { id: string, full_name: string, avatar_url: string }> = {};
 
       for (const alias of aliasSet) {
-        // Buscar el perfil por alias, insensible a mayúsculas/minúsculas
+        // Buscar el perfil por alias, insensible a mayúsculas/minúsculas y sin espacios
         const { data, error } = await supabase
           .from("profiles")
-          .select("alias, full_name, avatar_url")
+          .select("id, alias, full_name, avatar_url")
           .ilike("alias", alias);
 
         if (!error && data && data.length > 0) {
-          profilesMap[alias.toLowerCase()] = {
+          // Guardar usando el alias en lower case y trim como clave
+          profilesMap[alias] = {
+            id: data[0].id,
             full_name: data[0].full_name,
             avatar_url: data[0].avatar_url
           };
@@ -124,31 +143,12 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
     )
   }
 
-  const handleMaterialToggle = async (materialId: string, selected: boolean) => {
-    try {
-      const response = await fetch("/api/docuware/update-material", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          materialId,
-          selected
-        })
-      })
-
-      const data = await response.json()
-
-      if (data.success) {
-        toast.success(selected ? "Material marcado como completado" : "Material marcado como pendiente")
-        loadRequests() // Recargar datos
-      } else {
-        toast.error("Error actualizando material")
-      }
-    } catch (error) {
-      console.error("Error actualizando material:", error)
-      toast.error("Error actualizando material")
-    }
+  const handleMaterialToggle = (materialId: string) => {
+    setSelectedMaterials(prev => 
+      prev.includes(materialId) 
+        ? prev.filter(id => id !== materialId)
+        : [...prev, materialId]
+    )
   }
 
   const handleObservationsChange = (requestId: string, observations: string) => {
@@ -201,40 +201,429 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
     }
   }
 
-  const handleConfirmSelected = async () => {
-    if (selectedRequests.length === 0) {
-      toast.error("Selecciona al menos una solicitud para confirmar")
+  // Función para obtener el ID del vehículo a partir de la matrícula (igual que en el formulario)
+  const getVehicleIdFromLicensePlate = async (licensePlate: string): Promise<string | null> => {
+    const upperLicense = licensePlate.toUpperCase()
+    
+    // Buscar en sales_vehicles
+    const { data: salesVehicle } = await supabase
+      .from("sales_vehicles")
+      .select("id")
+      .eq("license_plate", upperLicense)
+      .single()
+    
+    if (salesVehicle) return salesVehicle.id
+    
+    // Buscar en nuevas_entradas
+    const { data: stockVehicle } = await supabase
+      .from("nuevas_entradas")
+      .select("id")
+      .eq("license_plate", upperLicense)
+      .single()
+    
+    if (stockVehicle) return stockVehicle.id
+    
+    return null
+  }
+
+  // Función para intentar resolver incidencias automáticamente (igual que en el formulario)
+  const tryAutoResolveIncident = async (entry: any) => {
+    if (!autoResolveIncident) {
+      console.log("⚠️ Función de resolución automática no disponible")
       return
     }
 
-    setConfirming(true)
     try {
-      const response = await fetch("/api/docuware/requests", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          confirmedRequests: selectedRequests
-        })
-      })
+      console.log(`🔄 Intentando resolver incidencias para ${entry.item_type}...`)
+      const resolveResult = await autoResolveIncident(
+        entry.license_plate,
+        entry.item_type,
+        entry.to_user_id,
+        entry.reason || "Entrega registrada automáticamente",
+      )
 
-      const data = await response.json()
-
-      if (data.success) {
-        toast.success(data.message)
-        setSelectedRequests([])
-        loadRequests() // Recargar datos
+      if (resolveResult.success && resolveResult.resolvedCount > 0) {
+        console.log(`✅ Resueltas ${resolveResult.resolvedCount} incidencias automáticamente`)
+        toast.success(`🎉 Se resolvieron ${resolveResult.resolvedCount} incidencias automáticamente`)
+      } else if (resolveResult.success) {
+        console.log("ℹ️ No había incidencias pendientes de este tipo")
       } else {
-        toast.error("Error confirmando solicitudes")
+        console.log("⚠️ Error en resolución automática:", resolveResult.error)
       }
-    } catch (error) {
-      console.error("Error confirmando solicitudes:", error)
-      toast.error("Error confirmando solicitudes")
-    } finally {
-      setConfirming(false)
+    } catch (resolveError) {
+      console.error("💥 Error inesperado en resolución automática:", resolveError)
+      // No fallar el proceso principal por esto
     }
   }
+
+  const handleConfirmSelected = async () => {
+    if (selectedMaterials.length === 0) {
+      toast.error("Selecciona al menos un material para registrar movimientos");
+      return;
+    }
+
+    setConfirming(true);
+
+    try {
+      // Obtener los materiales seleccionados con sus solicitudes
+      const selectedMaterialsData = [];
+      
+      for (const request of requests) {
+        for (const material of request.docuware_request_materials) {
+          if (selectedMaterials.includes(material.id)) {
+            selectedMaterialsData.push({
+              request,
+              material
+            });
+          }
+        }
+      }
+      
+      console.log("[DEBUG] Materiales seleccionados:", selectedMaterialsData);
+      
+      // Procesar cada material seleccionado
+      for (const { request, material } of selectedMaterialsData) {
+        console.log("[DEBUG] Procesando material:", material);
+        
+        // Obtener el ID del vehículo a partir de la matrícula
+        let vehicleId = await getVehicleIdFromLicensePlate(request.license_plate);
+        console.log("[DEBUG] vehicleId:", vehicleId);
+
+        // Detectar si el id es de external_material_vehicles
+        let isExternalVehicle = false;
+        let externalVehicleId = null;
+        if (!vehicleId) {
+          // Buscar primero
+          const { data: extVehicle } = await supabase
+            .from("external_material_vehicles")
+            .select("id")
+            .eq("license_plate", request.license_plate.toUpperCase())
+            .single();
+          if (extVehicle) {
+            vehicleId = extVehicle.id;
+            isExternalVehicle = true;
+            externalVehicleId = extVehicle.id;
+          } else {
+            // Crear
+            const { data: newExtVehicle, error: extError } = await supabase
+              .from("external_material_vehicles")
+              .insert({ license_plate: request.license_plate.toUpperCase() })
+              .select("id")
+              .single();
+            if (extError) {
+              console.error("[ERROR] Error creando vehículo externo:", extError);
+              throw new Error(`Error al crear registro externo: ${extError.message}`);
+            }
+            vehicleId = newExtVehicle.id;
+            isExternalVehicle = true;
+            externalVehicleId = newExtVehicle.id;
+          }
+        }
+
+        // Procesar solo el material seleccionado
+        console.log("[DEBUG] Procesando material:", material);
+
+        // Obtener el usuario que recibe (desde el alias)
+        let toUserId = null;
+        let receiverProfile = null;
+        if (request.receiver_alias) {
+          receiverProfile = receiverProfiles[request.receiver_alias.trim().toLowerCase()] || null;
+          if (receiverProfile) {
+            toUserId = receiverProfile.id;
+          }
+        }
+
+        // Determinar si es un movimiento de llave o documento
+        const isKeyMovement = ["first_key", "second_key", "card_key"].includes(material.material_type);
+
+        // Calcular la fecha límite para la confirmación (24 horas)
+        const confirmationDeadline = new Date();
+        confirmationDeadline.setHours(confirmationDeadline.getHours() + 24);
+
+        // Obtener el usuario que entrega (siempre el logado salvo usuarios especiales)
+        const isFromSpecialUser = SPECIAL_USERS.some((su) => su.id === profile?.id);
+        const from_user_id_to_insert = isFromSpecialUser ? null : profile?.id;
+
+        // Obtener observaciones solo si el usuario ha escrito algo
+        const userObservaciones = (material.observations || request.observations || "").trim();
+
+        if (isKeyMovement) {
+          // Registrar el movimiento en la tabla key_movements
+          const isToSpecialUser = SPECIAL_USERS.some((su) => su.id === toUserId);
+          const to_user_id_to_insert = isToSpecialUser ? null : toUserId;
+
+          const movementData = {
+            vehicle_id: vehicleId,
+            key_type: material.material_type,
+            from_user_id: from_user_id_to_insert,
+            to_user_id: to_user_id_to_insert,
+            reason: userObservaciones || "",
+            confirmation_deadline: confirmationDeadline.toISOString(),
+          };
+          console.log("[DEBUG] movementData (key):", movementData);
+
+          const { error: movementError } = await supabase.from("key_movements").insert(movementData);
+
+          if (movementError) {
+            console.error("[ERROR] Error al registrar movimiento:", movementError);
+            throw new Error(`Error al registrar movimiento: ${movementError.message}`);
+          }
+
+          // Actualizar o crear registro en vehicle_keys
+          try {
+            const { data: existingKey } = await supabase
+              .from("vehicle_keys")
+              .select("id")
+              .eq("license_plate", request.license_plate.toUpperCase())
+              .maybeSingle();
+            console.log("[DEBUG] existingKey:", existingKey);
+
+            const isToSpecialUserForKey = SPECIAL_USERS.some((su) => su.id === toUserId);
+            const toHolderId = isToSpecialUserForKey ? null : toUserId;
+
+            const keyUpdateData: Record<string, any> = {
+              [`${material.material_type}_status`]: "Entregada",
+              [`${material.material_type}_holder`]: toHolderId,
+              updated_at: new Date().toISOString(),
+            };
+            console.log("[DEBUG] keyUpdateData:", keyUpdateData);
+
+            if (existingKey) {
+              await supabase
+                .from("vehicle_keys")
+                .update(keyUpdateData)
+                .eq("license_plate", request.license_plate.toUpperCase());
+            } else {
+              const newKeyData: Record<string, any> = {
+                vehicle_id: vehicleId,
+                license_plate: request.license_plate.toUpperCase(),
+                first_key_status: material.material_type === "first_key" ? "Entregada" : "En concesionario",
+                second_key_status: material.material_type === "second_key" ? "Entregada" : "En concesionario",
+                card_key_status: material.material_type === "card_key" ? "Entregada" : "En concesionario",
+              };
+
+              if (material.material_type === "first_key") newKeyData.first_key_holder = toHolderId;
+              if (material.material_type === "second_key") newKeyData.second_key_holder = toHolderId;
+              if (material.material_type === "card_key") newKeyData.card_key_holder = toHolderId;
+
+              console.log("[DEBUG] newKeyData:", newKeyData);
+              await supabase.from("vehicle_keys").insert(newKeyData);
+            }
+          } catch (keyError) {
+            console.error("[ERROR] Error al actualizar vehicle_keys:", keyError);
+            // Continuar sin fallar
+          }
+
+          // Intentar resolución automática
+          await tryAutoResolveIncident({
+            license_plate: request.license_plate,
+            item_type: material.material_type,
+            to_user_id: toUserId,
+            reason: userObservaciones || undefined
+          });
+        } else {
+          // Es un movimiento de documento
+          console.log("[DEBUG] Procesando movimiento de documento:", material.material_type);
+
+          const isToSpecialUser = SPECIAL_USERS.some((su) => su.id === toUserId);
+          const to_user_id_to_insert = isToSpecialUser ? null : toUserId;
+
+          const movementData = {
+            vehicle_id: vehicleId,
+            document_type: material.material_type,
+            from_user_id: from_user_id_to_insert,
+            to_user_id: to_user_id_to_insert,
+            reason: userObservaciones || "",
+            confirmation_deadline: confirmationDeadline.toISOString(),
+          };
+          console.log("[DEBUG] movementData (doc):", movementData);
+
+          const { error: movementError } = await supabase.from("document_movements").insert(movementData);
+
+          if (movementError) {
+            console.error("[ERROR] Error al registrar movimiento de documento:", movementError);
+            throw new Error(`Error al registrar movimiento: ${movementError.message}`);
+          } else {
+            console.log("[DEBUG] Movimiento de documento insertado correctamente");
+          }
+
+          // Actualizar o crear registro en vehicle_documents
+          try {
+            const { data: existingDoc } = await supabase
+              .from("vehicle_documents")
+              .select("id")
+              .eq("license_plate", request.license_plate.toUpperCase())
+              .maybeSingle();
+            console.log("[DEBUG] existingDoc:", existingDoc);
+
+            const isToSpecialUserForDoc = SPECIAL_USERS.some((su) => su.id === toUserId);
+            const toHolderIdForDoc = isToSpecialUserForDoc ? null : toUserId;
+
+            let docField: string;
+            let statusField: string;
+
+            if (material.material_type === "technical_sheet") {
+              docField = "technical_sheet_holder";
+              statusField = "technical_sheet_status";
+            } else if (material.material_type === "circulation_permit") {
+              docField = "circulation_permit_holder";
+              statusField = "circulation_permit_status";
+            } else {
+              throw new Error(`[ERROR] Tipo de documento no soportado: ${material.material_type}`);
+            }
+
+            const docUpdateData: Record<string, any> = {
+              [docField]: toHolderIdForDoc,
+              [statusField]: "Entregado",
+              updated_at: new Date().toISOString(),
+            };
+            console.log("[DEBUG] docUpdateData:", docUpdateData);
+
+            if (existingDoc) {
+              await supabase
+                .from("vehicle_documents")
+                .update(docUpdateData)
+                .eq("license_plate", request.license_plate.toUpperCase());
+            } else {
+              const newDocData: Record<string, any> = {
+                vehicle_id: vehicleId,
+                license_plate: request.license_plate.toUpperCase(),
+                technical_sheet_status: "En concesionario",
+                circulation_permit_status: "En concesionario",
+              };
+
+              if (material.material_type === "technical_sheet") {
+                newDocData.technical_sheet_holder = toHolderIdForDoc;
+                newDocData.technical_sheet_status = "Entregado";
+              } else if (material.material_type === "circulation_permit") {
+                newDocData.circulation_permit_holder = toHolderIdForDoc;
+                newDocData.circulation_permit_status = "Entregado";
+              }
+              console.log("[DEBUG] newDocData:", newDocData);
+              await supabase.from("vehicle_documents").insert(newDocData);
+            }
+          } catch (docError) {
+            console.error("[ERROR] Error al actualizar vehicle_documents:", docError);
+            // Continuar sin fallar
+          }
+        }
+
+        if (isExternalVehicle) {
+          // Guardar movimiento en movements_log de external_material_vehicles
+          const logEntry = {
+            fecha: new Date().toISOString(),
+            tipo: ["first_key", "second_key", "card_key"].includes(material.material_type) ? "llave" : "documento",
+            material_type: material.material_type,
+            material_label: material.material_label,
+            usuario_entrega: profile?.full_name || user?.user_metadata?.full_name || user?.email || "",
+            usuario_recibe: receiverProfile?.full_name || request.receiver_alias || "",
+            to_user_id: receiverProfile?.id || null,
+            from_user_id: from_user_id_to_insert,
+            observaciones: userObservaciones || undefined,
+          };
+          // Obtener log actual
+          const { data: extVeh } = await supabase
+            .from("external_material_vehicles")
+            .select("movements_log")
+            .eq("id", externalVehicleId)
+            .single();
+          let logArr = [];
+          if (extVeh && extVeh.movements_log) {
+            try { logArr = JSON.parse(extVeh.movements_log); } catch { logArr = []; }
+          }
+          logArr.push(logEntry);
+          await supabase
+            .from("external_material_vehicles")
+            .update({ movements_log: JSON.stringify(logArr) })
+            .eq("id", externalVehicleId);
+          toast.info("Movimiento registrado en tabla externa para " + material.material_label);
+          continue; // Saltar registro en tablas principales para llaves y documentos
+        }
+      }
+
+      // --- ENVÍO DE EMAIL CONSOLIDADO (igual que en el formulario) ---
+      try {
+        // Preparar datos para email consolidado
+        const movimientosPorUsuario = new Map();
+
+        for (const { request, material } of selectedMaterialsData) {
+          const aliasKey = request.receiver_alias?.trim().toLowerCase();
+          const receiverProfile = aliasKey ? receiverProfiles[aliasKey] : null;
+          
+          const toUserId = receiverProfile?.id || null;
+          const toUserName = receiverProfile?.full_name || request.receiver_alias || "Usuario";
+          const toUserEmail = receiverProfile?.email || null;
+
+          if (!movimientosPorUsuario.has(toUserId)) {
+            movimientosPorUsuario.set(toUserId, {
+              usuario_recibe: toUserName,
+              email_recibe: toUserEmail,
+              items: [],
+            });
+          }
+
+          // Solo añadir el material específico que se está procesando
+          movimientosPorUsuario.get(toUserId)!.items.push({
+            matricula: request.license_plate,
+            material: material.material_label,
+            observaciones: material.observations || request.observations || undefined,
+          });
+        }
+
+        // Email del usuario que entrega
+        const fromUserEmail = profile?.email || user?.email || null;
+        const fromUserName = profile?.full_name || user?.user_metadata?.full_name || user?.email || "";
+        console.log("[DEBUG] Email entrega:", fromUserName, fromUserEmail);
+
+        // Fecha actual
+        const now = new Date();
+        const fechaFormateada = `${now.getDate().toString().padStart(2, "0")}/${(now.getMonth() + 1).toString().padStart(2, "0")}/${now.getFullYear()}`;
+
+        // Datos consolidados
+        const consolidatedMovementData = {
+          fecha: fechaFormateada,
+          usuario_entrega: fromUserName,
+          email_entrega: fromUserEmail,
+          movimientos: Array.from(movimientosPorUsuario.values()),
+        };
+        console.log("[DEBUG] consolidatedMovementData:", consolidatedMovementData);
+
+        // Enviar email
+        const emailResponse = await fetch("/api/send-movement-email", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(consolidatedMovementData),
+        });
+        console.log("[DEBUG] emailResponse status:", emailResponse.status);
+
+        const emailResult = await emailResponse.json();
+        console.log("[DEBUG] emailResult:", emailResult);
+
+        if (emailResponse.ok && emailResult.success) {
+          toast.success("📧 Email de notificación enviado correctamente");
+        } else {
+          console.error("❌ Error enviando email consolidado:", emailResult);
+          if (emailResult.message !== "Envío de emails deshabilitado") {
+            toast.error(`Error enviando email: ${emailResult.message}`);
+          }
+        }
+      } catch (emailError) {
+        console.error("❌ Error crítico enviando email consolidado:", emailError);
+        toast.error("Error enviando notificación por email");
+      }
+
+      toast.success("Todos los movimientos han sido registrados correctamente");
+      setSelectedMaterials([]);
+      loadRequests(); // Recargar datos
+    } catch (err: any) {
+      console.error("Error al registrar movimientos:", err);
+      toast.error(err.message || "Error al registrar movimientos");
+    } finally {
+      setConfirming(false);
+    }
+  };
 
   const handlePrintPending = () => {
     // Obtener solicitudes según la pestaña actual
@@ -408,11 +797,15 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
 
   // Filtrar solicitudes por tipo de material
   const secondKeyRequests = requests.filter(request => 
-    request.docuware_request_materials?.some(m => m.material_type === "second_key") || false
+    request.docuware_request_materials?.some(m => 
+      m.material_type === "second_key" && !m.selected
+    ) || false
   )
   
   const technicalSheetRequests = requests.filter(request => 
-    request.docuware_request_materials?.some(m => m.material_type === "technical_sheet") || false
+    request.docuware_request_materials?.some(m => 
+      m.material_type === "technical_sheet" && !m.selected
+    ) || false
   )
 
   // Contar materiales pendientes individuales
@@ -468,9 +861,11 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
+              {/* Checkbox por material individual */}
               <Checkbox
-                checked={mainMaterial.selected}
-                onCheckedChange={(checked) => handleMaterialToggle(mainMaterial.id, checked)}
+                checked={selectedMaterials.includes(mainMaterial.id)}
+                onCheckedChange={() => handleMaterialToggle(mainMaterial.id)}
+                disabled={mainMaterial.selected} // Solo seleccionable si está pendiente
                 className="h-5 w-5"
               />
               
@@ -632,16 +1027,16 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
               </Button>
               <Button 
                 onClick={handleConfirmSelected}
-                disabled={selectedRequests.length === 0 || confirming}
+                disabled={selectedMaterials.length === 0 || confirming}
                 className="flex items-center gap-2"
               >
                 {confirming ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Confirmando...
+                    Registrando...
                   </>
                 ) : (
-                  "Confirmar Seleccionadas"
+                  "Registrar Movimientos"
                 )}
               </Button>
             </div>

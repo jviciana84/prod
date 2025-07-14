@@ -1,19 +1,9 @@
 "use client";
-import { useEffect } from "react";
-import { useTheme } from "next-themes";
+import { useThemeSync } from "@/hooks/use-theme-sync";
 
 export default function ThemeHtmlSync() {
-  const { theme, resolvedTheme } = useTheme();
-
-  useEffect(() => {
-    if (typeof document !== "undefined") {
-      const html = document.documentElement;
-      html.classList.remove("light", "dark", "ocre");
-      // resolvedTheme es más fiable si enableSystem está activo
-      const active = resolvedTheme || theme;
-      if (active) html.classList.add(active);
-    }
-  }, [theme, resolvedTheme]);
-
+  // Usar el hook personalizado que maneja toda la sincronización
+  useThemeSync();
+  
   return null;
 } 

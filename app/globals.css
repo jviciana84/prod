@@ -196,6 +196,121 @@ body {
     border: none !important;
     box-shadow: none !important;
   }
+  
+  /* Mejorar sincronización del sidebar para evitar flash después de F5 */
+  .dashboard-sidebar {
+    background: rgba(31,31,31,0.85) !important; /* Oscuro por defecto */
+    transition: background-color 0.2s ease-in-out;
+    opacity: 1 !important;
+  }
+  
+  /* Aplicar tema correcto una vez que esté disponible */
+  body.light .dashboard-sidebar {
+    background: rgba(255,255,255,0.85) !important;
+  }
+  
+  body.dark .dashboard-sidebar {
+    background: rgba(31,31,31,0.85) !important;
+  }
+  
+  body.ocre .dashboard-sidebar {
+    background: rgba(247,243,233,0.85) !important;
+  }
+  
+  /* Asegurar que el tema se aplique inmediatamente al cargar */
+  html.dark body.dark .dashboard-sidebar {
+    background: rgba(31,31,31,0.85) !important;
+  }
+  
+  html.light body.light .dashboard-sidebar {
+    background: rgba(255,255,255,0.85) !important;
+  }
+  
+  html.ocre body.ocre .dashboard-sidebar {
+    background: rgba(247,243,233,0.85) !important;
+  }
+  
+  /* Evitar flash durante la carga inicial */
+  html:not(.dark):not(.light):not(.ocre) .dashboard-sidebar {
+    background: rgba(31,31,31,0.85) !important;
+  }
+  
+  /* Asegurar que el sidebar sea visible inmediatamente */
+  .dashboard-sidebar {
+    visibility: visible !important;
+    display: block !important;
+  }
+  
+  /* Evitar problemas de hidratación - usar CSS en lugar de JS para el color inicial */
+  .dashboard-sidebar[style*="background-color"] {
+    transition: background-color 0.2s ease-in-out;
+  }
+  
+  /* Asegurar que el tema se aplique correctamente después de la hidratación */
+  body.dark .dashboard-sidebar {
+    background: rgba(31,31,31,0.85) !important;
+  }
+  
+  body.light .dashboard-sidebar {
+    background: rgba(255,255,255,0.85) !important;
+  }
+  
+  body.ocre .dashboard-sidebar {
+    background: rgba(247,243,233,0.85) !important;
+  }
+  
+  /* Reglas específicas para evitar flash - prioridad máxima */
+  html.dark .dashboard-sidebar,
+  body.dark .dashboard-sidebar {
+    background: rgba(31,31,31,0.85) !important;
+  }
+  
+  html.light .dashboard-sidebar,
+  body.light .dashboard-sidebar {
+    background: rgba(255,255,255,0.85) !important;
+  }
+  
+  html.ocre .dashboard-sidebar,
+  body.ocre .dashboard-sidebar {
+    background: rgba(247,243,233,0.85) !important;
+  }
+  
+  /* Reglas adicionales para asegurar que se aplique el tema correcto */
+  html[class*="dark"] .dashboard-sidebar {
+    background: rgba(31,31,31,0.85) !important;
+  }
+  
+  html[class*="light"] .dashboard-sidebar {
+    background: rgba(255,255,255,0.85) !important;
+  }
+  
+  html[class*="ocre"] .dashboard-sidebar {
+    background: rgba(247,243,233,0.85) !important;
+  }
+  
+  /* Asegurar que el sidebar tenga el color correcto incluso antes de que se cargue el tema */
+  .dashboard-sidebar {
+    background: rgba(31,31,31,0.85) !important;
+  }
+  
+  /* Override inmediato cuando se detecte el tema */
+  html.dark .dashboard-sidebar,
+  body.dark .dashboard-sidebar,
+  .dark .dashboard-sidebar {
+    background: rgba(31,31,31,0.85) !important;
+  }
+  
+  html.light .dashboard-sidebar,
+  body.light .dashboard-sidebar,
+  .light .dashboard-sidebar {
+    background: rgba(255,255,255,0.85) !important;
+  }
+  
+  html.ocre .dashboard-sidebar,
+  body.ocre .dashboard-sidebar,
+  .ocre .dashboard-sidebar {
+    background: rgba(247,243,233,0.85) !important;
+  }
 }
 
 /* Scrollbar hide styles */
