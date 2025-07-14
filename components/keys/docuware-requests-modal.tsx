@@ -379,6 +379,13 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
     }
 
     setConfirming(true);
+    
+    // Timeout de seguridad para evitar que se quede pillado
+    const timeoutId = setTimeout(() => {
+      console.error("[ERROR] Timeout de seguridad - proceso tardó más de 30 segundos");
+      setConfirming(false);
+      toast.error("El proceso tardó demasiado tiempo. Inténtalo de nuevo.");
+    }, 30000);
 
     try {
       // Obtener los materiales seleccionados con sus solicitudes
@@ -405,10 +412,12 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
         let vehicleId = await getVehicleIdFromLicensePlate(request.license_plate);
         console.log("[DEBUG] vehicleId:", vehicleId);
 
-        // Detectar si el id es de external_material_vehicles
+        // Si no existe en ninguna, buscar o crear en external_material_vehicles (igual que el formulario)
         let isExternalVehicle = false;
         let externalVehicleId = null;
         if (!vehicleId) {
+          console.log("[DEBUG] Vehículo no encontrado, buscando en external_material_vehicles");
+          
           // Buscar primero
           const { data: extVehicle } = await supabase
             .from("external_material_vehicles")
@@ -419,6 +428,7 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
             vehicleId = extVehicle.id;
             isExternalVehicle = true;
             externalVehicleId = extVehicle.id;
+            console.log("[DEBUG] Vehículo encontrado en external_material_vehicles:", vehicleId);
           } else {
             // Crear
             const { data: newExtVehicle, error: extError } = await supabase
@@ -433,6 +443,7 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
             vehicleId = newExtVehicle.id;
             isExternalVehicle = true;
             externalVehicleId = newExtVehicle.id;
+            console.log("[DEBUG] Vehículo creado en external_material_vehicles:", vehicleId);
           }
         }
 
@@ -824,6 +835,7 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
       console.error("Error al registrar movimientos:", err);
       toast.error(err.message || "Error al registrar movimientos");
     } finally {
+      clearTimeout(timeoutId);
       setConfirming(false);
     }
   };
