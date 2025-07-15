@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle, Plus, Clock, Activity, CreditCard, Banknote } from "lucide-react"
+import { CheckCircle, Plus, Clock, Activity, CreditCard, Banknote, RefreshCw } from "lucide-react"
 import { createClientComponentClient } from "@/lib/supabase/client"
 import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
@@ -56,7 +57,7 @@ export function RealActivityFeed({ className }: RealActivityFeedProps) {
       const { data: profileByAlias, error: aliasError } = await supabase
         .from("profiles")
         .select("full_name")
-        .eq("alias", asesorAlias)
+        .ilike("alias", asesorAlias)
         .limit(1) // Use limit(1) to handle potential non-unique aliases gracefully
 
       if (aliasError) {
@@ -70,7 +71,7 @@ export function RealActivityFeed({ className }: RealActivityFeedProps) {
         const { data: fullNameData, error: fullNameError } = await supabase
           .from("profiles")
           .select("full_name")
-          .eq("full_name", asesorAlias)
+          .ilike("full_name", asesorAlias)
           .limit(1)
 
         if (fullNameError) {
@@ -173,8 +174,8 @@ export function RealActivityFeed({ className }: RealActivityFeedProps) {
           .from("entregas")
           .select("id, created_at, matricula, fecha_entrega, asesor")
           .not("fecha_entrega", "is", null) // Solo si fecha_entrega tiene valor
-          .order("created_at", { ascending: false })
-          .limit(10) // Aumentado el límite
+          .order("fecha_entrega", { ascending: false }) // Cambiar a fecha_entrega para ordenar por fecha real de entrega
+          .limit(15) // Aumentar límite para asegurar que aparezcan
 
         if (entregasDeliveredError) {
           console.log("⚠️ Error en entregas (delivered):", entregasDeliveredError.message)
@@ -182,9 +183,20 @@ export function RealActivityFeed({ className }: RealActivityFeedProps) {
         } else if (entregasDeliveredData && entregasDeliveredData.length > 0) {
           console.log("✅ Entregas (delivered) encontradas:", entregasDeliveredData.length)
           debug.push(`Entregas delivered: ${entregasDeliveredData.length} items`)
+          
+          // Log específico para las entregas que buscamos
+          const entregasEspecificas = entregasDeliveredData.filter(e => 
+            e.matricula === '1813LVR' || e.matricula === '9532LMN'
+          )
+          if (entregasEspecificas.length > 0) {
+            console.log("🎯 ENCONTRADAS LAS ENTREGAS ESPECÍFICAS:", entregasEspecificas)
+          } else {
+            console.log("❌ NO SE ENCONTRARON LAS ENTREGAS 1813LVR y 9532LMN en los resultados")
+          }
+          
           for (const entrega of entregasDeliveredData) {
             // Changed to for...of to use await
-            console.log(`DEBUG Entrega Entregada: Matrícula: ${entrega.matricula}, Fecha: ${entrega.created_at}`)
+            console.log(`DEBUG Entrega Entregada: Matrícula: ${entrega.matricula}, Fecha Entrega: ${entrega.fecha_entrega}, Created: ${entrega.created_at}`)
             activities.push({
               id: `delivered_${entrega.id}`,
               type: "entrega",
@@ -262,10 +274,10 @@ export function RealActivityFeed({ className }: RealActivityFeedProps) {
         debug.push("Fin Certificación: no accesible")
       }
 
-      // Ordenar por fecha y tomar los 4 más recientes
+      // Ordenar por fecha y tomar los 8 más recientes (aumentado para mostrar más actividades)
       const sortedActivities = activities
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-        .slice(0, 4)
+        .slice(0, 8)
 
       console.log("📊 Total actividades encontradas:", sortedActivities.length)
       debug.push(`Total: ${sortedActivities.length}`)
@@ -292,7 +304,7 @@ export function RealActivityFeed({ className }: RealActivityFeedProps) {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {[...Array(4)].map((_, i) => (
+            {[...Array(8)].map((_, i) => (
               <div key={i} className="flex items-start pb-4 animate-pulse">
                 <div className="mr-4 mt-1">
                   <div className="h-10 w-10 bg-gray-200 rounded-full"></div>
@@ -309,28 +321,35 @@ export function RealActivityFeed({ className }: RealActivityFeedProps) {
     )
   }
 
+  const actividadesMostradas = activities.slice(0, 4); // Solo los 4 más recientes
+
   return (
     <Card className={cn("col-span-1 md:col-span-2 lg:col-span-2", className)}>
       <CardHeader>
-        <CardTitle className="text-lg font-semibold flex items-center gap-2">
-          <Activity className="h-5 w-5 text-blue-500" />
-          Actividad Reciente
+        <CardTitle className="text-lg font-semibold flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Activity className="h-5 w-5 text-blue-500" />
+            Actividad Reciente
+          </div>
+          <Button onClick={loadRecentActivity} disabled={loading} size="sm" variant="outline">
+            {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          </Button>
         </CardTitle>
         <CardDescription>Últimas acciones realizadas en el sistema</CardDescription>
       </CardHeader>
       <CardContent>
-        {activities.length === 0 ? (
+        {actividadesMostradas.length === 0 ? (
           <div className="text-center py-8">
             <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground">No hay actividad reciente disponible</p>
           </div>
         ) : (
           <div className="space-y-3 relative">
-            {activities.map((activity, index) => {
+            {actividadesMostradas.map((activity, index) => {
               const Icon = activity.icon
               const isVenta = activity.type === "sale"
-              // Aplicar opacidad gradual al cuarto elemento (70%)
-              const opacity = index === 3 ? "opacity-70" : "opacity-100"
+              // Aplicar opacidad gradual al octavo elemento (70%)
+              const opacity = index === 7 ? "opacity-70" : "opacity-100"
 
               return (
                 <div

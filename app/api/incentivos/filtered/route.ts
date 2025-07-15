@@ -37,12 +37,12 @@ export async function POST(request: NextRequest) {
 
     // Filtro por asesor
     if (advisor && advisor !== "all") {
-      query = query.eq("asesor", advisor)
+      query = query.ilike("asesor", advisor)
     }
 
     // Filtro por permisos de usuario
     if (!isAdmin && userAdvisorName) {
-      query = query.eq("asesor", userAdvisorName)
+      query = query.ilike("asesor", userAdvisorName)
     }
 
     const { data, error } = await query

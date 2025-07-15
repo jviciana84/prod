@@ -4,9 +4,16 @@ import { useEffect } from "react"
 
 export function ThemeInitializer() {
   useEffect(() => {
-    // Ejecutar inmediatamente al montar
+    // Función para inicializar el tema
     const initializeTheme = () => {
       try {
+        // Verificar que los elementos del DOM estén disponibles
+        if (!document.documentElement || !document.body) {
+          console.warn('ThemeInitializer: DOM elements not ready, retrying...');
+          setTimeout(initializeTheme, 10);
+          return;
+        }
+        
         const savedTheme = localStorage.getItem('theme')
         let theme = 'dark' // Tema por defecto
         
@@ -34,9 +41,11 @@ export function ThemeInitializer() {
         console.log('🎨 ThemeInitializer: Tema aplicado:', theme)
       } catch (error) {
         console.error('Error al inicializar tema:', error)
-        // Fallback
-        document.documentElement.classList.add('dark')
-        document.body.classList.add('dark')
+        // Fallback solo si los elementos están disponibles
+        if (document.documentElement && document.body) {
+          document.documentElement.classList.add('dark')
+          document.body.classList.add('dark')
+        }
       }
     }
     

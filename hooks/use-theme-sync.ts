@@ -20,6 +20,12 @@ export function useThemeSync() {
 
     // Sincronizar el DOM inmediatamente
     if (typeof document !== "undefined") {
+      // Verificar que los elementos del DOM estén disponibles
+      if (!document.documentElement || !document.body) {
+        console.warn('useThemeSync: DOM elements not ready, skipping sync');
+        return;
+      }
+      
       const html = document.documentElement
       const body = document.body
       

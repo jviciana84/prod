@@ -71,7 +71,7 @@ export function EntregasTableSimple() {
       let query = supabase.from("entregas").select("*").order("fecha_venta", { ascending: false })
 
       if (!isAdmin && profileData?.full_name) {
-        query = query.eq("asesor", profileData.full_name)
+        query = query.ilike("asesor", profileData.full_name)
         debug.filteredBy = profileData.full_name
       } else if (!isAdmin) {
         debug.error = "Usuario no admin sin full_name"

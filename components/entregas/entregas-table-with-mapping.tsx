@@ -108,7 +108,7 @@ export function EntregasTableWithMapping() {
       let query = supabase.from("entregas").select("*").order("fecha_venta", { ascending: false })
 
       if (!isAdmin && asesorFilter) {
-        query = query.eq("asesor", asesorFilter)
+        query = query.ilike("asesor", asesorFilter)
         debug.filteredBy = asesorFilter
       } else if (!isAdmin) {
         debug.error = "Usuario no admin sin filtro de asesor"

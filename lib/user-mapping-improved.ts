@@ -112,7 +112,7 @@ export async function getUserIdByAsesorAlias(asesorAlias: string): Promise<strin
     const { data: profileByAlias, error: profileByAliasError } = await supabase
       .from("profiles")
       .select("id")
-      .eq("alias", asesorAlias)
+      .ilike("alias", asesorAlias)
       .single()
 
     if (profileByAlias && !profileByAliasError) {
@@ -145,7 +145,7 @@ export async function getUserIdByAsesorAlias(asesorAlias: string): Promise<strin
     const { data: mapping, error: mappingError } = await supabase
       .from("user_asesor_mapping")
       .select("user_id")
-      .eq("asesor_alias", asesorAlias)
+      .ilike("asesor_alias", asesorAlias)
       .eq("active", true)
       .single()
 
