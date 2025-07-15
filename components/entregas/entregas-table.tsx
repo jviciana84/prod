@@ -162,8 +162,12 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
 
   useEffect(() => {
     // Solo cargar entregas si la autenticación ha terminado de cargar
+    console.log("🔄 useEffect triggered - authLoading:", authLoading, "user:", !!user, "profile:", !!profile)
     if (!authLoading) {
+      console.log("✅ Auth loading completado, cargando entregas...")
       loadEntregas()
+    } else {
+      console.log("⏳ Auth aún cargando...")
     }
   }, [user, profile, authLoading])
 
@@ -175,7 +179,10 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
 
   const loadEntregas = async () => {
     setLoading(true)
+    console.log("🚀 Iniciando carga de entregas...")
     try {
+      // TEMPORAL: Cargar todas las entregas sin filtros para diagnosticar
+      console.log("🔍 Cargando TODAS las entregas (diagnóstico)...")
       let query = supabase.from("entregas").select("*").order("fecha_venta", { ascending: false })
 
       // Determinar si el usuario es administrador
@@ -190,11 +197,14 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
       console.log("- Is Admin:", isAdmin)
       console.log("- Is Asesor:", isAsesor)
 
+      // Aplicar filtros según el rol del usuario
       if (isAdmin) {
         // Admin ve todas las entregas
+        console.log("👑 Modo administrador - mostrando todas las entregas")
         toast.info("Mostrando todas las entregas (modo administrador)")
       } else if (isAsesor && profile?.full_name) {
         // Asesor ve solo sus entregas - usar mapeo de nombres
+        console.log("🔍 Buscando mapeo para asesor...")
         const asesorAlias = await getUserAsesorAlias(user.id, profile.full_name, user.email)
 
         console.log("🔍 Mapeo de asesor:")
@@ -202,9 +212,12 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
         console.log("- Alias encontrado:", asesorAlias)
 
         if (asesorAlias) {
-          query = query.eq("asesor", asesorAlias)
+          // Usar ilike para comparación insensible a mayúsculas/minúsculas
+          query = query.ilike("asesor", asesorAlias)
+          console.log(`✅ Filtro aplicado: asesor ILIKE ${asesorAlias}`)
           toast.info(`Mostrando entregas para: ${asesorAlias} (${profile.full_name})`)
         } else {
+          console.log("❌ No se encontró mapeo para el asesor")
           toast.warning(
             `No se encontró mapeo para ${profile.full_name}. Contacte al administrador para configurar el mapeo.`,
           )
@@ -215,6 +228,7 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
         }
       } else if (!isAdmin && !profile?.full_name) {
         // Usuario sin nombre completo
+        console.log("❌ Usuario sin nombre completo en perfil")
         toast.warning("No se pudo determinar el asesor. Contacte al administrador.")
         setEntregas([])
         actualizarContadores([])
@@ -222,13 +236,17 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
         return
       } else {
         // Otros roles - mostrar mensaje informativo
+        console.log(`ℹ️ Rol no reconocido: ${userRole}`)
         toast.info(`Rol: ${userRole}. Si debería ver entregas, contacte al administrador.`)
         setEntregas([])
         actualizarContadores([])
         setLoading(false)
         return
       }
+      
+      console.log("🔍 Ejecutando consulta con filtros aplicados...")
 
+      console.log("🔍 Ejecutando consulta a la base de datos...")
       const { data, error } = await query
 
       if (error) {
@@ -239,6 +257,10 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
         setLoading(false)
         return
       }
+
+      console.log("📊 Resultados de la consulta:")
+      console.log("- Data:", data)
+      console.log("- Data length:", data?.length || 0)
 
       if (data && data.length > 0) {
         const formattedData: Entrega[] = data.map((item) => ({
@@ -600,7 +622,7 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
     const startIndex = (currentPage - 1) * itemsPerPage
     const endIndex = startIndex + itemsPerPage
     setPaginatedEntregas(filtered.slice(startIndex, endIndex))
-  }, [entregas, searchQuery, activeTab, currentPage, itemsPerPage, dateRange])
+  }, [entregas, searchQuery, activeTab, currentPage, itemsPerPage, dateRange.from?.getTime(), dateRange.to?.getTime()])
 
   useEffect(() => {
     const totalItems = filteredEntregas.length

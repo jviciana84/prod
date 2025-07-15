@@ -818,19 +818,13 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
 
       toast.success("Todos los movimientos han sido registrados correctamente");
       
-      // Actualizar el estado local inmediatamente
-      const registeredMaterialIds = selectedMaterials;
-      updateRequestsAfterRegistration(registeredMaterialIds);
-      
-      // Limpiar selección
+      // Limpiar selección inmediatamente
       setSelectedMaterials([]);
       
-      // Recargar datos en segundo plano para asegurar sincronización
-      // Usar un timeout más corto para mejor experiencia de usuario
-      setTimeout(() => {
-        loadRequests(true); // Usar modo refresh
-        toast.info("Actualizando lista de solicitudes...");
-      }, 500);
+      // Recargar datos inmediatamente para mostrar el estado actualizado
+      await loadRequests(true); // Usar modo refresh y esperar
+      
+      toast.info("Lista de solicitudes actualizada");
     } catch (err: any) {
       console.error("Error al registrar movimientos:", err);
       toast.error(err.message || "Error al registrar movimientos");
