@@ -5,6 +5,7 @@ import { KeyManagementForm } from "@/components/keys/key-management-form"
 import { KeyMovementsSearch } from "@/components/keys/key-movements-search"
 import { RecentKeyMovements } from "@/components/keys/recent-key-movements"
 import { DocuwareRequestsModal } from "@/components/keys/docuware-requests-modal"
+import { CirculationPermitModal } from "@/components/keys/circulation-permit-modal"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { createClientComponentClient } from "@/lib/supabase/client"
@@ -30,6 +31,10 @@ export default function KeysManagementPage() {
   const [externalVehicles, setExternalVehicles] = useState<any[]>([])
   const [docuwareModalOpen, setDocuwareModalOpen] = useState(false);
   const [docuwareSyncing, setDocuwareSyncing] = useState(false);
+  const [pendingDocuwareRequests, setPendingDocuwareRequests] = useState(0);
+  const [circulationPermitModalOpen, setCirculationPermitModalOpen] = useState(false);
+  const [circulationPermitSyncing, setCirculationPermitSyncing] = useState(false);
+  const [pendingCirculationPermitRequests, setPendingCirculationPermitRequests] = useState(0);
   const supabase = createClientComponentClient()
 
   const loadPageData = useCallback(async () => {
@@ -104,6 +109,62 @@ export default function KeysManagementPage() {
     loadPageData()
   }, [loadPageData])
 
+  // Cargar solicitudes Docuware pendientes
+  useEffect(() => {
+    const loadPendingRequests = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("docuware_requests")
+          .select("id, docuware_request_materials!inner(id, selected)")
+          .eq("status", "pending")
+        
+        if (error) {
+          console.error("Error cargando solicitudes Docuware:", error)
+          return
+        }
+        
+        // Contar solicitudes con materiales no seleccionados
+        const pendingCount = data?.filter(request => 
+          request.docuware_request_materials.some(material => !material.selected)
+        ).length || 0
+        
+        setPendingDocuwareRequests(pendingCount)
+      } catch (error) {
+        console.error("Error:", error)
+      }
+    }
+    
+    loadPendingRequests()
+  }, [supabase])
+
+  // Cargar solicitudes de permiso de circulación pendientes
+  useEffect(() => {
+    const loadPendingCirculationPermitRequests = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("circulation_permit_requests")
+          .select("id, circulation_permit_materials!inner(id, selected)")
+          .eq("status", "pending")
+        
+        if (error) {
+          console.error("Error cargando solicitudes de permiso de circulación:", error)
+          return
+        }
+        
+        // Contar solicitudes con materiales no seleccionados
+        const pendingCount = data?.filter(request => 
+          request.circulation_permit_materials.some(material => !material.selected)
+        ).length || 0
+        
+        setPendingCirculationPermitRequests(pendingCount)
+      } catch (error) {
+        console.error("Error:", error)
+      }
+    }
+    
+    loadPendingCirculationPermitRequests()
+  }, [supabase])
+
   const handleOpenDocuwareModal = async () => {
     setDocuwareSyncing(true);
     try {
@@ -114,6 +175,19 @@ export default function KeysManagementPage() {
       setDocuwareModalOpen(true);
     } finally {
       setDocuwareSyncing(false);
+    }
+  };
+
+  const handleOpenCirculationPermitModal = async () => {
+    setCirculationPermitSyncing(true);
+    try {
+      await fetch("/api/circulation-permit/sync-requests", { method: "POST" });
+      setCirculationPermitModalOpen(true);
+    } catch (e) {
+      toast.error("Error al sincronizar solicitudes");
+      setCirculationPermitModalOpen(true);
+    } finally {
+      setCirculationPermitSyncing(false);
     }
   };
 
@@ -142,16 +216,38 @@ export default function KeysManagementPage() {
                   <Key className="h-5 w-5 text-green-500" />
                   <CardTitle>Registro de Movimientos</CardTitle>
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="flex items-center gap-2"
-                  onClick={handleOpenDocuwareModal}
-                  disabled={docuwareSyncing}
-                >
-                  <FileText className="h-4 w-4" />
-                  {docuwareSyncing ? "Sincronizando..." : "Solicitudes Docuware"}
-                </Button>
+                <div className="flex flex-col gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="flex items-center gap-2 relative"
+                    onClick={handleOpenDocuwareModal}
+                    disabled={docuwareSyncing}
+                  >
+                    <Key className="h-4 w-4" />
+                    {docuwareSyncing ? "Sincronizando..." : "Solicitudes Docuware"}
+                    {pendingDocuwareRequests > 0 && (
+                      <span className="absolute -top-2 -right-2 h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse">
+                        <span className="absolute inset-0 rounded-full bg-red-400 opacity-75 animate-ping"></span>
+                      </span>
+                    )}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="flex items-center gap-2 relative"
+                    onClick={handleOpenCirculationPermitModal}
+                    disabled={circulationPermitSyncing}
+                  >
+                    <FileText className="h-4 w-4" />
+                    {circulationPermitSyncing ? "Sincronizando..." : "Permiso de circulación"}
+                    {pendingCirculationPermitRequests > 0 && (
+                      <span className="absolute -top-2 -right-2 h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse">
+                        <span className="absolute inset-0 rounded-full bg-red-400 opacity-75 animate-ping"></span>
+                      </span>
+                    )}
+                  </Button>
+                </div>
               </div>
               <CardDescription>Registra entregas y recepciones de llaves y documentación</CardDescription>
             </CardHeader>
@@ -206,6 +302,12 @@ export default function KeysManagementPage() {
       <DocuwareRequestsModal 
         open={docuwareModalOpen} 
         onOpenChange={setDocuwareModalOpen} 
+      />
+
+      {/* Modal de Permisos de Circulación */}
+      <CirculationPermitModal 
+        open={circulationPermitModalOpen} 
+        onOpenChange={setCirculationPermitModalOpen} 
       />
     </div>
   )

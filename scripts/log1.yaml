@@ -1,0 +1,16 @@
+C:\Users\Usuario\Downloads\cursor\components\keys\circulation-permit-modal.tsx:485 ✅ Movimiento creado: {id: 'fb0b1fe6-35a8-4f5f-9ff0-20fce034e375', vehicle_id: 'aab42e3a-0461-4b5f-983c-720534c12ee2', document_type: 'circulation_permit', from_user_id: '4ece67b0-85a0-4b01-bdb7-f9d5b185e1b4', to_user_id: '4ece67b0-85a0-4b01-bdb7-f9d5b185e1b4', …}
+C:\Users\Usuario\Downloads\cursor\components\keys\circulation-permit-modal.tsx:572 📧 Preparando envío de emails...
+C:\Users\Usuario\Downloads\cursor\components\keys\circulation-permit-modal.tsx:573 📧 Movimientos por usuario: Map(1) {'4ece67b0-85a0-4b01-bdb7-f9d5b185e1b4' => {…}}
+C:\Users\Usuario\Downloads\cursor\components\keys\circulation-permit-modal.tsx:574 📧 Total de usuarios a procesar: 1
+C:\Users\Usuario\Downloads\cursor\components\keys\circulation-permit-modal.tsx:580 📧 Procesando usuario: {to_user_id: '4ece67b0-85a0-4b01-bdb7-f9d5b185e1b4', to_user_name: 'Jordi Viciana', to_user_email: null, movimientos: Array(1)}
+C:\Users\Usuario\Downloads\cursor\components\keys\circulation-permit-modal.tsx:625 📧 Resumen de emails: 0 enviados, 0 fallidos
+C:\Users\Usuario\Downloads\cursor\components\keys\circulation-permit-modal.tsx:231 🔄 Iniciando carga de solicitudes...
+C:\Users\Usuario\Downloads\cursor\components\keys\circulation-permit-modal.tsx:234 📡 Consultando tabla circulation_permit_requests...
+C:\Users\Usuario\Downloads\cursor\components\keys\circulation-permit-modal.tsx:255 ✅ Datos recibidos: 12 solicitudes
+C:\Users\Usuario\Downloads\cursor\components\keys\circulation-permit-modal.tsx:256 📋 Primera solicitud: {id: 'f50fb237-21cb-4e76-b55e-bcfa7a448906', entrega_id: '00b7f8e7-b9c9-42bb-8f7d-0933da7e65aa', license_plate: '1813LVR', model: 'X3 xDrive30e', asesor_alias: 'JordiVi', …}
+C:\Users\Usuario\Downloads\cursor\components\keys\circulation-permit-modal.tsx:257 📋 Estructura de datos: {hasData: true, isArray: true, length: 12, sampleRequest: {…}}
+C:\Users\Usuario\Downloads\cursor\components\keys\circulation-permit-modal.tsx:275 🏁 Carga completada
+C:\Users\Usuario\Downloads\cursor\components\keys\circulation-permit-modal.tsx:163 [DEBUG] Alias de asesores encontrados: ['jordivi']
+C:\Users\Usuario\Downloads\cursor\components\keys\circulation-permit-modal.tsx:170 [DEBUG] Buscando perfil para alias: "jordivi"
+C:\Users\Usuario\Downloads\cursor\components\keys\circulation-permit-modal.tsx:179 [DEBUG] Perfil encontrado para "jordivi": {id: '4ece67b0-85a0-4b01-bdb7-f9d5b185e1b4', alias: 'JordiVi', full_name: 'Jordi Viciana', avatar_url: 'https://n6va547dj09mfqlu.public.blob.vercel-storag…com/avatars/23-pT9mOkZGQDDcJKeKlZTHf53SZfHIvQ.png'}
+C:\Users\Usuario\Downloads\cursor\components\keys\circulation-permit-modal.tsx:223 [DEBUG] Mapa final de perfiles: {jordivi: {…}}
