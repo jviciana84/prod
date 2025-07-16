@@ -1,21 +1,32 @@
-# Archivos pesados y ejecutables
-*.exe
-*.msi
-*.dmg
-*.pkg
-chromedriver*
-CVO_Scraper*
-BMW_Scraper*
-
-# Archivos CSV grandes
-*.csv
+# Scraper files (moved to separate project)
+scripts/cvo_scraper_gui*
+scripts/build_*_scraper*
+scripts/build_exe.py
+scripts/convert_icon.py
+scripts/excel_analyzer_gui.py
+scripts/descarga_excel_bmw.py
+scripts/explorar_*
+scripts/extraer_stock_bmw.py
+scripts/test_bmw_simple.py
+scripts/import_csv_*
+scripts/analyze_excel_columns.py
+scripts/*.spec
+scripts/CVO_Scraper*
+scripts/BMW_Scraper*
+scripts/chromedriver*
+scripts/cvo-logo.ico
+scripts/requirements*
+scripts/INSTRUCCIONES_EJECUTABLE.md
+scripts/README_ExcelAnalyzer.md
 scripts/descargas/
+scripts/dist/
+scripts/build/
 
 # Build files
-dist/
-build/
 .next/
 out/
+dist/
+build/
 
 # Node modules (se reinstalan)
 node_modules/
@@ -30,7 +41,6 @@ __pycache__/
 *.pyo
 *.pyd
 .Python
-*.spec
 
 # Environment
 .env.local
@@ -46,6 +56,9 @@ __pycache__/
 # OS
 .DS_Store
 Thumbs.db
+
+# CSV files
+*.csv
 
 # Backup files
 backup_*
