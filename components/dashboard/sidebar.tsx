@@ -32,6 +32,7 @@ import {
   Car,
   Truck,
   Headphones,
+  Database,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
@@ -186,6 +187,13 @@ export default function DashboardSidebar({ roles }: DashboardSidebarProps) {
               icon={<Mail className="h-5 w-5" />}
               title="Configuración Email"
               isActive={pathname === "/dashboard/admin/email-config"}
+              isExpanded={isExpanded}
+            />
+            <SidebarItem
+              href="/dashboard/columnas"
+              icon={<Database className="h-5 w-5" />}
+              title="Gestión de Columnas"
+              isActive={pathname === "/dashboard/columnas"}
               isExpanded={isExpanded}
             />
             <SidebarGroup

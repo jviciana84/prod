@@ -1,0 +1,14 @@
+# CONFIGURACIÓN PARA LA API CVO SCRAPER
+# Añade estas líneas a tu archivo .env.local existente:
+
+# Supabase Service Role Key (para operaciones del servidor/API)
+SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indwam1pbWJzY2ZzZHpjd3V3Y3RrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NjY0MjI1OSwiZXhwIjoyMDYyMjE4MjU5fQ.fZ_uvDPgJLTczTNu7UMd_hcEDzYqVpDCcilTiSv-hh0"
+
+# API Key para el scraper (puedes cambiarla por seguridad)
+CVO_SCRAPER_API_KEY="cvo-scraper-2024"
+
+# INSTRUCCIONES:
+# 1. Abre tu archivo .env.local
+# 2. Añade las dos líneas anteriores al final del archivo
+# 3. Guarda el archivo
+# 4. Reinicia el servidor de desarrollo si está corriendo 
