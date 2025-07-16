@@ -34,8 +34,6 @@ export function KeyDocumentIncidencesCard() {
     async function fetchIncidenceCounts() {
       setLoading(true)
       try {
-        console.log("🔍 Obteniendo incidencias activas desde la tabla entregas...")
-
         // Obtener todas las entregas que tienen incidencias activas
         const { data: entregasConIncidencias, error } = await supabase
           .from("entregas")
@@ -47,8 +45,6 @@ export function KeyDocumentIncidencesCard() {
           console.error("Error al obtener entregas con incidencias:", error)
           throw error
         }
-
-        console.log("📊 Entregas con incidencias encontradas:", entregasConIncidencias?.length || 0)
 
         // Contar incidencias por tipo desde la tabla entregas (fuente de verdad)
         let segundaLlaveCount = 0
@@ -86,7 +82,6 @@ export function KeyDocumentIncidencesCard() {
           permisoCirculacion: Math.max(0, permisoCirculacionCount),
         }
 
-        console.log("📈 Conteos finales desde entregas:", newCounts)
         setCounts(newCounts)
       } catch (err) {
         console.error("Error en fetchIncidenceCounts:", err)
@@ -101,7 +96,6 @@ export function KeyDocumentIncidencesCard() {
     const channel = supabase
       .channel("entregas_incidencias_changes")
       .on("postgres_changes", { event: "*", schema: "public", table: "entregas" }, (payload) => {
-        console.log("🔄 Cambio detectado en entregas:", payload)
         fetchIncidenceCounts() // Actualizar contadores cuando haya cambios
       })
       .subscribe()

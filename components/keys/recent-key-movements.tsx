@@ -14,17 +14,11 @@ interface RecentKeyMovementsProps {
 
 export function RecentKeyMovements({ movements, users, vehicles }: RecentKeyMovementsProps) {
   const getUserInfo = (userId: string) => {
-    // Log de depuración para ver qué está pasando
-    console.log("[DEBUG] 🔍 getUserInfo llamado con userId:", userId);
-    console.log("[DEBUG] 🔍 Lista de usuarios disponible:", users.map(u => ({ id: u.id, name: u.full_name })));
-    
     if (!userId) {
-      console.log("[DEBUG] 🔍 userId es null/undefined, devolviendo Concesionario");
       return { name: "Concesionario", avatar: null, initials: "CO" }
     }
     
     const user = users.find((u) => u.id === userId)
-    console.log("[DEBUG] 🔍 Usuario encontrado:", user);
     
     const fullName = user?.full_name || "Usuario desconocido"
     const initials = fullName
@@ -33,8 +27,6 @@ export function RecentKeyMovements({ movements, users, vehicles }: RecentKeyMove
       .join("")
       .toUpperCase()
       .slice(0, 2)
-
-    console.log("[DEBUG] 🔍 Devolviendo:", { name: fullName, avatar: user?.avatar_url || null, initials: initials || "??" });
 
     return {
       name: fullName,

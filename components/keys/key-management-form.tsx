@@ -204,13 +204,9 @@ export function KeyManagementForm({ onMovementRegistered }: KeyManagementFormPro
         setLicensePlateToVehicleId(licensePlateMap)
         setVehicles(allVehicles)
 
-        console.log(`✅ Matrículas cargadas: ${validPlates.length}`)
-
         // Combinar usuarios regulares con usuarios especiales
         const allUsers = [...(usersData || []), ...SPECIAL_USERS]
         setUsers(allUsers)
-
-        console.log(`✅ Usuarios cargados: ${allUsers.length}`)
 
         // Cargar usuario actual usando la sesión de auth
         const {
@@ -255,31 +251,22 @@ export function KeyManagementForm({ onMovementRegistered }: KeyManagementFormPro
 
   // Función para añadir una entrada pendiente
   const addPendingEntry = () => {
-    console.log("🔍 DEBUG: addPendingEntry llamada")
     const values = form.getValues()
-    console.log("🔍 DEBUG: Valores del formulario:", values)
 
     // Validar el formulario
     if (!values.license_plate || !values.from_user_id || !values.item_type || !values.to_user_id) {
-      console.log("❌ DEBUG: Validación fallida - campos faltantes")
       toast.error("Por favor, completa todos los campos obligatorios")
       return
     }
 
-    console.log("✅ DEBUG: Validación pasada, verificando matrícula...")
-
     // Verificar matrícula antes de añadir (solo advertir, no bloquear)
     verifyLicensePlate(values.license_plate)
-
-    console.log("✅ DEBUG: Verificación de matrícula completada")
 
     // Obtener nombres para mostrar
     const vehicleLabel = values.license_plate
     const fromUserLabel = users.find((u) => u.id === values.from_user_id)?.full_name || values.from_user_id
     const itemTypeLabel = ITEM_TYPES.find((i) => i.value === values.item_type)?.label || values.item_type
     const toUserLabel = users.find((u) => u.id === values.to_user_id)?.full_name || values.to_user_id
-
-    console.log("🔍 DEBUG: Labels generados:", { vehicleLabel, fromUserLabel, itemTypeLabel, toUserLabel })
 
     // Añadir a pendientes
     const newEntry = {
@@ -291,12 +278,7 @@ export function KeyManagementForm({ onMovementRegistered }: KeyManagementFormPro
       id: Date.now().toString(),
     }
 
-    console.log("🔍 DEBUG: Nueva entrada creada:", newEntry)
-    console.log("🔍 DEBUG: Entradas pendientes actuales:", pendingEntries.length)
-
     setPendingEntries([...pendingEntries, newEntry])
-
-    console.log("✅ DEBUG: Entrada añadida a pendientes")
 
     // Limpiar el formulario excepto la matrícula
     form.setValue("from_user_id", "")
@@ -313,8 +295,6 @@ export function KeyManagementForm({ onMovementRegistered }: KeyManagementFormPro
     setTimeout(() => {
       licenseInputRef.current?.focus()
     }, 100)
-
-    console.log("✅ DEBUG: addPendingEntry completada")
   }
 
   // Función para eliminar una entrada pendiente
@@ -331,12 +311,10 @@ export function KeyManagementForm({ onMovementRegistered }: KeyManagementFormPro
   // Función para intentar resolver incidencias automáticamente
   const tryAutoResolveIncident = async (entry: any) => {
     if (!autoResolveIncident) {
-      console.log("⚠️ Función de resolución automática no disponible")
       return
     }
 
     try {
-      console.log(`🔄 Intentando resolver incidencias para ${entry.item_type}...`)
       const resolveResult = await autoResolveIncident(
         entry.license_plate,
         entry.item_type,
@@ -345,12 +323,7 @@ export function KeyManagementForm({ onMovementRegistered }: KeyManagementFormPro
       )
 
       if (resolveResult.success && resolveResult.resolvedCount > 0) {
-        console.log(`✅ Resueltas ${resolveResult.resolvedCount} incidencias automáticamente`)
         toast.success(`🎉 Se resolvieron ${resolveResult.resolvedCount} incidencias automáticamente`)
-      } else if (resolveResult.success) {
-        console.log("ℹ️ No había incidencias pendientes de este tipo")
-      } else {
-        console.log("⚠️ Error en resolución automática:", resolveResult.error)
       }
     } catch (resolveError) {
       console.error("💥 Error inesperado en resolución automática:", resolveError)
@@ -370,8 +343,6 @@ export function KeyManagementForm({ onMovementRegistered }: KeyManagementFormPro
     try {
       // Procesar cada entrada pendiente
       for (const entry of pendingEntries) {
-        console.log("Procesando entrada:", entry)
-        console.log("Tipo de elemento:", entry.item_type)
 
         // Obtener el ID del vehículo a partir de la matrícula
         let vehicleId = getVehicleIdFromLicensePlate(entry.license_plate)
@@ -506,15 +477,11 @@ export function KeyManagementForm({ onMovementRegistered }: KeyManagementFormPro
             confirmation_deadline: confirmationDeadline.toISOString(),
           }
 
-          console.log("🔵 Datos del movimiento de documento:", movementData)
-
           const { error: movementError } = await supabase.from("document_movements").insert(movementData)
 
           if (movementError) {
             console.error("❌ Error al insertar movimiento de documento:", movementError)
             throw new Error(`Error al registrar movimiento: ${movementError.message}`)
-          } else {
-            console.log("✅ Movimiento de documento insertado correctamente")
           }
 
           // Actualizar o crear registro en vehicle_documents
@@ -582,8 +549,6 @@ export function KeyManagementForm({ onMovementRegistered }: KeyManagementFormPro
 
       // Después de procesar todos los movimientos, enviar UN SOLO email con todo
       try {
-        console.log("📧 Preparando envío de email consolidado...")
-
         // Agrupar movimientos por usuario que recibe
         const movimientosPorUsuario = new Map<
           string,
@@ -629,8 +594,6 @@ export function KeyManagementForm({ onMovementRegistered }: KeyManagementFormPro
           movimientos: Array.from(movimientosPorUsuario.values()),
         }
 
-        console.log("📧 Datos consolidados para email:", consolidatedMovementData)
-
         // Enviar email consolidado usando la API route
         const emailResponse = await fetch("/api/send-movement-email", {
           method: "POST",
@@ -643,7 +606,6 @@ export function KeyManagementForm({ onMovementRegistered }: KeyManagementFormPro
         const emailResult = await emailResponse.json()
 
         if (emailResponse.ok && emailResult.success) {
-          console.log("✅ Email consolidado enviado correctamente:", emailResult)
           toast.success("📧 Email de notificación enviado correctamente")
         } else {
           console.error("❌ Error enviando email consolidado:", emailResult)

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useDebounce } from "@/hooks/use-debounce"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -53,30 +54,24 @@ export function CirculationPermitModal({ open, onOpenChange }: CirculationPermit
   const [searchTerm, setSearchTerm] = useState("")
   const [searchSuggestions, setSearchSuggestions] = useState<CirculationPermitRequest[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
+  
+  // Implementar debounce para la búsqueda
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
 
   // Cargar datos cuando se abre el modal
   useEffect(() => {
-    console.log("🔍 useEffect - Modal abierto:", open);
-    console.log("🔍 useEffect - Estado actual:", {
-      open,
-      loading,
-      requestsLength: requests.length
-    });
-    
     if (open) {
-      console.log("🚀 Modal abierto, cargando datos...");
       loadRequests()
     } else {
-      console.log("🚪 Modal cerrado, limpiando datos...");
       setRequests([]);
       setSelectedMaterials([]);
       setSearchTerm("");
     }
   }, [open])
 
-  // Generar sugerencias de búsqueda
+  // Generar sugerencias de búsqueda con debounce
   useEffect(() => {
-    if (!searchTerm.trim()) {
+    if (!debouncedSearchTerm.trim()) {
       setSearchSuggestions([])
       setShowSuggestions(false)
       return
@@ -87,7 +82,7 @@ export function CirculationPermitModal({ open, onOpenChange }: CirculationPermit
     )
 
     const filtered = pendingRequests.filter(request => {
-      const searchLower = searchTerm.toLowerCase()
+      const searchLower = debouncedSearchTerm.toLowerCase()
       return (
         request.license_plate.toLowerCase().includes(searchLower) ||
         request.model.toLowerCase().includes(searchLower) ||
@@ -97,7 +92,7 @@ export function CirculationPermitModal({ open, onOpenChange }: CirculationPermit
 
     setSearchSuggestions(filtered)
     setShowSuggestions(filtered.length > 0)
-  }, [searchTerm, requests])
+  }, [debouncedSearchTerm, requests])
 
   // Función para seleccionar solicitud con Enter
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -160,15 +155,11 @@ export function CirculationPermitModal({ open, onOpenChange }: CirculationPermit
         if (r.asesor_alias) aliasSet.add(r.asesor_alias.trim().toLowerCase());
       });
       
-      console.log("[DEBUG] Alias de asesores encontrados:", Array.from(aliasSet));
-      
       if (aliasSet.size === 0) return;
 
       const profilesMap: Record<string, { id: string, full_name: string, avatar_url: string, email: string }> = {};
 
       for (const alias of aliasSet) {
-        console.log(`[DEBUG] Buscando perfil para alias: "${alias}"`);
-        
         // Buscar por alias exacto (case-insensitive)
         const { data, error } = await supabase
           .from("profiles")
@@ -176,7 +167,6 @@ export function CirculationPermitModal({ open, onOpenChange }: CirculationPermit
           .ilike("alias", alias);
 
         if (!error && data && data.length > 0) {
-          console.log(`[DEBUG] Perfil encontrado para "${alias}":`, data[0]);
           profilesMap[alias] = {
             id: data[0].id,
             full_name: data[0].full_name,
@@ -193,7 +183,6 @@ export function CirculationPermitModal({ open, onOpenChange }: CirculationPermit
           .ilike("alias", `%${alias}%`);
 
         if (!similarError && similarData && similarData.length > 0) {
-          console.log(`[DEBUG] Perfil encontrado por similitud para "${alias}":`, similarData[0]);
           profilesMap[alias] = {
             id: similarData[0].id,
             full_name: similarData[0].full_name,
@@ -210,7 +199,6 @@ export function CirculationPermitModal({ open, onOpenChange }: CirculationPermit
           .ilike("full_name", `%${alias}%`);
 
         if (!nameError && nameData && nameData.length > 0) {
-          console.log(`[DEBUG] Perfil encontrado por nombre para "${alias}":`, nameData[0]);
           profilesMap[alias] = {
             id: nameData[0].id,
             full_name: nameData[0].full_name,
@@ -219,11 +207,8 @@ export function CirculationPermitModal({ open, onOpenChange }: CirculationPermit
           };
           continue;
         }
-
-        console.log(`[DEBUG] No se encontró ningún perfil para "${alias}"`);
       }
       
-      console.log("[DEBUG] Mapa final de perfiles:", profilesMap);
       setReceiverProfiles(profilesMap);
     }
 
@@ -231,10 +216,8 @@ export function CirculationPermitModal({ open, onOpenChange }: CirculationPermit
   }, [open, requests, supabase])
 
   const loadRequests = async () => {
-    console.log("🔄 Iniciando carga de solicitudes...");
     setLoading(true);
     try {
-      console.log("📡 Consultando tabla circulation_permit_requests...");
       const { data, error } = await supabase
         .from("circulation_permit_requests")
         .select(`
@@ -245,28 +228,10 @@ export function CirculationPermitModal({ open, onOpenChange }: CirculationPermit
 
       if (error) {
         console.error("❌ Error cargando solicitudes:", error);
-        console.error("❌ Detalles del error:", {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        });
         toast.error("Error cargando solicitudes");
         return;
       }
 
-      console.log("✅ Datos recibidos:", data?.length || 0, "solicitudes");
-      console.log("📋 Primera solicitud:", data?.[0]);
-      console.log("📋 Estructura de datos:", {
-        hasData: !!data,
-        isArray: Array.isArray(data),
-        length: data?.length,
-        sampleRequest: data?.[0] ? {
-          id: data[0].id,
-          license_plate: data[0].license_plate,
-          materials: data[0].circulation_permit_materials?.length || 0
-        } : null
-      });
       setRequests(data || []);
     } catch (error) {
       console.error("❌ Error en loadRequests:", error);
@@ -275,7 +240,6 @@ export function CirculationPermitModal({ open, onOpenChange }: CirculationPermit
       toast.error("Error cargando solicitudes");
     } finally {
       setLoading(false);
-      console.log("🏁 Carga completada");
     }
   }
 

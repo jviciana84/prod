@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useDebounce } from "@/hooks/use-debounce"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -79,6 +80,9 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
   const [searchTerm, setSearchTerm] = useState("")
   const [searchSuggestions, setSearchSuggestions] = useState<DocuwareRequest[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
+  
+  // Implementar debounce para la búsqueda
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
 
   // Cargar datos cuando se abre el modal
   useEffect(() => {
@@ -91,9 +95,9 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
     }
   }, [open])
 
-  // Generar sugerencias de búsqueda
+  // Generar sugerencias de búsqueda con debounce
   useEffect(() => {
-    if (!searchTerm.trim()) {
+    if (!debouncedSearchTerm.trim()) {
       setSearchSuggestions([])
       setShowSuggestions(false)
       return
@@ -101,7 +105,7 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
 
     const currentRequests = activeTab === "second_keys" ? secondKeyRequests : technicalSheetRequests
     const filtered = currentRequests.filter(request => {
-      const searchLower = searchTerm.toLowerCase()
+      const searchLower = debouncedSearchTerm.toLowerCase()
       return (
         request.license_plate.toLowerCase().includes(searchLower) ||
         request.requester.toLowerCase().includes(searchLower) ||
@@ -111,7 +115,7 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
 
     setSearchSuggestions(filtered)
     setShowSuggestions(filtered.length > 0)
-  }, [searchTerm, activeTab, requests])
+  }, [debouncedSearchTerm, activeTab, requests])
 
   // Función para seleccionar solicitud con Enter
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -178,15 +182,11 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
         if (r.receiver_alias) aliasSet.add(r.receiver_alias.trim().toLowerCase());
       });
       
-      console.log("[DEBUG] Alias de destinatarios encontrados:", Array.from(aliasSet));
-      
       if (aliasSet.size === 0) return;
 
       const profilesMap: Record<string, { id: string, full_name: string, avatar_url: string }> = {};
 
       for (const alias of aliasSet) {
-        console.log(`[DEBUG] Buscando perfil para alias: "${alias}"`);
-        
         // Primero: buscar por alias exacto (case-insensitive)
         const { data, error } = await supabase
           .from("profiles")
@@ -194,7 +194,6 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
           .ilike("alias", alias);
 
         if (!error && data && data.length > 0) {
-          console.log(`[DEBUG] Perfil encontrado para "${alias}":`, data[0]);
           profilesMap[alias] = {
             id: data[0].id,
             full_name: data[0].full_name,
@@ -204,14 +203,12 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
         }
 
         // Segundo: buscar por similitud en alias
-        console.log(`[DEBUG] No se encontró perfil exacto para "${alias}", buscando por similitud...`);
         const { data: similarData, error: similarError } = await supabase
           .from("profiles")
           .select("id, alias, full_name, avatar_url")
           .ilike("alias", `%${alias}%`);
 
         if (!similarError && similarData && similarData.length > 0) {
-          console.log(`[DEBUG] Perfil encontrado por similitud para "${alias}":`, similarData[0]);
           profilesMap[alias] = {
             id: similarData[0].id,
             full_name: similarData[0].full_name,
@@ -221,14 +218,12 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
         }
 
         // Tercero: buscar por nombre completo que contenga el alias
-        console.log(`[DEBUG] Buscando por nombre completo que contenga "${alias}"...`);
         const { data: nameData, error: nameError } = await supabase
           .from("profiles")
           .select("id, alias, full_name, avatar_url")
           .ilike("full_name", `%${alias}%`);
 
         if (!nameError && nameData && nameData.length > 0) {
-          console.log(`[DEBUG] Perfil encontrado por nombre para "${alias}":`, nameData[0]);
           profilesMap[alias] = {
             id: nameData[0].id,
             full_name: nameData[0].full_name,
@@ -238,14 +233,12 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
         }
 
         // Cuarto: buscar por email que contenga el alias
-        console.log(`[DEBUG] Buscando por email que contenga "${alias}"...`);
         const { data: emailData, error: emailError } = await supabase
           .from("profiles")
           .select("id, alias, full_name, avatar_url")
           .ilike("email", `%${alias}%`);
 
         if (!emailError && emailData && emailData.length > 0) {
-          console.log(`[DEBUG] Perfil encontrado por email para "${alias}":`, emailData[0]);
           profilesMap[alias] = {
             id: emailData[0].id,
             full_name: emailData[0].full_name,
@@ -253,11 +246,8 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
           };
           continue;
         }
-
-        console.log(`[DEBUG] No se encontró ningún perfil para "${alias}"`);
       }
       
-      console.log("[DEBUG] Mapa final de perfiles:", profilesMap);
       setReceiverProfiles(profilesMap);
     }
     
@@ -277,7 +267,6 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
 
       if (data.success) {
         setRequests(data.requests)
-        console.log("📋 Solicitudes cargadas:", data.requests.length)
       } else {
         toast.error("Error cargando solicitudes")
       }
@@ -295,8 +284,6 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
 
   // Función para actualizar el estado local después de registrar movimientos
   const updateRequestsAfterRegistration = (registeredMaterialIds: string[]) => {
-    console.log("[DEBUG] Actualizando estado local con materiales registrados:", registeredMaterialIds);
-    
     setRequests(prev => {
       const updatedRequests = prev.map(request => ({
         ...request,
@@ -307,20 +294,11 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
         ) || []
       }));
       
-      console.log("[DEBUG] Requests actualizados:", updatedRequests);
       return updatedRequests;
     })
     
     // Limpiar materiales seleccionados
     setSelectedMaterials([])
-    
-    // Log para verificar que se actualizó correctamente
-    setTimeout(() => {
-      console.log("[DEBUG] Estado actualizado - Materiales pendientes:", {
-        secondKeys: pendingSecondKeyMaterials.length,
-        technicalSheets: pendingTechnicalSheetMaterials.length
-      });
-    }, 100);
   }
 
   // Esta función ya no se usa, se eliminó la selección de solicitudes completas
@@ -333,12 +311,10 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
   // }
 
   const handleMaterialToggle = (materialId: string) => {
-    console.log("[DEBUG] Toggle material:", materialId);
     setSelectedMaterials(prev => {
       const newSelection = prev.includes(materialId) 
         ? prev.filter(id => id !== materialId)
         : [...prev, materialId];
-      console.log("[DEBUG] Nueva selección:", newSelection);
       return newSelection;
     })
   }
@@ -399,12 +375,10 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
   // Función para intentar resolver incidencias automáticamente (igual que en el formulario)
   const tryAutoResolveIncident = async (entry: any) => {
     if (!autoResolveIncident) {
-      console.log("⚠️ Función de resolución automática no disponible")
       return
     }
 
     try {
-      console.log(`🔄 Intentando resolver incidencias para ${entry.item_type}...`)
       const resolveResult = await autoResolveIncident(
         entry.license_plate,
         entry.item_type,
@@ -413,12 +387,7 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
       )
 
       if (resolveResult.success && resolveResult.resolvedCount > 0) {
-        console.log(`✅ Resueltas ${resolveResult.resolvedCount} incidencias automáticamente`)
         toast.success(`🎉 Se resolvieron ${resolveResult.resolvedCount} incidencias automáticamente`)
-      } else if (resolveResult.success) {
-        console.log("ℹ️ No había incidencias pendientes de este tipo")
-      } else {
-        console.log("⚠️ Error en resolución automática:", resolveResult.error)
       }
     } catch (resolveError) {
       console.error("💥 Error inesperado en resolución automática:", resolveError)
@@ -462,7 +431,7 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
               );
               
               if (cardKeyMaterial) {
-                console.log("🔑 Card Key encontrado y añadido automáticamente para 2ª llave");
+
                 selectedMaterialsData.push({
                   request,
                   material: cardKeyMaterial
@@ -735,7 +704,6 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
 
       // Enviar email (no bloquear si falla)
       try {
-        console.log("📧 Enviando email para movimientos:", processedMaterials.length);
         const emailResponse = await fetch("/api/send-movement-email", {
           method: "POST",
           headers: {
@@ -747,10 +715,9 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
         const emailResult = await emailResponse.json();
 
         if (emailResponse.ok && emailResult.success) {
-          console.log("✅ Email enviado correctamente para", processedMaterials.length, "materiales");
           toast.success("📧 Email enviado correctamente");
         } else {
-          console.log("❌ Error email:", emailResult.message);
+          console.error("❌ Error email:", emailResult.message);
           if (emailResult.message !== "Envío de emails deshabilitado") {
             toast.warning("⚠️ Error enviando email, pero movimientos registrados");
           }
@@ -1020,14 +987,7 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
     }))
   })))
   
-  // Log detallado de materiales seleccionados
-  requests.forEach((request, index) => {
-    console.log(`🔍 Request ${index + 1} - Materials:`, request.docuware_request_materials?.map(m => ({
-      id: m.id,
-      type: m.material_type,
-      selected: m.selected
-    })))
-  })
+
 
   // Función para obtener materiales adicionales (solo Card Key en 2ª llaves)
   const getAdditionalMaterials = (materials: any[], currentTab: string) => {
@@ -1051,15 +1011,7 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
     const aliasKey = request.receiver_alias?.trim().toLowerCase();
     const receiverProfile = aliasKey ? receiverProfiles[aliasKey] : null;
 
-    // Log de depuración
-    console.log(`[DEBUG] Renderizando solicitud ${request.id}:`, {
-      receiver_alias: request.receiver_alias,
-      aliasKey,
-      receiverProfile,
-      receiverProfiles: Object.keys(receiverProfiles)
-    });
 
-    console.log("[DEBUG] Renderizando solicitud:", request.id, "mainMaterial:", mainMaterial);
     if (!mainMaterial) return null;
 
     return (
