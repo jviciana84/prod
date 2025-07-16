@@ -129,7 +129,7 @@ export function KeyDocumentIncidencesCard() {
         <CardHeader className="pb-3">
           <div className="flex items-center space-x-2 mb-1">
             <AlertTriangle className="h-6 w-6 text-red-500" />
-            <CardTitle className="text-lg font-semibold">Incidencias Pendientes</CardTitle>
+            <CardTitle>Incidencias Pendientes</CardTitle>
           </div>
           <CardDescription className="text-muted-foreground">
             Llaves y documentación pendiente de entrega.

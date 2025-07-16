@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { FileText, Key, CreditCard, FileCheck, Printer, Plus, Loader2, ChevronDown } from "lucide-react"
+import { FileText, Key, CreditCard, FileCheck, Printer, Plus, Loader2, ChevronDown, Search, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 import { useAuth } from "@/hooks/use-auth"
 import { createClientComponentClient } from "@/lib/supabase/client"
@@ -76,13 +76,97 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
   const [activeTab, setActiveTab] = useState("second_keys")
   const [receiverProfiles, setReceiverProfiles] = useState<Record<string, any>>({})
   const [refreshing, setRefreshing] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [searchSuggestions, setSearchSuggestions] = useState<DocuwareRequest[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
 
   // Cargar datos cuando se abre el modal
   useEffect(() => {
     if (open) {
       loadRequests()
+    } else {
+      setRequests([]);
+      setSelectedMaterials([]);
+      setSearchTerm("");
     }
   }, [open])
+
+  // Generar sugerencias de búsqueda
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setSearchSuggestions([])
+      setShowSuggestions(false)
+      return
+    }
+
+    const currentRequests = activeTab === "second_keys" ? secondKeyRequests : technicalSheetRequests
+    const filtered = currentRequests.filter(request => {
+      const searchLower = searchTerm.toLowerCase()
+      return (
+        request.license_plate.toLowerCase().includes(searchLower) ||
+        request.requester.toLowerCase().includes(searchLower) ||
+        (request.receiver_alias && request.receiver_alias.toLowerCase().includes(searchLower))
+      )
+    })
+
+    setSearchSuggestions(filtered)
+    setShowSuggestions(filtered.length > 0)
+  }, [searchTerm, activeTab, requests])
+
+  // Función para seleccionar solicitud con Enter
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && searchSuggestions.length > 0) {
+      e.preventDefault()
+      const firstSuggestion = searchSuggestions[0]
+      const mainMaterial = firstSuggestion.docuware_request_materials?.find(m => 
+        m.material_type === (activeTab === "second_keys" ? "second_key" : "technical_sheet")
+      )
+      
+      if (mainMaterial && !mainMaterial.selected) {
+        // Seleccionar el material
+        setSelectedMaterials(prev => 
+          prev.includes(mainMaterial.id) 
+            ? prev.filter(id => id !== mainMaterial.id)
+            : [...prev, mainMaterial.id]
+        )
+        
+        // Limpiar búsqueda
+        setSearchTerm("")
+        setShowSuggestions(false)
+        
+        // Mostrar confirmación
+        toast.success(`Solicitud ${firstSuggestion.license_plate} ${selectedMaterials.includes(mainMaterial.id) ? 'deseleccionada' : 'seleccionada'}`)
+      } else if (mainMaterial?.selected) {
+        toast.info(`La solicitud ${firstSuggestion.license_plate} ya está completada`)
+        setSearchTerm("")
+        setShowSuggestions(false)
+      }
+    }
+  }
+
+  // Función para seleccionar sugerencia con clic
+  const handleSuggestionClick = (request: DocuwareRequest) => {
+    const mainMaterial = request.docuware_request_materials?.find(m => 
+      m.material_type === (activeTab === "second_keys" ? "second_key" : "technical_sheet")
+    )
+    
+    if (mainMaterial && !mainMaterial.selected) {
+      setSelectedMaterials(prev => 
+        prev.includes(mainMaterial.id) 
+          ? prev.filter(id => id !== mainMaterial.id)
+          : [...prev, mainMaterial.id]
+      )
+      
+      setSearchTerm("")
+      setShowSuggestions(false)
+      
+      toast.success(`Solicitud ${request.license_plate} ${selectedMaterials.includes(mainMaterial.id) ? 'deseleccionada' : 'seleccionada'}`)
+    } else if (mainMaterial?.selected) {
+      toast.info(`La solicitud ${request.license_plate} ya está completada`)
+      setSearchTerm("")
+      setShowSuggestions(false)
+    }
+  }
 
   // Buscar perfiles de los alias de recibe (case-insensitive, sin espacios, robusto)
   useEffect(() => {
@@ -716,6 +800,18 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
     }
   };
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await loadRequests(true);
+      toast.success("Datos actualizados");
+    } catch (error) {
+      toast.error("Error al actualizar datos");
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const handlePrintPending = () => {
     // Obtener solicitudes según la pestaña actual
     const currentRequests = activeTab === "second_keys" ? secondKeyRequests : technicalSheetRequests
@@ -1124,11 +1220,23 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
               <Button 
                 variant="outline"
                 size="sm"
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="h-8 w-8 p-0"
+              >
+                {refreshing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+              </Button>
+              <Button 
+                variant="outline"
+                size="sm"
                 onClick={handlePrintPending}
-                className="flex items-center gap-2"
+                className="h-8 w-8 p-0"
               >
                 <Printer className="h-4 w-4" />
-                Imprimir Pendientes
               </Button>
               <Button 
                 onClick={handleConfirmSelected}
@@ -1147,6 +1255,18 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
             </div>
           </div>
 
+          {/* Pestañas principales */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="second_keys">
+                2ª Llaves ({pendingSecondKeyMaterials.length})
+              </TabsTrigger>
+              <TabsTrigger value="technical_sheets">
+                Fichas Técnicas ({pendingTechnicalSheetMaterials.length})
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
           {loading ? (
             <div className="flex flex-col items-center justify-center py-12 gap-4">
               <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
@@ -1158,39 +1278,224 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
               <span className="text-sm text-muted-foreground">Actualizando datos...</span>
             </div>
           ) : (
-            /* Pestañas */
+            /* Pestañas principales */
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="second_keys" className="flex items-center gap-2">
-                  <Key className="h-4 w-4" />
-                  2ª Llaves ({pendingSecondKeyMaterials.length})
-                </TabsTrigger>
-                <TabsTrigger value="technical_sheets" className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Fichas Técnicas ({pendingTechnicalSheetMaterials.length})
-                </TabsTrigger>
-              </TabsList>
-
               <TabsContent value="second_keys" className="space-y-3 mt-4">
-                {secondKeyRequests.length > 0 ? (
-                  secondKeyRequests.map(request => renderRequestCard(request, "second_keys"))
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Key className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No hay solicitudes de 2ª llaves pendientes</p>
-                  </div>
-                )}
+                {/* Buscador y subpestañas para 2ª Llaves */}
+                <div className="flex items-center justify-between gap-4">
+                  <Card className="p-3">
+                    <div className="flex items-center gap-2 relative">
+                      <Search className="h-4 w-4 text-muted-foreground" />
+                      <div className="relative">
+                        <Input
+                          placeholder="Buscar por matrícula, solicitante o receptor... (Enter para seleccionar)"
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          onKeyDown={handleSearchKeyDown}
+                          onFocus={() => setShowSuggestions(searchSuggestions.length > 0)}
+                          onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                          className="w-80"
+                        />
+                        
+                        {/* Sugerencias de autocompletado */}
+                        {showSuggestions && searchSuggestions.length > 0 && (
+                          <div className="absolute top-full left-0 right-0 bg-background border border-border rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+                            {searchSuggestions.map((request) => {
+                              const mainMaterial = request.docuware_request_materials?.find(m => 
+                                m.material_type === (activeTab === "second_keys" ? "second_key" : "technical_sheet")
+                              )
+                              const isSelected = mainMaterial ? selectedMaterials.includes(mainMaterial.id) : false
+                              
+                              return (
+                                <div
+                                  key={request.id}
+                                  onClick={() => handleSuggestionClick(request)}
+                                  className={`p-2 cursor-pointer hover:bg-accent transition-colors ${
+                                    isSelected ? 'bg-green-50 dark:bg-green-950' : ''
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <div className="font-medium">{request.license_plate}</div>
+                                      <div className="text-sm text-muted-foreground">
+                                        {request.requester} → {request.receiver_alias || 'Sin receptor'}
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      {isSelected && (
+                                        <Badge variant="outline" className="text-xs">
+                                          Seleccionada
+                                        </Badge>
+                                      )}
+                                      <Badge variant={mainMaterial?.selected ? "default" : "secondary"} className="text-xs">
+                                        {mainMaterial?.selected ? "Completada" : "Pendiente"}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                  <Tabs defaultValue="pending" className="w-auto">
+                    <TabsList className="grid w-auto grid-cols-2">
+                      <TabsTrigger value="pending">
+                        Pendientes ({secondKeyRequests.filter(r => 
+                          r.docuware_request_materials?.some(m => m.material_type === "second_key" && !m.selected)
+                        ).length})
+                      </TabsTrigger>
+                      <TabsTrigger value="completed">
+                        Completados ({secondKeyRequests.filter(r => 
+                          r.docuware_request_materials?.some(m => m.material_type === "second_key" && m.selected)
+                        ).length})
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
+
+                <Tabs defaultValue="pending" className="w-full">
+                  <TabsContent value="pending" className="space-y-3 mt-4">
+                    {secondKeyRequests.filter(r => 
+                      r.docuware_request_materials?.some(m => m.material_type === "second_key" && !m.selected)
+                    ).length > 0 ? (
+                      secondKeyRequests
+                        .filter(r => r.docuware_request_materials?.some(m => m.material_type === "second_key" && !m.selected))
+                        .map(request => renderRequestCard(request, "second_keys"))
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Key className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>No hay solicitudes de 2ª llaves pendientes</p>
+                      </div>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="completed" className="space-y-3 mt-4">
+                    {secondKeyRequests.filter(r => 
+                      r.docuware_request_materials?.some(m => m.material_type === "second_key" && m.selected)
+                    ).length > 0 ? (
+                      secondKeyRequests
+                        .filter(r => r.docuware_request_materials?.some(m => m.material_type === "second_key" && m.selected))
+                        .map(request => renderRequestCard(request, "second_keys"))
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Key className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>No hay solicitudes de 2ª llaves completadas</p>
+                      </div>
+                    )}
+                  </TabsContent>
+                </Tabs>
               </TabsContent>
 
               <TabsContent value="technical_sheets" className="space-y-3 mt-4">
-                {technicalSheetRequests.length > 0 ? (
-                  technicalSheetRequests.map(request => renderRequestCard(request, "technical_sheets"))
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No hay solicitudes de fichas técnicas pendientes</p>
-                  </div>
-                )}
+                {/* Buscador y subpestañas para Fichas Técnicas */}
+                <div className="flex items-center justify-between gap-4">
+                  <Card className="p-3">
+                    <div className="flex items-center gap-2 relative">
+                      <Search className="h-4 w-4 text-muted-foreground" />
+                      <div className="relative">
+                        <Input
+                          placeholder="Buscar por matrícula, solicitante o receptor... (Enter para seleccionar)"
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          onKeyDown={handleSearchKeyDown}
+                          onFocus={() => setShowSuggestions(searchSuggestions.length > 0)}
+                          onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                          className="w-80"
+                        />
+                        
+                        {/* Sugerencias de autocompletado */}
+                        {showSuggestions && searchSuggestions.length > 0 && (
+                          <div className="absolute top-full left-0 right-0 bg-background border border-border rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+                            {searchSuggestions.map((request) => {
+                              const mainMaterial = request.docuware_request_materials?.find(m => 
+                                m.material_type === (activeTab === "second_keys" ? "second_key" : "technical_sheet")
+                              )
+                              const isSelected = mainMaterial ? selectedMaterials.includes(mainMaterial.id) : false
+                              
+                              return (
+                                <div
+                                  key={request.id}
+                                  onClick={() => handleSuggestionClick(request)}
+                                  className={`p-2 cursor-pointer hover:bg-accent transition-colors ${
+                                    isSelected ? 'bg-green-50 dark:bg-green-950' : ''
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <div className="font-medium">{request.license_plate}</div>
+                                      <div className="text-sm text-muted-foreground">
+                                        {request.requester} → {request.receiver_alias || 'Sin receptor'}
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      {isSelected && (
+                                        <Badge variant="outline" className="text-xs">
+                                          Seleccionada
+                                        </Badge>
+                                      )}
+                                      <Badge variant={mainMaterial?.selected ? "default" : "secondary"} className="text-xs">
+                                        {mainMaterial?.selected ? "Completada" : "Pendiente"}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                  <Tabs defaultValue="pending" className="w-auto">
+                    <TabsList className="grid w-auto grid-cols-2">
+                      <TabsTrigger value="pending">
+                        Pendientes ({technicalSheetRequests.filter(r => 
+                          r.docuware_request_materials?.some(m => m.material_type === "technical_sheet" && !m.selected)
+                        ).length})
+                      </TabsTrigger>
+                      <TabsTrigger value="completed">
+                        Completados ({technicalSheetRequests.filter(r => 
+                          r.docuware_request_materials?.some(m => m.material_type === "technical_sheet" && m.selected)
+                        ).length})
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
+
+                <Tabs defaultValue="pending" className="w-full">
+                  <TabsContent value="pending" className="space-y-3 mt-4">
+                    {technicalSheetRequests.filter(r => 
+                      r.docuware_request_materials?.some(m => m.material_type === "technical_sheet" && !m.selected)
+                    ).length > 0 ? (
+                      technicalSheetRequests
+                        .filter(r => r.docuware_request_materials?.some(m => m.material_type === "technical_sheet" && !m.selected))
+                        .map(request => renderRequestCard(request, "technical_sheets"))
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>No hay solicitudes de fichas técnicas pendientes</p>
+                      </div>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="completed" className="space-y-3 mt-4">
+                    {technicalSheetRequests.filter(r => 
+                      r.docuware_request_materials?.some(m => m.material_type === "technical_sheet" && m.selected)
+                    ).length > 0 ? (
+                      technicalSheetRequests
+                        .filter(r => r.docuware_request_materials?.some(m => m.material_type === "technical_sheet" && m.selected))
+                        .map(request => renderRequestCard(request, "technical_sheets"))
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>No hay solicitudes de fichas técnicas completadas</p>
+                      </div>
+                    )}
+                  </TabsContent>
+                </Tabs>
               </TabsContent>
             </Tabs>
           )}

@@ -211,10 +211,13 @@ export default function KeysManagementPage() {
           {/* Registration Form */}
           <Card className="shadow-sm">
             <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Key className="h-5 w-5 text-green-500" />
-                  <CardTitle>Registro de Movimientos</CardTitle>
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Key className="h-5 w-5 text-green-500" />
+                    <CardTitle>Registro de Movimientos</CardTitle>
+                  </div>
+                  <CardDescription>Registra entregas y recepciones de llaves y documentación</CardDescription>
                 </div>
                 <div className="flex flex-col gap-2">
                   <Button 
@@ -249,7 +252,6 @@ export default function KeysManagementPage() {
                   </Button>
                 </div>
               </div>
-              <CardDescription>Registra entregas y recepciones de llaves y documentación</CardDescription>
             </CardHeader>
             <CardContent>
               <KeyManagementForm onMovementRegistered={loadPageData} />

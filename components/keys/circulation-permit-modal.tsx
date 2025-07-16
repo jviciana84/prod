@@ -993,59 +993,61 @@ export function CirculationPermitModal({ open, onOpenChange }: CirculationPermit
 
           {/* Buscador y pestañas en la misma línea */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 relative">
-              <Search className="h-4 w-4 text-muted-foreground" />
-              <div className="relative">
-                <Input
-                  placeholder="Buscar por matrícula, modelo o asesor... (Enter para seleccionar)"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyDown={handleSearchKeyDown}
-                  onFocus={() => setShowSuggestions(searchSuggestions.length > 0)}
-                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                  className="max-w-sm"
-                />
-                
-                {/* Sugerencias de autocompletado */}
-                {showSuggestions && searchSuggestions.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 bg-background border border-border rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
-                    {searchSuggestions.map((request) => {
-                      const mainMaterial = request.circulation_permit_materials?.find(m => m.material_type === "circulation_permit")
-                      const isSelected = mainMaterial ? selectedMaterials.includes(mainMaterial.id) : false
-                      
-                      return (
-                        <div
-                          key={request.id}
-                          onClick={() => handleSuggestionClick(request)}
-                          className={`p-2 cursor-pointer hover:bg-accent transition-colors ${
-                            isSelected ? 'bg-green-50 dark:bg-green-950' : ''
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="font-medium">{request.license_plate}</div>
-                              <div className="text-sm text-muted-foreground">
-                                {request.model} • {request.asesor_alias}
+            <Card className="p-3">
+              <div className="flex items-center gap-2 relative">
+                <Search className="h-4 w-4 text-muted-foreground" />
+                <div className="relative">
+                  <Input
+                    placeholder="Buscar por matrícula, modelo o asesor... (Enter para seleccionar)"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={handleSearchKeyDown}
+                    onFocus={() => setShowSuggestions(searchSuggestions.length > 0)}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                    className="w-80"
+                  />
+                  
+                  {/* Sugerencias de autocompletado */}
+                  {showSuggestions && searchSuggestions.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 bg-background border border-border rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+                      {searchSuggestions.map((request) => {
+                        const mainMaterial = request.circulation_permit_materials?.find(m => m.material_type === "circulation_permit")
+                        const isSelected = mainMaterial ? selectedMaterials.includes(mainMaterial.id) : false
+                        
+                        return (
+                          <div
+                            key={request.id}
+                            onClick={() => handleSuggestionClick(request)}
+                            className={`p-2 cursor-pointer hover:bg-accent transition-colors ${
+                              isSelected ? 'bg-green-50 dark:bg-green-950' : ''
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="font-medium">{request.license_plate}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  {request.model} • {request.asesor_alias}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {isSelected && (
+                                  <Badge variant="outline" className="text-xs">
+                                    Seleccionada
+                                  </Badge>
+                                )}
+                                <Badge variant={mainMaterial?.selected ? "default" : "secondary"} className="text-xs">
+                                  {mainMaterial?.selected ? "Completada" : "Pendiente"}
+                                </Badge>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              {isSelected && (
-                                <Badge variant="outline" className="text-xs">
-                                  Seleccionada
-                                </Badge>
-                              )}
-                              <Badge variant={mainMaterial?.selected ? "default" : "secondary"} className="text-xs">
-                                {mainMaterial?.selected ? "Completada" : "Pendiente"}
-                              </Badge>
-                            </div>
                           </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            </Card>
             
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList>
