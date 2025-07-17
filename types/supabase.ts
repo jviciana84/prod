@@ -205,6 +205,198 @@ export interface Database {
         }
         Relationships: []
       }
+      // NUEVA TABLA: filter_configs
+      filter_configs: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          is_active: boolean
+          disponibilidad_filter: string[] | null
+          marca_filter: string[] | null
+          precio_min: number | null
+          precio_max: number | null
+          km_min: number | null
+          km_max: number | null
+          libre_siniestros: boolean | null
+          concesionario_filter: string[] | null
+          combustible_filter: string[] | null
+          año_min: number | null
+          año_max: number | null
+          dias_stock_min: number | null
+          dias_stock_max: number | null
+          max_vehicles_per_batch: number
+          auto_process: boolean
+          created_by: string | null
+          created_at: string
+          updated_at: string
+          last_used_at: string | null
+        }
+        Insert: {
+          id?: string
+          name: string
+          description?: string | null
+          is_active?: boolean
+          disponibilidad_filter?: string[] | null
+          marca_filter?: string[] | null
+          precio_min?: number | null
+          precio_max?: number | null
+          km_min?: number | null
+          km_max?: number | null
+          libre_siniestros?: boolean | null
+          concesionario_filter?: string[] | null
+          combustible_filter?: string[] | null
+          año_min?: number | null
+          año_max?: number | null
+          dias_stock_min?: number | null
+          dias_stock_max?: number | null
+          max_vehicles_per_batch?: number
+          auto_process?: boolean
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+          last_used_at?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          is_active?: boolean
+          disponibilidad_filter?: string[] | null
+          marca_filter?: string[] | null
+          precio_min?: number | null
+          precio_max?: number | null
+          km_min?: number | null
+          km_max?: number | null
+          libre_siniestros?: boolean | null
+          concesionario_filter?: string[] | null
+          combustible_filter?: string[] | null
+          año_min?: number | null
+          año_max?: number | null
+          dias_stock_min?: number | null
+          dias_stock_max?: number | null
+          max_vehicles_per_batch?: number
+          auto_process?: boolean
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+          last_used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "filter_configs_created_by_fkey"
+            columns: ["created_by"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      // NUEVA TABLA: filter_processing_log
+      filter_processing_log: {
+        Row: {
+          id: string
+          filter_config_id: string | null
+          total_vehicles_found: number
+          vehicles_processed: number
+          vehicles_added_to_nuevas_entradas: number
+          vehicles_skipped: number
+          errors_count: number
+          status: string
+          error_message: string | null
+          processed_by: string | null
+          started_at: string
+          completed_at: string | null
+          config_snapshot: Json | null
+        }
+        Insert: {
+          id?: string
+          filter_config_id?: string | null
+          total_vehicles_found?: number
+          vehicles_processed?: number
+          vehicles_added_to_nuevas_entradas?: number
+          vehicles_skipped?: number
+          errors_count?: number
+          status?: string
+          error_message?: string | null
+          processed_by?: string | null
+          started_at?: string
+          completed_at?: string | null
+          config_snapshot?: Json | null
+        }
+        Update: {
+          id?: string
+          filter_config_id?: string | null
+          total_vehicles_found?: number
+          vehicles_processed?: number
+          vehicles_added_to_nuevas_entradas?: number
+          vehicles_skipped?: number
+          errors_count?: number
+          status?: string
+          error_message?: string | null
+          processed_by?: string | null
+          started_at?: string
+          completed_at?: string | null
+          config_snapshot?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "filter_processing_log_filter_config_id_fkey"
+            columns: ["filter_config_id"]
+            referencedRelation: "filter_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "filter_processing_log_processed_by_fkey"
+            columns: ["processed_by"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      // NUEVA TABLA: column_mappings
+      column_mappings: {
+        Row: {
+          id: string
+          name: string
+          duc_scraper_column: string
+          nuevas_entradas_column: string
+          is_active: boolean
+          transformation_rule: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          duc_scraper_column: string
+          nuevas_entradas_column: string
+          is_active?: boolean
+          transformation_rule?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          duc_scraper_column?: string
+          nuevas_entradas_column?: string
+          is_active?: boolean
+          transformation_rule?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "column_mappings_created_by_fkey"
+            columns: ["created_by"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never

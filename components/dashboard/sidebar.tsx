@@ -196,6 +196,13 @@ export default function DashboardSidebar({ roles }: DashboardSidebarProps) {
               isActive={pathname === "/dashboard/columnas"}
               isExpanded={isExpanded}
             />
+            <SidebarItem
+              href="/dashboard/admin/column-mapping"
+              icon={<Database className="h-5 w-5" />}
+              title="Mapeo de Columnas DUC"
+              isActive={pathname === "/dashboard/admin/column-mapping"}
+              isExpanded={isExpanded}
+            />
             <SidebarGroup
               title="Diagnósticos"
               icon={<Stethoscope className="h-5 w-5" />}

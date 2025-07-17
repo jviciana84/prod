@@ -1,63 +1,53 @@
--- Script simplificado para añadir solo las columnas necesarias
+-- =====================================================
+-- AÑADIR COLUMNAS SIMPLE - SIN ERRORES
+-- =====================================================
 
--- Añadir columnas a pdf_extracted_data
-DO $$ 
+-- Añadir las columnas una por una con manejo de errores
+DO $$
 BEGIN
-    -- Añadir columna marca
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'pdf_extracted_data' AND column_name = 'marca') THEN
-        ALTER TABLE pdf_extracted_data ADD COLUMN marca TEXT;
-    END IF;
+    -- Añadir Días stock
+    BEGIN
+        ALTER TABLE public.duc_scraper ADD COLUMN "Días stock" TEXT;
+        RAISE NOTICE 'Columna "Días stock" añadida correctamente';
+    EXCEPTION
+        WHEN duplicate_column THEN
+            RAISE NOTICE 'Columna "Días stock" ya existe';
+    END;
     
-    -- Añadir columna color
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'pdf_extracted_data' AND column_name = 'color') THEN
-        ALTER TABLE pdf_extracted_data ADD COLUMN color TEXT;
-    END IF;
+    -- Añadir Matrícula
+    BEGIN
+        ALTER TABLE public.duc_scraper ADD COLUMN "Matrícula" TEXT;
+        RAISE NOTICE 'Columna "Matrícula" añadida correctamente';
+    EXCEPTION
+        WHEN duplicate_column THEN
+            RAISE NOTICE 'Columna "Matrícula" ya existe';
+    END;
     
-    -- Añadir columna kilometros
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'pdf_extracted_data' AND column_name = 'kilometros') THEN
-        ALTER TABLE pdf_extracted_data ADD COLUMN kilometros INTEGER;
-    END IF;
-    
-    -- Añadir columna primera_fecha_matriculacion
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'pdf_extracted_data' AND column_name = 'primera_fecha_matriculacion') THEN
-        ALTER TABLE pdf_extracted_data ADD COLUMN primera_fecha_matriculacion DATE;
-    END IF;
+    -- Añadir Modelo
+    BEGIN
+        ALTER TABLE public.duc_scraper ADD COLUMN "Modelo" TEXT;
+        RAISE NOTICE 'Columna "Modelo" añadida correctamente';
+    EXCEPTION
+        WHEN duplicate_column THEN
+            RAISE NOTICE 'Columna "Modelo" ya existe';
+    END;
 END $$;
 
--- Añadir columnas a sales_vehicles
-DO $$ 
-BEGIN
-    -- Añadir columna brand
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'sales_vehicles' AND column_name = 'brand') THEN
-        ALTER TABLE sales_vehicles ADD COLUMN brand TEXT;
-    END IF;
-    
-    -- Añadir columna color
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'sales_vehicles' AND column_name = 'color') THEN
-        ALTER TABLE sales_vehicles ADD COLUMN color TEXT;
-    END IF;
-    
-    -- Añadir columna mileage (kilometros)
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'sales_vehicles' AND column_name = 'mileage') THEN
-        ALTER TABLE sales_vehicles ADD COLUMN mileage INTEGER;
-    END IF;
-    
-    -- Añadir columna registration_date (primera_fecha_matriculacion)
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'sales_vehicles' AND column_name = 'registration_date') THEN
-        ALTER TABLE sales_vehicles ADD COLUMN registration_date DATE;
-    END IF;
-END $$;
-
--- Verificar que las columnas se han añadido correctamente
-SELECT 'pdf_extracted_data' as tabla, column_name, data_type 
+-- Verificar el total final
+SELECT 
+    'TOTAL FINAL' as tipo,
+    COUNT(*) as columnas
 FROM information_schema.columns 
-WHERE table_name = 'pdf_extracted_data' 
-AND column_name IN ('marca', 'color', 'kilometros', 'primera_fecha_matriculacion')
+WHERE table_name = 'duc_scraper' 
+AND table_schema = 'public';
 
-UNION ALL
-
-SELECT 'sales_vehicles' as tabla, column_name, data_type 
+-- Verificar las 3 columnas clave
+SELECT 
+    'COLUMNAS CLAVE' as tipo,
+    column_name,
+    data_type
 FROM information_schema.columns 
-WHERE table_name = 'sales_vehicles' 
-AND column_name IN ('brand', 'color', 'mileage', 'registration_date')
-ORDER BY tabla, column_name;
+WHERE table_name = 'duc_scraper' 
+AND table_schema = 'public'
+AND column_name IN ('Días stock', 'Matrícula', 'Modelo')
+ORDER BY column_name;

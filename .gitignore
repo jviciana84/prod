@@ -22,6 +22,9 @@ scripts/descargas/
 scripts/dist/
 scripts/build/
 
+# Scraper project (local only)
+scraper/
+
 # Build files
 .next/
 out/
