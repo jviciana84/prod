@@ -203,6 +203,13 @@ export default function DashboardSidebar({ roles }: DashboardSidebarProps) {
               isActive={pathname === "/dashboard/admin/column-mapping"}
               isExpanded={isExpanded}
             />
+            <SidebarItem
+              href="/dashboard/filter-config"
+              icon={<Database className="h-5 w-5" />}
+              title="Configuración de Filtros"
+              isActive={pathname === "/dashboard/filter-config"}
+              isExpanded={isExpanded}
+            />
             <SidebarGroup
               title="Diagnósticos"
               icon={<Stethoscope className="h-5 w-5" />}
