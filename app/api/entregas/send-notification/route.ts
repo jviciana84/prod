@@ -171,20 +171,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Envío de emails deshabilitado" }, { status: 400 })
     }
 
-    // Verificar variables SMTP específicas para entregas
-    if (!process.env.SMTP_ENTREGAS_HOST || !process.env.SMTP_ENTREGAS_USER || !process.env.SMTP_ENTREGAS_PASSWORD) {
-      console.error("❌ Configuración SMTP de entregas incompleta")
-      return NextResponse.json({ error: "Configuración SMTP de entregas incompleta" }, { status: 500 })
+    // Verificar variables SMTP generales (que funcionan en Vercel)
+    if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
+      console.error("❌ Configuración SMTP general incompleta")
+      return NextResponse.json({ error: "Configuración SMTP general incompleta" }, { status: 500 })
     }
 
-    // Configuración del transporter específico para entregas
+    // Configuración del transporter usando SMTP general
     const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_ENTREGAS_HOST,
-      port: Number.parseInt(process.env.SMTP_ENTREGAS_PORT || "465"),
+      host: process.env.SMTP_HOST,
+      port: Number.parseInt(process.env.SMTP_PORT || "465"),
       secure: true,
       auth: {
-        user: process.env.SMTP_ENTREGAS_USER,
-        pass: process.env.SMTP_ENTREGAS_PASSWORD,
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASSWORD,
       },
       tls: {
         rejectUnauthorized: false,
@@ -222,7 +222,7 @@ export async function POST(request: NextRequest) {
 
     // Preparar opciones del email
     const mailOptions = {
-      from: `Entrega - Sistema CVO <${process.env.SMTP_ENTREGAS_USER || 'entrega@controlvo.ovh'}>`,
+      from: `Entrega - Sistema CVO <${process.env.SMTP_USER || 'material@controlvo.ovh'}>`,
       to: allRecipients.join(","),
       subject: subject,
       html: htmlContent,
