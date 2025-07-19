@@ -27,7 +27,7 @@ export default function ScraperConsole({ isOpen, onClose }: ScraperConsoleProps)
   // Función para obtener logs de la API
   const fetchLogs = async () => {
     try {
-      const response = await fetch('/api/scraper-logs?limit=100')
+      const response = await fetch('/api/scraper-logs-public?limit=100')
       if (response.ok) {
         const data = await response.json()
         if (data.logs && Array.isArray(data.logs)) {
