@@ -5,9 +5,10 @@ import { createClientComponentClient } from "@/lib/supabase/client"
 import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, Table, FileSpreadsheet } from "lucide-react"
+import { Plus, Table, Terminal } from "lucide-react"
 import TransportTable from "./transport-table"
 import TransportQuickForm from "./transport-quick-form"
+import ScraperConsole from "./scraper-console"
 
 interface TransportDashboardProps {
   initialTransports: any[]
@@ -20,6 +21,8 @@ export default function TransportDashboard({ initialTransports, locations, userR
   const [isLoading, setIsLoading] = useState(false)
   const [isAddingTransport, setIsAddingTransport] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [lastScrapingDate, setLastScrapingDate] = useState<string>("2024-01-15 14:30:25")
+  const [isConsoleOpen, setIsConsoleOpen] = useState(false)
 
   const supabase = createClientComponentClient()
   const { toast } = useToast()
@@ -89,80 +92,6 @@ export default function TransportDashboard({ initialTransports, locations, userR
     fetchTransports()
   }, [])
 
-  // Exportar a Excel (simulado)
-  const handleExportToExcel = () => {
-    toast({
-      title: "Exportando datos",
-      description: "Preparando archivo Excel con los datos de transporte",
-    })
-
-    try {
-      // Preparar los datos para la exportación
-      const dataToExport = transports.map((transport) => {
-        // Formatear fechas para mejor legibilidad
-        const purchaseDate = transport.purchase_date
-          ? new Date(transport.purchase_date).toLocaleDateString("es-ES")
-          : ""
-        const receptionDate = transport.reception_date
-          ? new Date(transport.reception_date).toLocaleDateString("es-ES")
-          : ""
-
-        return {
-          ID: transport.id,
-          Marca: transport.brand || "",
-          Modelo: transport.model || "",
-          Matrícula: transport.license_plate || "",
-          "Sede Origen": transport.origin_location?.name || "",
-          "Fecha Compra": purchaseDate,
-          "Fecha Recepción": receptionDate,
-          "Cargo Gastos": transport.expense_type?.name || "",
-          Recibido: transport.is_received ? "Sí" : "No",
-          Notas: transport.notes || "",
-        }
-      })
-
-      // Crear CSV
-      let csvContent = "data:text/csv;charset=utf-8,"
-
-      // Añadir encabezados
-      const headers = Object.keys(dataToExport[0])
-      csvContent += headers.join(";") + "\n"
-
-      // Añadir filas
-      dataToExport.forEach((row) => {
-        const values = headers.map((header) => {
-          const value = row[header] || ""
-          // Escapar comillas y añadir comillas alrededor de campos con comas o saltos de línea
-          return `"${String(value).replace(/"/g, '""')}"`
-        })
-        csvContent += values.join(";") + "\n"
-      })
-
-      // Crear enlace de descarga
-      const encodedUri = encodeURI(csvContent)
-      const link = document.createElement("a")
-      link.setAttribute("href", encodedUri)
-      link.setAttribute("download", `transportes_${new Date().toISOString().split("T")[0]}.csv`)
-      document.body.appendChild(link)
-
-      // Descargar archivo
-      link.click()
-      document.body.removeChild(link)
-
-      toast({
-        title: "Exportación completada",
-        description: "Los datos se han exportado correctamente",
-      })
-    } catch (error) {
-      console.error("Error al exportar datos:", error)
-      toast({
-        title: "Error en la exportación",
-        description: "No se pudieron exportar los datos. Inténtelo de nuevo.",
-        variant: "destructive",
-      })
-    }
-  }
-
   // Manejar el evento de transporte añadido
   const handleTransportAdded = (newTransport: any) => {
     setTransports((prev) => [newTransport, ...prev])
@@ -195,7 +124,7 @@ export default function TransportDashboard({ initialTransports, locations, userR
 
       {/* Card de Lista de Vehículos */}
       <Card>
-        <CardHeader className="pb-4">
+        <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2 text-lg">
@@ -204,12 +133,31 @@ export default function TransportDashboard({ initialTransports, locations, userR
               </CardTitle>
               <CardDescription>Seguimiento y gestión de vehículos registrados</CardDescription>
             </div>
-            {isAdmin && (
-              <Button variant="outline" size="sm" onClick={handleExportToExcel} className="flex items-center gap-1">
-                <FileSpreadsheet className="h-4 w-4" />
-                <span>Exportar</span>
-              </Button>
-            )}
+            <div className="flex items-center gap-2 -mt-12">
+              {/* Información del último scraping DUC */}
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-5 w-6 px-1 bg-green-500/20 border border-green-500/30 font-mono text-xs animate-pulse"
+                  title="Estado del scraper"
+                  onClick={() => setIsConsoleOpen(true)}
+                >
+                  <span className="text-green-500">>_</span>
+                </Button>
+                <span>Último scraping DUC:</span>
+                <span className="font-mono text-xs">
+                  {new Date(lastScrapingDate).toLocaleString('es-ES', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                  })}
+                </span>
+              </div>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-6">
@@ -221,6 +169,12 @@ export default function TransportDashboard({ initialTransports, locations, userR
           />
         </CardContent>
       </Card>
+
+      {/* Consola del Scraper */}
+      <ScraperConsole 
+        isOpen={isConsoleOpen} 
+        onClose={() => setIsConsoleOpen(false)} 
+      />
     </div>
   )
 }

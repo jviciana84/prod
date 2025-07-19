@@ -165,6 +165,8 @@ export async function processFilterConfig(configId: string): Promise<ProcessingR
     let added = 0
     let skipped = 0
     let errors = 0
+    let skippedMatriculas: string[] = []
+    let errorDetails: { matricula: string, error: string }[] = []
 
     // 6. Procesar cada vehículo usando mapeos de columnas
     for (const vehicle of vehicles || []) {
@@ -180,6 +182,7 @@ export async function processFilterConfig(configId: string): Promise<ProcessingR
 
         if (existing) {
           skipped++
+          skippedMatriculas.push(vehicle.Matrícula || 'Sin matrícula')
           continue
         }
 
@@ -222,20 +225,23 @@ export async function processFilterConfig(configId: string): Promise<ProcessingR
         if (!newEntry.license_plate && vehicle.Matrícula) {
           newEntry.license_plate = vehicle.Matrícula
         }
-        if (!newEntry.model && vehicle.Modelo) {
-          newEntry.model = vehicle.Modelo
+        
+        // Combinar modelo + versión para el campo model
+        if (!newEntry.model) {
+          const modelo = vehicle.Modelo || ''
+          const version = vehicle.Versión || ''
+          
+          let modelCombined = modelo
+          if (version) modelCombined += ' ' + version
+          
+          newEntry.model = modelCombined.trim()
         }
 
         // Añadir información básica en las notas
         newEntry.notes = `Capturado automáticamente desde duc_scraper - Config: ${config.name}
         
-Información básica:
-- Matrícula: ${vehicle.Matrícula || 'N/A'}
-- Modelo: ${vehicle.Modelo || 'N/A'}
-- Fecha compra: ${vehicle['Fecha compra DMS'] || 'N/A'}
-- Marca: ${vehicle.Marca || 'N/A'}
-- Precio: ${vehicle.Precio || 'N/A'} €
-- Concesionario: ${vehicle.Concesionario || 'N/A'}
+ID Anuncio: ${vehicle['ID Anuncio'] || 'N/A'}
+Importado el: ${new Date().toLocaleDateString('es-ES')}
 
 El resto de información se completa manualmente en nuevas_entradas.`
 
@@ -246,17 +252,25 @@ El resto de información se completa manualmente en nuevas_entradas.`
 
         if (insertError) {
           errors++
+          errorDetails.push({
+            matricula: vehicle.Matrícula || 'Sin matrícula',
+            error: insertError.message
+          })
           console.error('Error inserting vehicle:', insertError)
         } else {
           added++
         }
       } catch (error) {
         errors++
+        errorDetails.push({
+          matricula: vehicle.Matrícula || 'Sin matrícula',
+          error: error instanceof Error ? error.message : 'Error desconocido'
+        })
         console.error('Error processing vehicle:', error)
       }
     }
 
-    // 7. Actualizar log con resultados
+    // 7. Actualizar log con resultados detallados
     await supabase
       .from('filter_processing_log')
       .update({
@@ -266,6 +280,18 @@ El resto de información se completa manualmente en nuevas_entradas.`
         vehicles_added_to_nuevas_entradas: added,
         vehicles_skipped: skipped,
         errors_count: errors,
+        error_message: errors > 0 ? `Errores: ${JSON.stringify(errorDetails)}` : null,
+        config_snapshot: {
+          ...config,
+          skipped_matriculas: skippedMatriculas,
+          error_details: errorDetails,
+          summary: {
+            total_duplicados: skippedMatriculas.length,
+            total_errores: errorDetails.length,
+            matriculas_duplicadas_ejemplo: skippedMatriculas.slice(0, 10), // Solo primeras 10
+            matriculas_duplicadas_completas: skippedMatriculas // Lista completa
+          }
+        },
         completed_at: new Date().toISOString()
       })
       .eq('id', logEntry.id)
