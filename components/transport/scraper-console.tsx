@@ -20,117 +20,46 @@ interface LogEntry {
 export default function ScraperConsole({ isOpen, onClose }: ScraperConsoleProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
-  const [logs, setLogs] = useState<LogEntry[]>([
-    {
-      id: '1',
-      timestamp: '2024-01-15 14:30:25',
-      level: 'info',
-      message: 'Iniciando scraper DUC...'
-    },
-    {
-      id: '2',
-      timestamp: '2024-01-15 14:30:26',
-      level: 'info',
-      message: 'Conectando a la base de datos...'
-    },
-    {
-      id: '3',
-      timestamp: '2024-01-15 14:30:27',
-      level: 'success',
-      message: 'Conexión exitosa a la base de datos'
-    },
-    {
-      id: '4',
-      timestamp: '2024-01-15 14:30:28',
-      level: 'info',
-      message: 'Descargando archivo CSV desde DUC...'
-    },
-    {
-      id: '5',
-      timestamp: '2024-01-15 14:30:35',
-      level: 'success',
-      message: 'Archivo CSV descargado correctamente (2.3 MB)'
-    },
-    {
-      id: '6',
-      timestamp: '2024-01-15 14:30:36',
-      level: 'info',
-      message: 'Procesando datos del CSV...'
-    },
-    {
-      id: '7',
-      timestamp: '2024-01-15 14:30:40',
-      level: 'success',
-      message: 'Datos procesados: 1,247 registros encontrados'
-    },
-    {
-      id: '8',
-      timestamp: '2024-01-15 14:30:41',
-      level: 'info',
-      message: 'Aplicando filtros configurados...'
-    },
-    {
-      id: '9',
-      timestamp: '2024-01-15 14:30:42',
-      level: 'success',
-      message: 'Filtros aplicados: 892 registros válidos'
-    },
-    {
-      id: '10',
-      timestamp: '2024-01-15 14:30:43',
-      level: 'info',
-      message: 'Verificando duplicados...'
-    },
-    {
-      id: '11',
-      timestamp: '2024-01-15 14:30:45',
-      level: 'warning',
-      message: 'Duplicados encontrados: 15 matrículas'
-    },
-    {
-      id: '12',
-      timestamp: '2024-01-15 14:30:46',
-      level: 'info',
-      message: 'Insertando nuevos registros...'
-    },
-    {
-      id: '13',
-      timestamp: '2024-01-15 14:30:50',
-      level: 'success',
-      message: 'Nuevos registros insertados: 45 vehículos'
-    },
-    {
-      id: '14',
-      timestamp: '2024-01-15 14:30:51',
-      level: 'info',
-      message: 'Actualizando registros existentes...'
-    },
-    {
-      id: '15',
-      timestamp: '2024-01-15 14:30:53',
-      level: 'success',
-      message: 'Registros actualizados: 12 vehículos'
-    },
-    {
-      id: '16',
-      timestamp: '2024-01-15 14:30:54',
-      level: 'success',
-      message: 'Scraping completado exitosamente'
-    },
-    {
-      id: '17',
-      timestamp: '2024-01-15 14:30:55',
-      level: 'info',
-      message: 'Resumen: 45 nuevos, 12 actualizados, 15 duplicados, 820 sin cambios'
+  const [logs, setLogs] = useState<LogEntry[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [lastFetchTime, setLastFetchTime] = useState<number>(0)
+
+  // Función para obtener logs de la API
+  const fetchLogs = async () => {
+    try {
+      const response = await fetch('/api/scraper-logs?limit=100')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.logs && Array.isArray(data.logs)) {
+          setLogs(data.logs.reverse()) // Invertir para mostrar cronológicamente
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching logs:', error)
     }
-  ])
+  }
+
+  // Polling de logs cada 2 segundos cuando la consola está abierta
+  useEffect(() => {
+    if (!isOpen) return
+
+    // Cargar logs iniciales
+    fetchLogs()
+
+    // Configurar polling
+    const interval = setInterval(() => {
+      fetchLogs()
+    }, 2000)
+
+    return () => clearInterval(interval)
+  }, [isOpen])
 
   // Scroll automático al abrir la consola
   useEffect(() => {
     if (isOpen && scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [isOpen])
+  }, [isOpen, logs]) // También scroll cuando hay nuevos logs
 
   if (!isOpen) return null
 
