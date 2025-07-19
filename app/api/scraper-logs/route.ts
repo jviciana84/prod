@@ -67,8 +67,7 @@ export async function GET(request: NextRequest) {
       .from('scraper_logs')
       .select('*')
       .order('timestamp', { ascending: false })
-      .limit(limit)
-      .offset(offset)
+      .range(offset, offset + limit - 1)
 
     // Filtrar por run_id si se proporciona
     if (run_id) {
