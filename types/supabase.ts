@@ -397,6 +397,95 @@ export interface Database {
           }
         ]
       }
+      // NUEVA TABLA: nuevas_entradas
+      nuevas_entradas: {
+        Row: {
+          id: string
+          license_plate: string
+          model: string
+          vehicle_type: string | null
+          entry_date: string | null
+          reception_date: string | null
+          is_received: boolean | null
+          status: string | null
+          expense_charge: string | null
+          expense_type_id: string | null
+          location_id: string | null
+          notes: string | null
+          // Nuevos campos del DUC
+          purchase_price: number | null
+          origin: string | null
+          origin_details: string | null
+          purchase_date_duc: string | null
+          duc_id_anuncio: string | null
+          duc_import_date: string | null
+          duc_last_seen: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          license_plate: string
+          model: string
+          vehicle_type?: string | null
+          entry_date?: string | null
+          reception_date?: string | null
+          is_received?: boolean | null
+          status?: string | null
+          expense_charge?: string | null
+          expense_type_id?: string | null
+          location_id?: string | null
+          notes?: string | null
+          // Nuevos campos del DUC
+          purchase_price?: number | null
+          origin?: string | null
+          origin_details?: string | null
+          purchase_date_duc?: string | null
+          duc_id_anuncio?: string | null
+          duc_import_date?: string | null
+          duc_last_seen?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          license_plate?: string
+          model?: string
+          vehicle_type?: string | null
+          entry_date?: string | null
+          reception_date?: string | null
+          is_received?: boolean | null
+          status?: string | null
+          expense_charge?: string | null
+          expense_type_id?: string | null
+          location_id?: string | null
+          notes?: string | null
+          // Nuevos campos del DUC
+          purchase_price?: number | null
+          origin?: string | null
+          origin_details?: string | null
+          purchase_date_duc?: string | null
+          duc_id_anuncio?: string | null
+          duc_import_date?: string | null
+          duc_last_seen?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nuevas_entradas_expense_type_id_fkey"
+            columns: ["expense_type_id"]
+            referencedRelation: "expense_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nuevas_entradas_location_id_fkey"
+            columns: ["location_id"]
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never

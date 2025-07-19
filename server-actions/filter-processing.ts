@@ -4,7 +4,7 @@ import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { Database } from '@/types/supabase'
 
-export type ProcessingResult = {
+export interface ProcessingResult {
   success: boolean
   totalFound: number
   processed: number
@@ -171,7 +171,7 @@ export async function processFilterConfig(configId: string): Promise<ProcessingR
       try {
         processed++
 
-        // Verificar si ya existe en nuevas_entradas
+        // Verificar si ya existe en nuevas_entradas (por matrícula)
         const { data: existing } = await supabase
           .from('nuevas_entradas')
           .select('id')
@@ -183,33 +183,37 @@ export async function processFilterConfig(configId: string): Promise<ProcessingR
           continue
         }
 
-        // Crear objeto base con valores por defecto
+        // Crear objeto base con solo los campos básicos
         const newEntry: any = {
           vehicle_type: 'Coche',
           is_received: false,
           status: 'pendiente',
-          expense_charge: null,
-          expense_type_id: null,
-          location_id: null
+          entry_date: new Date().toISOString()
         }
 
-        // Aplicar mapeos de columnas
+        // Aplicar mapeos de columnas básicos
         if (columnMappings) {
           for (const mapping of columnMappings) {
             const sourceValue = vehicle[mapping.duc_scraper_column as keyof typeof vehicle]
             
             if (sourceValue !== undefined && sourceValue !== null) {
-              // Aplicar transformación si existe
-              let finalValue = sourceValue
-              if (mapping.transformation_rule) {
-                // Aquí podrías implementar lógica de transformación más compleja
-                // Por ahora, solo aplicamos transformaciones básicas
-                if (mapping.transformation_rule.includes('CONCAT') && mapping.duc_scraper_column === 'Marca') {
-                  finalValue = `${sourceValue} ${vehicle.Modelo || ''}`.trim()
+              // Para la fecha de compra, convertir formato
+              if (mapping.duc_scraper_column === 'Fecha compra DMS') {
+                try {
+                  const dateStr = sourceValue
+                  if (dateStr.includes('/')) {
+                    const [day, month, year] = dateStr.split('/')
+                    newEntry[mapping.nuevas_entradas_column] = new Date(parseInt(year), parseInt(month) - 1, parseInt(day)).toISOString()
+                  } else {
+                    newEntry[mapping.nuevas_entradas_column] = new Date(dateStr).toISOString()
+                  }
+                } catch (e) {
+                  // Si falla la conversión, dejar null
+                  newEntry[mapping.nuevas_entradas_column] = null
                 }
+              } else {
+                newEntry[mapping.nuevas_entradas_column] = sourceValue
               }
-              
-              newEntry[mapping.nuevas_entradas_column] = finalValue
             }
           }
         }
@@ -218,35 +222,22 @@ export async function processFilterConfig(configId: string): Promise<ProcessingR
         if (!newEntry.license_plate && vehicle.Matrícula) {
           newEntry.license_plate = vehicle.Matrícula
         }
-        if (!newEntry.model && (vehicle.Modelo || vehicle.Marca)) {
-          newEntry.model = vehicle.Modelo || vehicle.Marca
-        }
-        if (!newEntry.entry_date) {
-          newEntry.entry_date = new Date().toISOString()
+        if (!newEntry.model && vehicle.Modelo) {
+          newEntry.model = vehicle.Modelo
         }
 
-        // Añadir información adicional en las notas si no hay mapeo específico
-        if (!newEntry.notes) {
-          newEntry.notes = `Importado desde duc_scraper - Config: ${config.name}
-          
-Información del vehículo:
-- Marca: ${vehicle.Marca || 'N/A'}
+        // Añadir información básica en las notas
+        newEntry.notes = `Capturado automáticamente desde duc_scraper - Config: ${config.name}
+        
+Información básica:
+- Matrícula: ${vehicle.Matrícula || 'N/A'}
 - Modelo: ${vehicle.Modelo || 'N/A'}
-- Combustible: ${vehicle.Combustible || 'N/A'}
-- Concesionario: ${vehicle.Concesionario || 'N/A'}
+- Fecha compra: ${vehicle['Fecha compra DMS'] || 'N/A'}
+- Marca: ${vehicle.Marca || 'N/A'}
 - Precio: ${vehicle.Precio || 'N/A'} €
-- Kilometraje: ${vehicle.KM || 'N/A'} km
-- Año: ${vehicle['Fecha fabricación'] || 'N/A'}
-- Libre de siniestros: ${vehicle['Libre de siniestros'] || 'N/A'}
-- Disponibilidad: ${vehicle.Disponibilidad || 'N/A'}
-- Días en stock: ${vehicle['Días stock'] || 'N/A'}
-- Color: ${vehicle['Color Carrocería'] || 'N/A'}
-- Potencia: ${vehicle['Potencia Cv'] || 'N/A'} CV
-- Cambio: ${vehicle.Cambio || 'N/A'}
-- Garantía: ${vehicle.Garantía || 'N/A'}
-- ID Anuncio: ${vehicle['ID Anuncio'] || 'N/A'}
-- URL: ${vehicle.URL || 'N/A'}`
-        }
+- Concesionario: ${vehicle.Concesionario || 'N/A'}
+
+El resto de información se completa manualmente en nuevas_entradas.`
 
         // Insertar en nuevas_entradas
         const { error: insertError } = await supabase

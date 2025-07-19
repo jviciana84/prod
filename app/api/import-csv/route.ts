@@ -45,19 +45,29 @@ export async function POST(request: Request) {
     // Si csv_data es un array, procesar múltiples registros
     if (Array.isArray(csv_data)) {
       console.log(`📦 Procesando ${csv_data.length} registros...`)
+      
+      // Debug: mostrar las columnas del primer registro
+      if (csv_data.length > 0) {
+        console.log("🔍 Columnas del primer registro:")
+        console.log(Object.keys(csv_data[0]))
+        console.log("📄 Muestra del primer registro:")
+        console.log(Object.entries(csv_data[0]).slice(0, 5))
+      }
+      
       return await processMultipleRecords(csv_data, file_name)
     } else {
       // Si es un objeto, procesar un solo registro
       console.log("📄 Procesando registro único...")
+      console.log("🔍 Columnas del registro:")
+      console.log(Object.keys(csv_data))
       return await processSingleRecord(csv_data, file_name)
     }
     
   } catch (error: any) {
-    console.error("❌ Error en API Import CSV:", error)
+    console.error("❌ Error general en API:", error)
     return NextResponse.json({ 
       success: false, 
-      error: error.message || "Error inesperado",
-      details: error
+      error: error.message 
     }, { status: 500 })
   }
 }
@@ -66,7 +76,7 @@ async function processSingleRecord(csv_data: any, file_name: string) {
   try {
     console.log("🔍 Procesando registro único...")
     
-    // Preparar datos para duc_scraper
+    // Preparar datos para duc_scraper con TODAS las columnas
     const duc_data = {
       "ID Anuncio": csv_data["ID Anuncio"] || null,
       "Anuncio": csv_data["Anuncio"] || null,
@@ -159,6 +169,9 @@ async function processSingleRecord(csv_data: any, file_name: string) {
       "Equipamiento de serie": csv_data["Equipamiento de serie"] || null,
       "Estado": csv_data["Estado"] || null,
       "Carrocería": csv_data["Carrocería"] || null,
+      "Días stock": csv_data["Días stock"] || null,
+      "Matrícula": csv_data["Matrícula"] || null,
+      "Modelo": csv_data["Modelo"] || null,
       file_name: file_name,
       import_date: new Date().toISOString(),
       last_seen_date: new Date().toISOString()
@@ -168,7 +181,7 @@ async function processSingleRecord(csv_data: any, file_name: string) {
     if (duc_data["ID Anuncio"]) {
       const { data: existing } = await supabaseAdmin
         .from("duc_scraper")
-        .select("id")
+        .select("id, last_seen_date")
         .eq("ID Anuncio", duc_data["ID Anuncio"])
         .single()
       
@@ -194,7 +207,14 @@ async function processSingleRecord(csv_data: any, file_name: string) {
           success: true, 
           action: "updated",
           record_id: data[0]?.id,
-          message: "Registro actualizado correctamente"
+          message: "Registro actualizado correctamente",
+          summary: {
+            total_processed: 1,
+            inserted: 0,
+            updated: 1,
+            errors: 0,
+            deleted: 0
+          }
         })
       }
     }
@@ -219,7 +239,14 @@ async function processSingleRecord(csv_data: any, file_name: string) {
       success: true, 
       action: "inserted",
       record_id: data[0]?.id,
-      message: "Registro insertado correctamente"
+      message: "Registro insertado correctamente",
+      summary: {
+        total_processed: 1,
+        inserted: 1,
+        updated: 0,
+        errors: 0,
+        deleted: 0
+      }
     })
     
   } catch (error: any) {
@@ -239,6 +266,7 @@ async function processMultipleRecords(csv_data: any[], file_name: string) {
     let updated = 0
     let errors = 0
     const error_details = []
+    const processed_ids = new Set()
     
     // Procesar cada registro
     for (let i = 0; i < csv_data.length; i++) {
@@ -339,9 +367,17 @@ async function processMultipleRecords(csv_data: any[], file_name: string) {
           "Equipamiento de serie": record["Equipamiento de serie"] || null,
           "Estado": record["Estado"] || null,
           "Carrocería": record["Carrocería"] || null,
+          "Días stock": record["Días stock"] || null,
+          "Matrícula": record["Matrícula"] || null,
+          "Modelo": record["Modelo"] || null,
           file_name: file_name,
           import_date: new Date().toISOString(),
           last_seen_date: new Date().toISOString()
+        }
+        
+        // Marcar este ID como procesado
+        if (duc_data["ID Anuncio"]) {
+          processed_ids.add(duc_data["ID Anuncio"])
         }
         
         // Verificar si ya existe
@@ -354,24 +390,48 @@ async function processMultipleRecords(csv_data: any[], file_name: string) {
           
           if (existing) {
             // Actualizar
-            await supabaseAdmin
+            const { error: updateError } = await supabaseAdmin
               .from("duc_scraper")
               .update(duc_data)
               .eq("ID Anuncio", duc_data["ID Anuncio"])
-            updated += 1
+            
+            if (updateError) {
+              console.error(`❌ Error actualizando registro ${i + 1}:`, updateError)
+              errors += 1
+              error_details.push(`Registro ${i + 1} (update): ${updateError.message}`)
+            } else {
+              updated += 1
+              console.log(`✅ Registro ${i + 1} actualizado correctamente`)
+            }
           } else {
             // Insertar
-            await supabaseAdmin
+            const { error: insertError } = await supabaseAdmin
               .from("duc_scraper")
               .insert(duc_data)
-            inserted += 1
+            
+            if (insertError) {
+              console.error(`❌ Error insertando registro ${i + 1}:`, insertError)
+              errors += 1
+              error_details.push(`Registro ${i + 1} (insert): ${insertError.message}`)
+            } else {
+              inserted += 1
+              console.log(`✅ Registro ${i + 1} insertado correctamente`)
+            }
           }
         } else {
           // Insertar sin ID Anuncio
-          await supabaseAdmin
+          const { error: insertError } = await supabaseAdmin
             .from("duc_scraper")
             .insert(duc_data)
-          inserted += 1
+          
+          if (insertError) {
+            console.error(`❌ Error insertando registro ${i + 1}:`, insertError)
+            errors += 1
+            error_details.push(`Registro ${i + 1} (insert): ${insertError.message}`)
+          } else {
+            inserted += 1
+            console.log(`✅ Registro ${i + 1} insertado correctamente`)
+          }
         }
         
       } catch (error: any) {
