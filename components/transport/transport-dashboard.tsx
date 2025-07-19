@@ -21,7 +21,7 @@ export default function TransportDashboard({ initialTransports, locations, userR
   const [isLoading, setIsLoading] = useState(false)
   const [isAddingTransport, setIsAddingTransport] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
-  const [lastScrapingDate, setLastScrapingDate] = useState<string>("2024-01-15 14:30:25")
+  const [lastScrapingDate, setLastScrapingDate] = useState<string>("")
   const [isConsoleOpen, setIsConsoleOpen] = useState(false)
 
   const supabase = createClientComponentClient()
@@ -34,6 +34,30 @@ export default function TransportDashboard({ initialTransports, locations, userR
     )
     setIsAdmin(hasAdminRole)
   }, [userRoles])
+
+  // Obtener la fecha del último scraping
+  const fetchLastScrapingDate = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("scraper_logs")
+        .select("timestamp")
+        .eq("level", "success")
+        .ilike("message", "%Datos enviados correctamente%")
+        .order("timestamp", { ascending: false })
+        .limit(1)
+
+      if (error) {
+        console.error("Error al obtener último scraping:", error)
+        return
+      }
+
+      if (data && data.length > 0) {
+        setLastScrapingDate(data[0].timestamp)
+      }
+    } catch (err) {
+      console.error("Error al obtener último scraping:", err)
+    }
+  }
 
   // Cargar datos completos de transporte
   const fetchTransports = async () => {
@@ -90,6 +114,7 @@ export default function TransportDashboard({ initialTransports, locations, userR
   // Cargar datos al montar el componente
   useEffect(() => {
     fetchTransports()
+    fetchLastScrapingDate()
   }, [])
 
   // Manejar el evento de transporte añadido
@@ -147,14 +172,18 @@ export default function TransportDashboard({ initialTransports, locations, userR
                 </Button>
                 <span>Último scraping DUC:</span>
                 <span className="font-mono text-xs">
-                  {new Date(lastScrapingDate).toLocaleString('es-ES', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit'
-                  })}
+                  {lastScrapingDate ? (
+                    new Date(lastScrapingDate).toLocaleString('es-ES', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit'
+                    })
+                  ) : (
+                    "Nunca ejecutado"
+                  )}
                 </span>
               </div>
             </div>
