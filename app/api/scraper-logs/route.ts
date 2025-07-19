@@ -80,21 +80,21 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error('Error al obtener logs:', error)
       return NextResponse.json(
-        { error: 'Error al obtener logs' },
+        { error: 'Error al obtener logs', details: error.message },
         { status: 500 }
       )
     }
 
     return NextResponse.json({
-      logs: data,
-      count: data.length,
-      hasMore: data.length === limit
+      logs: data || [],
+      count: data?.length || 0,
+      hasMore: (data?.length || 0) === limit
     })
 
   } catch (error) {
     console.error('Error en GET /api/scraper-logs:', error)
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { error: 'Error interno del servidor', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }
