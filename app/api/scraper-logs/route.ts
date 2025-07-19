@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createClient } from '@supabase/supabase-js'
 
-// POST: Recibir logs del scraper
+// Configurar Supabase client sin autenticación
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+
+const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+// POST: Recibir logs del scraper (sin autenticación)
 export async function POST(request: NextRequest) {
   try {
     const { level, message, scraper_run_id } = await request.json()
@@ -22,7 +27,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = createRouteHandlerClient({ cookies })
+    console.log(`📝 Recibiendo log: [${level}] ${message}`)
 
     // Insertar log en la base de datos
     const { data, error } = await supabase
@@ -37,31 +42,30 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('Error al insertar log:', error)
       return NextResponse.json(
-        { error: 'Error al guardar log' },
+        { error: 'Error al guardar log', details: error.message },
         { status: 500 }
       )
     }
 
+    console.log(`✅ Log guardado: ${data[0].id}`)
     return NextResponse.json({ success: true, log: data[0] })
 
   } catch (error) {
     console.error('Error en POST /api/scraper-logs:', error)
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { error: 'Error interno del servidor', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }
 }
 
-// GET: Obtener logs para la consola
+// GET: Obtener logs para la consola (sin autenticación)
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const limit = parseInt(searchParams.get('limit') || '50')
     const offset = parseInt(searchParams.get('offset') || '0')
     const run_id = searchParams.get('run_id')
-
-    const supabase = createRouteHandlerClient({ cookies })
 
     let query = supabase
       .from('scraper_logs')
