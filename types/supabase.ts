@@ -353,6 +353,316 @@ export interface Database {
           }
         ]
       }
+      // NUEVA TABLA: duc_scraper
+      duc_scraper: {
+        Row: {
+          id: string
+          "ID Anuncio": string | null
+          "Anuncio": string | null
+          "BPS / NEXT": string | null
+          "Cambio": string | null
+          "Certificado": string | null
+          "Chasis": string | null
+          "Color Carrocería": string | null
+          "Color tapizado": string | null
+          "Combustible": string | null
+          "Concesionario": string | null
+          "Creado con": string | null
+          "Destino": string | null
+          "Disponibilidad": string | null
+          "Distintivo ambiental": string | null
+          "Días creado": string | null
+          "Días desde compra DMS": string | null
+          "Días desde matriculación": string | null
+          "Días publicado": string | null
+          "e-code": string | null
+          "El precio es": string | null
+          "En uso": string | null
+          "Fecha compra DMS": string | null
+          "Fecha creación": string | null
+          "Fecha disponibilidad": string | null
+          "Fecha entrada VO": string | null
+          "Fecha fabricación": string | null
+          "Fecha modificación": string | null
+          "Fecha primera matriculación": string | null
+          "Fecha primera publicación": string | null
+          "Garantía": string | null
+          "KM": string | null
+          "Libre de siniestros": string | null
+          "Marca": string | null
+          "Moneda": string | null
+          "No completados": string | null
+          "Nota interna": string | null
+          "Observaciones": string | null
+          "Origen": string | null
+          "Origenes unificados": string | null
+          "País origen": string | null
+          "Potencia Cv": string | null
+          "Precio": string | null
+          "Precio compra": string | null
+          "Precio cuota alquiler": string | null
+          "Precio cuota renting": string | null
+          "Precio estimado medio": string | null
+          "Precio exportación": string | null
+          "Precio financiado": string | null
+          "Precio vehículo nuevo": string | null
+          "Precio profesional": string | null
+          "Proveedor": string | null
+          "Referencia": string | null
+          "Referencia interna": string | null
+          "Regimen fiscal": string | null
+          "Tienda": string | null
+          "Tipo de distribución": string | null
+          "Tipo motor": string | null
+          "Trancha 1": string | null
+          "Trancha 2": string | null
+          "Trancha 3": string | null
+          "Trancha 4": string | null
+          "Trancha Combustible": string | null
+          "Trancha YUC": string | null
+          "Ubicación tienda": string | null
+          "URL": string | null
+          "URL foto 1": string | null
+          "URL foto 2": string | null
+          "URL foto 3": string | null
+          "URL foto 4": string | null
+          "URL foto 5": string | null
+          "URL foto 6": string | null
+          "URL foto 7": string | null
+          "URL foto 8": string | null
+          "URL foto 9": string | null
+          "URL foto 10": string | null
+          "URL foto 11": string | null
+          "URL foto 12": string | null
+          "URL foto 13": string | null
+          "URL foto 14": string | null
+          "URL foto 15": string | null
+          "Válido para certificado": string | null
+          "Valor existencia": string | null
+          "Vehículo importado": string | null
+          "Versión": string | null
+          "Extras": string | null
+          "BuNo": string | null
+          "Código INT": string | null
+          "Código fabricante": string | null
+          "Equipamiento de serie": string | null
+          "Estado": string | null
+          "Carrocería": string | null
+          "Días stock": string | null
+          "Matrícula": string | null
+          "Modelo": string | null
+          file_name: string | null
+          import_date: string | null
+          last_seen_date: string | null
+          created_at: string
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          "ID Anuncio"?: string | null
+          "Anuncio"?: string | null
+          "BPS / NEXT"?: string | null
+          "Cambio"?: string | null
+          "Certificado"?: string | null
+          "Chasis"?: string | null
+          "Color Carrocería"?: string | null
+          "Color tapizado"?: string | null
+          "Combustible"?: string | null
+          "Concesionario"?: string | null
+          "Creado con"?: string | null
+          "Destino"?: string | null
+          "Disponibilidad"?: string | null
+          "Distintivo ambiental"?: string | null
+          "Días creado"?: string | null
+          "Días desde compra DMS"?: string | null
+          "Días desde matriculación"?: string | null
+          "Días publicado"?: string | null
+          "e-code"?: string | null
+          "El precio es"?: string | null
+          "En uso"?: string | null
+          "Fecha compra DMS"?: string | null
+          "Fecha creación"?: string | null
+          "Fecha disponibilidad"?: string | null
+          "Fecha entrada VO"?: string | null
+          "Fecha fabricación"?: string | null
+          "Fecha modificación"?: string | null
+          "Fecha primera matriculación"?: string | null
+          "Fecha primera publicación"?: string | null
+          "Garantía"?: string | null
+          "KM"?: string | null
+          "Libre de siniestros"?: string | null
+          "Marca"?: string | null
+          "Moneda"?: string | null
+          "No completados"?: string | null
+          "Nota interna"?: string | null
+          "Observaciones"?: string | null
+          "Origen"?: string | null
+          "Origenes unificados"?: string | null
+          "País origen"?: string | null
+          "Potencia Cv"?: string | null
+          "Precio"?: string | null
+          "Precio compra"?: string | null
+          "Precio cuota alquiler"?: string | null
+          "Precio cuota renting"?: string | null
+          "Precio estimado medio"?: string | null
+          "Precio exportación"?: string | null
+          "Precio financiado"?: string | null
+          "Precio vehículo nuevo"?: string | null
+          "Precio profesional"?: string | null
+          "Proveedor"?: string | null
+          "Referencia"?: string | null
+          "Referencia interna"?: string | null
+          "Regimen fiscal"?: string | null
+          "Tienda"?: string | null
+          "Tipo de distribución"?: string | null
+          "Tipo motor"?: string | null
+          "Trancha 1"?: string | null
+          "Trancha 2"?: string | null
+          "Trancha 3"?: string | null
+          "Trancha 4"?: string | null
+          "Trancha Combustible"?: string | null
+          "Trancha YUC"?: string | null
+          "Ubicación tienda"?: string | null
+          "URL"?: string | null
+          "URL foto 1"?: string | null
+          "URL foto 2"?: string | null
+          "URL foto 3"?: string | null
+          "URL foto 4"?: string | null
+          "URL foto 5"?: string | null
+          "URL foto 6"?: string | null
+          "URL foto 7"?: string | null
+          "URL foto 8"?: string | null
+          "URL foto 9"?: string | null
+          "URL foto 10"?: string | null
+          "URL foto 11"?: string | null
+          "URL foto 12"?: string | null
+          "URL foto 13"?: string | null
+          "URL foto 14"?: string | null
+          "URL foto 15"?: string | null
+          "Válido para certificado"?: string | null
+          "Valor existencia"?: string | null
+          "Vehículo importado"?: string | null
+          "Versión"?: string | null
+          "Extras"?: string | null
+          "BuNo"?: string | null
+          "Código INT"?: string | null
+          "Código fabricante"?: string | null
+          "Equipamiento de serie"?: string | null
+          "Estado"?: string | null
+          "Carrocería"?: string | null
+          "Días stock"?: string | null
+          "Matrícula"?: string | null
+          "Modelo"?: string | null
+          file_name?: string | null
+          import_date?: string | null
+          last_seen_date?: string | null
+          created_at?: string
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          "ID Anuncio"?: string | null
+          "Anuncio"?: string | null
+          "BPS / NEXT"?: string | null
+          "Cambio"?: string | null
+          "Certificado"?: string | null
+          "Chasis"?: string | null
+          "Color Carrocería"?: string | null
+          "Color tapizado"?: string | null
+          "Combustible"?: string | null
+          "Concesionario"?: string | null
+          "Creado con"?: string | null
+          "Destino"?: string | null
+          "Disponibilidad"?: string | null
+          "Distintivo ambiental"?: string | null
+          "Días creado"?: string | null
+          "Días desde compra DMS"?: string | null
+          "Días desde matriculación"?: string | null
+          "Días publicado"?: string | null
+          "e-code"?: string | null
+          "El precio es"?: string | null
+          "En uso"?: string | null
+          "Fecha compra DMS"?: string | null
+          "Fecha creación"?: string | null
+          "Fecha disponibilidad"?: string | null
+          "Fecha entrada VO"?: string | null
+          "Fecha fabricación"?: string | null
+          "Fecha modificación"?: string | null
+          "Fecha primera matriculación"?: string | null
+          "Fecha primera publicación"?: string | null
+          "Garantía"?: string | null
+          "KM"?: string | null
+          "Libre de siniestros"?: string | null
+          "Marca"?: string | null
+          "Moneda"?: string | null
+          "No completados"?: string | null
+          "Nota interna"?: string | null
+          "Observaciones"?: string | null
+          "Origen"?: string | null
+          "Origenes unificados"?: string | null
+          "País origen"?: string | null
+          "Potencia Cv"?: string | null
+          "Precio"?: string | null
+          "Precio compra"?: string | null
+          "Precio cuota alquiler"?: string | null
+          "Precio cuota renting"?: string | null
+          "Precio estimado medio"?: string | null
+          "Precio exportación"?: string | null
+          "Precio financiado"?: string | null
+          "Precio vehículo nuevo"?: string | null
+          "Precio profesional"?: string | null
+          "Proveedor"?: string | null
+          "Referencia"?: string | null
+          "Referencia interna"?: string | null
+          "Regimen fiscal"?: string | null
+          "Tienda"?: string | null
+          "Tipo de distribución"?: string | null
+          "Tipo motor"?: string | null
+          "Trancha 1"?: string | null
+          "Trancha 2"?: string | null
+          "Trancha 3"?: string | null
+          "Trancha 4"?: string | null
+          "Trancha Combustible"?: string | null
+          "Trancha YUC"?: string | null
+          "Ubicación tienda"?: string | null
+          "URL"?: string | null
+          "URL foto 1"?: string | null
+          "URL foto 2"?: string | null
+          "URL foto 3"?: string | null
+          "URL foto 4"?: string | null
+          "URL foto 5"?: string | null
+          "URL foto 6"?: string | null
+          "URL foto 7"?: string | null
+          "URL foto 8"?: string | null
+          "URL foto 9"?: string | null
+          "URL foto 10"?: string | null
+          "URL foto 11"?: string | null
+          "URL foto 12"?: string | null
+          "URL foto 13"?: string | null
+          "URL foto 14"?: string | null
+          "URL foto 15"?: string | null
+          "Válido para certificado"?: string | null
+          "Valor existencia"?: string | null
+          "Vehículo importado"?: string | null
+          "Versión"?: string | null
+          "Extras"?: string | null
+          "BuNo"?: string | null
+          "Código INT"?: string | null
+          "Código fabricante"?: string | null
+          "Equipamiento de serie"?: string | null
+          "Estado"?: string | null
+          "Carrocería"?: string | null
+          "Días stock"?: string | null
+          "Matrícula"?: string | null
+          "Modelo"?: string | null
+          file_name?: string | null
+          import_date?: string | null
+          last_seen_date?: string | null
+          created_at?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       // NUEVA TABLA: column_mappings
       column_mappings: {
         Row: {
