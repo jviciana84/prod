@@ -23,6 +23,7 @@ export default function ScraperConsole({ isOpen, onClose }: ScraperConsoleProps)
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [lastFetchTime, setLastFetchTime] = useState<number>(0)
+  const [dotIndex, setDotIndex] = useState(0)
 
   // Función para obtener logs de la API
   const fetchLogs = async () => {
@@ -61,6 +62,17 @@ export default function ScraperConsole({ isOpen, onClose }: ScraperConsoleProps)
     }
   }, [isOpen]) // Solo scroll cuando se abre, no cuando se actualizan logs
 
+  // Animación de puntos de carga
+  useEffect(() => {
+    if (!isOpen) return
+
+    const interval = setInterval(() => {
+      setDotIndex((prev) => (prev + 1) % 4) // 0, 1, 2, 3 (3 = todos blancos)
+    }, 800) // Cambiar cada 800ms para que se vea mejor
+
+    return () => clearInterval(interval)
+  }, [isOpen])
+
   if (!isOpen) return null
 
   const getLevelColor = (level: string) => {
@@ -87,6 +99,23 @@ export default function ScraperConsole({ isOpen, onClose }: ScraperConsoleProps)
       default:
         return '>'
     }
+  }
+
+  // Función para obtener el color de cada punto según la animación
+  const getDotColor = (dotPosition: number) => {
+    // Secuencia de colores: #81C4FF, #16588E, #E7222E
+    const colors = ['#81C4FF', '#16588E', '#E7222E']
+    
+    if (dotIndex === 3) {
+      return '#FFFFFF' // Todos blancos
+    }
+    
+    // Mostrar puntos hasta el índice actual
+    if (dotPosition <= dotIndex) {
+      return colors[dotPosition]
+    }
+    
+    return '#FFFFFF' // Blanco por defecto
   }
 
   return (
@@ -146,7 +175,27 @@ export default function ScraperConsole({ isOpen, onClose }: ScraperConsoleProps)
             <div className="mt-2 pt-2 border-t border-green-500/30">
               <div className="flex items-center gap-1 text-green-400">
                 <span className="text-green-500">>_</span>
-                <span className="text-gray-400 text-xs">Scraper activo - Esperando próximos logs...</span>
+                <span className="text-gray-400 text-xs">Scraper activo - Esperando próximos logs</span>
+                <div className="flex items-center gap-1 ml-1">
+                  <span 
+                    className="transition-colors duration-300"
+                    style={{ color: getDotColor(0) }}
+                  >
+                    .
+                  </span>
+                  <span 
+                    className="transition-colors duration-300"
+                    style={{ color: getDotColor(1) }}
+                  >
+                    .
+                  </span>
+                  <span 
+                    className="transition-colors duration-300"
+                    style={{ color: getDotColor(2) }}
+                  >
+                    .
+                  </span>
+                </div>
               </div>
             </div>
           </div>

@@ -25,7 +25,7 @@ export default function TransportPage() {
     locations: [],
     userRoles: []
   })
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
   
   // Usar preferencias guardadas
   const { preferences, isLoaded, setEnabled, setInterval } = useAutoRefreshPreferences()
@@ -33,8 +33,10 @@ export default function TransportPage() {
   const supabase = createClientComponentClient()
 
   // Función para cargar datos
-  const loadData = useCallback(async () => {
-    setIsLoading(true)
+  const loadData = useCallback(async (showLoading = false) => {
+    if (showLoading) {
+      setIsLoading(true)
+    }
     try {
       // Obtener sedes para el formulario
       const { data: locations, error: locationsError } = await supabase.from("locations").select("*").order("name")
@@ -98,13 +100,13 @@ export default function TransportPage() {
 
   // Cargar datos iniciales
   useEffect(() => {
-    loadData()
+    loadData(false) // No mostrar loading en carga inicial
   }, [loadData])
 
   const handleRefresh = useCallback(() => {
     setRefreshKey((prev) => prev + 1)
     setLastRefresh(new Date())
-    loadData()
+    loadData(true) // Mostrar loading en refresh manual
   }, [loadData])
 
   const { isActive } = useAutoRefresh({
@@ -118,29 +120,6 @@ export default function TransportPage() {
 
   const toggleAutoRefresh = () => {
     setEnabled(!preferences.enabled)
-  }
-
-  if (isLoading) {
-    return (
-      <div className="p-4 md:p-5 space-y-4 pb-20">
-        <div className="space-y-2">
-          <Breadcrumbs className="mt-4" />
-          <div className="flex items-center gap-3">
-            <Truck className="h-8 w-8 text-green-600" />
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Gestión de Nuevas Entradas</h1>
-              <p className="text-muted-foreground">Control y seguimiento de vehículos recién adquiridos</p>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Cargando datos...</p>
-          </div>
-        </div>
-      </div>
-    )
   }
 
   return (
@@ -162,6 +141,7 @@ export default function TransportPage() {
         locations={initialData.locations}
         userRoles={initialData.userRoles}
         onRefresh={handleRefresh}
+        isLoading={isLoading}
         autoRefreshProps={{
           isActive,
           interval: preferences.interval,

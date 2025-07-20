@@ -41,6 +41,7 @@ interface TransportTableProps {
   userRoles?: string[]
   isAdmin?: boolean
   onRefresh?: () => void
+  isLoading?: boolean
 }
 
 export default function TransportTable({
@@ -49,11 +50,11 @@ export default function TransportTable({
   userRoles = [],
   isAdmin = false,
   onRefresh,
+  isLoading = false,
 }: TransportTableProps) {
   const [transports, setTransports] = useState<any[]>(initialTransports)
   const [filteredTransports, setFilteredTransports] = useState<any[]>(initialTransports)
   const [searchTerm, setSearchTerm] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
   const [activeFilter, setActiveFilter] = useState("pending") // pending, received, all
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [currentPage, setCurrentPage] = useState(1)
@@ -65,6 +66,7 @@ export default function TransportTable({
   const [expensePopoverOpen, setExpensePopoverOpen] = useState(false)
   const [canEdit, setCanEdit] = useState(false)
   const [selectedRowId, setSelectedRowId] = useState<number | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Estados para el filtro de fechas temporal
   const [dateRange, setDateRange] = useState<{
@@ -98,7 +100,7 @@ export default function TransportTable({
   useEffect(() => {
     setTransports(initialTransports)
     applyFilters(initialTransports, searchTerm, activeFilter)
-  }, [initialTransports, dateRange])
+  }, [initialTransports, dateRange, locations])
 
   // Aplicar filtros (búsqueda y estado)
   const applyFilters = (data: any[], search: string, filter: string) => {
@@ -160,7 +162,7 @@ export default function TransportTable({
   const handleRowClick = (transportId: number, event: React.MouseEvent) => {
     // No deseleccionar si se hace clic en elementos interactivos
     const target = event.target as Element
-    if (target.closest('button') || target.closest('input') || target.closest('[role="combobox"]')) {
+    if (target.closest('button') || target.closest('input') || target.closest('[role="combobox"]') || target.closest('span[onClick]')) {
       return
     }
     
@@ -189,7 +191,6 @@ export default function TransportTable({
 
   // Refrescar datos
   const refreshData = async () => {
-    setIsLoading(true)
     try {
       const { data, error } = await supabase
         .from("nuevas_entradas")
@@ -238,8 +239,6 @@ export default function TransportTable({
         description: "No se pudieron cargar los datos actualizados",
         variant: "destructive",
       })
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -287,7 +286,7 @@ export default function TransportTable({
   const deleteTransport = async (id: number) => {
     if (!confirm("¿Está seguro de que desea eliminar este registro?")) return
 
-    setIsLoading(true)
+    setIsDeleting(true)
     try {
       const { error } = await supabase.from("nuevas_entradas").delete().eq("id", id)
 
@@ -310,7 +309,7 @@ export default function TransportTable({
         variant: "destructive",
       })
     } finally {
-      setIsLoading(false)
+      setIsDeleting(false)
     }
   }
 
@@ -374,7 +373,6 @@ export default function TransportTable({
 
   // Guardar celda secundaria en Supabase
   const saveCell = async (id: number, field: string, value: any) => {
-    setIsLoading(true)
     try {
       console.log(`Guardando ${field}:`, value, "para ID:", id)
       const { error } = await supabase.from("nuevas_entradas").update({ [field]: value }).eq("id", id)
@@ -408,8 +406,6 @@ export default function TransportTable({
     } catch (error) {
       console.error("Error guardando:", error)
       toast({ title: "Error", description: "No se pudo guardar el cambio", variant: "destructive" })
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -421,12 +417,6 @@ export default function TransportTable({
     }
     fetchExpenseTypes()
   }, [supabase])
-
-  // Cargar datos al montar el componente
-  useEffect(() => {
-    fetchTransports()
-    fetchLastScrapingDate()
-  }, [])
 
   // Manejar clics fuera de la tabla para deseleccionar
   useEffect(() => {
@@ -476,6 +466,29 @@ export default function TransportTable({
           transform: scale(1);
           opacity: 1;
         }
+      }
+      
+      /* Estilos para filas seleccionadas */
+      tr[data-selected="true"] {
+        position: relative;
+      }
+      
+      tr[data-selected="true"]::after {
+        content: '';
+        position: absolute;
+        right: 8px;
+        top: 8px;
+        width: 8px;
+        height: 8px;
+        background-color: hsl(var(--primary));
+        border-radius: 50%;
+        z-index: 10;
+      }
+      
+      /* Borde lateral en la primera celda */
+      tr[data-selected="true"] td:first-child {
+        border-left: 4px solid hsl(var(--primary));
+        padding-left: calc(1rem - 4px);
       }
     `}</style>
 
@@ -597,6 +610,8 @@ export default function TransportTable({
         </div>
       </div>
 
+
+
       <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
         <div className="relative w-full overflow-auto">
           <Table>
@@ -631,15 +646,16 @@ export default function TransportTable({
                     <TableRow
                       key={transport?.id || index}
                       className={cn(
-                        "hover:bg-muted/30 transition-all duration-200 cursor-pointer border-b relative",
+                        "transition-all duration-300 ease-in-out cursor-pointer border-b relative",
                         index % 2 === 0 ? "bg-background" : "bg-muted/10",
-                        selectedRowId === transport.id && "bg-blue-50/60 border-blue-300 shadow-sm ring-1 ring-blue-300/40",
+                        selectedRowId === transport.id 
+                          ? "border-2 border-primary shadow-md ring-2 ring-primary/20" 
+                          : "hover:bg-muted/30",
                       )}
-                      onClick={() => handleRowClick(transport.id)}
+                      data-selected={selectedRowId === transport.id}
+                      onClick={(e) => handleRowClick(transport.id, e)}
                     >
-                      {selectedRowId === transport.id && (
-                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-r-sm" />
-                      )}
+
                       <TableCell className="py-3">
                         <div className="flex items-center">
                           {transport && !transport.is_received && (
@@ -681,14 +697,21 @@ export default function TransportTable({
                           <input
                             ref={inputRef}
                             type="text"
-                            className="border rounded px-2 py-1 text-sm w-full"
+                            className="border-2 border-primary/30 rounded px-2 py-1 text-sm w-full bg-background text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                             value={cellValue}
                             onChange={e => {
                               // Solo permitir números, puntos y comas
                               const value = e.target.value.replace(/[^\d.,]/g, '')
                               setCellValue(value)
                             }}
-                            onBlur={() => saveCell(transport.id, "purchase_price", cellValue ? Number(cellValue.replace(',', '.')) : null)}
+                            onBlur={(e) => {
+                              // Usar un pequeño delay para permitir que se active el nuevo campo
+                              setTimeout(() => {
+                                if (!editingCell || editingCell.id !== transport.id || editingCell.field !== "purchase_price") {
+                                  saveCell(transport.id, "purchase_price", cellValue ? Number(cellValue.replace(',', '.')) : null)
+                                }
+                              }, 100)
+                            }}
                             onKeyDown={e => {
                               if (e.key === "Enter") {
                                 saveCell(transport.id, "purchase_price", cellValue ? Number(cellValue.replace(',', '.')) : null)
@@ -699,9 +722,15 @@ export default function TransportTable({
                           />
                         ) : (
                           <span
-                            className={canEdit ? "block cursor-pointer hover:bg-muted/50 rounded px-1" : "block px-1"}
-                            onClick={() => {
+                            className={canEdit ? `block cursor-pointer rounded px-1 ${selectedRowId === transport.id ? "" : "hover:bg-muted/50"}` : "block px-1"}
+                            onClick={(e) => {
+                              e.stopPropagation()
                               if (canEdit) {
+                                // Si ya estamos editando este campo, no hacer nada
+                                if (editingCell && editingCell.id === transport.id && editingCell.field === "purchase_price") {
+                                  return
+                                }
+                                setSelectedRowId(transport.id)
                                 setEditingCell({id: transport.id, field: "purchase_price"})
                                 setCellValue(transport.purchase_price ? transport.purchase_price.toString() : "")
                               }
@@ -718,7 +747,7 @@ export default function TransportTable({
                               <Button
                                 variant="outline"
                                 role="combobox"
-                                className="w-full justify-between"
+                                className="w-full justify-between border-2 border-primary/30 bg-background text-foreground hover:bg-primary/10 hover:border-primary"
                                 onClick={() => setOriginPopoverOpen(true)}
                               >
                                 {locations.find((loc) => loc.id === Number(cellValue))?.name || "Seleccionar sede"}
@@ -751,9 +780,15 @@ export default function TransportTable({
                           </Popover>
                         ) : (
                           <span
-                            className={canEdit ? "block cursor-pointer hover:bg-muted/50 rounded px-1" : "block px-1"}
-                            onClick={() => {
+                            className={canEdit ? `block cursor-pointer rounded px-1 ${selectedRowId === transport.id ? "" : "hover:bg-muted/50"}` : "block px-1"}
+                            onClick={(e) => {
+                              e.stopPropagation()
                               if (canEdit) {
+                                // Si ya estamos editando este campo, no hacer nada
+                                if (editingCell && editingCell.id === transport.id && editingCell.field === "origin_location_id") {
+                                  return
+                                }
+                                setSelectedRowId(transport.id)
                                 setEditingCell({id: transport.id, field: "origin_location_id"})
                                 setCellValue(transport.origin_location_id ? transport.origin_location_id.toString() : "")
                                 setOriginPopoverOpen(true)
@@ -771,7 +806,7 @@ export default function TransportTable({
                               <Button
                                 variant="outline"
                                 role="combobox"
-                                className="w-full justify-between"
+                                className="w-full justify-between border-2 border-primary/30 bg-background text-foreground hover:bg-primary/10 hover:border-primary"
                                 onClick={() => setExpensePopoverOpen(true)}
                               >
                                 {expenseTypes.find((et) => et.id === Number(cellValue))?.name || "Seleccionar gasto"}
@@ -804,9 +839,15 @@ export default function TransportTable({
                           </Popover>
                         ) : (
                           <span
-                            className={canEdit ? "block cursor-pointer hover:bg-muted/50 rounded px-1" : "block px-1"}
-                            onClick={() => {
+                            className={canEdit ? `block cursor-pointer rounded px-1 ${selectedRowId === transport.id ? "" : "hover:bg-muted/50"}` : "block px-1"}
+                            onClick={(e) => {
+                              e.stopPropagation()
                               if (canEdit) {
+                                // Si ya estamos editando este campo, no hacer nada
+                                if (editingCell && editingCell.id === transport.id && editingCell.field === "expense_type_id") {
+                                  return
+                                }
+                                setSelectedRowId(transport.id)
                                 setEditingCell({id: transport.id, field: "expense_type_id"})
                                 setCellValue(transport.expense_type_id ? transport.expense_type_id.toString() : "")
                                 setExpensePopoverOpen(true)
@@ -822,10 +863,17 @@ export default function TransportTable({
                           <input
                             ref={inputRef}
                             type="date"
-                            className="border rounded px-2 py-1 text-sm w-full"
+                            className="border-2 border-primary/30 rounded px-2 py-1 text-sm w-full bg-background text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                             value={cellValue}
                             onChange={e => setCellValue(e.target.value)}
-                            onBlur={() => saveCell(transport.id, "purchase_date", cellValue)}
+                            onBlur={(e) => {
+                              // Usar un pequeño delay para permitir que se active el nuevo campo
+                              setTimeout(() => {
+                                if (!editingCell || editingCell.id !== transport.id || editingCell.field !== "purchase_date") {
+                                  saveCell(transport.id, "purchase_date", cellValue)
+                                }
+                              }, 100)
+                            }}
                             onKeyDown={e => {
                               if (e.key === "Enter") {
                                 saveCell(transport.id, "purchase_date", cellValue)
@@ -837,9 +885,15 @@ export default function TransportTable({
                           <div className="flex items-center gap-1">
                             <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                             <span 
-                              className={canEdit ? "cursor-pointer hover:bg-muted/50 rounded px-1" : "px-1"}
-                              onClick={() => {
+                              className={canEdit ? `cursor-pointer rounded px-1 ${selectedRowId === transport.id ? "" : "hover:bg-muted/50"}` : "px-1"}
+                              onClick={(e) => {
+                                e.stopPropagation()
                                 if (canEdit) {
+                                  // Si ya estamos editando este campo, no hacer nada
+                                  if (editingCell && editingCell.id === transport.id && editingCell.field === "purchase_date") {
+                                    return
+                                  }
+                                  setSelectedRowId(transport.id)
                                   setEditingCell({id: transport.id, field: "purchase_date"})
                                   setCellValue(transport.purchase_date ? transport.purchase_date.split('T')[0] : "")
                                 }
@@ -889,6 +943,7 @@ export default function TransportTable({
                             size="icon"
                             className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-100"
                             onClick={() => transport && deleteTransport(transport.id)}
+                            disabled={isDeleting}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>

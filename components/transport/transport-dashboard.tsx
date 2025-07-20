@@ -17,6 +17,7 @@ interface TransportDashboardProps {
   locations: any[]
   userRoles?: string[]
   onRefresh?: () => void
+  isLoading?: boolean
   autoRefreshProps?: {
     isActive: boolean
     interval: number
@@ -31,10 +32,10 @@ export default function TransportDashboard({
   locations, 
   userRoles = [],
   onRefresh,
+  isLoading = false,
   autoRefreshProps
 }: TransportDashboardProps) {
   const [transports, setTransports] = useState<any[]>(initialTransports || [])
-  const [isLoading, setIsLoading] = useState(false)
   const [isAddingTransport, setIsAddingTransport] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
   const [lastScrapingDate, setLastScrapingDate] = useState<string>("")
@@ -77,7 +78,6 @@ export default function TransportDashboard({
 
   // Cargar datos completos de transporte
   const fetchTransports = async () => {
-    setIsLoading(true)
     try {
       // Primero obtenemos los transportes sin relaciones
       const { data: transportData, error } = await supabase
@@ -122,8 +122,6 @@ export default function TransportDashboard({
       setTransports(enrichedData || [])
     } catch (err) {
       console.error("Error al cargar datos de nuevas entradas:", err)
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -230,6 +228,7 @@ export default function TransportDashboard({
             userRoles={userRoles}
             isAdmin={isAdmin}
             onRefresh={onRefresh}
+            isLoading={isLoading}
           />
         </CardContent>
       </Card>
