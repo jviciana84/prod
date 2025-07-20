@@ -124,7 +124,15 @@ export default function ScraperConsole({ isOpen, onClose }: ScraperConsoleProps)
               {logs.map((log) => (
                 <div key={log.id} className="flex items-start gap-2 break-words">
                   <span className="text-green-500 text-xs min-w-[80px] flex-shrink-0">
-                    {log.timestamp}
+                    {new Date(log.timestamp).toLocaleString('es-ES', {
+                      timeZone: 'Europe/Madrid',
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit'
+                    })} UTC
                   </span>
                   <span className={`${getLevelColor(log.level)} min-w-[20px] flex-shrink-0`}>
                     {getLevelIcon(log.level)}

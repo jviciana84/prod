@@ -186,13 +186,8 @@ export async function processFilterConfig(configId: string): Promise<ProcessingR
           continue
         }
 
-        // Crear objeto base con solo los campos básicos
-        const newEntry: any = {
-          vehicle_type: 'Coche',
-          is_received: false,
-          status: 'pendiente',
-          entry_date: new Date().toISOString()
-        }
+        // Crear objeto base con solo los campos del mapeo
+        const newEntry: any = {}
 
         // Aplicar mapeos de columnas básicos
         if (columnMappings) {
@@ -206,9 +201,14 @@ export async function processFilterConfig(configId: string): Promise<ProcessingR
                   const dateStr = sourceValue
                   if (dateStr.includes('/')) {
                     const [day, month, year] = dateStr.split('/')
-                    newEntry[mapping.nuevas_entradas_column] = new Date(parseInt(year), parseInt(month) - 1, parseInt(day)).toISOString()
+                    // Convertir a formato YYYY-MM-DD para tipo date
+                    const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+                    newEntry[mapping.nuevas_entradas_column] = formattedDate
                   } else {
-                    newEntry[mapping.nuevas_entradas_column] = new Date(dateStr).toISOString()
+                    // Si ya está en formato ISO, extraer solo la parte de fecha
+                    const date = new Date(dateStr)
+                    const formattedDate = date.toISOString().split('T')[0]
+                    newEntry[mapping.nuevas_entradas_column] = formattedDate
                   }
                 } catch (e) {
                   // Si falla la conversión, dejar null
@@ -236,14 +236,6 @@ export async function processFilterConfig(configId: string): Promise<ProcessingR
           
           newEntry.model = modelCombined.trim()
         }
-
-        // Añadir información básica en las notas
-        newEntry.notes = `Capturado automáticamente desde duc_scraper - Config: ${config.name}
-        
-ID Anuncio: ${vehicle['ID Anuncio'] || 'N/A'}
-Importado el: ${new Date().toLocaleDateString('es-ES')}
-
-El resto de información se completa manualmente en nuevas_entradas.`
 
         // Insertar en nuevas_entradas
         const { error: insertError } = await supabase

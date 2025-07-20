@@ -180,7 +180,7 @@ export default function TransportDashboard({ initialTransports, locations, userR
                       hour: '2-digit',
                       minute: '2-digit',
                       second: '2-digit'
-                    })
+                    }) + ' UTC'
                   ) : (
                     "Nunca ejecutado"
                   )}
