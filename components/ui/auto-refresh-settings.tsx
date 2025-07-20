@@ -53,7 +53,7 @@ export function AutoRefreshSettings({
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="interval">Intervalo de actualización</Label>
-            <Select value={currentInterval.toString()} onValueChange={handleIntervalChange}>
+            <Select value={(currentInterval || 10 * 60 * 1000).toString()} onValueChange={handleIntervalChange}>
               <SelectTrigger>
                 <SelectValue placeholder="Seleccionar intervalo" />
               </SelectTrigger>

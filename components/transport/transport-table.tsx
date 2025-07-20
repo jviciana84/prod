@@ -40,6 +40,7 @@ interface TransportTableProps {
   locations: any[]
   userRoles?: string[]
   isAdmin?: boolean
+  onRefresh?: () => void
 }
 
 export default function TransportTable({
@@ -47,6 +48,7 @@ export default function TransportTable({
   locations,
   userRoles = [],
   isAdmin = false,
+  onRefresh,
 }: TransportTableProps) {
   const [transports, setTransports] = useState<any[]>(initialTransports)
   const [filteredTransports, setFilteredTransports] = useState<any[]>(initialTransports)
@@ -62,6 +64,7 @@ export default function TransportTable({
   const [originPopoverOpen, setOriginPopoverOpen] = useState(false)
   const [expensePopoverOpen, setExpensePopoverOpen] = useState(false)
   const [canEdit, setCanEdit] = useState(false)
+  const [selectedRowId, setSelectedRowId] = useState<number | null>(null)
 
   // Estados para el filtro de fechas temporal
   const [dateRange, setDateRange] = useState<{
@@ -153,6 +156,17 @@ export default function TransportTable({
     setDateRange({ from: undefined, to: undefined })
   }
 
+  // Manejar selección de fila
+  const handleRowClick = (transportId: number, event: React.MouseEvent) => {
+    // No deseleccionar si se hace clic en elementos interactivos
+    const target = event.target as Element
+    if (target.closest('button') || target.closest('input') || target.closest('[role="combobox"]')) {
+      return
+    }
+    
+    setSelectedRowId(selectedRowId === transportId ? null : transportId)
+  }
+
   // Manejar cambio en la búsqueda
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
@@ -211,6 +225,11 @@ export default function TransportTable({
 
         setTransports(enrichedData)
         applyFilters(enrichedData, searchTerm, activeFilter)
+        
+        // Llamar a onRefresh si está disponible
+        if (onRefresh) {
+          onRefresh()
+        }
       }
     } catch (error) {
       console.error("Error al refrescar datos:", error)
@@ -357,16 +376,37 @@ export default function TransportTable({
   const saveCell = async (id: number, field: string, value: any) => {
     setIsLoading(true)
     try {
+      console.log(`Guardando ${field}:`, value, "para ID:", id)
       const { error } = await supabase.from("nuevas_entradas").update({ [field]: value }).eq("id", id)
       if (error) throw error
+      
+      console.log(`Guardado exitoso para ${field}:`, value)
+      
       // Actualizar localmente
-      const updated = transports.map((item) =>
-        item && item.id === id ? { ...item, [field]: value } : item
-      )
+      const updated = transports.map((item) => {
+        if (item && item.id === id) {
+          const updatedItem = { ...item, [field]: value }
+          
+          // Si estamos actualizando origin_location_id, también actualizar la relación
+          if (field === "origin_location_id") {
+            updatedItem.origin_location = locations.find(loc => loc.id === value) || null
+          }
+          
+          // Si estamos actualizando expense_type_id, también actualizar la relación
+          if (field === "expense_type_id") {
+            updatedItem.expense_type = expenseTypes.find(et => et.id === value) || null
+          }
+          
+          return updatedItem
+        }
+        return item
+      })
+      
       setTransports(updated)
       applyFilters(updated, searchTerm, activeFilter)
       setEditingCell(null)
     } catch (error) {
+      console.error("Error guardando:", error)
       toast({ title: "Error", description: "No se pudo guardar el cambio", variant: "destructive" })
     } finally {
       setIsLoading(false)
@@ -382,8 +422,29 @@ export default function TransportTable({
     fetchExpenseTypes()
   }, [supabase])
 
+  // Cargar datos al montar el componente
+  useEffect(() => {
+    fetchTransports()
+    fetchLastScrapingDate()
+  }, [])
+
+  // Manejar clics fuera de la tabla para deseleccionar
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element
+      if (!target.closest('.transport-table-container')) {
+        setSelectedRowId(null)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 transport-table-container">
       {/* Estilos para las animaciones personalizadas */}
       <style jsx global>{`
       @keyframes priorityPulseHigh {
@@ -570,10 +631,15 @@ export default function TransportTable({
                     <TableRow
                       key={transport?.id || index}
                       className={cn(
-                        "hover:bg-muted/30 transition-colors border-b",
+                        "hover:bg-muted/30 transition-all duration-200 cursor-pointer border-b relative",
                         index % 2 === 0 ? "bg-background" : "bg-muted/10",
+                        selectedRowId === transport.id && "bg-blue-50/60 border-blue-300 shadow-sm ring-1 ring-blue-300/40",
                       )}
+                      onClick={() => handleRowClick(transport.id)}
                     >
+                      {selectedRowId === transport.id && (
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-r-sm" />
+                      )}
                       <TableCell className="py-3">
                         <div className="flex items-center">
                           {transport && !transport.is_received && (
@@ -614,16 +680,21 @@ export default function TransportTable({
                         {canEdit && editingCell && editingCell.id === transport.id && editingCell.field === "purchase_price" ? (
                           <input
                             ref={inputRef}
-                            type="number"
+                            type="text"
                             className="border rounded px-2 py-1 text-sm w-full"
                             value={cellValue}
-                            onChange={e => setCellValue(e.target.value)}
-                            onBlur={() => saveCell(transport.id, "purchase_price", cellValue ? Number(cellValue) : null)}
+                            onChange={e => {
+                              // Solo permitir números, puntos y comas
+                              const value = e.target.value.replace(/[^\d.,]/g, '')
+                              setCellValue(value)
+                            }}
+                            onBlur={() => saveCell(transport.id, "purchase_price", cellValue ? Number(cellValue.replace(',', '.')) : null)}
                             onKeyDown={e => {
                               if (e.key === "Enter") {
-                                saveCell(transport.id, "purchase_price", cellValue ? Number(cellValue) : null)
+                                saveCell(transport.id, "purchase_price", cellValue ? Number(cellValue.replace(',', '.')) : null)
                               }
                             }}
+                            placeholder="0.00"
                             autoFocus
                           />
                         ) : (
@@ -747,10 +818,37 @@ export default function TransportTable({
                         )}
                       </TableCell>
                       <TableCell className="py-3">
-                        <div className="flex items-center gap-1">
-                          <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-foreground">{formatDate(transport.purchase_date)}</span>
-                        </div>
+                        {canEdit && editingCell && editingCell.id === transport.id && editingCell.field === "purchase_date" ? (
+                          <input
+                            ref={inputRef}
+                            type="date"
+                            className="border rounded px-2 py-1 text-sm w-full"
+                            value={cellValue}
+                            onChange={e => setCellValue(e.target.value)}
+                            onBlur={() => saveCell(transport.id, "purchase_date", cellValue)}
+                            onKeyDown={e => {
+                              if (e.key === "Enter") {
+                                saveCell(transport.id, "purchase_date", cellValue)
+                              }
+                            }}
+                            autoFocus
+                          />
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                            <span 
+                              className={canEdit ? "cursor-pointer hover:bg-muted/50 rounded px-1" : "px-1"}
+                              onClick={() => {
+                                if (canEdit) {
+                                  setEditingCell({id: transport.id, field: "purchase_date"})
+                                  setCellValue(transport.purchase_date ? transport.purchase_date.split('T')[0] : "")
+                                }
+                              }}
+                            >
+                              {formatDate(transport.purchase_date)}
+                            </span>
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="py-3">
                         {waitingDays !== null && (

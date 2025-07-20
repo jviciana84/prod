@@ -54,12 +54,12 @@ export default function ScraperConsole({ isOpen, onClose }: ScraperConsoleProps)
     return () => clearInterval(interval)
   }, [isOpen])
 
-  // Scroll automático al abrir la consola
+  // Scroll automático solo al abrir la consola
   useEffect(() => {
     if (isOpen && scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [isOpen, logs]) // También scroll cuando hay nuevos logs
+  }, [isOpen]) // Solo scroll cuando se abre, no cuando se actualizan logs
 
   if (!isOpen) return null
 

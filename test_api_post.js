@@ -13,7 +13,6 @@ const testData = {
   "Versión": "2.0d xDrive",
   "Precio": "45000",
   "KM": "25000",
-  "Año": "2022",
   "Combustible": "Diésel",
   "Cambio": "Automático",
   "Color Carrocería": "Blanco",

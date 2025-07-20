@@ -9,14 +9,30 @@ import { Plus, Table, Terminal } from "lucide-react"
 import TransportTable from "./transport-table"
 import TransportQuickForm from "./transport-quick-form"
 import ScraperConsole from "./scraper-console"
+import { AutoRefreshIndicator } from "@/components/ui/auto-refresh-indicator"
+import { AutoRefreshSettings } from "@/components/ui/auto-refresh-settings"
 
 interface TransportDashboardProps {
   initialTransports: any[]
   locations: any[]
   userRoles?: string[]
+  onRefresh?: () => void
+  autoRefreshProps?: {
+    isActive: boolean
+    interval: number
+    onToggle: () => void
+    lastRefresh: Date
+    onIntervalChange: (interval: number) => void
+  }
 }
 
-export default function TransportDashboard({ initialTransports, locations, userRoles = [] }: TransportDashboardProps) {
+export default function TransportDashboard({ 
+  initialTransports, 
+  locations, 
+  userRoles = [],
+  onRefresh,
+  autoRefreshProps
+}: TransportDashboardProps) {
   const [transports, setTransports] = useState<any[]>(initialTransports || [])
   const [isLoading, setIsLoading] = useState(false)
   const [isAddingTransport, setIsAddingTransport] = useState(false)
@@ -158,8 +174,9 @@ export default function TransportDashboard({ initialTransports, locations, userR
               </CardTitle>
               <CardDescription>Seguimiento y gestión de vehículos registrados</CardDescription>
             </div>
-            <div className="flex items-center gap-2 -mt-12">
-              {/* Información del último scraping DUC */}
+            
+            {/* Información del último scraping DUC y controles de auto-refresh */}
+            <div className="flex flex-col items-end gap-1">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Button
                   variant="ghost"
@@ -179,13 +196,30 @@ export default function TransportDashboard({ initialTransports, locations, userR
                       year: 'numeric',
                       hour: '2-digit',
                       minute: '2-digit',
-                      second: '2-digit'
-                    }) + ' UTC'
+                      second: '2-digit',
+                      timeZone: 'UTC'
+                    })
                   ) : (
-                    "Nunca ejecutado"
+                    'Nunca'
                   )}
                 </span>
               </div>
+              
+              {/* Controles de auto-refresh */}
+              {autoRefreshProps && (
+                <div className="flex items-center gap-2">
+                  <AutoRefreshIndicator
+                    isActive={autoRefreshProps.isActive}
+                    interval={autoRefreshProps.interval}
+                    lastRefresh={autoRefreshProps.lastRefresh}
+                    onToggle={autoRefreshProps.onToggle}
+                  />
+                  <AutoRefreshSettings
+                    currentInterval={autoRefreshProps.interval || 10 * 60 * 1000}
+                    onIntervalChange={autoRefreshProps.onIntervalChange}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </CardHeader>
@@ -195,6 +229,7 @@ export default function TransportDashboard({ initialTransports, locations, userR
             locations={locations}
             userRoles={userRoles}
             isAdmin={isAdmin}
+            onRefresh={onRefresh}
           />
         </CardContent>
       </Card>
