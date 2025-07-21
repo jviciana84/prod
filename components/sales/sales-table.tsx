@@ -28,13 +28,17 @@ import {
   Building,
   CreditCard,
   Banknote,
+  Trash2,
+  AlertTriangle,
 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { differenceInDays, addDays, format } from "date-fns"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
 
 // Importar la función de servidor para sincronizar vehículos validados
 import { syncValidatedVehicle } from "@/server-actions/validation-actions"
@@ -153,7 +157,7 @@ export type SoldVehicle = {
 }
 
 // Tipo para las pestañas de tipo de vehículo
-type VehicleTab = "car" | "motorcycle" | "not_validated" | "all" | "finished"
+type VehicleTab = "car" | "motorcycle" | "not_validated" | "all" | "finished" | "failed"
 
 type SalesTableProps = {
   onRefreshRequest?: () => void
@@ -176,6 +180,10 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
   const [editingValue, setEditingValue] = useState<string>("")
   const editCellInputRef = useRef<HTMLInputElement>(null)
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deleteVehicleId, setDeleteVehicleId] = useState<string | null>(null)
+  const [deleteObservations, setDeleteObservations] = useState("")
+  const [isDeleting, setIsDeleting] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
   const [orValues, setOrValues] = useState<Record<string, string>>({})
   const orInputRef = useRef<HTMLInputElement>(null)
@@ -204,6 +212,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
     motorcycle: 0,
     not_validated: 0,
     finished: 0,
+    failed: 0,
   })
 
   const supabase = createClientComponentClient()
@@ -320,7 +329,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
       if (!salesData || salesData.length === 0) {
         setVehicles([])
         setFilteredVehicles([])
-        setCounts({ all: 0, car: 0, motorcycle: 0, not_validated: 0, finished: 0 })
+        setCounts({ all: 0, car: 0, motorcycle: 0, not_validated: 0, finished: 0, failed: 0 })
         setLoading(false)
         return
       }
@@ -354,6 +363,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
         motorcycle: motorcycleCount,
         not_validated: notValidatedCount,
         finished: finishedCount,
+        failed: 0, // Se calculará desde pedidos_validados
       })
 
       // Inicializar valores OR
@@ -415,6 +425,9 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
       filtered = filtered.filter(
         (vehicle) => vehicle.cyp_status === "completado" && vehicle.photo_360_status === "completado",
       )
+    } else if (activeTab === "failed") {
+      // Para ventas caídas, no mostrar nada en esta tabla ya que se eliminan
+      filtered = []
     }
 
     // Aplicar filtro de búsqueda
@@ -491,7 +504,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
       1 + // CyP
       1 + // 360º
       1 + // Validated
-      1 + // Peritado/PDF
+      1 + // Peritado/PDF/Acciones
       1 // Pre-entrega
     )
   }, [hiddenColumns])
@@ -1297,6 +1310,82 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
     setCurrentPage(1) // Resetear a la primera página al cambiar el número de filas por página
   }
 
+  // Función para abrir el modal de eliminación
+  const handleDeleteClick = (vehicleId: string) => {
+    setDeleteVehicleId(vehicleId)
+    setDeleteObservations("")
+    setShowDeleteDialog(true)
+  }
+
+  // Función para confirmar la eliminación
+  const handleConfirmDelete = async () => {
+    if (!deleteVehicleId) return
+
+    setIsDeleting(true)
+    try {
+      // 1. Marcar como venta caída en pedidos_validados
+      const { error: pedidosError } = await supabase
+        .from("pedidos_validados")
+        .update({
+          is_failed_sale: true,
+          failed_reason: deleteObservations || null,
+          failed_date: new Date().toISOString()
+        })
+        .eq("vehicle_id", deleteVehicleId)
+
+      if (pedidosError) {
+        console.error("Error al marcar como venta caída:", pedidosError)
+        toast.error("Error al marcar como venta caída")
+        return
+      }
+
+      // 2. Eliminar de sales_vehicles
+      const { error: salesError } = await supabase
+        .from("sales_vehicles")
+        .delete()
+        .eq("id", deleteVehicleId)
+
+      if (salesError) {
+        console.error("Error al eliminar de sales_vehicles:", salesError)
+        toast.error("Error al eliminar la venta")
+        return
+      }
+
+      // 3. Eliminar de entregas si existe
+      const { error: entregasError } = await supabase
+        .from("entregas")
+        .delete()
+        .eq("matricula", vehicles.find(v => v.id === deleteVehicleId)?.license_plate)
+
+      if (entregasError) {
+        console.error("Error al eliminar de entregas:", entregasError)
+        // No mostrar error si no existe en entregas
+      }
+
+      // 4. Actualizar la UI
+      setVehicles(prev => prev.filter(v => v.id !== deleteVehicleId))
+      setFilteredVehicles(prev => prev.filter(v => v.id !== deleteVehicleId))
+      setFilteredByDate(prev => prev.filter(v => v.id !== deleteVehicleId))
+
+      toast.success("Venta eliminada correctamente")
+      setShowDeleteDialog(false)
+      setDeleteVehicleId(null)
+      setDeleteObservations("")
+
+      // Recargar datos si hay callback
+      if (onRefreshRequest) {
+        onRefreshRequest()
+      }
+    } catch (error) {
+      console.error("Error inesperado:", error)
+      toast.error("Error inesperado al eliminar la venta")
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+
+
   // Calcular el número de columnas visibles dinámicamente - REMOVIDO (ahora memoizado arriba)
 
   // Justo antes del return (
@@ -1403,11 +1492,18 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                   {counts.all}
                 </Badge>
               </TabsTrigger>
+              <TabsTrigger value="failed" className="px-3 py-1 h-7 data-[state=active]:bg-background">
+                <AlertTriangle className="h-3.5 w-3.5 mr-1" />
+                <span>Ventas Caídas</span>
+                <Badge variant="secondary" className="ml-1 text-xs px-1 py-0">
+                  {counts.failed}
+                </Badge>
+              </TabsTrigger>
             </TabsList>
           </div>
 
           {/* Contenido de las pestañas - Usando el mismo contenido para todas */}
-          {["all", "car", "motorcycle", "not_validated", "finished"].map((tab) => (
+          {["all", "car", "motorcycle", "not_validated", "finished", "failed"].map((tab) => (
             <TabsContent key={tab} value={tab} className="mt-0">
               <div className="rounded-lg border shadow-sm overflow-hidden">
                 <Table>
@@ -1435,7 +1531,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                       <TableHead className="w-20 truncate py-2">CyP</TableHead>
                       <TableHead className="w-20 truncate py-2">360º</TableHead>
                       <TableHead className="w-20 truncate py-2">VALIDADO</TableHead>
-                      <TableHead className="w-16 truncate py-2"></TableHead>
+                                              <TableHead className="w-20 truncate py-2"></TableHead>
                       <TableHead className="w-24 truncate py-2">PRE-ENTREGA</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1907,16 +2003,43 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                             </Button>
                           </TableCell>
 
-                          {/* PERITADO y PDF */}
-                          <TableCell className="py-1 px-1 w-16">
+                          {/* PERITADO, PDF y ACCIONES */}
+                          <TableCell className="py-1 px-1 w-20">
                             <div className="flex items-center space-x-1">
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <FileEdit className="h-4 w-4 text-yellow-500" />
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-yellow-500 hover:bg-yellow-100 hover:text-yellow-600 dark:hover:bg-yellow-900/30"
+                                  >
+                                    <FileEdit className="h-4 w-4" />
+                                  </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>Peritación</TooltipContent>
                               </Tooltip>
-                              <PdfDataDialog vehicleId={vehicle.id} licensePlate={vehicle.license_plate} />
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <PdfDataDialog vehicleId={vehicle.id} licensePlate={vehicle.license_plate} />
+                                </TooltipTrigger>
+                                <TooltipContent>Ver datos extraídos PDF</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-red-500 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleDeleteClick(vehicle.id)
+                                    }}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Eliminar venta</TooltipContent>
+                              </Tooltip>
                             </div>
                           </TableCell>
 
@@ -2109,6 +2232,67 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                 </div>
               </div>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal de confirmación para eliminar venta */}
+        <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-red-500" />
+                Confirmar eliminación
+              </DialogTitle>
+              <DialogDescription>
+                ¿Estás seguro de que quieres eliminar esta venta? Esta acción no se puede deshacer.
+                <br />
+                <strong>Matrícula:</strong> {vehicles.find(v => v.id === deleteVehicleId)?.license_plate}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="observations">Observaciones (opcional)</Label>
+                <Textarea
+                  id="observations"
+                  placeholder="Motivo de la eliminación (ej: cliente no financiable, venta cancelada...)"
+                  value={deleteObservations}
+                  onChange={(e) => setDeleteObservations(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowDeleteDialog(false)
+                  setDeleteVehicleId(null)
+                  setDeleteObservations("")
+                }}
+                disabled={isDeleting}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Eliminando...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Eliminar venta
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>

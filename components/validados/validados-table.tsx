@@ -14,7 +14,6 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
-  ChevronsLeft,
   ChevronsRight,
   Filter,
   Plus,
@@ -25,6 +24,7 @@ import {
   Globe,
   Eye,
   EyeOff,
+  AlertTriangle,
 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
@@ -79,10 +79,14 @@ type PedidoValidado = {
   fechaTasacion: string
   esReventa: boolean
   esDuplicado: boolean
+  // Campos para ventas caídas
+  is_failed_sale?: boolean
+  failed_reason?: string
+  failed_date?: string
 }
 
 // Tipo de pestaña
-type PedidoTab = "todos" | "coches" | "motos" | "contado" | "financiado"
+type PedidoTab = "todos" | "coches" | "motos" | "contado" | "financiado" | "ventas_caidas"
 
 // Tipo para los filtros de fecha
 type DateFilterItem = {
@@ -154,6 +158,7 @@ export function ValidadosTable({ onRefreshRequest }: ValidadosTableProps) {
     motos: 0,
     contado: 0,
     financiado: 0,
+    ventas_caidas: 0,
   })
 
   // Estado para la vista simplificada - CAMBIAR A TRUE POR DEFECTO
@@ -373,6 +378,10 @@ export function ValidadosTable({ onRefreshRequest }: ValidadosTableProps) {
           fechaTasacion: item.appraisal_date || "",
           esReventa: item.is_resale || false,
           esDuplicado: item.is_duplicate || false,
+          // Campos para ventas caídas
+          is_failed_sale: item.is_failed_sale || false,
+          failed_reason: item.failed_reason || "",
+          failed_date: item.failed_date || "",
         }))
 
         setPedidos(formattedData)
@@ -451,6 +460,7 @@ export function ValidadosTable({ onRefreshRequest }: ValidadosTableProps) {
     const motosCount = data.filter((v) => v.tipo === "Moto").length
     const contadoCount = data.filter((v) => v.formaPago === "Contado").length
     const financiadoCount = data.filter((v) => v.formaPago === "Financiado").length
+    const ventasCaidasCount = data.filter((v) => v.is_failed_sale === true).length
 
     setCounts({
       todos: allCount,
@@ -458,6 +468,7 @@ export function ValidadosTable({ onRefreshRequest }: ValidadosTableProps) {
       motos: motosCount,
       contado: contadoCount,
       financiado: financiadoCount,
+      ventas_caidas: ventasCaidasCount,
     })
   }
 
@@ -591,6 +602,8 @@ export function ValidadosTable({ onRefreshRequest }: ValidadosTableProps) {
       filtered = filtered.filter((pedido) => pedido.formaPago === "Contado")
     } else if (activeTab === "financiado") {
       filtered = filtered.filter((pedido) => pedido.formaPago === "Financiado")
+    } else if (activeTab === "ventas_caidas") {
+      filtered = filtered.filter((pedido) => pedido.is_failed_sale === true)
     }
 
     // Aplicar filtro de búsqueda
@@ -888,6 +901,13 @@ export function ValidadosTable({ onRefreshRequest }: ValidadosTableProps) {
                 <span>Financiado</span>
                 <Badge variant="secondary" className="ml-1 text-xs px-1 py-0">
                   {counts.financiado}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger value="ventas_caidas" className="px-3 py-1 h-7 data-[state=active]:bg-background">
+                <AlertTriangle className="h-3.5 w-3.5 mr-1" />
+                <span>Ventas Caídas</span>
+                <Badge variant="secondary" className="ml-1 text-xs px-1 py-0">
+                  {counts.ventas_caidas}
                 </Badge>
               </TabsTrigger>
             </TabsList>
@@ -1309,7 +1329,7 @@ export function ValidadosTable({ onRefreshRequest }: ValidadosTableProps) {
           </TabsContent>
 
           {/* Las otras pestañas tendrían el mismo contenido pero filtrado */}
-          {["coches", "motos", "contado", "financiado"].map((tab) => (
+          {["coches", "motos", "contado", "financiado", "ventas_caidas"].map((tab) => (
             <TabsContent key={tab} value={tab} className="mt-0">
               <div className="rounded-lg border shadow-sm overflow-x-auto">
                 <Table>
@@ -1422,12 +1442,15 @@ export function ValidadosTable({ onRefreshRequest }: ValidadosTableProps) {
                         </>
                       )}
                       <TableHead className="w-40 py-2">OBSERVACIONES</TableHead>
+                      {activeTab === "ventas_caidas" && (
+                        <TableHead className="w-40 py-2">RAZÓN CAÍDA</TableHead>
+                      )}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {loading ? (
                       <TableRow>
-                        <TableCell colSpan={isSimplifiedView ? 8 : 25} className="text-center py-8">
+                        <TableCell colSpan={isSimplifiedView ? 8 : (activeTab === "ventas_caidas" ? 26 : 25)} className="text-center py-8">
                           <div className="flex justify-center items-center">
                             <Loader2 className="h-6 w-6 animate-spin mr-2" />
                             <span>Cargando pedidos validados...</span>
@@ -1436,7 +1459,7 @@ export function ValidadosTable({ onRefreshRequest }: ValidadosTableProps) {
                       </TableRow>
                     ) : paginatedPedidos.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={isSimplifiedView ? 8 : 25} className="text-center py-8">
+                        <TableCell colSpan={isSimplifiedView ? 8 : (activeTab === "ventas_caidas" ? 26 : 25)} className="text-center py-8">
                           <div className="flex flex-col items-center justify-center text-muted-foreground">
                             <CalendarIcon className="h-10 w-10 mb-2" />
                             <p>No se encontraron pedidos validados</p>
@@ -1715,6 +1738,17 @@ export function ValidadosTable({ onRefreshRequest }: ValidadosTableProps) {
                               <div className="truncate max-w-[150px]">{pedido.observaciones || "-"}</div>
                             </CellWithTooltip>
                           </TableCell>
+
+                          {/* RAZÓN DE VENTA CAÍDA - Solo mostrar en la pestaña de ventas caídas */}
+                          {activeTab === "ventas_caidas" && (
+                            <TableCell className="py-1">
+                              <CellWithTooltip value={pedido.failed_reason || "Sin razón especificada"}>
+                                <div className="truncate max-w-[150px] text-red-600 dark:text-red-400">
+                                  {pedido.failed_reason || "-"}
+                                </div>
+                              </CellWithTooltip>
+                            </TableCell>
+                          )}
                         </TableRow>
                       ))
                     )}

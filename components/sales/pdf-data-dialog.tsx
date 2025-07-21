@@ -457,8 +457,8 @@ export function PdfDataDialog({ vehicleId, licensePlate }: PdfDataDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-4 w-4 p-0">
-          <FileText className="h-4 w-4 text-blue-500" />
+        <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-blue-900/30">
+          <FileText className="h-4 w-4" />
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
