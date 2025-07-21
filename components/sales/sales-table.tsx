@@ -30,6 +30,7 @@ import {
   Banknote,
   Trash2,
   AlertTriangle,
+  ChevronsUpDown,
 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { differenceInDays, addDays, format } from "date-fns"
@@ -39,12 +40,17 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import { Card, CardContent } from "@/components/ui/card"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import { canUserEditClient } from "@/lib/auth/permissions-client"
 
 // Importar la función de servidor para sincronizar vehículos validados
 import { syncValidatedVehicle } from "@/server-actions/validation-actions"
 
 // Importar el componente PdfDataDialog
 import { PdfDataDialog } from "./pdf-data-dialog"
+
 
 // Importar las nuevas utilidades al inicio:
 import { formatDateForDisplay } from "@/lib/date-utils"
@@ -179,11 +185,19 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
   const [editingCell, setEditingCell] = useState<{ id: string; field: string } | null>(null)
   const [editingValue, setEditingValue] = useState<string>("")
   const editCellInputRef = useRef<HTMLInputElement>(null)
+  
+  // Estados para el selector de tipos de gastos
+  const [expenseTypes, setExpenseTypes] = useState<any[]>([])
+  const [expensePopoverOpen, setExpensePopoverOpen] = useState(false)
+  const [canEdit, setCanEdit] = useState(false)
+  const searchInputRef = useRef<HTMLInputElement>(null)
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [deleteVehicleId, setDeleteVehicleId] = useState<string | null>(null)
   const [deleteObservations, setDeleteObservations] = useState("")
   const [isDeleting, setIsDeleting] = useState(false)
+  
+
   const [isAdmin, setIsAdmin] = useState(false)
   const [orValues, setOrValues] = useState<Record<string, string>>({})
   const orInputRef = useRef<HTMLInputElement>(null)
@@ -380,10 +394,54 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
     }
   }
 
+  // Verificar permisos de edición
+  useEffect(() => {
+    const checkEditPermissions = async () => {
+      try {
+        const hasEditPermission = await canUserEditClient()
+        setCanEdit(hasEditPermission)
+      } catch (error) {
+        console.error("Error verificando permisos de edición:", error)
+        setCanEdit(false)
+      }
+    }
+    
+    checkEditPermissions()
+  }, [])
+
   // Cargar datos al montar el componente
   useEffect(() => {
     loadSoldVehicles()
+    
+    // Cargar tipos de gastos
+    const fetchExpenseTypes = async () => {
+      console.log("Cargando tipos de gastos...")
+      try {
+        const { data, error } = await supabase
+          .from("expense_types")
+          .select("id, name, description")
+          .eq("is_active", true)
+          .order("name")
+        
+        if (error) {
+          console.error("Error cargando tipos de gastos:", error)
+          toast.error("Error cargando tipos de gastos")
+        } else {
+          setExpenseTypes(data || [])
+        }
+      } catch (err) {
+        console.error("Error en fetchExpenseTypes:", err)
+      }
+    }
+    fetchExpenseTypes()
   }, []) // Removed dependencies to prevent constant re-execution
+
+  // Focus en el buscador cuando se carga la página
+  useEffect(() => {
+    if (searchInputRef.current) {
+      searchInputRef.current.focus()
+    }
+  }, [])
 
   // Función para actualizar manualmente
   const handleRefresh = async () => {
@@ -401,6 +459,8 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
       onRefresh()
     }
   }
+
+
 
   // Filtrar vehículos según la búsqueda y la pestaña activa
   useEffect(() => {
@@ -487,6 +547,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
       1 + // Priority
       1 + // License Plate
       1 + // Model
+      (!Object.values(hiddenColumns).some(hidden => hidden) ? 1 : 0) + // Client (solo cuando las columnas están visibles)
       (hiddenColumns.brand ? 0 : 1) + // Brand
       1 + // Type
       (hiddenColumns.dealershipCode ? 0 : 1) + // Dealership
@@ -1175,6 +1236,32 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
         .update({ [field]: valueToSave, updated_at: new Date().toISOString() })
         .eq("id", id)
 
+      // Si es expense_charge, sincronizar con otras tablas
+      if (field === "expense_charge" && !error) {
+        const vehicle = vehicles.find(v => v.id === id)
+        if (vehicle) {
+          // Actualizar en nuevas_entradas si existe
+          const { error: nuevasEntradasError } = await supabase
+            .from("nuevas_entradas")
+            .update({ expense_charge: valueToSave })
+            .eq("license_plate", vehicle.license_plate)
+
+          if (nuevasEntradasError && nuevasEntradasError.code !== "PGRST116") {
+            console.error("Error actualizando nuevas_entradas:", nuevasEntradasError)
+          }
+
+          // Actualizar en stock si existe
+          const { error: stockError } = await supabase
+            .from("stock")
+            .update({ expense_charge: valueToSave })
+            .eq("license_plate", vehicle.license_plate)
+
+          if (stockError && stockError.code !== "PGRST116") {
+            console.error("Error actualizando stock:", stockError)
+          }
+        }
+      }
+
       if (error) {
         console.error(`Error al actualizar ${field}:`, error)
         throw new Error(error.message)
@@ -1317,7 +1404,14 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
     setShowDeleteDialog(true)
   }
 
+
+
   // Función para confirmar la eliminación
+  const handleExpenseUpdated = () => {
+    // Recargar los datos para reflejar los cambios
+    loadSoldVehicles()
+  }
+
   const handleConfirmDelete = async () => {
     if (!deleteVehicleId) return
 
@@ -1412,16 +1506,19 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
           {/* Barra superior con buscador y pestañas en la misma línea */}
           <div className="flex flex-wrap items-center justify-between gap-2 bg-card rounded-lg p-2 shadow-sm mb-4">
             <div className="flex items-center gap-2 flex-1">
-              <div className="relative w-full max-w-xs">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Buscar..."
-                  className="pl-8 h-9"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
+              <Card className="p-3">
+                <div className="flex items-center gap-2 relative">
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                  <Input
+                    ref={searchInputRef}
+                    type="search"
+                    placeholder="Buscar por matrícula, modelo, asesor, cliente..."
+                    className="w-80"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+              </Card>
               <Button
                 variant="outline"
                 size="icon"
@@ -1432,6 +1529,8 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
               >
                 {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
               </Button>
+
+
               <Button
                 variant={dateFilter.startDate || dateFilter.endDate ? "outline" : "outline"}
                 size="icon"
@@ -1506,12 +1605,16 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
           {["all", "car", "motorcycle", "not_validated", "finished", "failed"].map((tab) => (
             <TabsContent key={tab} value={tab} className="mt-0">
               <div className="rounded-lg border shadow-sm overflow-hidden">
-                <Table>
+                <div className="relative w-full overflow-auto">
+                  <Table>
                   <TableHeader className="bg-muted/50">
                     <TableRow className="hover:bg-transparent border-b border-border">
                       <TableHead className="w-6 truncate py-2"></TableHead>
                       <TableHead className="w-20 truncate py-2">MATRÍCULA</TableHead>
                       <TableHead className="w-24 truncate py-2">MODELO</TableHead>
+                      {!Object.values(hiddenColumns).some(hidden => hidden) && (
+                        <TableHead className="w-20 truncate py-2">CLIENTE</TableHead>
+                      )}
                       {!hiddenColumns.brand && <TableHead className="w-16 truncate py-2">MARCA</TableHead>}
                       <TableHead className="w-16 truncate py-2">TIPO</TableHead>
                       {!hiddenColumns.dealershipCode && (
@@ -1640,6 +1743,22 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                               </Tooltip>,
                             )}
                           </TableCell>
+
+                          {/* CLIENTE - Solo visible cuando las columnas están visibles */}
+                          {!Object.values(hiddenColumns).some(hidden => hidden) && (
+                            <TableCell className="py-1">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="truncate max-w-[80px] text-sm">
+                                    {vehicle.client_name || "-"}
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  {vehicle.client_name || "No disponible"}
+                                </TooltipContent>
+                              </Tooltip>
+                            </TableCell>
+                          )}
 
                           {/* MARCA (brand) - Nueva columna */}
                           {!hiddenColumns.brand && (
@@ -1779,16 +1898,63 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
 
                           {/* CARGO GASTOS */}
                           <TableCell className="py-1">
-                            {renderEditableCell(
-                              vehicle,
-                              "expense_charge",
-                              vehicle.expense_charge,
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className="max-w-[60px] truncate">{vehicle.expense_charge || "-"}</div>
-                                </TooltipTrigger>
-                                <TooltipContent>{vehicle.expense_charge || "-"}</TooltipContent>
-                              </Tooltip>,
+                            {canEdit && editingCell && editingCell.id === vehicle.id && editingCell.field === "expense_charge" ? (
+                              <Popover open={expensePopoverOpen} onOpenChange={setExpensePopoverOpen}>
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    className="w-full justify-between border-2 border-primary/30 bg-background text-foreground hover:bg-primary/10 hover:border-primary"
+                                    onClick={() => setExpensePopoverOpen(true)}
+                                  >
+                                    {expenseTypes.find((et) => et.name === editingValue)?.name || "Seleccionar gasto"}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[220px] p-0">
+                                  <Command>
+                                    <CommandInput placeholder="Buscar gasto..." />
+                                    <CommandList>
+                                      <CommandGroup>
+                                        {expenseTypes.map((et) => (
+                                          <CommandItem
+                                            key={et.id}
+                                            value={et.name}
+                                                                                onSelect={() => {
+                                      setEditingValue(et.name)
+                                      setExpensePopoverOpen(false)
+                                      handleCellSave(vehicle.id, "expense_charge")
+                                    }}
+                                          >
+                                            <Check className={cn("mr-2 h-4 w-4", editingValue === et.name ? "opacity-100" : "opacity-0")} />
+                                            {et.name}
+                                          </CommandItem>
+                                        ))}
+                                      </CommandGroup>
+                                    </CommandList>
+                                  </Command>
+                                </PopoverContent>
+                              </Popover>
+                            ) : (
+                              <span
+                                className={canEdit ? `block cursor-pointer rounded px-1 ${selectedRowId === vehicle.id ? "" : "hover:bg-muted/50"}` : "block px-1"}
+                                                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (canEdit) {
+                                      // Si ya estamos editando este campo, no hacer nada
+                                      if (editingCell && editingCell.id === vehicle.id && editingCell.field === "expense_charge") {
+                                        return
+                                      }
+                                      
+                                      setSelectedRowId(vehicle.id)
+                                      setEditingCell({id: vehicle.id, field: "expense_charge"})
+                                      setEditingValue(vehicle.expense_charge || "")
+                                      setExpensePopoverOpen(true)
+                                    }
+                                  }}
+                              >
+                                {vehicle.expense_charge || <span className="text-muted-foreground">-</span>}
+                              </span>
                             )}
                           </TableCell>
 
@@ -2136,6 +2302,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                     )}
                   </TableBody>
                 </Table>
+                </div>
               </div>
               {/* Subcard paginador */}
               <div className="mt-2 rounded-lg border bg-card shadow-sm px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -2295,6 +2462,8 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+
       </div>
     </TooltipProvider>
   )

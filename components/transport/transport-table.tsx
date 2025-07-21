@@ -34,6 +34,7 @@ import { Command, CommandList, CommandGroup, CommandInput, CommandItem } from "@
 import { canUserEditClient } from "@/lib/auth/permissions-client"
 import { ReusablePagination } from "@/components/ui/reusable-pagination"
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
+import { Card, CardContent } from "@/components/ui/card"
 
 interface TransportTableProps {
   initialTransports: any[]
@@ -61,6 +62,7 @@ export default function TransportTable({
   const [editingCell, setEditingCell] = useState<{id: number, field: string} | null>(null)
   const [cellValue, setCellValue] = useState("")
   const inputRef = useRef<HTMLInputElement | null>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
   const [expenseTypes, setExpenseTypes] = useState<any[]>([])
   const [originPopoverOpen, setOriginPopoverOpen] = useState(false)
   const [expensePopoverOpen, setExpensePopoverOpen] = useState(false)
@@ -101,6 +103,13 @@ export default function TransportTable({
     setTransports(initialTransports)
     applyFilters(initialTransports, searchTerm, activeFilter)
   }, [initialTransports, dateRange, locations])
+
+  // Focus en el buscador cuando se carga la página
+  useEffect(() => {
+    if (searchInputRef.current) {
+      searchInputRef.current.focus()
+    }
+  }, [])
 
   // Aplicar filtros (búsqueda y estado)
   const applyFilters = (data: any[], search: string, filter: string) => {
@@ -494,24 +503,27 @@ export default function TransportTable({
 
       <div className="flex flex-wrap items-center justify-between gap-2 bg-card rounded-lg p-2 shadow-sm mb-4">
         <div className="flex items-center gap-2 flex-1">
-          <div className="relative w-full max-w-xs">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Buscar por matrícula, modelo, sede o cargo..."
-              className="pl-8 h-9"
-              value={searchTerm}
-              onChange={handleSearchChange}
-            />
-            {searchTerm && (
-              <button
-                onClick={clearSearch}
-                className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </div>
+          <Card className="p-3">
+            <div className="flex items-center gap-2 relative">
+              <Search className="h-4 w-4 text-muted-foreground" />
+              <Input
+                ref={searchInputRef}
+                type="search"
+                placeholder="Buscar por matrícula, modelo, sede o cargo..."
+                className="w-80"
+                value={searchTerm}
+                onChange={handleSearchChange}
+              />
+              {searchTerm && (
+                <button
+                  onClick={clearSearch}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          </Card>
         </div>
 
         <div className="flex items-center gap-2">
