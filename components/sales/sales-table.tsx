@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
@@ -44,6 +44,7 @@ import { PdfDataDialog } from "./pdf-data-dialog"
 
 // Importar las nuevas utilidades al inicio:
 import { formatDateForDisplay } from "@/lib/date-utils"
+import "@/styles/sales-table.css"
 
 // Tipos para los estados de pago
 const PAYMENT_STATUSES = [
@@ -174,6 +175,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
   const [editingCell, setEditingCell] = useState<{ id: string; field: string } | null>(null)
   const [editingValue, setEditingValue] = useState<string>("")
   const editCellInputRef = useRef<HTMLInputElement>(null)
+  const [selectedRowId, setSelectedRowId] = useState<string | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [orValues, setOrValues] = useState<Record<string, string>>({})
   const orInputRef = useRef<HTMLInputElement>(null)
@@ -232,7 +234,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
   const [sortOrder, setSortOrder] = useState<"priority" | "validation_date">("validation_date")
 
   // Función para calcular la prioridad automáticamente
-  const calculatePriority = useCallback((vehicle: SoldVehicle): number => {
+  const calculatePriority = useMemo(() => (vehicle: SoldVehicle): number => {
     // Si no está validado, prioridad 0
     if (!vehicle.validated) return 0
 
@@ -260,7 +262,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
   }, [])
 
   // Función para ordenar los vehículos
-  const sortVehicles = useCallback((vehiclesToSort: SoldVehicle[]): SoldVehicle[] => {
+  const sortVehicles = useMemo(() => (vehiclesToSort: SoldVehicle[]): SoldVehicle[] => {
     return [...vehiclesToSort].sort((a, b) => {
       // Si ambos vehículos están en proceso, ordenar por prioridad
       const aInProcess = a.cyp_status === "en_proceso" || a.photo_360_status === "en_proceso"
@@ -296,7 +298,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
 
       // Si llegamos aquí, ambos no están validados, ordenar por fecha de venta
       const saleDateA = a.sale_date ? new Date(a.sale_date).getTime() : 0
-      const saleDateB = b.sale_date ? new Date(a.sale_date).getTime() : 0
+      const saleDateB = b.sale_date ? new Date(b.sale_date).getTime() : 0
       return saleDateB - saleDateA // Orden descendente por fecha de venta (más reciente primero)
     })
   }, [])
@@ -371,7 +373,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
   // Cargar datos al montar el componente
   useEffect(() => {
     loadSoldVehicles()
-  }, [calculatePriority, sortVehicles])
+  }, []) // Removed dependencies to prevent constant re-execution
 
   // Función para actualizar manualmente
   const handleRefresh = async () => {
@@ -440,22 +442,59 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
 
     // Resetear a la primera página cuando cambia el filtro
     setCurrentPage(1)
-  }, [searchQuery, vehicles, orValues, activeTab, sortVehicles])
+  }, [searchQuery, vehicles, orValues, activeTab]) // Removed sortVehicles dependency
 
   // Calcular los vehículos a mostrar según la página y el filtro de fechas
   const [showDateFilter, setShowDateFilter] = useState(false)
   const [dateFilter, setDateFilter] = useState<{ startDate: Date | null; endDate: Date | null }>({ startDate: null, endDate: null })
-  const filteredByDate = filteredVehicles.filter((vehicle) => {
-    if (!dateFilter.startDate && !dateFilter.endDate) return true
-    const saleDate = vehicle.sale_date ? new Date(vehicle.sale_date) : null
-    if (!saleDate) return false
-    if (dateFilter.startDate && saleDate < dateFilter.startDate) return false
-    if (dateFilter.endDate && saleDate > dateFilter.endDate) return false
-    return true
-  })
+  
+  // Memoizar el filtrado por fecha
+  const filteredByDate = useMemo(() => {
+    return filteredVehicles.filter((vehicle) => {
+      if (!dateFilter.startDate && !dateFilter.endDate) return true
+      const saleDate = vehicle.sale_date ? new Date(vehicle.sale_date) : null
+      if (!saleDate) return false
+      if (dateFilter.startDate && saleDate < dateFilter.startDate) return false
+      if (dateFilter.endDate && saleDate > dateFilter.endDate) return false
+      return true
+    })
+  }, [filteredVehicles, dateFilter.startDate, dateFilter.endDate])
+  
   const totalRows = filteredByDate.length
   const totalPages = Math.max(1, Math.ceil(totalRows / itemsPerPage))
-  const paginatedRows = filteredByDate.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+  
+  // Memoizar la paginación
+  const paginatedRows = useMemo(() => {
+    return filteredByDate.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+  }, [filteredByDate, currentPage, itemsPerPage])
+  
+  // Memoizar el conteo de columnas visibles
+  const visibleColumnCount = useMemo(() => {
+    return (
+      1 + // Priority
+      1 + // License Plate
+      1 + // Model
+      (hiddenColumns.brand ? 0 : 1) + // Brand
+      1 + // Type
+      (hiddenColumns.dealershipCode ? 0 : 1) + // Dealership
+      (hiddenColumns.price ? 0 : 1) + // Price
+      (hiddenColumns.saleDate ? 0 : 1) + // Sale Date
+      1 + // Advisor
+      1 + // Days
+      1 + // OR
+      1 + // Expense Charge
+      (hiddenColumns.paymentMethod ? 0 : 1) + // Payment Method
+      (hiddenColumns.bank ? 0 : 1) + // Bank
+      1 + // Payment Status
+      (hiddenColumns.documentType ? 0 : 1) + // Document Type
+      (hiddenColumns.clientDni ? 0 : 1) + // Client DNI
+      1 + // CyP
+      1 + // 360º
+      1 + // Validated
+      1 + // Peritado/PDF
+      1 // Pre-entrega
+    )
+  }, [hiddenColumns])
 
   // Función para obtener los números de página a mostrar
   const getPageNumbers = () => {
@@ -470,7 +509,9 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
   }
 
   // Resetear página si cambia el filtro o el tamaño
-  useEffect(() => { setCurrentPage(1) }, [itemsPerPage, filteredByDate])
+  useEffect(() => { 
+    setCurrentPage(1) 
+  }, [itemsPerPage, filteredByDate.length]) // Use length instead of full array
 
   // Función para cambiar de página
   const goToPage = (page: number) => {
@@ -481,6 +522,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
 
   // Función para actualizar el estado de pago
   async function updatePaymentStatus(id: string, status: string) {
+    setSelectedRowId(id)
     setUpdatingId(id)
     try {
       // Encontrar el vehículo actual
@@ -532,6 +574,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
 
   // Función para actualizar el estado de CyP
   async function updateCypStatus(id: string, currentStatus?: string) {
+    setSelectedRowId(id)
     setUpdatingId(id)
     let newStatus: string
 
@@ -639,6 +682,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
 
   // Función para actualizar el estado de 360º
   async function update360Status(id: string, currentStatus?: string) {
+    setSelectedRowId(id)
     setUpdatingId(id)
     let newStatus: string
 
@@ -746,6 +790,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
 
   // Función para validar un vehículo
   async function toggleValidation(id: string, currentValidated?: boolean) {
+    setSelectedRowId(id)
     setUpdatingId(id)
     const now = new Date().toISOString()
 
@@ -825,6 +870,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
 
   // Función para actualizar el centro de pre-entrega
   async function updateDeliveryCenter(id: string, center: string) {
+    setSelectedRowId(id)
     setUpdatingId(id)
 
     try {
@@ -906,6 +952,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
       return
     }
 
+    setSelectedRowId(id)
     setUpdatingId(id)
 
     try {
@@ -961,6 +1008,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
 
   // Manejar edición del campo OR
   const handleOREdit = (id: string) => {
+    setSelectedRowId(id)
     setEditingOR(id)
     // Usar un timeout para asegurar que el input esté listo
     setTimeout(() => {
@@ -978,6 +1026,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
   // Guardar valor del campo OR
   const handleORSave = async (id: string) => {
     try {
+      setSelectedRowId(id)
       setUpdatingId(id)
 
       const orValue = orValues[id] || "ORT"
@@ -1046,9 +1095,29 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
   }
 
   // Iniciar edición de una celda
-  const handleCellEdit = (id: string, field: string, currentValue: any) => {
-    if (!isAdmin) return // Solo administradores pueden editar todas las celdas
+  const handleRowClick = useCallback((vehicleId: string, event: React.MouseEvent) => {
+    // Evitar selección cuando se hace clic en elementos interactivos
+    const target = event.target as HTMLElement
+    if (
+      target.tagName === "BUTTON" ||
+      target.tagName === "INPUT" ||
+      target.getAttribute("role") === "combobox" ||
+      target.closest("button") ||
+      target.closest("input") ||
+      target.closest("[role='combobox']") ||
+      target.closest("span[onClick]")
+    ) {
+      return
+    }
 
+    setSelectedRowId(vehicleId)
+  }, [])
+
+  const handleCellEdit = useCallback((id: string, field: string, currentValue: any) => {
+    // Temporarily disabled admin check
+    // if (!isAdmin) return // Solo administradores pueden editar todas las celdas
+
+    setSelectedRowId(id)
     setEditingCell({ id, field })
     setEditingValue(currentValue !== null && currentValue !== undefined ? String(currentValue) : "")
 
@@ -1059,10 +1128,10 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
         editCellInputRef.current.select()
       }
     }, 100)
-  }
+  }, [])
 
   // Guardar el valor editado
-  const handleCellSave = async (id: string, field: string) => {
+  const handleCellSave = useCallback(async (id: string, field: string) => {
     setUpdatingId(id)
 
     try {
@@ -1149,20 +1218,20 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
       setEditingCell(null)
       setUpdatingId(null)
     }
-  }
+  }, [editingValue, vehicles, filteredVehicles, calculatePriority, sortVehicles])
 
   // Manejar teclas en el input de edición
-  const handleCellKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, id: string, field: string) => {
+  const handleCellKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>, id: string, field: string) => {
     if (e.key === "Enter") {
       e.preventDefault()
       handleCellSave(id, field)
     } else if (e.key === "Escape") {
       setEditingCell(null)
     }
-  }
+  }, [handleCellSave])
 
   // Renderizar celda editable
-  const renderEditableCell = (
+  const renderEditableCell = useMemo(() => (
     vehicle: SoldVehicle,
     field: string,
     currentValue: any,
@@ -1178,7 +1247,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
           onChange={(e) => setEditingValue(e.target.value)}
           onBlur={() => handleCellSave(vehicle.id, field)}
           onKeyDown={(e) => handleCellKeyDown(e, vehicle.id, field)}
-          className="h-6 text-sm bg-background" // Added bg-background
+          className="h-6 text-sm bg-background"
           autoFocus
         />
       )
@@ -1188,15 +1257,15 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
       <div
         className={cn(
           "px-2 py-1 rounded hover:bg-muted/50 cursor-pointer",
-          isAdmin ? "border border-dashed border-transparent hover:border-muted-foreground/30" : "",
+          "border border-dashed border-transparent hover:border-muted-foreground/30"
         )}
-        onClick={() => isAdmin && handleCellEdit(vehicle.id, field, currentValue)}
-        title={isAdmin ? "Haz clic para editar" : undefined}
+        onClick={() => handleCellEdit(vehicle.id, field, currentValue)}
+        title="Haz clic para editar"
       >
         {displayValue}
       </div>
     )
-  }
+  }, [editingCell, editingValue, handleCellEdit, handleCellSave, handleCellKeyDown])
 
   const toggleHiddenColumns = () => {
     setHiddenColumns((prev) => ({
@@ -1228,30 +1297,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
     setCurrentPage(1) // Resetear a la primera página al cambiar el número de filas por página
   }
 
-  // Calcular el número de columnas visibles dinámicamente
-  const visibleColumnCount =
-    1 + // Priority
-    1 + // License Plate
-    1 + // Model
-    (hiddenColumns.brand ? 0 : 1) + // Brand
-    1 + // Type
-    (hiddenColumns.dealershipCode ? 0 : 1) + // Dealership
-    (hiddenColumns.price ? 0 : 1) + // Price
-    (hiddenColumns.saleDate ? 0 : 1) + // Sale Date
-    1 + // Advisor
-    1 + // Days
-    1 + // OR
-    1 + // Expense Charge
-    (hiddenColumns.paymentMethod ? 0 : 1) + // Payment Method
-    (hiddenColumns.bank ? 0 : 1) + // Bank
-    1 + // Payment Status
-    (hiddenColumns.documentType ? 0 : 1) + // Document Type
-    (hiddenColumns.clientDni ? 0 : 1) + // Client DNI
-    1 + // CyP
-    1 + // 360º
-    1 + // Validated
-    1 + // Peritado/PDF
-    1 // Pre-entrega
+  // Calcular el número de columnas visibles dinámicamente - REMOVIDO (ahora memoizado arriba)
 
   // Justo antes del return (
   const quickFilters = [
@@ -1265,48 +1311,14 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
   return (
     <TooltipProvider>
       <div className="space-y-4 p-2">
-        {isAdmin && (
-          <div className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 text-sm p-2 mb-2 rounded-md flex items-center">
-            <span className="mr-1">🔧</span>
-            <span>Modo administrador: Haz clic en cualquier celda para editarla directamente</span>
-          </div>
-        )}
-        {/* Estilos para las animaciones personalizadas */}
-        <style jsx global>{`
-        @keyframes priorityPulseHigh {
-          0%,
-          100% {
-            transform: scale(0.7);
-            opacity: 0.9;
-          }
-          50% {
-            transform: scale(1);
-            opacity: 1;
-          }
-          }
-        @keyframes priorityPulseMedium {
-          0%,
-          100% {
-            transform: scale(0.7);
-            opacity: 0.9;
-          }
-          50% {
-            transform: scale(1);
-            opacity: 1;
-          }
-        }
-        @keyframes priorityPulseLow {
-          0%,
-          100% {
-            transform: scale(0.7);
-            opacity: 0.9;
-          }
-          50% {
-            transform: scale(1);
-            opacity: 1;
-          }
-        }
-      `}</style>
+                {/* Temporarily disabled admin check
+          {isAdmin && (
+            <div className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 text-sm p-2 mb-2 rounded-md flex items-center">
+              <span className="mr-1">🔧</span>
+              <span>Modo administrador: Haz clic en cualquier celda para editarla directamente</span>
+            </div>
+          )}
+          */}
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as VehicleTab)} className="w-full">
           {/* Barra superior con buscador y pestañas en la misma línea */}
           <div className="flex flex-wrap items-center justify-between gap-2 bg-card rounded-lg p-2 shadow-sm mb-4">
@@ -1331,34 +1343,31 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
               >
                 {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
               </Button>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant={dateFilter.startDate || dateFilter.endDate ? "outline" : "outline"}
-                  size="icon"
-                  onClick={() => setShowDateFilter(true)}
-                  className={dateFilter.startDate || dateFilter.endDate
-                    ? "h-9 w-9 border border-blue-500 text-blue-300 bg-transparent shadow-[0_0_0_2px_rgba(59,130,246,0.2)]"
-                    : "h-9 w-9"}
-                  title="Filtrar por fecha"
-                >
-                  <Calendar className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={toggleHiddenColumns}
-                  className="h-9 w-9"
-                  title="Mostrar/ocultar columnas"
-                >
-                  {Object.values(hiddenColumns).every((value) => !value) ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
+              <Button
+                variant={dateFilter.startDate || dateFilter.endDate ? "outline" : "outline"}
+                size="icon"
+                onClick={() => setShowDateFilter(true)}
+                className={dateFilter.startDate || dateFilter.endDate
+                  ? "h-9 w-9 border border-blue-500 text-blue-300 bg-transparent shadow-[0_0_0_2px_rgba(59,130,246,0.2)]"
+                  : "h-9 w-9"}
+                title="Filtrar por fecha"
+              >
+                <Calendar className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={toggleHiddenColumns}
+                className="h-9 w-9"
+                title="Mostrar/ocultar columnas"
+              >
+                {Object.values(hiddenColumns).every((value) => !value) ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </Button>
             </div>
-
             <TabsList className="h-9 bg-muted/50">
               <TabsTrigger value="car" className="px-3 py-1 h-7 data-[state=active]:bg-background">
                 <Car className="h-3.5 w-3.5 mr-1" />
@@ -1453,7 +1462,15 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                       paginatedRows.map((vehicle, index) => (
                         <TableRow
                           key={vehicle.id}
-                          className={cn("h-8 hover:bg-muted/30", index % 2 === 0 ? "bg-black/5 dark:bg-black/20" : "")}
+                          className={cn(
+                            "transition-all duration-300 ease-in-out cursor-pointer border-b relative",
+                            index % 2 === 0 ? "bg-background" : "bg-muted/10",
+                            selectedRowId === vehicle.id 
+                              ? "border-2 border-primary shadow-md ring-2 ring-primary/20" 
+                              : "hover:bg-muted/30"
+                          )}
+                          data-selected={selectedRowId === vehicle.id}
+                          onClick={(e) => handleRowClick(vehicle.id, e)}
                         >
                           {/* PRIORIDAD */}
                           <TableCell className="py-1 px-1 w-6">
@@ -1466,11 +1483,11 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                                     className={cn(
                                       "rounded-full relative z-10",
                                       vehicle.priority >= 40
-                                        ? "animate-[priorityPulseHigh_1.5s_ease-in-out_infinite]"
+                                        ? "animate-[priorityPulseHigh_2s_ease-in-out_infinite]"
                                         : vehicle.priority >= 20
-                                          ? "animate-[priorityPulseMedium_2.5s_ease-in-out_infinite]"
+                                          ? "animate-[priorityPulseMedium_3s_ease-in-out_infinite]"
                                           : vehicle.priority > 0
-                                            ? "animate-[priorityPulseLow_4s_ease-in-out_infinite]"
+                                            ? "animate-[priorityPulseLow_5s_ease-in-out_infinite]"
                                             : "",
                                       getPriorityColor(vehicle.priority || 0),
                                     )}
@@ -1483,12 +1500,13 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                                   {vehicle.priority > 0 && (
                                     <div
                                       className={cn(
-                                        "absolute top-0 left-0 rounded-full animate-ping opacity-75",
+                                        "absolute top-0 left-0 rounded-full animate-ping opacity-50",
                                         getPriorityColor(vehicle.priority || 0),
                                       )}
                                       style={{
                                         width: vehicle.priority && vehicle.priority > 0 ? "10px" : "8px",
                                         height: vehicle.priority && vehicle.priority > 0 ? "10px" : "8px",
+                                        animationDuration: vehicle.priority >= 40 ? "2s" : vehicle.priority >= 20 ? "3s" : "4s",
                                       }}
                                     />
                                   )}

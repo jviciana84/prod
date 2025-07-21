@@ -1,0 +1,58 @@
+@keyframes priorityPulseHigh {
+  0%,
+  100% {
+    transform: scale(0.7);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes priorityPulseMedium {
+  0%,
+  100% {
+    transform: scale(0.7);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes priorityPulseLow {
+  0%,
+  100% {
+    transform: scale(0.7);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Estilos para filas seleccionadas */
+tr[data-selected="true"] {
+  position: relative;
+}
+
+tr[data-selected="true"]::after {
+  content: '';
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  width: 8px;
+  height: 8px;
+  background-color: hsl(var(--primary));
+  border-radius: 50%;
+  z-index: 10;
+}
+
+/* Borde lateral en la primera celda */
+tr[data-selected="true"] td:first-child {
+  border-left: 4px solid hsl(var(--primary));
+  padding-left: calc(1rem - 4px);
+} 
