@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
 
     // Actualizar el material
     const { data: updatedMaterial, error: updateError } = await supabase
-      .from("docuware_request_materials")
+      .from("key_document_materials")
       .update({ 
         selected: selected !== undefined ? selected : true,
         observations: observations || ''
@@ -36,10 +36,10 @@ export async function POST(request: NextRequest) {
 
     // Obtener la solicitud completa para verificar si todos los materiales están completados
     const { data: docuwareRequest, error: requestError } = await supabase
-      .from("docuware_requests")
+      .from("key_document_requests")
       .select(`
         *,
-        docuware_request_materials (
+        key_document_materials (
           id,
           material_type,
           material_label,
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
           observations
         )
       `)
-      .eq("id", updatedMaterial.docuware_request_id)
+      .eq("id", updatedMaterial.key_document_request_id)
       .single()
 
     if (requestError) {
@@ -56,14 +56,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar si todos los materiales están seleccionados
-    const allMaterialsSelected = docuwareRequest.docuware_request_materials.every(
+    const allMaterialsSelected = docuwareRequest.key_document_materials.every(
       (material: any) => material.selected
     )
 
     // Si todos los materiales están seleccionados, actualizar el estado de la solicitud
     if (allMaterialsSelected) {
       const { error: statusError } = await supabase
-        .from("docuware_requests")
+        .from("key_document_requests")
         .update({ status: 'completed' })
         .eq("id", docuwareRequest.id)
 

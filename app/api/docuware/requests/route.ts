@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
     // Obtener solo las solicitudes básicas
     const { data: requests, error } = await supabase
-      .from("docuware_requests")
+      .from("key_document_requests")
       .select("*")
       .order("created_at", { ascending: false })
 
@@ -32,9 +32,9 @@ export async function GET(request: NextRequest) {
     if (requests) {
       for (const request of requests) {
         const { data: materials, error: materialsError } = await supabase
-          .from("docuware_request_materials")
+          .from("key_document_materials")
           .select("*")
-          .eq("docuware_request_id", request.id)
+          .eq("key_document_request_id", request.id)
         
         if (materialsError) {
           console.error(`❌ Error obteniendo materiales para ${request.id}:`, materialsError)
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
         
         requestsWithMaterials.push({
           ...request,
-          docuware_request_materials: materials || []
+          key_document_materials: materials || []
         })
       }
     }
@@ -87,10 +87,10 @@ export async function POST(request: NextRequest) {
 
       // Obtener la solicitud
       const { data: request, error: requestError } = await supabase
-        .from("docuware_requests")
+        .from("key_document_requests")
         .select(`
           *,
-          docuware_request_materials!inner (
+          key_document_materials!inner (
             id,
             material_type,
             material_label,
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
           )
         `)
         .eq("id", requestIdPart)
-        .eq("docuware_request_materials.material_type", materialType)
+        .eq("key_document_materials.material_type", materialType)
         .single()
 
       if (requestError || !request) {
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Crear movimiento en el sistema de llaves
-      const material = request.docuware_request_materials[0]
+      const material = request.key_document_materials[0]
       
       if (!material) {
         console.warn(`⚠️ No se encontró material para ${requestId}`)
@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
 
       // Actualizar estado de la solicitud
       const { error: updateError } = await supabase
-        .from("docuware_request_materials")
+        .from("key_document_materials")
         .update({ selected: false })
         .eq("id", material.id)
 

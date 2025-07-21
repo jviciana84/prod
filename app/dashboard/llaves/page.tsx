@@ -30,10 +30,8 @@ export default function KeysManagementPage() {
   const [vehiclesForDisplay, setVehiclesForDisplay] = useState<any[]>([])
   const [externalVehicles, setExternalVehicles] = useState<any[]>([])
   const [docuwareModalOpen, setDocuwareModalOpen] = useState(false);
-  const [docuwareSyncing, setDocuwareSyncing] = useState(false);
   const [pendingDocuwareRequests, setPendingDocuwareRequests] = useState(0);
   const [circulationPermitModalOpen, setCirculationPermitModalOpen] = useState(false);
-  const [circulationPermitSyncing, setCirculationPermitSyncing] = useState(false);
   const [pendingCirculationPermitRequests, setPendingCirculationPermitRequests] = useState(0);
   const supabase = createClientComponentClient()
 
@@ -109,23 +107,23 @@ export default function KeysManagementPage() {
     loadPageData()
   }, [loadPageData])
 
-  // Cargar solicitudes Docuware pendientes
+  // Cargar solicitudes de llaves y documentos pendientes
   useEffect(() => {
     const loadPendingRequests = async () => {
       try {
         const { data, error } = await supabase
-          .from("docuware_requests")
-          .select("id, docuware_request_materials!inner(id, selected)")
+          .from("key_document_requests")
+          .select("id, key_document_materials!inner(id, selected)")
           .eq("status", "pending")
         
         if (error) {
-          console.error("Error cargando solicitudes Docuware:", error)
+          console.error("Error cargando solicitudes de llaves y documentos:", error)
           return
         }
         
         // Contar solicitudes con materiales no seleccionados
         const pendingCount = data?.filter(request => 
-          request.docuware_request_materials.some(material => !material.selected)
+          request.key_document_materials.some(material => !material.selected)
         ).length || 0
         
         setPendingDocuwareRequests(pendingCount)
@@ -166,29 +164,13 @@ export default function KeysManagementPage() {
   }, [supabase])
 
   const handleOpenDocuwareModal = async () => {
-    setDocuwareSyncing(true);
-    try {
-      await fetch("/api/process-emails");
-      setDocuwareModalOpen(true);
-    } catch (e) {
-      toast.error("Error al sincronizar mails");
-      setDocuwareModalOpen(true);
-    } finally {
-      setDocuwareSyncing(false);
-    }
+    setDocuwareModalOpen(true);
   };
 
   const handleOpenCirculationPermitModal = async () => {
-    setCirculationPermitSyncing(true);
-    try {
-      await fetch("/api/circulation-permit/sync-requests", { method: "POST" });
-      setCirculationPermitModalOpen(true);
-    } catch (e) {
-      toast.error("Error al sincronizar solicitudes");
-      setCirculationPermitModalOpen(true);
-    } finally {
-      setCirculationPermitSyncing(false);
-    }
+    // Ahora abre el modal directamente sin sincronización manual
+    // La sincronización se hace automáticamente con el trigger
+    setCirculationPermitModalOpen(true);
   };
 
   return (
@@ -225,10 +207,9 @@ export default function KeysManagementPage() {
                     size="sm"
                     className="flex items-center gap-2 relative"
                     onClick={handleOpenDocuwareModal}
-                    disabled={docuwareSyncing}
                   >
                     <Key className="h-4 w-4" />
-                    {docuwareSyncing ? "Sincronizando..." : "Solicitudes Docuware"}
+                    Solicitudes de Llaves y Documentos
                     {pendingDocuwareRequests > 0 && (
                       <span className="absolute -top-2 -right-2 h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse">
                         <span className="absolute inset-0 rounded-full bg-red-400 opacity-75 animate-ping"></span>
@@ -240,10 +221,9 @@ export default function KeysManagementPage() {
                     size="sm"
                     className="flex items-center gap-2 relative"
                     onClick={handleOpenCirculationPermitModal}
-                    disabled={circulationPermitSyncing}
                   >
                     <FileText className="h-4 w-4" />
-                    {circulationPermitSyncing ? "Sincronizando..." : "Permiso de circulación"}
+                    Permiso de circulación
                     {pendingCirculationPermitRequests > 0 && (
                       <span className="absolute -top-2 -right-2 h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse">
                         <span className="absolute inset-0 rounded-full bg-red-400 opacity-75 animate-ping"></span>

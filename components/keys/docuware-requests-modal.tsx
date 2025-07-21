@@ -37,15 +37,15 @@ try {
 
 interface DocuwareRequest {
   id: string
-  email_subject: string
-  email_body: string
+  email_subject?: string | null
+  email_body?: string | null
   license_plate: string
   requester: string
   request_date: string
   status: "pending" | "confirmed" | "completed"
   observations?: string
   receiver_alias?: string // Nuevo campo para el alias del receptor
-  docuware_request_materials: Array<{
+  key_document_materials: Array<{
     id: string
     material_type: string
     material_label: string
@@ -75,6 +75,8 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
   const [confirming, setConfirming] = useState(false)
   const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]) // Cambio: seleccionar materiales, no solicitudes
   const [activeTab, setActiveTab] = useState("second_keys")
+  const [secondKeySubTab, setSecondKeySubTab] = useState("pending")
+  const [technicalSheetSubTab, setTechnicalSheetSubTab] = useState("pending")
   const [receiverProfiles, setReceiverProfiles] = useState<Record<string, any>>({})
   const [refreshing, setRefreshing] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
@@ -92,6 +94,8 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
       setRequests([]);
       setSelectedMaterials([]);
       setSearchTerm("");
+      setSecondKeySubTab("pending");
+      setTechnicalSheetSubTab("pending");
     }
   }, [open])
 
@@ -122,7 +126,7 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
     if (e.key === 'Enter' && searchSuggestions.length > 0) {
       e.preventDefault()
       const firstSuggestion = searchSuggestions[0]
-      const mainMaterial = firstSuggestion.docuware_request_materials?.find(m => 
+      const mainMaterial = firstSuggestion.key_document_materials?.find(m => 
         m.material_type === (activeTab === "second_keys" ? "second_key" : "technical_sheet")
       )
       
@@ -150,7 +154,7 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
 
   // Función para seleccionar sugerencia con clic
   const handleSuggestionClick = (request: DocuwareRequest) => {
-    const mainMaterial = request.docuware_request_materials?.find(m => 
+    const mainMaterial = request.key_document_materials?.find(m => 
       m.material_type === (activeTab === "second_keys" ? "second_key" : "technical_sheet")
     )
     
@@ -187,11 +191,11 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
       const profilesMap: Record<string, { id: string, full_name: string, avatar_url: string }> = {};
 
       for (const alias of aliasSet) {
-        // Primero: buscar por alias exacto (case-insensitive)
+        // Primero: buscar por nombre completo exacto (case-insensitive)
         const { data, error } = await supabase
           .from("profiles")
           .select("id, alias, full_name, avatar_url")
-          .ilike("alias", alias);
+          .ilike("full_name", alias);
 
         if (!error && data && data.length > 0) {
           profilesMap[alias] = {
@@ -202,11 +206,26 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
           continue;
         }
 
-        // Segundo: buscar por similitud en alias
+        // Segundo: buscar por alias exacto (case-insensitive)
+        const { data: aliasData, error: aliasError } = await supabase
+          .from("profiles")
+          .select("id, alias, full_name, avatar_url")
+          .ilike("alias", alias);
+
+        if (!aliasError && aliasData && aliasData.length > 0) {
+          profilesMap[alias] = {
+            id: aliasData[0].id,
+            full_name: aliasData[0].full_name,
+            avatar_url: aliasData[0].avatar_url
+          };
+          continue;
+        }
+
+        // Tercero: buscar por similitud en nombre completo
         const { data: similarData, error: similarError } = await supabase
           .from("profiles")
           .select("id, alias, full_name, avatar_url")
-          .ilike("alias", `%${alias}%`);
+          .ilike("full_name", `%${alias}%`);
 
         if (!similarError && similarData && similarData.length > 0) {
           profilesMap[alias] = {
@@ -217,22 +236,22 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
           continue;
         }
 
-        // Tercero: buscar por nombre completo que contenga el alias
-        const { data: nameData, error: nameError } = await supabase
+        // Cuarto: buscar por similitud en alias
+        const { data: aliasSimilarData, error: aliasSimilarError } = await supabase
           .from("profiles")
           .select("id, alias, full_name, avatar_url")
-          .ilike("full_name", `%${alias}%`);
+          .ilike("alias", `%${alias}%`);
 
-        if (!nameError && nameData && nameData.length > 0) {
+        if (!aliasSimilarError && aliasSimilarData && aliasSimilarData.length > 0) {
           profilesMap[alias] = {
-            id: nameData[0].id,
-            full_name: nameData[0].full_name,
-            avatar_url: nameData[0].avatar_url
+            id: aliasSimilarData[0].id,
+            full_name: aliasSimilarData[0].full_name,
+            avatar_url: aliasSimilarData[0].avatar_url
           };
           continue;
         }
 
-        // Cuarto: buscar por email que contenga el alias
+        // Quinto: buscar por email que contenga el alias
         const { data: emailData, error: emailError } = await supabase
           .from("profiles")
           .select("id, alias, full_name, avatar_url")
@@ -287,7 +306,7 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
     setRequests(prev => {
       const updatedRequests = prev.map(request => ({
         ...request,
-        docuware_request_materials: request.docuware_request_materials?.map(material => 
+        key_document_materials: request.key_document_materials?.map(material => 
           registeredMaterialIds.includes(material.id)
             ? { ...material, selected: true }
             : material
@@ -332,7 +351,7 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
       request.id === requestId 
         ? {
             ...request,
-            docuware_request_materials: request.docuware_request_materials.map(material =>
+            key_document_materials: request.key_document_materials.map(material =>
               material.id === materialId 
                 ? { ...material, observations }
                 : material
@@ -415,7 +434,7 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
       const selectedMaterialsData = [];
       
       for (const request of requests) {
-        for (const material of request.docuware_request_materials) {
+        for (const material of request.key_document_materials) {
           if (selectedMaterials.includes(material.id)) {
             // Añadir el material principal
             selectedMaterialsData.push({
@@ -426,7 +445,7 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
             // Añadir automáticamente Card Key si se selecciona una 2ª llave
             if (material.material_type === "second_key") {
               // Buscar Card Key (seleccionado o no) para añadir automáticamente
-              const cardKeyMaterial = request.docuware_request_materials.find(m => 
+              const cardKeyMaterial = request.key_document_materials.find(m => 
                 m.material_type === "card_key"
               );
               
@@ -789,18 +808,7 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
       return
     }
 
-    // Función para parsear el asunto
-    const parseSubject = (subject: string) => {
-      const parts = subject.split(" || ")
-      if (parts.length >= 4) {
-        return {
-          license_plate: parts[0].replace("Nuevo pedido ", ""),
-          date: parts[1],
-          requester: parts[3]
-        }
-      }
-      return { license_plate: "", date: "", requester: "" }
-    }
+
 
     // Función para filtrar materiales a imprimir
     const filterMaterialsToPrint = (materials: any[]) => {
@@ -847,16 +855,15 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
     `
 
     pendingRequests.forEach((request, index) => {
-      const parsed = parseSubject(request.email_subject)
-      const materials = filterMaterialsToPrint(request.docuware_request_materials || [])
+      const materials = filterMaterialsToPrint(request.key_document_materials || [])
       const mainType = activeTab === "second_keys" ? "second_key" : "technical_sheet"
       
       htmlContent += `
         <div class="request">
-          <h3>Solicitud ${index + 1}: ${parsed.license_plate}</h3>
-          <div class="info"><strong>Matrícula:</strong> ${parsed.license_plate}</div>
-          <div class="info"><strong>Fecha:</strong> ${parsed.date}</div>
-          <div class="info"><strong>Solicitante:</strong> ${parsed.requester}</div>
+          <h3>Solicitud ${index + 1}: ${request.license_plate}</h3>
+          <div class="info"><strong>Matrícula:</strong> ${request.license_plate}</div>
+          <div class="info"><strong>Fecha:</strong> ${request.request_date}</div>
+          <div class="info"><strong>Solicitante:</strong> ${request.requester}</div>
           <div class="info"><strong>Estado:</strong> ${request.status === 'pending' ? 'Pendiente' : 'Completado'}</div>
           
           <div class="materials">
@@ -933,44 +940,34 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
     }
   }
 
-  const parseSubject = (subject: string) => {
-    const parts = subject.split(" || ")
-    if (parts.length >= 4) {
-      return {
-        license_plate: parts[0].replace("Nuevo pedido ", ""),
-        date: parts[1],
-        requester: parts[3]
-      }
-    }
-    return { license_plate: "", date: "", requester: "" }
-  }
+
 
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
   }
 
-  // Filtrar solicitudes por tipo de material
+  // Filtrar solicitudes por tipo de material (TODAS las que tengan el material, sin importar estado)
   const secondKeyRequests = requests.filter(request => 
-    request.docuware_request_materials?.some(m => 
-      m.material_type === "second_key" && !m.selected
+    request.key_document_materials?.some(m => 
+      m.material_type === "second_key"
     ) || false
   )
   
   const technicalSheetRequests = requests.filter(request => 
-    request.docuware_request_materials?.some(m => 
-      m.material_type === "technical_sheet" && !m.selected
+    request.key_document_materials?.some(m => 
+      m.material_type === "technical_sheet"
     ) || false
   )
   
   // Calcular materiales pendientes de forma más precisa
   const pendingSecondKeyMaterials = requests.flatMap(request => 
-    request.docuware_request_materials?.filter(m => 
+    request.key_document_materials?.filter(m => 
       m.material_type === "second_key" && !m.selected
     ) || []
   )
   
   const pendingTechnicalSheetMaterials = requests.flatMap(request => 
-    request.docuware_request_materials?.filter(m => 
+    request.key_document_materials?.filter(m => 
       m.material_type === "technical_sheet" && !m.selected
     ) || []
   )
@@ -981,7 +978,7 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
   console.log("🔍 Debug modal - Pending fichas técnicas:", pendingTechnicalSheetMaterials.length)
   console.log("🔍 Debug modal - Requests data:", requests.map(r => ({
     id: r.id,
-    materials: r.docuware_request_materials?.map(m => ({
+    materials: r.key_document_materials?.map(m => ({
       type: m.material_type,
       selected: m.selected
     }))
@@ -998,8 +995,7 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
   }
 
   const renderRequestCard = (request: DocuwareRequest, currentTab: string) => {
-    const parsed = parseSubject(request.email_subject)
-    const materials = request.docuware_request_materials || []
+    const materials = request.key_document_materials || []
     
     // Filtrar materiales según la pestaña actual
     const mainMaterial = materials.find(m => 
@@ -1030,8 +1026,8 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
               {/* Matrícula y avatares */}
               <div className="flex items-center gap-3">
                 <div className="text-center">
-                  <div className="font-bold text-lg">{parsed.license_plate}</div>
-                  <div className="text-xs text-muted-foreground">{parsed.date}</div>
+                  <div className="font-bold text-lg">{request.license_plate}</div>
+                  <div className="text-xs text-muted-foreground">{request.request_date}</div>
                 </div>
                 
                 {/* Avatar entrega: SIEMPRE usuario logado */}
@@ -1156,7 +1152,7 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-blue-500" />
-            Solicitudes Docuware
+            Solicitudes de Llaves y Documentos
           </DialogTitle>
         </DialogHeader>
 
@@ -1253,7 +1249,7 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
                         {showSuggestions && searchSuggestions.length > 0 && (
                           <div className="absolute top-full left-0 right-0 bg-background border border-border rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
                             {searchSuggestions.map((request) => {
-                              const mainMaterial = request.docuware_request_materials?.find(m => 
+                              const mainMaterial = request.key_document_materials?.find(m => 
                                 m.material_type === (activeTab === "second_keys" ? "second_key" : "technical_sheet")
                               )
                               const isSelected = mainMaterial ? selectedMaterials.includes(mainMaterial.id) : false
@@ -1292,29 +1288,29 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
                       </div>
                     </div>
                   </Card>
-                  <Tabs defaultValue="pending" className="w-auto">
+                  <Tabs value={secondKeySubTab} onValueChange={setSecondKeySubTab} className="w-auto">
                     <TabsList className="grid w-auto grid-cols-2">
                       <TabsTrigger value="pending">
                         Pendientes ({secondKeyRequests.filter(r => 
-                          r.docuware_request_materials?.some(m => m.material_type === "second_key" && !m.selected)
+                          r.key_document_materials?.some(m => m.material_type === "second_key" && !m.selected)
                         ).length})
                       </TabsTrigger>
                       <TabsTrigger value="completed">
                         Completados ({secondKeyRequests.filter(r => 
-                          r.docuware_request_materials?.some(m => m.material_type === "second_key" && m.selected)
+                          r.key_document_materials?.some(m => m.material_type === "second_key" && m.selected)
                         ).length})
                       </TabsTrigger>
                     </TabsList>
                   </Tabs>
                 </div>
 
-                <Tabs defaultValue="pending" className="w-full">
+                <Tabs value={secondKeySubTab} onValueChange={setSecondKeySubTab} className="w-full">
                   <TabsContent value="pending" className="space-y-3 mt-4">
                     {secondKeyRequests.filter(r => 
-                      r.docuware_request_materials?.some(m => m.material_type === "second_key" && !m.selected)
+                      r.key_document_materials?.some(m => m.material_type === "second_key" && !m.selected)
                     ).length > 0 ? (
                       secondKeyRequests
-                        .filter(r => r.docuware_request_materials?.some(m => m.material_type === "second_key" && !m.selected))
+                        .filter(r => r.key_document_materials?.some(m => m.material_type === "second_key" && !m.selected))
                         .map(request => renderRequestCard(request, "second_keys"))
                     ) : (
                       <div className="text-center py-8 text-muted-foreground">
@@ -1326,10 +1322,10 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
 
                   <TabsContent value="completed" className="space-y-3 mt-4">
                     {secondKeyRequests.filter(r => 
-                      r.docuware_request_materials?.some(m => m.material_type === "second_key" && m.selected)
+                      r.key_document_materials?.some(m => m.material_type === "second_key" && m.selected)
                     ).length > 0 ? (
                       secondKeyRequests
-                        .filter(r => r.docuware_request_materials?.some(m => m.material_type === "second_key" && m.selected))
+                        .filter(r => r.key_document_materials?.some(m => m.material_type === "second_key" && m.selected))
                         .map(request => renderRequestCard(request, "second_keys"))
                     ) : (
                       <div className="text-center py-8 text-muted-foreground">
@@ -1362,7 +1358,7 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
                         {showSuggestions && searchSuggestions.length > 0 && (
                           <div className="absolute top-full left-0 right-0 bg-background border border-border rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
                             {searchSuggestions.map((request) => {
-                              const mainMaterial = request.docuware_request_materials?.find(m => 
+                              const mainMaterial = request.key_document_materials?.find(m => 
                                 m.material_type === (activeTab === "second_keys" ? "second_key" : "technical_sheet")
                               )
                               const isSelected = mainMaterial ? selectedMaterials.includes(mainMaterial.id) : false
@@ -1401,29 +1397,29 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
                       </div>
                     </div>
                   </Card>
-                  <Tabs defaultValue="pending" className="w-auto">
+                  <Tabs value={technicalSheetSubTab} onValueChange={setTechnicalSheetSubTab} className="w-auto">
                     <TabsList className="grid w-auto grid-cols-2">
                       <TabsTrigger value="pending">
                         Pendientes ({technicalSheetRequests.filter(r => 
-                          r.docuware_request_materials?.some(m => m.material_type === "technical_sheet" && !m.selected)
+                          r.key_document_materials?.some(m => m.material_type === "technical_sheet" && !m.selected)
                         ).length})
                       </TabsTrigger>
                       <TabsTrigger value="completed">
                         Completados ({technicalSheetRequests.filter(r => 
-                          r.docuware_request_materials?.some(m => m.material_type === "technical_sheet" && m.selected)
+                          r.key_document_materials?.some(m => m.material_type === "technical_sheet" && m.selected)
                         ).length})
                       </TabsTrigger>
                     </TabsList>
                   </Tabs>
                 </div>
 
-                <Tabs defaultValue="pending" className="w-full">
+                <Tabs value={technicalSheetSubTab} onValueChange={setTechnicalSheetSubTab} className="w-full">
                   <TabsContent value="pending" className="space-y-3 mt-4">
                     {technicalSheetRequests.filter(r => 
-                      r.docuware_request_materials?.some(m => m.material_type === "technical_sheet" && !m.selected)
+                      r.key_document_materials?.some(m => m.material_type === "technical_sheet" && !m.selected)
                     ).length > 0 ? (
                       technicalSheetRequests
-                        .filter(r => r.docuware_request_materials?.some(m => m.material_type === "technical_sheet" && !m.selected))
+                        .filter(r => r.key_document_materials?.some(m => m.material_type === "technical_sheet" && !m.selected))
                         .map(request => renderRequestCard(request, "technical_sheets"))
                     ) : (
                       <div className="text-center py-8 text-muted-foreground">
@@ -1435,10 +1431,10 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
 
                   <TabsContent value="completed" className="space-y-3 mt-4">
                     {technicalSheetRequests.filter(r => 
-                      r.docuware_request_materials?.some(m => m.material_type === "technical_sheet" && m.selected)
+                      r.key_document_materials?.some(m => m.material_type === "technical_sheet" && m.selected)
                     ).length > 0 ? (
                       technicalSheetRequests
-                        .filter(r => r.docuware_request_materials?.some(m => m.material_type === "technical_sheet" && m.selected))
+                        .filter(r => r.key_document_materials?.some(m => m.material_type === "technical_sheet" && m.selected))
                         .map(request => renderRequestCard(request, "technical_sheets"))
                     ) : (
                       <div className="text-center py-8 text-muted-foreground">
