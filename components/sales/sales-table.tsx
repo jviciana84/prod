@@ -1399,7 +1399,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
 
   return (
     <TooltipProvider>
-      <div className="space-y-4 p-2">
+      <div className="space-y-4">
                 {/* Temporarily disabled admin check
           {isAdmin && (
             <div className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 text-sm p-2 mb-2 rounded-md flex items-center">

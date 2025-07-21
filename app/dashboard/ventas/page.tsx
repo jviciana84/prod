@@ -95,7 +95,7 @@ export default function VentasPage() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-4">
+        <CardContent className="p-6">
           <SalesTable key={refreshKey} onRefresh={handleRefresh} />
         </CardContent>
       </Card>
