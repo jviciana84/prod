@@ -23,7 +23,7 @@ export function RecogidasManager({ preselectedMatricula }: RecogidasManagerProps
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="vehiculos" className="flex items-center gap-2">
             <Package className="h-4 w-4" />
-            Vehículos para Recoger
+            Solicitar Recogidas
           </TabsTrigger>
           <TabsTrigger value="nueva" className="flex items-center gap-2">
             <Truck className="h-4 w-4" />
@@ -37,8 +37,12 @@ export function RecogidasManager({ preselectedMatricula }: RecogidasManagerProps
         
         <TabsContent value="vehiculos" className="mt-6">
           <VehiculosParaRecoger onSolicitarRecogida={(matricula) => {
-            setSelectedMatricula(matricula)
-            setActiveTab("nueva")
+            if (matricula) {
+              setSelectedMatricula(matricula)
+              setActiveTab("nueva")
+            } else {
+              setActiveTab("historial")
+            }
           }} />
         </TabsContent>
         

@@ -4,6 +4,8 @@ import { cookies } from "next/headers"
 
 export async function GET(request: NextRequest) {
   try {
+    console.log("=== INICIANDO VEHICLE-DATA API ===")
+    
     const cookieStore = await cookies()
     const supabase = await createServerClient()
 
@@ -14,47 +16,45 @@ export async function GET(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (userError || !user) {
+      console.log("Error de autenticación:", userError)
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
+
+    console.log("Usuario autenticado:", user.id)
 
     // Obtener matrícula de los parámetros
     const { searchParams } = new URL(request.url)
     const matricula = searchParams.get("matricula")
 
     if (!matricula) {
+      console.log("Matrícula no proporcionada")
       return NextResponse.json({ error: "Matrícula requerida" }, { status: 400 })
     }
 
-    // Buscar datos del vehículo en sales_vehicles
-    const { data: vehicleData, error } = await supabase
+    console.log("Buscando matrícula:", matricula.toUpperCase())
+
+    // Buscar datos del vehículo en sales_vehicles (única tabla con datos del cliente)
+    console.log("Consultando sales_vehicles...")
+    const { data: vehicleData, error: vehicleError } = await supabase
       .from("sales_vehicles")
       .select("*")
-      .eq("matricula", matricula.toUpperCase())
+      .eq("license_plate", matricula.toUpperCase())
       .single()
 
-    if (error) {
-      if (error.code === "PGRST116") {
-        // No se encontró el vehículo
+    console.log("Resultado sales_vehicles:", { data: vehicleData, error: vehicleError })
+
+    if (vehicleError) {
+      if (vehicleError.code === "PGRST116") {
+        console.log("Vehículo no encontrado en sales_vehicles")
         return NextResponse.json({ error: "Vehículo no encontrado" }, { status: 404 })
+      } else {
+        console.error("Error obteniendo datos del vehículo:", vehicleError)
+        return NextResponse.json({ error: "Error obteniendo datos del vehículo" }, { status: 500 })
       }
-      console.error("Error obteniendo datos del vehículo:", error)
-      return NextResponse.json({ error: "Error obteniendo datos del vehículo" }, { status: 500 })
     }
 
-    // Buscar también en la tabla entregas para obtener datos adicionales del cliente
-    const { data: entregaData } = await supabase
-      .from("entregas")
-      .select("client_name, client_address, client_postal_code, client_city, client_province, client_phone, client_email")
-      .eq("matricula", matricula.toUpperCase())
-      .single()
-
-    // Combinar datos del vehículo y entrega
-    const combinedData = {
-      ...vehicleData,
-      ...entregaData,
-    }
-
-    return NextResponse.json({ vehicleData: combinedData })
+    console.log("Datos del vehículo encontrados:", vehicleData)
+    return NextResponse.json({ vehicleData })
   } catch (error) {
     console.error("Error en GET /api/recogidas/vehicle-data:", error)
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })

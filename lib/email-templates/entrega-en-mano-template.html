@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmación de Entrega en Mano - CVO</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            background-color: #f5f5f5; 
+            margin: 0; 
+            padding: 20px 0; 
+        }
+        .container { 
+            width: 100%; 
+            max-width: 600px; 
+            margin: 20px auto; 
+            background-color: #ffffff; 
+            border-collapse: collapse; 
+            overflow: hidden; 
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12); 
+            border-radius: 8px; 
+        }
+        .header {
+            background-color: #3b82f6;
+            padding: 40px 0;
+            text-align: center;
+            color: #fff;
+            border-radius: 12px 12px 0 0;
+            font-size: 1.7em;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            margin-bottom: 0;
+            width: 100%;
+            text-transform: none;
+            box-sizing: border-box;
+        }
+        .header-title { 
+            color: #ffffff; 
+            font-size: 28px; 
+            font-weight: 700; 
+            margin: 0;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            letter-spacing: 0.5px;
+        }
+        .content { 
+            padding: 30px 20px; 
+            line-height: 1.6; 
+            color: #374151; 
+        }
+        .footer { 
+            background-color: #f9fafb; 
+            padding: 20px; 
+            text-align: center; 
+            border-top: 1px solid #e5e7eb; 
+        }
+        .footer-text { 
+            margin: 5px 0; 
+            font-size: 12px; 
+            color: #6b7280; 
+        }
+        .paragraph { 
+            margin: 15px 0; 
+            font-size: 16px; 
+            line-height: 1.5; 
+        }
+        .delivery-info {
+            background-color: #f8f9fa;
+            border-left: 4px solid #3b82f6;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .delivery-date {
+            font-size: 16px;
+            font-weight: bold;
+            color: #374151;
+            margin-bottom: 15px;
+        }
+        .materials-list {
+            background-color: #ffffff;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .materials-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #374151;
+            margin-bottom: 15px;
+        }
+        .material-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f1f3f4;
+        }
+        .material-item:last-child {
+            border-bottom: none;
+        }
+        .material-bullet {
+            width: 8px;
+            height: 8px;
+            background-color: #3b82f6;
+            border-radius: 50%;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+        .recipient-info {
+            background-color: #e8f5e8;
+            border: 1px solid #4caf50;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .recipient-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #374151;
+            margin-bottom: 10px;
+        }
+        .recipient-details {
+            color: #555;
+            line-height: 1.8;
+        }
+        .confirmation-section {
+            text-align: center;
+            margin: 30px 0;
+            padding: 30px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+        .confirmation-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #374151;
+            margin-bottom: 20px;
+        }
+        .confirm-button {
+            display: inline-block;
+            background-color: #4caf50;
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 16px;
+            margin: 10px;
+            border: none;
+            cursor: pointer;
+        }
+        .confirm-button:hover {
+            background-color: #45a049;
+        }
+        .alternative-link {
+            display: block;
+            margin-top: 15px;
+            color: #3b82f6;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .alternative-link:hover {
+            text-decoration: underline;
+        }
+        @media only screen and (max-width: 600px) {
+            .container {
+                margin: 0;
+                box-shadow: none;
+            }
+            .header, .content, .footer {
+                padding: 20px;
+            }
+            .header-title {
+                font-size: 20px;
+            }
+            .confirm-button {
+                display: block;
+                margin: 10px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <table class="container" role="presentation" cellspacing="0" cellpadding="0">
+        <tr>
+            <td class="header">
+                <h1 class="header-title">Confirmación de Entrega en Mano</h1>
+            </td>
+        </tr>
+        <tr>
+            <td class="content">
+                <p class="paragraph">
+                    Hola <strong>{{nombre_cliente}}</strong>,
+                </p>
+                
+                <div class="delivery-info">
+                    <div class="delivery-date">
+                        Hoy <strong>{{fecha_entrega}}</strong> a las <strong>{{hora_entrega}}</strong> se ha entregado:
+                    </div>
+                </div>
+                
+                <div class="materials-list">
+                    <div class="materials-title">Documentación Entregada:</div>
+                    {{materiales_content}}
+                </div>
+                
+                <div class="recipient-info">
+                    <div class="recipient-title">Entregado a:</div>
+                    <div class="recipient-details">
+                        <strong>{{nombre_recoge}}</strong><br>
+                        {{#dni_recoge}}DNI: {{dni_recoge}}<br>{{/dni_recoge}}
+                        Email: {{email_recoge}}
+                    </div>
+                </div>
+                
+                <div class="confirmation-section">
+                    <div class="confirmation-title">
+                        Confirma que has recibido la documentación
+                    </div>
+                    <a href="{{confirmacion_url}}" class="confirm-button">
+                        Confirmar Recepción
+                    </a>
+                    <a href="{{confirmacion_url}}" class="alternative-link">
+                        Si el botón no funciona, haz clic aquí
+                    </a>
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <td class="footer">
+                <p class="footer-text">Sistema de Gestión - CVO</p>
+                <p class="footer-text">Este es un mensaje automático, por favor no responda a este email</p>
+                <p class="footer-text">&copy; 2025 CVO. Todos los derechos reservados.</p>
+            </td>
+        </tr>
+    </table>
+</body>
+</html> 

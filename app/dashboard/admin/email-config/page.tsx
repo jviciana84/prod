@@ -41,9 +41,19 @@ export default function EmailConfigPage() {
     enabled: true,
     cc_emails: [],
   })
-  const [recogidasConfig, setRecogidasConfig] = useState<{ enabled: boolean; email_agencia: string; cc_emails: string[] }>({
+  const [recogidasConfig, setRecogidasConfig] = useState<{ 
+    enabled: boolean; 
+    email_agencia: string; 
+    email_remitente: string;
+    nombre_remitente: string;
+    asunto_template: string;
+    cc_emails: string[] 
+  }>({
     enabled: true,
     email_agencia: "recogidas@mrw.es",
+    email_remitente: "recogidas@controlvo.ovh",
+    nombre_remitente: "Recogidas - Sistema CVO",
+    asunto_template: "Recogidas Motor Munich ({centro}) - {cantidad} solicitudes",
     cc_emails: [],
   })
   const [newCcEmail, setNewCcEmail] = useState("")
@@ -152,32 +162,41 @@ export default function EmailConfigPage() {
         })
       }
 
-      // Cargar configuración de recogidas
-      try {
-        const recogidasResponse = await fetch("/api/admin/recogidas-email-config")
-        if (recogidasResponse.ok) {
-          const recogidasData = await recogidasResponse.json()
-          setRecogidasConfig({
-            enabled: recogidasData.enabled || true,
-            email_agencia: recogidasData.email_agencia || "recogidas@mrw.es",
-            cc_emails: recogidasData.cc_emails || [],
-          })
-        } else {
-          console.warn("⚠️ Error cargando configuración de recogidas:", recogidasResponse.status)
+              // Cargar configuración de recogidas
+        try {
+          const recogidasResponse = await fetch("/api/admin/recogidas-email-config")
+          if (recogidasResponse.ok) {
+            const recogidasData = await recogidasResponse.json()
+            setRecogidasConfig({
+              enabled: recogidasData.enabled || true,
+              email_agencia: recogidasData.email_agencia || "recogidas@mrw.es",
+              email_remitente: recogidasData.email_remitente || "recogidas@controlvo.ovh",
+              nombre_remitente: recogidasData.nombre_remitente || "Recogidas - Sistema CVO",
+              asunto_template: recogidasData.asunto_template || "Recogidas Motor Munich ({centro}) - {cantidad} solicitudes",
+              cc_emails: recogidasData.cc_emails || [],
+            })
+          } else {
+            console.warn("⚠️ Error cargando configuración de recogidas:", recogidasResponse.status)
+            setRecogidasConfig({
+              enabled: true,
+              email_agencia: "recogidas@mrw.es",
+              email_remitente: "recogidas@controlvo.ovh",
+              nombre_remitente: "Recogidas - Sistema CVO",
+              asunto_template: "Recogidas Motor Munich ({centro}) - {cantidad} solicitudes",
+              cc_emails: [],
+            })
+          }
+        } catch (error) {
+          console.warn("⚠️ Error en fetch de recogidas:", error instanceof Error ? error.message : String(error))
           setRecogidasConfig({
             enabled: true,
             email_agencia: "recogidas@mrw.es",
+            email_remitente: "recogidas@controlvo.ovh",
+            nombre_remitente: "Recogidas - Sistema CVO",
+            asunto_template: "Recogidas Motor Munich - {cantidad} solicitudes",
             cc_emails: [],
           })
         }
-      } catch (error) {
-        console.warn("⚠️ Error en fetch de recogidas:", error instanceof Error ? error.message : String(error))
-        setRecogidasConfig({
-          enabled: true,
-          email_agencia: "recogidas@mrw.es",
-          cc_emails: [],
-        })
-      }
 
       toast({
         title: "Configuración cargada",
@@ -918,8 +937,6 @@ export default function EmailConfigPage() {
               </CardTitle>
               <CardDescription>
                 Activar o desactivar el envío automático de notificaciones de recogidas
-                <br />
-                <strong>Remitente:</strong> recogidas@controlvo.ovh
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -932,6 +949,90 @@ export default function EmailConfigPage() {
                 <Label htmlFor="recogidas-enabled">
                   {recogidasConfig.enabled ? "✅ Envío automático activado" : "❌ Envío automático desactivado"}
                 </Label>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Mail className="h-5 w-5" />
+                Configuración de Emails - Recogidas
+              </CardTitle>
+              <CardDescription>Configurar remitente, destinatarios y asunto de los emails de recogidas</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Email de la agencia */}
+              <div className="space-y-2">
+                <Label htmlFor="recogidas-email-agencia" className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-green-500" />
+                  Email de la Agencia de Transporte *
+                </Label>
+                <Input
+                  id="recogidas-email-agencia"
+                  type="email"
+                  value={recogidasConfig.email_agencia}
+                  onChange={(e) => setRecogidasConfig((prev) => ({ ...prev, email_agencia: e.target.value }))}
+                  placeholder="recogidas@mrw.es"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Email principal donde se enviarán las solicitudes de recogida
+                </p>
+              </div>
+
+              {/* Configuración del remitente */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="recogidas-email-remitente" className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-blue-500" />
+                    Email Remitente *
+                  </Label>
+                  <Input
+                    id="recogidas-email-remitente"
+                    type="email"
+                    value={recogidasConfig.email_remitente}
+                    onChange={(e) => setRecogidasConfig((prev) => ({ ...prev, email_remitente: e.target.value }))}
+                    placeholder="recogidas@controlvo.ovh"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Email desde el que se enviarán los mensajes
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="recogidas-nombre-remitente" className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-purple-500" />
+                    Nombre del Remitente *
+                  </Label>
+                  <Input
+                    id="recogidas-nombre-remitente"
+                    type="text"
+                    value={recogidasConfig.nombre_remitente}
+                    onChange={(e) => setRecogidasConfig((prev) => ({ ...prev, nombre_remitente: e.target.value }))}
+                    placeholder="Recogidas - Sistema CVO"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Nombre que aparecerá como remitente
+                  </p>
+                </div>
+              </div>
+
+              {/* Plantilla del asunto */}
+              <div className="space-y-2">
+                <Label htmlFor="recogidas-asunto-template" className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-orange-500" />
+                  Plantilla del Asunto *
+                </Label>
+                <Input
+                  id="recogidas-asunto-template"
+                  type="text"
+                  value={recogidasConfig.asunto_template}
+                  onChange={(e) => setRecogidasConfig((prev) => ({ ...prev, asunto_template: e.target.value }))}
+                  placeholder="Recogidas Motor Munich ({centro}) - {cantidad} solicitudes"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Plantilla del asunto del email. Variables disponibles: {"{cantidad}"} (número de recogidas), {"{centro}"} (centro de recogida, por defecto "Terrassa")
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -975,16 +1076,18 @@ export default function EmailConfigPage() {
           <Alert>
             <Truck className="h-4 w-4" />
             <AlertDescription>
-              <strong>Proceso automático de recogidas:</strong>
+              <strong>Proceso de recogidas:</strong>
               <br />
-              1. <strong>Registro:</strong> Email a Usuario 1 (quien registra), Usuario 2 (CC) y Usuario 3 (tramitador)
+              1. <strong>Usuario añade recogidas</strong> a la lista de envío desde la tabla de vehículos
               <br />
-              2. <strong>Tramitación:</strong> Email a todos + Usuario 4 (pagador) con botón de confirmación
+              2. <strong>Hace clic en "Enviar Recogidas"</strong> para procesar todas las recogidas pendientes
               <br />
-              3. <strong>Confirmación:</strong> Email final a todos confirmando que el pago se completó
+              3. <strong>Se envía un email masivo</strong> a la agencia de transporte con todas las recogidas
+              <br />
+              4. <strong>Se incluye copia</strong> al solicitante y a todas las cuentas configuradas en CC
               <br />
               <br />
-              <strong>Las plantillas de email están predefinidas y optimizadas.</strong>
+              <strong>El email incluye una plantilla HTML profesional con todos los detalles de cada recogida.</strong>
             </AlertDescription>
           </Alert>
 

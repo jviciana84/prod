@@ -11,7 +11,8 @@ CREATE TABLE IF NOT EXISTS entregas_en_mano (
     usuario_solicitante VARCHAR(200) NOT NULL,
     usuario_solicitante_id UUID REFERENCES auth.users(id),
     token_confirmacion VARCHAR(64) UNIQUE NOT NULL, -- Token único para confirmación
-    estado VARCHAR(50) DEFAULT 'pendiente', -- pendiente, confirmada, cancelada
+    estado VARCHAR(50) DEFAULT 'solicitada', -- solicitada, confirmada, cancelada
+    seguimiento VARCHAR(100), -- Número de seguimiento de la mensajería (vacío por defecto)
     fecha_solicitud TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     fecha_confirmacion TIMESTAMP WITH TIME ZONE,
     fecha_entrega TIMESTAMP WITH TIME ZONE,

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solicitud de Recogida - Motor Munich</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .email-container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .recogida-item {
+            background-color: #f8f9fa;
+            border-left: 4px solid #2563eb;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .recogida-number {
+            background-color: #2563eb;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        .recogida-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 15px;
+        }
+        .detail-row {
+            display: flex;
+            margin-bottom: 8px;
+            align-items: flex-start;
+        }
+        .detail-label {
+            font-weight: 600;
+            color: #6b7280;
+            min-width: 120px;
+            font-size: 14px;
+        }
+        .detail-value {
+            color: #1f2937;
+            font-size: 14px;
+            flex: 1;
+        }
+        .materials {
+            background-color: #e0f2fe;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+        .material-tag {
+            display: inline-block;
+            background-color: #2563eb;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin: 2px;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px 30px;
+            text-align: center;
+            border-top: 1px solid #e5e7eb;
+        }
+        .footer p {
+            margin: 0;
+            color: #6b7280;
+            font-size: 14px;
+        }
+        .logo {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .info-box {
+            background-color: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .info-box h3 {
+            margin: 0 0 10px 0;
+            color: #0369a1;
+            font-size: 16px;
+        }
+        .info-box p {
+            margin: 0;
+            color: #0c4a6e;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <div class="logo">🚛 Motor Munich</div>
+            <h1>Solicitud de Recogida</h1>
+            <p>{{solicitante}} solicita {{cantidad}} recogida{{plural}} en Motor Munich</p>
+        </div>
+        
+        <div class="content">
+            <div class="info-box">
+                <h3>📋 Información General</h3>
+                <p><strong>Solicitante:</strong> {{solicitante}}</p>
+                <p><strong>Fecha de solicitud:</strong> {{fecha_solicitud}}</p>
+                <p><strong>Total de recogidas:</strong> {{cantidad}}</p>
+            </div>
+
+            {{#recogidas}}
+            <div class="recogida-item">
+                <div class="recogida-number">{{numero}}</div>
+                <div class="recogida-title">Recogida {{numero}} - {{matricula}}</div>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Matrícula:</div>
+                    <div class="detail-value">{{matricula}}</div>
+                </div>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Centro:</div>
+                    <div class="detail-value">{{centro_recogida}}</div>
+                </div>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Cliente:</div>
+                    <div class="detail-value">{{nombre_cliente}}</div>
+                </div>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Dirección:</div>
+                    <div class="detail-value">{{direccion_cliente}}</div>
+                </div>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Código Postal:</div>
+                    <div class="detail-value">{{codigo_postal}}</div>
+                </div>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Ciudad:</div>
+                    <div class="detail-value">{{ciudad}}</div>
+                </div>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Provincia:</div>
+                    <div class="detail-value">{{provincia}}</div>
+                </div>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Teléfono:</div>
+                    <div class="detail-value">{{telefono}}</div>
+                </div>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Email:</div>
+                    <div class="detail-value">{{email}}</div>
+                </div>
+                
+                <div class="materials">
+                    <div class="detail-label">Materiales:</div>
+                    {{#materiales}}
+                    <span class="material-tag">{{.}}</span>
+                    {{/materiales}}
+                </div>
+                
+                {{#observaciones_envio}}
+                <div class="detail-row">
+                    <div class="detail-label">Observaciones:</div>
+                    <div class="detail-value">{{observaciones_envio}}</div>
+                </div>
+                {{/observaciones_envio}}
+            </div>
+            {{/recogidas}}
+            
+            <div class="info-box">
+                <h3>📝 Instrucciones</h3>
+                <p>Puedes responder a todas las solicitudes de recogida con el número de seguimiento en la columna de la tabla que hemos preparado para que lo pongáis.</p>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p><strong>Saludos cordiales,</strong></p>
+            <p>Sistema CVO - Motor Munich</p>
+            <p style="font-size: 12px; margin-top: 10px;">Este email fue generado automáticamente por el sistema de recogidas</p>
+        </div>
+    </div>
+</body>
+</html> 

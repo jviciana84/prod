@@ -1,82 +1,148 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
+import { createServerClient } from "@/lib/supabase/server"
+import { cookies } from "next/headers"
 import nodemailer from "nodemailer"
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    console.log("🔍 === DEBUG CONFIGURACIÓN SMTP ===")
-    
-    // Verificar variables de entorno
-    const config = {
-      SMTP_HOST: process.env.SMTP_HOST,
-      SMTP_PORT: process.env.SMTP_PORT,
-      SMTP_USER: process.env.SMTP_USER,
-      SMTP_PASSWORD: process.env.SMTP_PASSWORD ? "***CONFIGURADO***" : "NO CONFIGURADO",
-      EXTORNO_EMAIL: process.env.EXTORNO_EMAIL,
-      NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
+    const cookieStore = await cookies()
+    const supabase = await createServerClient()
+
+    // Verificar autenticación
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
+
+    if (userError || !user) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
-    
-    console.log("📧 Configuración SMTP:", config)
-    
-    // Verificar si faltan variables
-    const missingVars = []
-    if (!process.env.SMTP_HOST) missingVars.push("SMTP_HOST")
-    if (!process.env.SMTP_USER) missingVars.push("SMTP_USER")
-    if (!process.env.SMTP_PASSWORD) missingVars.push("SMTP_PASSWORD")
-    if (!process.env.EXTORNO_EMAIL) missingVars.push("EXTORNO_EMAIL")
-    
-    if (missingVars.length > 0) {
-      return NextResponse.json({
-        success: false,
-        message: "Variables de entorno faltantes",
-        missing: missingVars,
-        config: config,
-      }, { status: 400 })
+
+    const results = {
+      timestamp: new Date().toISOString(),
+      user: {
+        id: user.id,
+        email: user.email
+      },
+      smtpConfig: {} as any,
+      emailConfig: {} as any,
+      tests: {} as any,
+      errors: [] as any[]
     }
-    
-    // Intentar crear transporter
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number.parseInt(process.env.SMTP_PORT || "465"),
-      secure: true,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASSWORD,
-      },
-      tls: {
-        rejectUnauthorized: false,
-      },
-    })
-    
-    // Verificar conexión
+
+    // 1. Verificar variables de entorno SMTP
+    results.smtpConfig = {
+      SMTP_HOST: process.env.SMTP_HOST ? "✅ Configurado" : "❌ No configurado",
+      SMTP_PORT: process.env.SMTP_PORT ? `✅ ${process.env.SMTP_PORT}` : "❌ No configurado",
+      SMTP_USER: process.env.SMTP_USER ? "✅ Configurado" : "❌ No configurado",
+      SMTP_PASSWORD: process.env.SMTP_PASSWORD ? "✅ Configurado" : "❌ No configurado"
+    }
+
+    // 2. Obtener configuración de email
     try {
-      await transporter.verify()
-      console.log("✅ Conexión SMTP verificada correctamente")
-      
-      return NextResponse.json({
-        success: true,
-        message: "Configuración SMTP correcta",
-        config: config,
-        connection: "OK",
+      const { data: emailConfig, error: emailError } = await supabase
+        .from("recogidas_email_config")
+        .select("*")
+        .single()
+
+      if (emailError) {
+        results.errors.push({
+          operation: "email_config",
+          error: emailError.message,
+          code: emailError.code
+        })
+      } else {
+        results.emailConfig = {
+          enabled: emailConfig.enabled,
+          email_agencia: emailConfig.email_agencia,
+          email_remitente: emailConfig.email_remitente,
+          nombre_remitente: emailConfig.nombre_remitente,
+          asunto_template: emailConfig.asunto_template
+        }
+      }
+    } catch (error) {
+      results.errors.push({
+        operation: "email_config",
+        error: "Error obteniendo configuración de email",
+        details: error
       })
-      
-    } catch (verifyError) {
-      console.error("❌ Error verificando conexión SMTP:", verifyError)
-      
-      return NextResponse.json({
-        success: false,
-        message: "Error de conexión SMTP",
-        error: verifyError.message,
-        config: config,
-        connection: "FAILED",
-      }, { status: 500 })
     }
-    
+
+    // 3. Probar conexión SMTP
+    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD) {
+      try {
+        const transporter = nodemailer.createTransport({
+          host: process.env.SMTP_HOST,
+          port: Number.parseInt(process.env.SMTP_PORT || "465"),
+          secure: true,
+          auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASSWORD,
+          },
+          tls: {
+            rejectUnauthorized: false,
+          },
+        })
+
+        await transporter.verify()
+        results.tests.smtpConnection = "✅ Conexión SMTP exitosa"
+      } catch (error) {
+        results.tests.smtpConnection = "❌ Error de conexión SMTP"
+        results.errors.push({
+          operation: "smtp_connection",
+          error: "Error de conexión SMTP",
+          details: error
+        })
+      }
+    } else {
+      results.tests.smtpConnection = "❌ Variables SMTP incompletas"
+    }
+
+    // 4. Probar envío de email de prueba
+    if (results.tests.smtpConnection === "✅ Conexión SMTP exitosa" && results.emailConfig.email_agencia) {
+      try {
+        const transporter = nodemailer.createTransport({
+          host: process.env.SMTP_HOST,
+          port: Number.parseInt(process.env.SMTP_PORT || "465"),
+          secure: true,
+          auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASSWORD,
+          },
+          tls: {
+            rejectUnauthorized: false,
+          },
+        })
+
+        const mailOptions = {
+          from: `${results.emailConfig.nombre_remitente} <${results.emailConfig.email_remitente}>`,
+          to: results.emailConfig.email_agencia,
+          subject: "Prueba de configuración SMTP - Sistema CVO",
+          text: "Este es un email de prueba para verificar la configuración SMTP del sistema de recogidas.",
+          html: "<h1>Prueba de Configuración SMTP</h1><p>Este es un email de prueba para verificar la configuración SMTP del sistema de recogidas.</p>"
+        }
+
+        const result = await transporter.sendMail(mailOptions)
+        results.tests.emailTest = "✅ Email de prueba enviado correctamente"
+        results.tests.messageId = result.messageId
+      } catch (error) {
+        results.tests.emailTest = "❌ Error enviando email de prueba"
+        results.errors.push({
+          operation: "email_test",
+          error: "Error enviando email de prueba",
+          details: error
+        })
+      }
+    } else {
+      results.tests.emailTest = "❌ No se puede probar (SMTP o configuración incompleta)"
+    }
+
+    return NextResponse.json(results)
+
   } catch (error) {
-    console.error("❌ Error crítico en debug-smtp-config:", error)
-    return NextResponse.json({
-      success: false,
-      message: "Error interno del servidor",
-      error: error.message,
+    return NextResponse.json({ 
+      error: "Error interno del servidor",
+      details: error
     }, { status: 500 })
   }
 } 

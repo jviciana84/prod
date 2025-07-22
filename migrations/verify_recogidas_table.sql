@@ -47,14 +47,17 @@ BEGIN
             id SERIAL PRIMARY KEY,
             enabled BOOLEAN DEFAULT true,
             email_agencia VARCHAR(200) NOT NULL DEFAULT 'recogidas@mrw.es',
+            email_remitente VARCHAR(200) NOT NULL DEFAULT 'recogidas@controlvo.ovh',
+            nombre_remitente VARCHAR(200) NOT NULL DEFAULT 'Recogidas - Sistema CVO',
+            asunto_template VARCHAR(300) NOT NULL DEFAULT 'Recogidas Motor Munich - {cantidad} solicitudes',
             cc_emails TEXT[] DEFAULT '{}',
             created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
             updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
         );
 
         -- Insertar configuración por defecto
-        INSERT INTO recogidas_email_config (enabled, email_agencia, cc_emails) 
-        VALUES (true, 'recogidas@mrw.es', ARRAY[]::TEXT[]);
+        INSERT INTO recogidas_email_config (enabled, email_agencia, email_remitente, nombre_remitente, asunto_template, cc_emails) 
+        VALUES (true, 'recogidas@mrw.es', 'recogidas@controlvo.ovh', 'Recogidas - Sistema CVO', 'Recogidas Motor Munich - {cantidad} solicitudes', ARRAY[]::TEXT[]);
 
         RAISE NOTICE 'Tabla recogidas_email_config creada exitosamente';
     ELSE

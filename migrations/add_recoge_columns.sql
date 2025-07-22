@@ -31,6 +31,12 @@ BEGIN
         SET nombre_recoge = nombre_cliente 
         WHERE nombre_recoge = '' OR nombre_recoge IS NULL;
 
+        -- Añadir columna seguimiento si no existe
+        IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'entregas_en_mano' AND column_name = 'seguimiento') THEN
+            ALTER TABLE entregas_en_mano ADD COLUMN seguimiento VARCHAR(100);
+            RAISE NOTICE 'Columna seguimiento añadida';
+        END IF;
+
         RAISE NOTICE 'Columnas de quien recoge añadidas y datos migrados';
     ELSE
         RAISE NOTICE 'Tabla entregas_en_mano no existe';

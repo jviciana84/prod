@@ -98,6 +98,35 @@ export function VehiculosParaRecoger({ onSolicitarRecogida }: VehiculosParaRecog
       // Verificar si el usuario es admin, supervisor o director
       const isAdmin = profile?.role === "admin" || profile?.role === "supervisor" || profile?.role === "director"
       
+      // Obtener matrículas que ya tienen recogidas solicitadas
+      const { data: recogidasExistentes, error: recogidasError } = await supabase
+        .from("recogidas_historial")
+        .select("matricula")
+        .in("estado", ["solicitada", "en_transito", "entregada"])
+      
+      const matriculasConRecogida = recogidasExistentes?.map(r => r.matricula) || []
+      
+      if (recogidasError) {
+        console.error("Error al cargar recogidas existentes:", recogidasError)
+        // Continuar sin filtrar recogidas existentes
+      }
+      
+      // Obtener matrículas que ya tienen entregas en mano
+      const { data: entregasEnMano, error: entregasEnManoError } = await supabase
+        .from("entregas_en_mano")
+        .select("matricula")
+        .in("estado", ["solicitada", "confirmada"])
+      
+      const matriculasConEntregaEnMano = entregasEnMano?.map(e => e.matricula) || []
+      
+      if (entregasEnManoError) {
+        console.error("Error al cargar entregas en mano:", entregasEnManoError)
+        // Continuar sin filtrar entregas en mano
+      }
+      
+      // Combinar todas las matrículas que ya tienen algún tipo de recogida
+      const matriculasExcluidas = [...new Set([...matriculasConRecogida, ...matriculasConEntregaEnMano])]
+      
       // Primero obtener las entregas
       let entregasQuery = supabase
         .from("entregas")
@@ -172,9 +201,14 @@ export function VehiculosParaRecoger({ onSolicitarRecogida }: VehiculosParaRecog
         }
       })
 
-      setVehiculos(vehiculosConCliente)
-      setFilteredVehiculos(vehiculosConCliente)
-      toast.success(`${vehiculosConCliente.length} vehículos cargados`)
+      // Filtrar vehículos que ya tienen recogidas o entregas en mano
+      const vehiculosDisponibles = vehiculosConCliente.filter(vehiculo => 
+        !matriculasExcluidas.includes(vehiculo.matricula)
+      )
+
+      setVehiculos(vehiculosDisponibles)
+      setFilteredVehiculos(vehiculosDisponibles)
+      toast.success(`${vehiculosDisponibles.length} vehículos disponibles para recogida`)
     } catch (err) {
       console.error("Error inesperado:", err)
       toast.error("Error al cargar los datos")
@@ -220,8 +254,14 @@ export function VehiculosParaRecoger({ onSolicitarRecogida }: VehiculosParaRecog
       })
     }
 
+    // Filtrar vehículos que están en la lista de recogidas pendientes
+    const matriculasEnRecogidasPendientes = recogidasAñadidas.map(r => r.matricula)
+    filtered = filtered.filter(vehiculo => 
+      !matriculasEnRecogidasPendientes.includes(vehiculo.matricula)
+    )
+
     return filtered
-  }, [vehiculos, searchQuery, dateFilter])
+  }, [vehiculos, searchQuery, dateFilter, recogidasAñadidas])
 
   // Calcular paginación
   const paginatedVehiculos = useMemo(() => {
@@ -279,7 +319,22 @@ export function VehiculosParaRecoger({ onSolicitarRecogida }: VehiculosParaRecog
   const openWhatsApp = (phone: string) => {
     const message = "Hola! ya dispongo de su documentación original impresa por la DGT, ¿Donde la desea recibir? Se envia físicamente por empresa de paquetería. Gracias"
     const encodedMessage = encodeURIComponent(message)
-    const whatsappUrl = `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodedMessage}`
+    
+    // Limpiar el número de teléfono y asegurar formato internacional
+    let cleanPhone = phone.replace(/\D/g, '') // Remover todo excepto números
+    
+    // Si empieza con 0, removerlo
+    if (cleanPhone.startsWith('0')) {
+      cleanPhone = cleanPhone.substring(1)
+    }
+    
+    // Si no empieza con 34 (España), añadirlo
+    if (!cleanPhone.startsWith('34')) {
+      cleanPhone = '34' + cleanPhone
+    }
+    
+    const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodedMessage}`
+    console.log('WhatsApp URL:', whatsappUrl) // Para debug
     window.open(whatsappUrl, '_blank')
   }
 
@@ -304,6 +359,9 @@ export function VehiculosParaRecoger({ onSolicitarRecogida }: VehiculosParaRecog
     const vehiculo = vehiculos.find(v => v.matricula === matricula)
     if (vehiculo) {
       setSelectedVehiculo(vehiculo)
+      setSelectedMaterials([])
+      setOtrosMaterial("")
+      setShowOtrosInput(false)
       setShowRecogidaModal(true)
     }
   }
@@ -430,6 +488,8 @@ export function VehiculosParaRecoger({ onSolicitarRecogida }: VehiculosParaRecog
         setShowEntregaEnManoModal(false)
         // Recargar vehículos para actualizar el estado
         loadVehiculos()
+        // Cambiar a la pestaña de historial
+        onSolicitarRecogida("") // Esto activará la pestaña de historial
       } else {
         toast.error("Error al enviar la confirmación")
       }
@@ -441,25 +501,116 @@ export function VehiculosParaRecoger({ onSolicitarRecogida }: VehiculosParaRecog
     }
   }
 
+  const añadirRecogida = (datosRecogida: any) => {
+    try {
+      console.log("=== AÑADIENDO RECOGIDA A LA LISTA ===")
+      
+      // Verificar que tenemos los datos mínimos necesarios
+      if (!datosRecogida) {
+        throw new Error("Datos de recogida no proporcionados")
+      }
+      
+      if (!datosRecogida.matricula) {
+        throw new Error("Datos de recogida incompletos: falta matrícula")
+      }
+      
+      // Logs seguros para debugging
+      try {
+        console.log("Datos a añadir:", JSON.stringify(datosRecogida, null, 2))
+      } catch (jsonError) {
+        console.log("Datos a añadir (no serializable):", datosRecogida)
+      }
+      
+      console.log("Usuario actual - ID:", user?.id || "null")
+      console.log("Usuario actual - Email:", user?.email || "null")
+      console.log("Perfil actual - Nombre:", profile?.full_name || "null")
+      console.log("Perfil actual - Rol:", profile?.role || "null")
+      
+      // Crear objeto de recogida para la lista con validación defensiva
+      const nuevaRecogida = {
+        id: `temp_${Date.now()}_${Math.random()}`, // ID temporal
+        matricula: String(datosRecogida.matricula || ""),
+        mensajeria: String(datosRecogida.mensajeria || 'MRW'),
+        centro_recogida: String(datosRecogida.centro_recogida || 'Terrassa'),
+        materiales: Array.isArray(datosRecogida.materiales) ? datosRecogida.materiales : [],
+        nombre_cliente: String(datosRecogida.nombre_cliente || ''),
+        direccion_cliente: String(datosRecogida.direccion_cliente || ''),
+        codigo_postal: String(datosRecogida.codigo_postal || ''),
+        ciudad: String(datosRecogida.ciudad || ''),
+        provincia: String(datosRecogida.provincia || ''),
+        telefono: String(datosRecogida.telefono || ''),
+        email: String(datosRecogida.email || ''),
+        observaciones_envio: String(datosRecogida.observaciones_envio || ''),
+        usuario_solicitante: String(profile?.full_name || user?.email || "Usuario"),
+        usuario_solicitante_id: user?.id || null,
+        estado: "pendiente"
+      }
+      
+      console.log("Nueva recogida creada exitosamente")
+      
+      // Añadir a la lista de recogidas pendientes de forma segura
+      setRecogidasAñadidas(prev => {
+        try {
+          const nuevaLista = Array.isArray(prev) ? [...prev, nuevaRecogida] : [nuevaRecogida]
+          console.log("Lista actualizada:", nuevaLista.length, "recogidas")
+          return nuevaLista
+        } catch (setError) {
+          console.error("Error al actualizar lista:", setError)
+          return [nuevaRecogida] // Fallback a lista con solo la nueva recogida
+        }
+      })
+      
+      console.log("=== RECOGIDA AÑADIDA A LA LISTA ===")
+      
+      // Mostrar toast de éxito
+      try {
+        toast.success("Recogida añadida a la lista de envío")
+      } catch (toastError) {
+        console.error("Error al mostrar toast:", toastError)
+      }
+      
+      // Cerrar el modal de forma segura
+      try {
+        setShowRecogidaModal(false)
+      } catch (modalError) {
+        console.error("Error al cerrar modal:", modalError)
+      }
+      
+      return nuevaRecogida
+    } catch (error) {
+      console.error("=== ERROR AL AÑADIR RECOGIDA ===")
+      console.error("Error completo:", error)
+      console.error("Stack trace:", error instanceof Error ? error.stack : "No stack trace available")
+      
+      // Mostrar toast de error de forma segura
+      try {
+        toast.error("Error al añadir la recogida")
+      } catch (toastError) {
+        console.error("Error al mostrar toast de error:", toastError)
+      }
+      
+      return null
+    }
+  }
+
   const guardarRecogida = async (datosRecogida: any) => {
     try {
       console.log("=== INICIANDO GUARDADO DE RECOGIDA ===")
       console.log("Datos a guardar:", JSON.stringify(datosRecogida, null, 2))
-      console.log("Usuario actual:", user?.id, profile?.full_name)
+      console.log("Usuario actual:", user?.id, user?.email)
+      console.log("Perfil actual:", profile?.full_name, profile?.role)
       
-      // Verificar si la tabla existe
-      const tablaExiste = await verificarTablaRecogidas()
-      if (!tablaExiste) {
-        toast.error("La tabla de recogidas no está disponible")
-        return null
+      // Verificar que tenemos los datos mínimos necesarios
+      if (!datosRecogida || !datosRecogida.matricula) {
+        throw new Error("Datos de recogida incompletos: falta matrícula")
       }
       
-      // Preparar datos para inserción
+      // Preparar datos para inserción (versión simplificada)
       const datosInsertar = {
         matricula: datosRecogida.matricula,
         mensajeria: datosRecogida.mensajeria || 'MRW',
         centro_recogida: datosRecogida.centro_recogida || 'Terrassa',
-        materiales: datosRecogida.materiales || [],
+        materiales: Array.isArray(datosRecogida.materiales) ? datosRecogida.materiales : [],
         nombre_cliente: datosRecogida.nombre_cliente || '',
         direccion_cliente: datosRecogida.direccion_cliente || '',
         codigo_postal: datosRecogida.codigo_postal || '',
@@ -469,12 +620,13 @@ export function VehiculosParaRecoger({ onSolicitarRecogida }: VehiculosParaRecog
         email: datosRecogida.email || '',
         observaciones_envio: datosRecogida.observaciones_envio || '',
         usuario_solicitante: profile?.full_name || user?.email || "Usuario",
-        usuario_solicitante_id: user?.id,
+        usuario_solicitante_id: user?.id || null,
         estado: "solicitada"
       }
       
       console.log("Datos preparados para inserción:", JSON.stringify(datosInsertar, null, 2))
       
+      // Inserción directa sin verificación previa
       const { data, error } = await supabase
         .from("recogidas_historial")
         .insert([datosInsertar])
@@ -512,7 +664,27 @@ export function VehiculosParaRecoger({ onSolicitarRecogida }: VehiculosParaRecog
 
     setEnviandoRecogidas(true)
     try {
-      const recogidaIds = recogidasAñadidas.map(r => r.id)
+      console.log("=== INICIANDO ENVÍO MASIVO DE RECOGIDAS ===")
+      console.log("Recogidas a procesar:", recogidasAñadidas.length)
+      
+      // Primero guardar todas las recogidas en la base de datos
+      const recogidasGuardadas = []
+      for (const recogida of recogidasAñadidas) {
+        console.log("Guardando recogida:", recogida.matricula)
+        const resultado = await guardarRecogida(recogida)
+        if (resultado) {
+          recogidasGuardadas.push(resultado)
+        } else {
+          toast.error(`Error al guardar recogida ${recogida.matricula}`)
+          setEnviandoRecogidas(false)
+          return
+        }
+      }
+      
+      console.log("Recogidas guardadas:", recogidasGuardadas.length)
+      
+      // Ahora enviar los emails con los IDs reales de la base de datos
+      const recogidaIds = recogidasGuardadas.map(r => r.id)
       
       const response = await fetch("/api/recogidas/send-email", {
         method: "POST",
@@ -531,8 +703,10 @@ export function VehiculosParaRecoger({ onSolicitarRecogida }: VehiculosParaRecog
       const result = await response.json()
       
       if (result.success) {
-        toast.success("Recogidas enviadas correctamente")
+        toast.success(`${recogidasGuardadas.length} recogidas enviadas correctamente`)
         setRecogidasAñadidas([])
+        // Recargar la lista de vehículos para ocultar los que ya se procesaron
+        await loadVehiculos()
         // Navegar al historial
         onSolicitarRecogida("") // Esto activará la pestaña de historial
       } else {
@@ -816,10 +990,7 @@ export function VehiculosParaRecoger({ onSolicitarRecogida }: VehiculosParaRecog
                               className="h-7 px-2 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50"
                               onClick={(e) => {
                                 e.stopPropagation()
-                                const message = encodeURIComponent(
-                                  "Hola! ya dispongo de su documentación original impresa por la DGT, ¿Donde la desea recibir? Se envia físicamente por empresa de paquetería. Gracias"
-                                )
-                                window.open(`https://wa.me/${vehiculo.client_phone}?text=${message}`, "_blank")
+                                openWhatsApp(vehiculo.client_phone)
                               }}
                               data-interactive
                             >
@@ -925,41 +1096,45 @@ export function VehiculosParaRecoger({ onSolicitarRecogida }: VehiculosParaRecog
                 <>
                   <div className="space-y-2 max-h-96 overflow-y-auto">
                     {recogidasAñadidas.map((recogida, index) => (
-                      <div key={recogida.id} className="p-3 border rounded-lg bg-muted/30">
+                      <div key={recogida.id} className="p-3 border rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
                         <div className="flex items-center justify-between mb-2">
-                          <div>
-                            <span className="font-medium text-sm">{recogida.matricula}</span>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-sm text-blue-600">{recogida.matricula}</span>
+                              <span className="text-xs text-muted-foreground">#{index + 1}</span>
+                            </div>
                             {recogida.nombre_cliente && (
-                              <span className="font-medium text-sm text-muted-foreground ml-2">
+                              <p className="text-xs text-muted-foreground mt-1">
                                 {recogida.nombre_cliente}
-                              </span>
+                              </p>
                             )}
                           </div>
                           <button
                             onClick={() => setRecogidasAñadidas(prev => prev.filter(r => r.id !== recogida.id))}
-                            className="text-red-500 hover:text-red-700 text-xs"
+                            className="text-red-500 hover:text-red-700 text-xs p-1 hover:bg-red-50 rounded"
+                            title="Eliminar de la lista"
                           >
                             ×
                           </button>
                         </div>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-1">
                           {recogida.materiales.map((material: string) => {
                             const materialConfig = [
                               { name: "Permiso circulación", icon: FileCheck, color: "text-blue-500" },
                               { name: "Ficha técnica", icon: FileText, color: "text-green-500" },
                               { name: "Pegatina Medioambiental", icon: Leaf, color: "text-emerald-500" },
-                              { name: "COC", icon: FileText, color: "text-blue-500" },
+                              { name: "COC", icon: FileText, color: "text-blue-600" },
                               { name: "2ª Llave", icon: Key, color: "text-orange-500" },
                               { name: "CardKey", icon: CreditCard, color: "text-indigo-500" }
                             ].find(m => m.name === material)
                             
                             return materialConfig ? (
-                              <div key={material} className="flex items-center">
-                                <materialConfig.icon className={`h-4 w-4 ${materialConfig.color}`} />
+                              <div key={material} className="flex items-center p-1 bg-white rounded border" title={material}>
+                                <materialConfig.icon className={`h-3 w-3 ${materialConfig.color}`} />
                               </div>
                             ) : (
-                              <div key={material} className="flex items-center">
-                                <Package className="h-4 w-4 text-gray-500" />
+                              <div key={material} className="flex items-center p-1 bg-white rounded border" title={material}>
+                                <Package className="h-3 w-3 text-gray-500" />
                               </div>
                             )
                           })}
@@ -969,6 +1144,9 @@ export function VehiculosParaRecoger({ onSolicitarRecogida }: VehiculosParaRecog
                   </div>
                   
                   <div className="pt-4 border-t">
+                    <div className="mb-2 text-xs text-muted-foreground">
+                      Total: {recogidasAñadidas.length} recogida{recogidasAñadidas.length !== 1 ? 's' : ''}
+                    </div>
                     <Button
                       onClick={enviarRecogidasMasivo}
                       disabled={recogidasAñadidas.length === 0 || enviandoRecogidas}
@@ -977,15 +1155,18 @@ export function VehiculosParaRecoger({ onSolicitarRecogida }: VehiculosParaRecog
                       {enviandoRecogidas ? (
                         <>
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Enviando...
+                          Procesando...
                         </>
                       ) : (
                         <>
                           <Send className="h-4 w-4 mr-2" />
-                          Enviar Recogidas ({recogidasAñadidas.length})
+                          Enviar Recogidas
                         </>
                       )}
                     </Button>
+                    <p className="text-xs text-muted-foreground mt-2 text-center">
+                      Se guardarán en BD y se enviarán los emails
+                    </p>
                   </div>
                 </>
               )}
@@ -1306,31 +1487,19 @@ export function VehiculosParaRecoger({ onSolicitarRecogida }: VehiculosParaRecog
                       centro_recogida: "Terrassa", // Por defecto
                       materiales: selectedMaterials,
                       nombre_cliente: selectedVehiculo.client_name || "",
-                      direccion_cliente: "", // Se obtendría del formulario
-                      codigo_postal: "", // Se obtendría del formulario
-                      ciudad: "", // Se obtendría del formulario
-                      provincia: "", // Se obtendría del formulario
+                      direccion_cliente: selectedVehiculo.client_address || "",
+                      codigo_postal: selectedVehiculo.client_postal_code || "",
+                      ciudad: selectedVehiculo.client_city || "",
+                      provincia: selectedVehiculo.client_province || "",
                       telefono: selectedVehiculo.client_phone || "",
                       email: selectedVehiculo.client_email || "",
                       observaciones_envio: "" // Se obtendría del formulario
                     }
 
-                    // Guardar en base de datos
-                    const recogidaGuardada = await guardarRecogida(formData)
+                    // Añadir a la lista de recogidas pendientes (NO guardar en BD aún)
+                    const recogidaAñadida = añadirRecogida(formData)
                     
-                    if (recogidaGuardada) {
-                      // Añadir al card derecho
-                      setRecogidasAñadidas(prev => [...prev, {
-                        id: recogidaGuardada.id,
-                        matricula: selectedVehiculo.matricula,
-                        nombre_cliente: selectedVehiculo.client_name || "Sin nombre",
-                        materiales: selectedMaterials,
-                        brand: selectedVehiculo.brand || ""
-                      }])
-                      
-                      toast.success("Recogida añadida correctamente")
-                      setShowRecogidaModal(false)
-                      
+                    if (recogidaAñadida) {
                       // Limpiar estado del modal
                       setSelectedMaterials([])
                       setOtrosMaterial("")

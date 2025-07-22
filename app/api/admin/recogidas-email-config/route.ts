@@ -35,6 +35,9 @@ export async function GET() {
         .insert({
           enabled: true,
           email_agencia: "recogidas@mrw.es",
+          email_remitente: "recogidas@controlvo.ovh",
+          nombre_remitente: "Recogidas - Sistema CVO",
+          asunto_template: "Recogidas Motor Munich ({centro}) - {cantidad} solicitudes",
           cc_emails: [],
         })
         .select()
@@ -71,7 +74,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { enabled, email_agencia, cc_emails } = body
+    const { enabled, email_agencia, email_remitente, nombre_remitente, asunto_template, cc_emails } = body
 
     // Validar campos
     if (typeof enabled !== "boolean") {
@@ -80,6 +83,18 @@ export async function POST(request: NextRequest) {
 
     if (!email_agencia || !email_agencia.includes("@")) {
       return NextResponse.json({ error: "Email de agencia inválido" }, { status: 400 })
+    }
+
+    if (!email_remitente || !email_remitente.includes("@")) {
+      return NextResponse.json({ error: "Email remitente inválido" }, { status: 400 })
+    }
+
+    if (!nombre_remitente || nombre_remitente.trim() === "") {
+      return NextResponse.json({ error: "Nombre del remitente es requerido" }, { status: 400 })
+    }
+
+    if (!asunto_template || asunto_template.trim() === "") {
+      return NextResponse.json({ error: "Plantilla del asunto es requerida" }, { status: 400 })
     }
 
     if (!Array.isArray(cc_emails)) {
@@ -100,7 +115,11 @@ export async function POST(request: NextRequest) {
         .update({
           enabled,
           email_agencia,
+          email_remitente,
+          nombre_remitente,
+          asunto_template,
           cc_emails,
+          updated_at: new Date().toISOString()
         })
         .eq("id", existingConfig.id)
         .select()
@@ -119,6 +138,9 @@ export async function POST(request: NextRequest) {
         .insert({
           enabled,
           email_agencia,
+          email_remitente,
+          nombre_remitente,
+          asunto_template,
           cc_emails,
         })
         .select()
