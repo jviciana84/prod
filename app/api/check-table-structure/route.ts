@@ -1,67 +1,62 @@
-import { NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
+import { NextRequest, NextResponse } from "next/server"
+import { createServerClient } from "@/lib/supabase/server"
+import { cookies } from "next/headers"
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    console.log("=== VERIFICANDO DATOS DE TABLA DOCUWARE_REQUESTS ===")
-    
-    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      return NextResponse.json({
-        success: false,
-        message: "Variables de entorno de Supabase no definidas"
-      })
+    const cookieStore = await cookies()
+    const supabase = await createServerClient()
+
+    // Verificar autenticación
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
+
+    if (userError || !user) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
-    
-    const supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    )
-    
-    // Consultar datos actuales
-    const { data: currentData, error: dataError } = await supabase
-      .from('docuware_requests')
-      .select('*')
-      .order('created_at', { ascending: false })
-    
-    if (dataError) {
-      console.error("Error consultando datos:", dataError)
-      return NextResponse.json({
-        success: false,
-        message: "Error consultando datos",
-        error: dataError.message
-      })
-    }
-    
-    // Verificar si hay duplicados por email_subject o messageId
-    const subjects = currentData?.map(r => r.email_subject) || []
-    const uniqueSubjects = [...new Set(subjects)]
-    
-    const messageIds = currentData?.map(r => r.message_id).filter(id => id) || []
-    const uniqueMessageIds = [...new Set(messageIds)]
-    
-    return NextResponse.json({
-      success: true,
-      message: "Datos consultados correctamente",
-      data: {
-        totalRecords: currentData?.length || 0,
-        uniqueSubjects: uniqueSubjects.length,
-        uniqueMessageIds: uniqueMessageIds.length,
-        records: currentData,
-        duplicateAnalysis: {
-          hasSubjectDuplicates: subjects.length !== uniqueSubjects.length,
-          hasMessageIdDuplicates: messageIds.length !== uniqueMessageIds.length,
-          subjects: subjects,
-          messageIds: messageIds
+
+    // Verificar si la tabla recogidas_historial existe
+    const { data: recogidasTable, error: recogidasError } = await supabase
+      .from("recogidas_historial")
+      .select("id")
+      .limit(1)
+
+    // Verificar si la tabla recogidas_email_config existe
+    const { data: emailConfigTable, error: emailConfigError } = await supabase
+      .from("recogidas_email_config")
+      .select("id")
+      .limit(1)
+
+    // Obtener estructura de columnas de recogidas_historial
+    let columnStructure = null
+    if (!recogidasError) {
+      try {
+        const { data: columns, error: columnsError } = await supabase
+          .rpc('get_table_structure', { table_name: 'recogidas_historial' })
+        
+        if (!columnsError) {
+          columnStructure = columns
         }
+      } catch (error) {
+        console.log("No se pudo obtener estructura de columnas:", error)
+      }
+    }
+
+    return NextResponse.json({
+      recogidas_historial: {
+        exists: !recogidasError,
+        error: recogidasError?.message || null,
+        columnStructure: columnStructure
+      },
+      recogidas_email_config: {
+        exists: !emailConfigError,
+        error: emailConfigError?.message || null
       }
     })
-    
-  } catch (error: any) {
-    console.error("Error verificando datos:", error)
-    return NextResponse.json({
-      success: false,
-      message: "Error interno",
-      error: error.message
-    })
+  } catch (error) {
+    console.error("Error verificando estructura de tablas:", error)
+    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
   }
 } 

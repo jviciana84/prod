@@ -54,6 +54,13 @@ export function RecogidaForm({ onSuccess, preselectedMatricula }: RecogidaFormPr
     observaciones_envio: ""
   })
 
+  // Efecto para cargar datos del vehículo cuando se preselecciona una matrícula
+  useEffect(() => {
+    if (preselectedMatricula) {
+      handleMatriculaChange(preselectedMatricula)
+    }
+  }, [preselectedMatricula])
+
   const [loading, setLoading] = useState(false)
   const [searchingVehicle, setSearchingVehicle] = useState(false)
   const [showOthersDialog, setShowOthersDialog] = useState(false)

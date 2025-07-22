@@ -15,7 +15,7 @@ interface RecogidasPageProps {
 export default function RecogidasPage({ searchParams }: RecogidasPageProps) {
   return (
     <div className="p-4 md:p-5 space-y-4 pb-20">
-      <div className="space-y-2">
+      <div className="space-y-4">
         <Breadcrumbs className="mt-4"
           segments={[
             {
