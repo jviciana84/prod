@@ -325,7 +325,6 @@ export function VehiculosParaRecoger({ onSolicitarRecogida }: VehiculosParaRecog
     }
     
     console.log('Mensaje WhatsApp:', message) // Debug del mensaje
-    const encodedMessage = encodeURIComponent(message)
     
     // Limpiar el número de teléfono y asegurar formato internacional
     let cleanPhone = phone.replace(/\D/g, '') // Remover todo excepto números
@@ -340,10 +339,34 @@ export function VehiculosParaRecoger({ onSolicitarRecogida }: VehiculosParaRecog
       cleanPhone = '34' + cleanPhone
     }
     
-    // Usar la URL de WhatsApp Web que funciona mejor
-    const whatsappUrl = `https://api.whatsapp.com/send/?phone=${cleanPhone}&text=${encodedMessage}&type=phone_number&app_absent=0`
-    console.log('WhatsApp URL:', whatsappUrl) // Para debug
-    window.open(whatsappUrl, '_blank')
+    // Intentar con URL con parámetros de texto primero
+    const encodedMessage = encodeURIComponent(message)
+    const whatsappUrlWithText = `https://wa.me/${cleanPhone}?text=${encodedMessage}`
+    const whatsappUrlSimple = `https://wa.me/${cleanPhone}`
+    
+    console.log('WhatsApp URL con texto:', whatsappUrlWithText) // Para debug
+    console.log('WhatsApp URL simple:', whatsappUrlSimple) // Para debug
+    
+    // Copiar mensaje al portapapeles automáticamente
+    navigator.clipboard.writeText(message).then(() => {
+      // Mostrar notificación
+      toast({
+        title: "✅ Mensaje copiado",
+        description: "El mensaje se ha copiado al portapapeles. Pégalo en WhatsApp.",
+      })
+      
+      // Intentar abrir WhatsApp con texto primero, si falla usar URL simple
+      try {
+        window.open(whatsappUrlWithText, '_blank', 'noopener,noreferrer')
+      } catch (error) {
+        console.error('Error con URL con texto, usando URL simple:', error)
+        window.open(whatsappUrlSimple, '_blank', 'noopener,noreferrer')
+      }
+    }).catch((error) => {
+      console.error('Error copiando mensaje:', error)
+      // Si no se puede copiar, solo abrir WhatsApp simple
+      window.open(whatsappUrlSimple, '_blank', 'noopener,noreferrer')
+    })
   }
 
   // Función para manejar clic en fila

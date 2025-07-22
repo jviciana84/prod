@@ -23,7 +23,25 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "50")
     const offset = parseInt(searchParams.get("offset") || "0")
 
-    // Construir query base
+    // Construir query base para contar total
+    let countQuery = supabase
+      .from("recogidas_historial")
+      .select("*", { count: "exact", head: true })
+
+    // Aplicar filtros de búsqueda al count
+    if (search) {
+      countQuery = countQuery.or(`matricula.ilike.%${search}%,nombre_cliente.ilike.%${search}%,usuario_solicitante.ilike.%${search}%`)
+    }
+
+    // Obtener total
+    const { count, error: countError } = await countQuery
+
+    if (countError) {
+      console.error("Error contando recogidas:", countError)
+      return NextResponse.json({ error: "Error contando recogidas" }, { status: 500 })
+    }
+
+    // Construir query para obtener datos
     let query = supabase
       .from("recogidas_historial")
       .select("*")
@@ -44,7 +62,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Error obteniendo recogidas" }, { status: 500 })
     }
 
-    return NextResponse.json({ recogidas })
+    return NextResponse.json({ recogidas, total: count || 0 })
   } catch (error) {
     console.error("Error en GET /api/recogidas:", error)
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
