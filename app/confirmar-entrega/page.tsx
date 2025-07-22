@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -22,7 +22,7 @@ interface Entrega {
   estado: string
 }
 
-export default function ConfirmarEntrega() {
+function ConfirmarEntregaContent() {
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
   const [entrega, setEntrega] = useState<Entrega | null>(null)
@@ -284,5 +284,22 @@ export default function ConfirmarEntrega() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function ConfirmarEntrega() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto p-6 flex items-center justify-center min-h-screen">
+        <Card className="w-full max-w-md">
+          <CardContent className="flex items-center justify-center p-6">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <span className="ml-2">Cargando...</span>
+          </CardContent>
+        </Card>
+      </div>
+    }>
+      <ConfirmarEntregaContent />
+    </Suspense>
   )
 } 
