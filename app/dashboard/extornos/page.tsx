@@ -1337,8 +1337,8 @@ Muchas gracias`.trim()
                           <SelectValue placeholder="Seleccionar concesión" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="1">Concesión 1</SelectItem>
-                          <SelectItem value="2">Concesión 2</SelectItem>
+                          <SelectItem value="1">Motor Múnich SA</SelectItem>
+                          <SelectItem value="2">Motor Múnich Cadí</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
