@@ -1211,7 +1211,173 @@ Muchas gracias`.trim()
                   Nueva Solicitud
                 </Button>
               </DialogTrigger>
-              {/* ...contenido del modal... */}
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Plus className="h-5 w-5 text-blue-600" />
+                    Nueva Solicitud de Extorno
+                  </DialogTitle>
+                  <DialogDescription>
+                    Complete los datos para crear una nueva solicitud de extorno
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  {/* Primera fila: Matrícula y Cliente */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="matricula" className="text-sm font-medium">
+                        Matrícula *
+                      </Label>
+                      <Input
+                        id="matricula"
+                        ref={matriculaRef}
+                        value={formData.matricula}
+                        onChange={(e) => setFormData({ ...formData, matricula: e.target.value })}
+                        onKeyPress={(e) => handleKeyPress(e, clienteRef)}
+                        placeholder="Ej: 1234ABC"
+                        className="uppercase"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cliente" className="text-sm font-medium">
+                        Cliente *
+                      </Label>
+                      <Input
+                        id="cliente"
+                        ref={clienteRef}
+                        value={formData.cliente}
+                        onChange={(e) => setFormData({ ...formData, cliente: e.target.value })}
+                        onKeyPress={(e) => handleKeyPress(e, numeroClienteRef)}
+                        placeholder="Nombre del cliente"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Segunda fila: Número de Cliente e Importe */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="numero_cliente" className="text-sm font-medium">
+                        Número de Cliente
+                      </Label>
+                      <Input
+                        id="numero_cliente"
+                        ref={numeroClienteRef}
+                        value={formData.numero_cliente}
+                        onChange={(e) => setFormData({ ...formData, numero_cliente: e.target.value })}
+                        onKeyPress={(e) => handleKeyPress(e, importeRef)}
+                        placeholder="Opcional"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="importe" className="text-sm font-medium">
+                        Importe *
+                      </Label>
+                      <Input
+                        id="importe"
+                        ref={importeRef}
+                        value={formData.importe}
+                        onChange={handleImporteChange}
+                        onKeyPress={(e) => handleKeyPress(e, conceptoRef)}
+                        placeholder="0,00 €"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Tercera fila: Concepto */}
+                  <div className="space-y-2">
+                    <Label htmlFor="concepto" className="text-sm font-medium">
+                      Concepto *
+                    </Label>
+                    <Textarea
+                      id="concepto"
+                      ref={conceptoRef}
+                      value={formData.concepto}
+                      onChange={(e) => setFormData({ ...formData, concepto: e.target.value })}
+                      onKeyPress={(e) => handleKeyPress(e, numeroCuentaRef)}
+                      placeholder="Descripción del extorno..."
+                      className="min-h-[80px] resize-none"
+                      required
+                    />
+                  </div>
+
+                  {/* Cuarta fila: Número de Cuenta y Concesión */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="numero_cuenta" className="text-sm font-medium">
+                        Número de Cuenta *
+                      </Label>
+                      <Input
+                        id="numero_cuenta"
+                        ref={numeroCuentaRef}
+                        value={formData.numero_cuenta}
+                        onChange={(e) => {
+                          const formatted = formatearNumeroCuenta(e.target.value)
+                          setFormData({ ...formData, numero_cuenta: formatted })
+                          setNumeroCuentaError("")
+                        }}
+                        onKeyPress={(e) => handleKeyPress(e, concesionRef)}
+                        placeholder="ES91 2100 0418 4502 0005 1332"
+                        className="font-mono"
+                        required
+                      />
+                      {numeroCuentaError && (
+                        <p className="text-sm text-red-600">{numeroCuentaError}</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="concesion" className="text-sm font-medium">
+                        Concesión *
+                      </Label>
+                      <Select value={formData.concesion} onValueChange={(value) => setFormData({ ...formData, concesion: value })}>
+                        <SelectTrigger ref={concesionRef}>
+                          <SelectValue placeholder="Seleccionar concesión" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">Concesión 1</SelectItem>
+                          <SelectItem value="2">Concesión 2</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Documentos adjuntos */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">
+                      Documentos Adjuntos
+                    </Label>
+                    <DocumentUploaderCompact
+                      extornoId={extornoTemporal}
+                      tipo="adjunto"
+                      documentos={pendingFiles}
+                      onFilesSelected={setPendingFiles}
+                      disabled={submitting}
+                    />
+                  </div>
+
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                      Cancelar
+                    </Button>
+                    <Button type="submit" disabled={submitting}>
+                      {submitting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Creando...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Crear Solicitud
+                        </>
+                      )}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
             </Dialog>
           </div>
         </CardHeader>
