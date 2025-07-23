@@ -253,7 +253,6 @@ export default function TransportTable({
 
   // Cambiar estado de recepción
   const toggleReception = async (id: number, currentStatus: boolean) => {
-    setIsLoading(true)
     try {
       const newStatus = !currentStatus
       const receptionDate = newStatus ? new Date().toISOString() : null
@@ -286,8 +285,6 @@ export default function TransportTable({
         description: "No se pudo actualizar el estado de recepción",
         variant: "destructive",
       })
-    } finally {
-      setIsLoading(false)
     }
   }
 
