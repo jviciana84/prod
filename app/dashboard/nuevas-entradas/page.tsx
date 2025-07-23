@@ -6,9 +6,16 @@ import TransportDashboard from "@/components/transport/transport-dashboard"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { getUserRolesClient } from "@/lib/auth/permissions-client"
 import { Truck } from "lucide-react"
+import { AutoRefreshIndicator } from "@/components/ui/auto-refresh-indicator"
+import { AutoRefreshSettings } from "@/components/ui/auto-refresh-settings"
+import { AutoRefreshNotification } from "@/components/ui/auto-refresh-notification"
+import { useAutoRefresh } from "@/hooks/use-auto-refresh"
+import { useAutoRefreshPreferences } from "@/hooks/use-auto-refresh-preferences"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 export default function TransportPage() {
   const [refreshKey, setRefreshKey] = useState(0)
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
   const [initialData, setInitialData] = useState<{
     transports: any[]
     locations: any[]
@@ -19,6 +26,9 @@ export default function TransportPage() {
     userRoles: []
   })
   const [isLoading, setIsLoading] = useState(false)
+  
+  // Usar preferencias guardadas
+  const { preferences, isLoaded, setEnabled, setInterval } = useAutoRefreshPreferences()
 
   const supabase = createClientComponentClient()
 
@@ -95,8 +105,22 @@ export default function TransportPage() {
 
   const handleRefresh = useCallback(() => {
     setRefreshKey((prev) => prev + 1)
+    setLastRefresh(new Date())
     loadData(true) // Mostrar loading en refresh manual
   }, [loadData])
+
+  const { isActive } = useAutoRefresh({
+    interval: preferences.interval,
+    enabled: preferences.enabled && isLoaded,
+    onRefresh: handleRefresh,
+    onError: (error) => {
+      console.error('Error en auto refresh de nuevas entradas:', error)
+    }
+  })
+
+  const toggleAutoRefresh = () => {
+    setEnabled(!preferences.enabled)
+  }
 
   return (
     <div className="p-4 md:p-5 space-y-4 pb-20">
@@ -118,6 +142,20 @@ export default function TransportPage() {
         userRoles={initialData.userRoles}
         onRefresh={handleRefresh}
         isLoading={isLoading}
+        autoRefreshProps={{
+          isActive,
+          interval: preferences.interval,
+          onToggle: toggleAutoRefresh,
+          lastRefresh,
+          onIntervalChange: setInterval
+        }}
+      />
+
+      {/* Componente de notificaciones de auto refresh */}
+      <AutoRefreshNotification
+        isActive={isActive}
+        onRefresh={handleRefresh}
+        showNotifications={preferences.enabled}
       />
     </div>
   )

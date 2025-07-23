@@ -9,9 +9,8 @@ import { Plus, Table, Terminal } from "lucide-react"
 import TransportTable from "./transport-table"
 import TransportQuickForm from "./transport-quick-form"
 import ScraperConsole from "./scraper-console"
-// Importaciones condicionales para auto-refresh
-// import { AutoRefreshIndicator } from "@/components/ui/auto-refresh-indicator"
-// import { AutoRefreshSettings } from "@/components/ui/auto-refresh-settings"
+import { AutoRefreshIndicator } from "@/components/ui/auto-refresh-indicator"
+import { AutoRefreshSettings } from "@/components/ui/auto-refresh-settings"
 
 interface TransportDashboardProps {
   initialTransports: any[]
@@ -204,8 +203,8 @@ export default function TransportDashboard({
                 </span>
               </div>
               
-              {/* Controles de auto-refresh - Comentado temporalmente */}
-              {/* {autoRefreshProps && (
+              {/* Controles de auto-refresh */}
+              {autoRefreshProps && (
                 <div className="flex items-center gap-2">
                   <AutoRefreshIndicator
                     isActive={autoRefreshProps.isActive}
@@ -218,7 +217,7 @@ export default function TransportDashboard({
                     onIntervalChange={autoRefreshProps.onIntervalChange}
                   />
                 </div>
-              )} */}
+              )}
             </div>
           </div>
         </CardHeader>
