@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { createClientComponentClient } from "@/lib/supabase/client"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -9,8 +9,9 @@ import { Plus, Table, Terminal } from "lucide-react"
 import TransportTable from "./transport-table"
 import TransportQuickForm from "./transport-quick-form"
 import ScraperConsole from "./scraper-console"
-import { AutoRefreshIndicator } from "@/components/ui/auto-refresh-indicator"
-import { AutoRefreshSettings } from "@/components/ui/auto-refresh-settings"
+// Importaciones condicionales para auto-refresh
+// import { AutoRefreshIndicator } from "@/components/ui/auto-refresh-indicator"
+// import { AutoRefreshSettings } from "@/components/ui/auto-refresh-settings"
 
 interface TransportDashboardProps {
   initialTransports: any[]
@@ -203,8 +204,8 @@ export default function TransportDashboard({
                 </span>
               </div>
               
-              {/* Controles de auto-refresh */}
-              {autoRefreshProps && (
+              {/* Controles de auto-refresh - Comentado temporalmente */}
+              {/* {autoRefreshProps && (
                 <div className="flex items-center gap-2">
                   <AutoRefreshIndicator
                     isActive={autoRefreshProps.isActive}
@@ -217,7 +218,7 @@ export default function TransportDashboard({
                     onIntervalChange={autoRefreshProps.onIntervalChange}
                   />
                 </div>
-              )}
+              )} */}
             </div>
           </div>
         </CardHeader>

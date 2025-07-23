@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useCallback, useEffect } from "react"
-import { createClientComponentClient } from "@/lib/supabase/client"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import TransportDashboard from "@/components/transport/transport-dashboard"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { getUserRolesClient } from "@/lib/auth/permissions-client"
@@ -28,8 +28,6 @@ export default function TransportPage() {
       setIsLoading(true)
     }
     try {
-      console.log("🔄 Cargando datos de nuevas entradas...")
-      
       // Obtener sedes para el formulario
       const { data: locations, error: locationsError } = await supabase.from("locations").select("*").order("name")
       if (locationsError) {
@@ -44,8 +42,6 @@ export default function TransportPage() {
       if (transportsError) {
         console.error("Error al cargar datos de transporte:", transportsError)
       }
-
-      console.log("📊 Datos cargados:", { transports: transports?.length || 0, locations: locations?.length || 0 })
 
       // Si tenemos transportes, cargar los datos relacionados
       let transportesConRelaciones = []
@@ -85,10 +81,8 @@ export default function TransportPage() {
         locations: locations || [],
         userRoles: userRoles || []
       })
-      
-      console.log("✅ Datos cargados exitosamente")
     } catch (error) {
-      console.error("❌ Error cargando datos:", error)
+      console.error("Error cargando datos:", error)
     } finally {
       setIsLoading(false)
     }
@@ -96,12 +90,10 @@ export default function TransportPage() {
 
   // Cargar datos iniciales
   useEffect(() => {
-    console.log("🚀 Iniciando carga de datos...")
     loadData(false) // No mostrar loading en carga inicial
   }, [loadData])
 
   const handleRefresh = useCallback(() => {
-    console.log("🔄 Refrescando datos...")
     setRefreshKey((prev) => prev + 1)
     loadData(true) // Mostrar loading en refresh manual
   }, [loadData])
