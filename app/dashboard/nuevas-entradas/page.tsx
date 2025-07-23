@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import TransportDashboard from "@/components/transport/transport-dashboard"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
@@ -30,7 +30,8 @@ export default function TransportPage() {
   // Usar preferencias guardadas
   const { preferences, isLoaded, setEnabled, setInterval } = useAutoRefreshPreferences()
 
-  const supabase = createClientComponentClient()
+  // Usar useRef para evitar recrear el cliente en cada render
+  const supabaseRef = useRef(createClientComponentClient())
 
   // Función para cargar datos
   const loadData = useCallback(async (showLoading = false) => {
@@ -38,6 +39,8 @@ export default function TransportPage() {
       setIsLoading(true)
     }
     try {
+      const supabase = supabaseRef.current
+      
       // Obtener sedes para el formulario
       const { data: locations, error: locationsError } = await supabase.from("locations").select("*").order("name")
       if (locationsError) {
@@ -96,7 +99,7 @@ export default function TransportPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [supabase])
+  }, [])
 
   // Cargar datos iniciales
   useEffect(() => {

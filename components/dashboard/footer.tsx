@@ -3,6 +3,7 @@
 import { VersionBadge } from "@/components/version-badge"
 import { useEffect, useState } from "react"
 import { createClientComponentClient } from "@/lib/supabase/client"
+import { PerformanceMonitor } from "@/components/ui/performance-monitor"
 
 // Definir la versión actual de la aplicación
 const APP_VERSION = "1.0.0"
@@ -108,9 +109,12 @@ export function DashboardFooter() {
           </div>
         )}
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">controlvo.ovh</span>
           <VersionBadge version={APP_VERSION} />
+          <div className="relative">
+            <PerformanceMonitor />
+          </div>
         </div>
       </div>
     </footer>

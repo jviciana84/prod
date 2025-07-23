@@ -15,24 +15,69 @@ export function useAutoRefresh({
 }: UseAutoRefreshOptions) {
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const isActiveRef = useRef(enabled)
+  const onRefreshRef = useRef(onRefresh)
+  const onErrorRef = useRef(onError)
+
+  // Actualizar las referencias cuando cambien las funciones
+  useEffect(() => {
+    onRefreshRef.current = onRefresh
+    onErrorRef.current = onError
+  }, [onRefresh, onError])
+
+  // Efecto principal para manejar el intervalo
+  useEffect(() => {
+    // Limpiar intervalo existente
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+      intervalRef.current = null
+    }
+
+    // Solo crear nuevo intervalo si está habilitado
+    if (enabled && interval > 0) {
+      isActiveRef.current = true
+      
+      intervalRef.current = setInterval(async () => {
+        try {
+          await onRefreshRef.current()
+        } catch (error) {
+          console.error('Error en auto refresh:', error)
+          onErrorRef.current?.(error as Error)
+        }
+      }, interval)
+    } else {
+      isActiveRef.current = false
+    }
+
+    // Cleanup al desmontar o cambiar dependencias
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+    }
+  }, [enabled, interval])
 
   const startInterval = useCallback(() => {
-    if (!enabled || intervalRef.current) return
-
-    intervalRef.current = setInterval(async () => {
-      try {
-        await onRefresh()
-      } catch (error) {
-        console.error('Error en auto refresh:', error)
-        onError?.(error as Error)
-      }
-    }, interval)
-  }, [enabled, interval, onRefresh, onError])
+    if (intervalRef.current) return
+    
+    if (enabled && interval > 0) {
+      isActiveRef.current = true
+      intervalRef.current = setInterval(async () => {
+        try {
+          await onRefreshRef.current()
+        } catch (error) {
+          console.error('Error en auto refresh:', error)
+          onErrorRef.current?.(error as Error)
+        }
+      }, interval)
+    }
+  }, [enabled, interval])
 
   const stopInterval = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current)
       intervalRef.current = null
+      isActiveRef.current = false
     }
   }, [])
 
@@ -40,20 +85,6 @@ export function useAutoRefresh({
     stopInterval()
     startInterval()
   }, [stopInterval, startInterval])
-
-  useEffect(() => {
-    isActiveRef.current = enabled
-    
-    if (enabled) {
-      startInterval()
-    } else {
-      stopInterval()
-    }
-
-    return () => {
-      stopInterval()
-    }
-  }, [enabled, startInterval, stopInterval])
 
   return {
     startInterval,
