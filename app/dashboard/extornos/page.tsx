@@ -163,6 +163,7 @@ export default function ExtornosPage() {
   const [error, setError] = useState<string | null>(null)
   const [rejectionMessage, setRejectionMessage] = useState<string>("")
   const [emailStates, setEmailStates] = useState<Record<string, "idle" | "sending" | "success" | "error">>({})
+  const [userRoles, setUserRoles] = useState<string[]>([])
 
   // NEW: States for documents in the modal
   const [pendingFiles, setPendingFiles] = useState<File[]>([]) // For new extorno form, to hold File objects
@@ -325,6 +326,36 @@ export default function ExtornosPage() {
           }
         } catch (profileError) {
           console.error("⚠️ Error obteniendo perfil:", profileError)
+        }
+
+        // Obtener roles del usuario
+        try {
+          console.log("⚙️ Obteniendo roles del usuario...")
+          const { data: rolesData, error: rolesError } = await supabase.rpc("get_user_role_names", {
+            user_id_param: data.session.user.id,
+          })
+
+          if (rolesError) {
+            console.error("⚠️ Error obteniendo roles:", rolesError)
+            // Intentar obtener desde profiles como fallback
+            if (profileData?.role) {
+              const roles = profileData.role.split(", ").map((role: string) => role.toLowerCase().trim())
+              setUserRoles(roles)
+              console.log("✅ Roles obtenidos desde profiles:", roles)
+            }
+          } else {
+            const roles = (rolesData || []).map((role: string) => role.toLowerCase().trim())
+            setUserRoles(roles)
+            console.log("✅ Roles obtenidos desde RPC:", roles)
+          }
+        } catch (rolesError) {
+          console.error("⚠️ Error obteniendo roles:", rolesError)
+          // Intentar obtener desde profiles como fallback
+          if (profileData?.role) {
+            const roles = profileData.role.split(", ").map((role: string) => role.toLowerCase().trim())
+            setUserRoles(roles)
+            console.log("✅ Roles obtenidos desde profiles (fallback):", roles)
+          }
         }
 
         // Verificar tabla después de autenticar
@@ -1135,6 +1166,21 @@ Muchas gracias`.trim()
     setSearchQuery(e.target.value)
   }
 
+  // Función para verificar si el usuario puede tramitar extornos
+  const canTramitarExtornos = (): boolean => {
+    if (!userRoles || userRoles.length === 0) return false
+    
+    return userRoles.some(role => {
+      const lowerRole = role.toLowerCase()
+      return lowerRole === "admin" || 
+             lowerRole === "director" || 
+             lowerRole === "supervisor" ||
+             lowerRole.includes("admin") ||
+             lowerRole.includes("director") ||
+             lowerRole.includes("supervisor")
+    })
+  }
+
   // Si no está autenticado, no mostramos nada
   if (isAuthenticated === false) {
     return (
@@ -1168,6 +1214,16 @@ Muchas gracias`.trim()
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Extornos</h1>
             <p className="text-muted-foreground">Gestión de solicitudes de extorno, devoluciones y transferencias</p>
+            {!canTramitarExtornos() && (
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
+                <div className="flex items-center">
+                  <AlertCircle className="h-4 w-4 text-blue-600 mr-2" />
+                  <span className="text-blue-800 font-medium">
+                    Puede consultar y registrar extornos. Solo admin, director y supervisor pueden tramitarlos.
+                  </span>
+                </div>
+              </div>
+            )}
             {rejectionMessage && (
               <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
                 <div className="flex items-center">
@@ -1612,13 +1668,21 @@ Muchas gracias`.trim()
                                             size="sm"
                                             variant="outline"
                                             onClick={() => enviarEmailTramitacion(solicitud)}
-                                            disabled={emailStates[`tramitacion_${solicitud.id}`] === "sending"}
-                                            className="h-8 w-8 p-0"
+                                            disabled={emailStates[`tramitacion_${solicitud.id}`] === "sending" || !canTramitarExtornos()}
+                                            className={cn(
+                                              "h-8 w-8 p-0",
+                                              !canTramitarExtornos() && "opacity-50 cursor-not-allowed"
+                                            )}
                                           >
                                             {getEmailButtonIcon(solicitud)}
                                           </Button>
                                         </TooltipTrigger>
-                                        <TooltipContent>Enviar email de tramitación</TooltipContent>
+                                        <TooltipContent>
+                                          {canTramitarExtornos() 
+                                            ? "Enviar email de tramitación" 
+                                            : "Solo admin, director y supervisor pueden tramitar extornos"
+                                          }
+                                        </TooltipContent>
                                       </Tooltip>
                                     </TooltipProvider>
                                     <TooltipProvider>
@@ -1628,13 +1692,21 @@ Muchas gracias`.trim()
                                             size="sm"
                                             variant="outline"
                                             onClick={() => rechazarExtorno(solicitud)}
-                                            disabled={emailStates[`rechazo_${solicitud.id}`] === "sending"}
-                                            className="border-red-500 hover:bg-red-50 h-8 w-8 p-0"
+                                            disabled={emailStates[`rechazo_${solicitud.id}`] === "sending" || !canTramitarExtornos()}
+                                            className={cn(
+                                              "border-red-500 hover:bg-red-50 h-8 w-8 p-0",
+                                              !canTramitarExtornos() && "opacity-50 cursor-not-allowed"
+                                            )}
                                           >
                                             {getRejectButtonIcon(solicitud)}
                                           </Button>
                                         </TooltipTrigger>
-                                        <TooltipContent>Rechazar extorno</TooltipContent>
+                                        <TooltipContent>
+                                          {canTramitarExtornos() 
+                                            ? "Rechazar extorno" 
+                                            : "Solo admin, director y supervisor pueden rechazar extornos"
+                                          }
+                                        </TooltipContent>
                                       </Tooltip>
                                     </TooltipProvider>
                                   </>
@@ -1650,12 +1722,21 @@ Muchas gracias`.trim()
                                             e.stopPropagation()
                                             verDetalles(solicitud, "realizado")
                                           }}
-                                          className="border-green-500 hover:bg-green-50 h-8 w-8 p-0"
+                                          disabled={!canTramitarExtornos()}
+                                          className={cn(
+                                            "border-green-500 hover:bg-green-50 h-8 w-8 p-0",
+                                            !canTramitarExtornos() && "opacity-50 cursor-not-allowed"
+                                          )}
                                         >
                                           <CreditCardIcon className="h-4 w-4 text-green-600" />
                                         </Button>
                                       </TooltipTrigger>
-                                      <TooltipContent>Confirmar pago / Ver realizado</TooltipContent>
+                                      <TooltipContent>
+                                        {canTramitarExtornos() 
+                                          ? "Confirmar pago / Ver realizado" 
+                                          : "Solo admin, director y supervisor pueden confirmar pagos"
+                                        }
+                                      </TooltipContent>
                                     </Tooltip>
                                   </TooltipProvider>
                                 )}
@@ -1936,7 +2017,7 @@ Muchas gracias`.trim()
                           )}
 
                           {/* Formulario para adjuntar justificante y realizar pago */}
-                          {selectedSolicitud.estado === "tramitado" && canPerformPayment(selectedSolicitud) && (
+                          {selectedSolicitud.estado === "tramitado" && canPerformPayment(selectedSolicitud) && canTramitarExtornos() && (
                             <div className="p-4 border border-blue-200 bg-blue-50 rounded-lg">
                               <div className="flex items-center gap-2 mb-3">
                                 <CreditCardIcon className="h-5 w-5 text-blue-600" />
@@ -1987,6 +2068,18 @@ Muchas gracias`.trim()
                                     </>
                                   )}
                                 </Button>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Mensaje si no tiene permisos para confirmar pago */}
+                          {selectedSolicitud.estado === "tramitado" && canPerformPayment(selectedSolicitud) && !canTramitarExtornos() && (
+                            <div className="p-4 border border-orange-200 bg-orange-50 rounded-lg">
+                              <div className="flex items-center gap-2">
+                                <AlertCircle className="h-5 w-5 text-orange-600" />
+                                <span className="text-sm text-orange-700">
+                                  Solo admin, director y supervisor pueden confirmar pagos
+                                </span>
                               </div>
                             </div>
                           )}
