@@ -458,6 +458,8 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
           return
         }
 
+        // CORREGIDO: Usar mediodía para evitar problemas de zona horaria
+        parsedDate.setHours(12, 0, 0, 0)
         finalValue = parsedDate.toISOString()
         updateData.fecha_entrega = finalValue
       } else {

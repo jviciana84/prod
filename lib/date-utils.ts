@@ -46,8 +46,10 @@ export function parseSpanishDateToISO(spanishDate: string | null | undefined): s
       return spanishDate
     }
 
-    // Parsear formato español DD/MM/AAAA
-    const date = parse(spanishDate, SPANISH_DATE_FORMAT, new Date())
+    // CORREGIDO: Parsear formato español DD/MM/AAAA sin problemas de zona horaria
+    const [day, month, year] = spanishDate.split("/").map(Number)
+    const date = new Date(year, month - 1, day, 12, 0, 0, 0) // Usar mediodía para evitar problemas de zona horaria
+    
     if (!isValid(date)) {
       console.warn("Fecha española inválida:", spanishDate)
       return null
@@ -67,7 +69,9 @@ export function isValidSpanishDate(spanishDate: string): boolean {
   if (!spanishDate || spanishDate.trim() === "") return false
 
   try {
-    const date = parse(spanishDate, SPANISH_DATE_FORMAT, new Date())
+    // CORREGIDO: Validar fecha española sin problemas de zona horaria
+    const [day, month, year] = spanishDate.split("/").map(Number)
+    const date = new Date(year, month - 1, day, 12, 0, 0, 0) // Usar mediodía para evitar problemas de zona horaria
     return isValid(date)
   } catch {
     return false

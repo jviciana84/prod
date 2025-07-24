@@ -1224,7 +1224,10 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
       ) {
         // Validar formato de fecha
         if (editingValue && !isNaN(Date.parse(editingValue))) {
-          valueToSave = new Date(editingValue).toISOString()
+          // CORREGIDO: Usar mediodía para evitar problemas de zona horaria
+          const date = new Date(editingValue)
+          date.setHours(12, 0, 0, 0) // Establecer a mediodía
+          valueToSave = date.toISOString()
         } else {
           valueToSave = null
         }

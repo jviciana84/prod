@@ -40,7 +40,8 @@ export async function procesarDatosMasivos(params: CargaMasivaParams) {
               // Verificar si es una fecha en formato DD/MM/YYYY
               if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(valor)) {
                 const [day, month, year] = valor.split("/").map(Number)
-                valor = new Date(year, month - 1, day).toISOString()
+                // CORREGIDO: Usar mediodía para evitar problemas de zona horaria
+                valor = new Date(year, month - 1, day, 12, 0, 0, 0).toISOString()
               }
               // Si es una fecha en formato Excel (número de días desde 1900)
               else if (!isNaN(Number(valor))) {
