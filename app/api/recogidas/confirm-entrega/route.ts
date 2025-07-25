@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
       .from("entregas_en_mano")
       .select("*")
       .eq("token_confirmacion", token)
-      .eq("estado", "pendiente")
+      .eq("estado", "enviado") // CAMBIO: de 'pendiente' a 'enviado'
       .single()
 
     if (entregaError || !entrega) {
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     const { error: updateError } = await supabase
       .from("entregas_en_mano")
       .update({
-        estado: "confirmada",
+        estado: "confirmado",
         fecha_confirmacion: new Date().toISOString()
       })
       .eq("id", entrega.id)
@@ -62,14 +62,9 @@ export async function POST(request: NextRequest) {
       // No fallamos aquí, solo log del error
     }
 
-    return NextResponse.json({
-      success: true,
-      message: "Entrega confirmada correctamente",
-      data: {
-        matricula: entrega.matricula,
-        materiales: entrega.materiales,
-        fecha_confirmacion: new Date().toISOString()
-      }
+    return NextResponse.json({ 
+      success: true, 
+      message: "Entrega confirmada correctamente" 
     })
 
   } catch (error) {
