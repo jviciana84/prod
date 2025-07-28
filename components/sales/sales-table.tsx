@@ -50,6 +50,7 @@ import { syncValidatedVehicle } from "@/server-actions/validation-actions"
 
 // Importar el componente PdfDataDialog
 import { PdfDataDialog } from "./pdf-data-dialog"
+import { PrintExportButton } from "./print-export-button"
 
 
 // Importar las nuevas utilidades al inicio:
@@ -1558,6 +1559,13 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                   <Eye className="h-4 w-4" />
                 )}
               </Button>
+              <PrintExportButton
+                vehicles={filteredByDate}
+                activeTab={activeTab}
+                searchQuery={searchQuery}
+                dateFilter={dateFilter}
+                hiddenColumns={hiddenColumns}
+              />
             </div>
             <TabsList className="h-9 bg-muted/50">
               <TabsTrigger value="car" className="px-3 py-1 h-7 data-[state=active]:bg-background">
