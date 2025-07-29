@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { AlertTriangle, Car, Calendar, Tag } from 'lucide-react'
+import { AlertTriangle, Car, Calendar, Tag, CheckCircle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { Loader2 } from 'lucide-react'
 
@@ -71,7 +71,7 @@ export function RemovedVehiclesModal({
     }
   }
 
-  const handleMarkAsProfessional = async (vehicle: RemovedVehicle) => {
+  const handleMarkAsProfessional = async (vehicle: RemovedVehicle, status: 'profesional' | 'vendido' | 'tactico_vn') => {
     setIsProcessing(vehicle.id)
     try {
       const response = await fetch('/api/mark-as-professional-sale', {
@@ -82,7 +82,8 @@ export function RemovedVehiclesModal({
         body: JSON.stringify({
           vehicleId: vehicle.id,
           source: vehicle.source,
-          tableId: vehicle.table_id
+          tableId: vehicle.table_id,
+          status: status
         })
       })
 
@@ -91,7 +92,7 @@ export function RemovedVehiclesModal({
       if (data.success) {
         toast({
           title: "Éxito",
-          description: `${vehicle.license_plate} marcado como venta profesional`,
+          description: `${vehicle.license_plate} marcado como ${status}`,
         })
 
         // Remover el vehículo de la lista
@@ -195,20 +196,50 @@ export function RemovedVehiclesModal({
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleMarkAsProfessional(vehicle)}
-                        disabled={isProcessing === vehicle.id}
-                        className="flex items-center gap-1"
-                      >
-                        {isProcessing === vehicle.id ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <Tag className="h-3 w-3" />
-                        )}
-                        Venta Profesional
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleMarkAsProfessional(vehicle, 'profesional')}
+                          disabled={isProcessing === vehicle.id}
+                          className="flex items-center gap-1"
+                        >
+                          {isProcessing === vehicle.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Tag className="h-3 w-3" />
+                          )}
+                          Profesional
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleMarkAsProfessional(vehicle, 'vendido')}
+                          disabled={isProcessing === vehicle.id}
+                          className="flex items-center gap-1"
+                        >
+                          {isProcessing === vehicle.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <CheckCircle className="h-3 w-3" />
+                          )}
+                          Vendido
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleMarkAsProfessional(vehicle, 'tactico_vn')}
+                          disabled={isProcessing === vehicle.id}
+                          className="flex items-center gap-1"
+                        >
+                          {isProcessing === vehicle.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Car className="h-3 w-3" />
+                          )}
+                          Táctico VN
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

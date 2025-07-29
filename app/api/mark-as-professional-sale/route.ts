@@ -7,34 +7,96 @@ export async function POST(request: NextRequest) {
     const cookieStore = await cookies()
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
     
-    const { vehicleId, source, tableId } = await request.json()
+    const { vehicleId, source, tableId, status } = await request.json()
 
-    if (!vehicleId || !source || !tableId) {
+    if (!vehicleId || !source || !tableId || !status) {
       return NextResponse.json(
         { error: 'Faltan parámetros requeridos' },
         { status: 400 }
       )
     }
 
-    // Por ahora, solo simulamos la operación
-    // En el futuro, aquí se podría:
-    // 1. Agregar un campo 'sale_type' a las tablas
-    // 2. Mover el vehículo a una tabla de ventas profesionales
-    // 3. Actualizar el estado del vehículo
+    // Validar que el status sea válido
+    const validStatuses = ['profesional', 'vendido', 'tactico_vn']
+    if (!validStatuses.includes(status)) {
+      return NextResponse.json(
+        { error: 'Status inválido' },
+        { status: 400 }
+      )
+    }
 
-    // Simular procesamiento
-    await new Promise(resolve => setTimeout(resolve, 500))
+    // Obtener la matrícula del vehículo
+    const { data: vehicleData, error: vehicleError } = await supabase
+      .from(source)
+      .select('license_plate')
+      .eq('id', vehicleId)
+      .single()
+
+    if (vehicleError || !vehicleData) {
+      return NextResponse.json(
+        { error: 'Vehículo no encontrado' },
+        { status: 404 }
+      )
+    }
+
+    // Verificar si ya existe un registro para este vehículo
+    const { data: existingStatus, error: checkError } = await supabase
+      .from('vehicle_sale_status')
+      .select('id')
+      .eq('vehicle_id', vehicleId)
+      .eq('source_table', source)
+      .single()
+
+    if (existingStatus) {
+      // Actualizar el estado existente
+      const { error: updateError } = await supabase
+        .from('vehicle_sale_status')
+        .update({ 
+          sale_status: status,
+          created_at: new Date().toISOString()
+        })
+        .eq('vehicle_id', vehicleId)
+        .eq('source_table', source)
+
+      if (updateError) {
+        console.error('Error actualizando estado de venta:', updateError)
+        return NextResponse.json(
+          { error: 'Error actualizando estado de venta' },
+          { status: 500 }
+        )
+      }
+    } else {
+      // Insertar nuevo registro
+      const { error: insertError } = await supabase
+        .from('vehicle_sale_status')
+        .insert({
+          vehicle_id: vehicleId,
+          source_table: source,
+          license_plate: vehicleData.license_plate,
+          sale_status: status,
+          notes: `Marcado como ${status} desde el modal de vehículos ausentes`
+        })
+
+      if (insertError) {
+        console.error('Error insertando estado de venta:', insertError)
+        return NextResponse.json(
+          { error: 'Error guardando estado de venta' },
+          { status: 500 }
+        )
+      }
+    }
 
     return NextResponse.json({
       success: true,
-      message: 'Vehículo marcado como venta profesional',
+      message: `Vehículo marcado como ${status}`,
       vehicleId,
       source,
-      tableId
+      tableId,
+      status
     })
 
   } catch (error) {
-    console.error('Error marcando como venta profesional:', error)
+    console.error('Error marcando vehículo:', error)
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

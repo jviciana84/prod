@@ -26,6 +26,7 @@ import {
   AlertTriangle,
   Car,
   Tag,
+  Truck,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
@@ -195,11 +196,57 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
         // Ya no verificamos el estado mecánico
       )
     } else if (activeTab === "vendido") {
-      // Filtrar vehículos vendidos (por ahora vacío, se implementará cuando se defina la lógica)
-      filtered = filtered.filter((item) => false) // Temporalmente vacío
+      // Filtrar vehículos marcados como vendidos
+      const fetchSoldVehicles = async () => {
+        try {
+          const { data: soldVehicles, error } = await supabase
+            .from("vehicle_sale_status")
+            .select("vehicle_id, source_table, license_plate")
+            .eq("sale_status", "vendido")
+
+          if (!error && soldVehicles) {
+            const soldVehicleIds = soldVehicles.map(v => v.vehicle_id)
+            const soldVehiclesList = filtered.filter((vehicle) =>
+              soldVehicleIds.includes(vehicle.id)
+            )
+
+            setFilteredStock(soldVehiclesList)
+            setTotalPages(Math.max(1, Math.ceil(soldVehiclesList.length / itemsPerPage)))
+            setCurrentPage(1)
+          }
+        } catch (err) {
+          console.error("Error al obtener vehículos vendidos:", err)
+        }
+      }
+
+      fetchSoldVehicles()
+      return
     } else if (activeTab === "profesionales") {
-      // Filtrar vehículos marcados como venta profesional (por ahora vacío, se implementará cuando se defina la lógica)
-      filtered = filtered.filter((item) => false) // Temporalmente vacío
+      // Filtrar vehículos marcados como profesional o táctico VN (No Retail)
+      const fetchNoRetailVehicles = async () => {
+        try {
+          const { data: noRetailVehicles, error } = await supabase
+            .from("vehicle_sale_status")
+            .select("vehicle_id, source_table, license_plate, sale_status")
+            .in("sale_status", ["profesional", "tactico_vn"])
+
+          if (!error && noRetailVehicles) {
+            const noRetailVehicleIds = noRetailVehicles.map(v => v.vehicle_id)
+            const noRetailVehiclesList = filtered.filter((vehicle) =>
+              noRetailVehicleIds.includes(vehicle.id)
+            )
+
+            setFilteredStock(noRetailVehiclesList)
+            setTotalPages(Math.max(1, Math.ceil(noRetailVehiclesList.length / itemsPerPage)))
+            setCurrentPage(1)
+          }
+        } catch (err) {
+          console.error("Error al obtener vehículos No Retail:", err)
+        }
+      }
+
+      fetchNoRetailVehicles()
+      return
     } else if (activeTab === "premature_sales") {
       // Obtener vehículos con ventas prematuras
       const fetchPrematureSales = async () => {
@@ -225,6 +272,32 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
       }
 
       fetchPrematureSales()
+      return
+    } else if (activeTab === "entregados") {
+      // Filtrar vehículos marcados como entregados
+      const fetchDeliveredVehicles = async () => {
+        try {
+          const { data: deliveredVehicles, error } = await supabase
+            .from("vehicle_sale_status")
+            .select("vehicle_id, source_table, license_plate")
+            .eq("sale_status", "entregado")
+
+          if (!error && deliveredVehicles) {
+            const deliveredVehicleIds = deliveredVehicles.map(v => v.vehicle_id)
+            const deliveredVehiclesList = filtered.filter((vehicle) =>
+              deliveredVehicleIds.includes(vehicle.id)
+            )
+
+            setFilteredStock(deliveredVehiclesList)
+            setTotalPages(Math.max(1, Math.ceil(deliveredVehiclesList.length / itemsPerPage)))
+            setCurrentPage(1)
+          }
+        } catch (err) {
+          console.error("Error al obtener vehículos entregados:", err)
+        }
+      }
+
+      fetchDeliveredVehicles()
       return
     }
 
@@ -1035,11 +1108,15 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
             </TabsTrigger>
             <TabsTrigger value="profesionales" className="px-3 py-1 h-7 data-[state=active]:bg-background">
               <Tag className="h-3.5 w-3.5 mr-1" />
-              <span>Profesionales</span>
+              <span>No Retail</span>
             </TabsTrigger>
             <TabsTrigger value="premature_sales" className="px-3 py-1 h-7 data-[state=active]:bg-background">
               <AlertTriangle className="h-3.5 w-3.5 mr-1" />
               <span>Ventas Prematuras</span>
+            </TabsTrigger>
+            <TabsTrigger value="entregados" className="px-3 py-1 h-7 data-[state=active]:bg-background">
+              <Truck className="h-3.5 w-3.5 mr-1" />
+              <span>Entregados</span>
             </TabsTrigger>
           </TabsList>
         </div>

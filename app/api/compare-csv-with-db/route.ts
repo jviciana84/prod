@@ -26,24 +26,43 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Error obteniendo datos de nuevas entradas' }, { status: 500 })
     }
 
-    // Combinar todos los coches de la BD
+    // Obtener vehículos ya clasificados para excluirlos
+    const { data: classifiedVehicles, error: classifiedError } = await supabase
+      .from('vehicle_sale_status')
+      .select('vehicle_id, source_table')
+
+    if (classifiedError) {
+      console.error('Error obteniendo vehículos clasificados:', classifiedError)
+      return NextResponse.json({ error: 'Error obteniendo vehículos clasificados' }, { status: 500 })
+    }
+
+    // Crear set de vehículos ya clasificados
+    const classifiedSet = new Set(
+      (classifiedVehicles || []).map(v => `${v.source_table}_${v.vehicle_id}`)
+    )
+
+    // Combinar todos los coches de la BD (excluyendo los ya clasificados)
     const allVehicles = [
-      ...(stockData || []).map(vehicle => ({
-        ...vehicle,
-        source: 'stock',
-        table_id: vehicle.id
-      })),
-      ...(nuevasEntradasData || []).map(vehicle => ({
-        ...vehicle,
-        source: 'nuevas_entradas',
-        table_id: vehicle.id
-      }))
+      ...(stockData || [])
+        .filter(vehicle => !classifiedSet.has(`stock_${vehicle.id}`))
+        .map(vehicle => ({
+          ...vehicle,
+          source: 'stock',
+          table_id: vehicle.id
+        })),
+      ...(nuevasEntradasData || [])
+        .filter(vehicle => !classifiedSet.has(`nuevas_entradas_${vehicle.id}`))
+        .map(vehicle => ({
+          ...vehicle,
+          source: 'nuevas_entradas',
+          table_id: vehicle.id
+        }))
     ]
 
-    // Obtener los datos del último CSV procesado desde duc_scraper
+    // Obtener las matrículas del último CSV procesado (agrupando por matrícula y tomando el más reciente)
     const { data: csvData, error: csvError } = await supabase
       .from('duc_scraper')
-      .select('"ID Anuncio", "Matrícula", "Modelo", "Marca", "Chasis", last_seen_date')
+      .select('"Matrícula", last_seen_date')
       .not('"Matrícula"', 'is', null)
       .not('"Matrícula"', 'eq', '')
 
@@ -52,11 +71,27 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Error obteniendo datos del CSV' }, { status: 500 })
     }
 
-    // Crear un set de matrículas del CSV actual
+    // Agrupar por matrícula y tomar el last_seen_date más reciente
+    const matriculaMap = new Map()
+    
+    ;(csvData || []).forEach(item => {
+      const matricula = item['Matrícula']?.toUpperCase().trim()
+      const lastSeen = new Date(item.last_seen_date)
+      
+      if (matricula) {
+        const existing = matriculaMap.get(matricula)
+        if (!existing || lastSeen > existing.lastSeen) {
+          matriculaMap.set(matricula, {
+            matricula,
+            lastSeen
+          })
+        }
+      }
+    })
+
+    // Crear un set de matrículas del último CSV (solo las más recientes)
     const csvMatriculas = new Set(
-      (csvData || [])
-        .filter(item => item['Matrícula'] && item['Matrícula'].trim() !== '')
-        .map(item => item['Matrícula'].toUpperCase().trim())
+      Array.from(matriculaMap.values()).map(item => item.matricula)
     )
 
     // Encontrar vehículos que están en la BD pero no en el CSV
@@ -69,7 +104,10 @@ export async function GET(request: NextRequest) {
       success: true,
       totalVehicles: allVehicles.length,
       removedVehicles: removedVehicles,
-      message: 'Comparación completada'
+      message: 'Comparación completada',
+      csvMatriculasCount: csvMatriculas.size,
+      bdMatriculasCount: allVehicles.length,
+      classifiedVehiclesCount: classifiedVehicles?.length || 0
     })
 
   } catch (error) {
