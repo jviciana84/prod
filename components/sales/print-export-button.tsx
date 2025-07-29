@@ -30,11 +30,11 @@ export function PrintExportButton({
       { key: 'model', label: 'Modelo' },
       { key: 'client_name', label: 'Cliente' },
       { key: 'brand', label: 'Marca' },
-      { key: 'vehicle_type', label: 'Tipo' },
       { key: 'dealership_code', label: 'Concesionario' },
       { key: 'price', label: 'Precio' },
       { key: 'sale_date', label: 'Fecha Venta' },
       { key: 'advisor', label: 'Asesor' },
+      { key: 'days_since_sale', label: 'Días' },
       { key: 'or_value', label: 'OR' },
       { key: 'expense_charge', label: 'Gastos' },
       { key: 'payment_method', label: 'Forma Pago' },
@@ -90,36 +90,48 @@ export function PrintExportButton({
       return visibleColumns.map(col => {
         let value = vehicle[col.key as keyof SoldVehicle]
         
+        // Calcular días desde la venta para la columna especial
+        if (col.key === 'days_since_sale') {
+          value = vehicle.sale_date 
+            ? Math.floor((new Date().getTime() - new Date(vehicle.sale_date).getTime()) / (1000 * 60 * 60 * 24))
+            : 0
+        }
+        
         // Formatear valores especiales
         if (col.key === 'price' && value) {
           value = `${value} €`
         } else if (col.key === 'validated') {
           value = value ? 'Sí' : 'No'
-        } else if (col.key === 'vehicle_type') {
-          value = value === 'Moto' ? 'Moto' : 'Coche'
         } else if (col.key === 'is_resale') {
           value = value ? 'Sí' : 'No'
-        } else if (col.key === 'sale_date' || col.key === 'order_date' || 
-                   col.key === 'cyp_date' || col.key === 'photo_360_date' || 
-                   col.key === 'validation_date' || col.key === 'created_at' || 
-                   col.key === 'updated_at' || col.key === 'registration_date') {
-          if (value) {
-            value = new Date(value).toLocaleDateString('es-ES')
-          }
-        } else if (col.key === 'mileage' && value) {
-          value = `${value.toLocaleString('es-ES')} km`
+        } else if (col.key === 'sale_date' && value) {
+          value = new Date(value).toLocaleDateString('es-ES')
+        } else if (col.key === 'validation_date' && value) {
+          value = new Date(value).toLocaleDateString('es-ES')
+        } else if (col.key === 'cyp_date' && value) {
+          value = new Date(value).toLocaleDateString('es-ES')
+        } else if (col.key === 'photo_360_date' && value) {
+          value = new Date(value).toLocaleDateString('es-ES')
+        } else if (col.key === 'created_at' && value) {
+          value = new Date(value).toLocaleDateString('es-ES')
+        } else if (col.key === 'updated_at' && value) {
+          value = new Date(value).toLocaleDateString('es-ES')
+        } else if (col.key === 'order_date' && value) {
+          value = new Date(value).toLocaleDateString('es-ES')
+        } else if (col.key === 'registration_date' && value) {
+          value = new Date(value).toLocaleDateString('es-ES')
         }
-
-        // Escapar comillas y comas en el valor
-        if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+        
+        // Escapar comas y comillas en el valor
+        if (typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n'))) {
           value = `"${value.replace(/"/g, '""')}"`
         }
-
+        
         return value || ''
       }).join(',')
     })
 
-    return [header, ...rows].join('\n')
+    return `${header}\n${rows.join('\n')}`
   }
 
   const generatePDF = async (data: SoldVehicle[]) => {
@@ -141,6 +153,8 @@ export function PrintExportButton({
             .status-completed { background-color: #d4edda; }
             .status-pending { background-color: #fff3cd; }
             .status-process { background-color: #cce5ff; }
+            .row-even { background-color: #f9f9f9; }
+            .row-odd { background-color: #ffffff; }
             .page-break { page-break-before: always; }
           </style>
         </head>
@@ -168,11 +182,11 @@ export function PrintExportButton({
                 <th>Modelo</th>
                 <th>Cliente</th>
                 <th>Marca</th>
-                <th>Tipo</th>
                 <th>Concesionario</th>
                 ${!hiddenColumns.price ? '<th>Precio</th>' : ''}
                 ${!hiddenColumns.saleDate ? '<th>Fecha Venta</th>' : ''}
                 <th>Asesor</th>
+                <th>Días</th>
                 <th>OR</th>
                 <th>Gastos</th>
                 ${!hiddenColumns.paymentMethod ? '<th>Forma Pago</th>' : ''}
@@ -187,17 +201,23 @@ export function PrintExportButton({
               </tr>
             </thead>
             <tbody>
-              ${data.map(vehicle => `
-                <tr>
+              ${data.map((vehicle, index) => {
+                // Calcular días desde la venta
+                const daysSinceSale = vehicle.sale_date 
+                  ? Math.floor((new Date().getTime() - new Date(vehicle.sale_date).getTime()) / (1000 * 60 * 60 * 24))
+                  : 0
+                
+                return `
+                <tr class="${index % 2 === 0 ? 'row-even' : 'row-odd'}">
                   <td>${vehicle.license_plate || ''}</td>
                   <td>${vehicle.model || ''}</td>
                   <td>${vehicle.client_name || ''}</td>
                   <td>${vehicle.brand || ''}</td>
-                  <td>${vehicle.vehicle_type === 'Moto' ? 'Moto' : 'Coche'}</td>
                   <td>${vehicle.dealership_code || ''}</td>
                   ${!hiddenColumns.price ? `<td>${vehicle.price ? `${vehicle.price.toLocaleString('es-ES')} €` : ''}</td>` : ''}
                   ${!hiddenColumns.saleDate ? `<td>${vehicle.sale_date ? new Date(vehicle.sale_date).toLocaleDateString('es-ES') : ''}</td>` : ''}
                   <td>${vehicle.advisor || ''}</td>
+                  <td>${daysSinceSale}</td>
                   <td>${vehicle.or_value || ''}</td>
                   <td>${vehicle.expense_charge || ''}</td>
                   ${!hiddenColumns.paymentMethod ? `<td>${vehicle.payment_method || ''}</td>` : ''}
@@ -210,7 +230,7 @@ export function PrintExportButton({
                   <td>${vehicle.validated ? 'Sí' : 'No'}</td>
                   <td>${vehicle.delivery_center || ''}${vehicle.external_provider ? ` (${vehicle.external_provider})` : ''}</td>
                 </tr>
-              `).join('')}
+              `}).join('')}
             </tbody>
           </table>
         </body>
