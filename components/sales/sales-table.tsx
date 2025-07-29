@@ -212,6 +212,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
     dealershipCode: true, // Nueva columna oculta por defecto
     bank: true, // Nueva columna oculta por defecto
     clientDni: true, // Nueva columna oculta por defecto
+    vehicleType: true, // Ocultar columna de tipo de vehículo
   })
 
   // Estado para la pestaña activa
@@ -578,7 +579,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
       1 + // Model
       (!Object.values(hiddenColumns).some(hidden => hidden) ? 1 : 0) + // Client (solo cuando las columnas están visibles)
       (hiddenColumns.brand ? 0 : 1) + // Brand
-      1 + // Type
+      (hiddenColumns.vehicleType ? 0 : 1) + // Type
       (hiddenColumns.dealershipCode ? 0 : 1) + // Dealership
       (hiddenColumns.price ? 0 : 1) + // Price
       (hiddenColumns.saleDate ? 0 : 1) + // Sale Date
@@ -1409,6 +1410,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
       dealershipCode: !prev.dealershipCode,
       bank: !prev.bank,
       clientDni: !prev.clientDni,
+      vehicleType: !prev.vehicleType,
     }))
   }
 
@@ -1702,7 +1704,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                           key={vehicle.id}
                           className={cn(
                             "transition-all duration-300 ease-in-out cursor-pointer border-b relative",
-                            index % 2 === 0 ? "bg-background" : "bg-muted/10",
+                            index % 2 === 0 ? "bg-background" : "bg-muted/20",
                             selectedRowId === vehicle.id 
                               ? "border-2 border-primary shadow-md ring-2 ring-primary/20" 
                               : "hover:bg-muted/30"
@@ -1824,20 +1826,22 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                             </TableCell>
                           )}
 
-                          {/* TIPO */}
-                          <TableCell className="py-1">
-                            {vehicle.vehicle_type === "Moto" ? (
-                              <div className="flex items-center">
-                                <Bike className="h-4 w-4 mr-1 text-orange-500" />
-                                <span>Moto</span>
-                              </div>
-                            ) : (
-                              <div className="flex items-center">
-                                <Car className="h-4 w-4 mr-1 text-blue-500" />
-                                <span>Coche</span>
-                              </div>
-                            )}
-                          </TableCell>
+                          {/* TIPO - Solo visible si hiddenColumns.vehicleType es false */}
+                          {!hiddenColumns.vehicleType && (
+                            <TableCell className="py-1">
+                              {vehicle.vehicle_type === "Moto" ? (
+                                <div className="flex items-center">
+                                  <Bike className="h-4 w-4 mr-1 text-orange-500" />
+                                  <span>Moto</span>
+                                </div>
+                              ) : (
+                                <div className="flex items-center">
+                                  <Car className="h-4 w-4 mr-1 text-blue-500" />
+                                  <span>Coche</span>
+                                </div>
+                              )}
+                            </TableCell>
+                          )}
 
                           {/* CONCESIONARIO (dealership_code) - Nueva columna */}
                           {!hiddenColumns.dealershipCode && (
