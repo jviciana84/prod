@@ -39,12 +39,6 @@ tr[data-selected="true"] {
   position: relative;
 }
 
-/* Borde lateral en la primera celda */
-tr[data-selected="true"] td:first-child {
-  border-left: 4px solid hsl(var(--primary));
-  padding-left: calc(1rem - 4px);
-}
-
 /* Indicador de selección - punto en la esquina superior derecha */
 tr[data-selected="true"]::after {
   content: '';
