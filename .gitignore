@@ -69,3 +69,6 @@ backup_*
 
 # Background paths project (local only)
 background-paths/
+
+# Vehicle incidents portal (local only)
+vehicle-incidents-portal/

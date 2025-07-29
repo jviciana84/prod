@@ -3,7 +3,7 @@ import { ThemeProvider as NextThemesProvider, type ThemeProviderProps } from "ne
 
 export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
   return (
-    <NextThemesProvider {...props} defaultTheme="dark" themes={["light", "dark", "ocre"]}>
+    <NextThemesProvider {...props} defaultTheme="light" themes={["light", "dark", "ocre"]}>
       {children}
     </NextThemesProvider>
   )

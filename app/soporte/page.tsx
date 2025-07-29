@@ -8,9 +8,12 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Loader2, Car, User, Mail, Phone, Calendar, Ticket, AlertTriangle, CheckCircle, Clock } from "lucide-react"
+import { Progress } from "@/components/ui/progress"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
+import { Loader2, Car, User, Mail, Phone, Calendar, Ticket, AlertTriangle, CheckCircle, Clock, Shield, Key, FileText, Wrench, Sparkles, TrendingUp, DollarSign, Award, MapPin, AlertCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import BuildingLines from "@/components/ui/building-lines"
 
 interface VehicleData {
@@ -34,7 +37,7 @@ interface TicketData {
 
 export default function SoportePage() {
   const { toast } = useToast()
-  const [step, setStep] = useState<"validation" | "ticket" | "history">("validation")
+  const [step, setStep] = useState<"captcha" | "validation" | "ticket" | "history" | "dashboard">("captcha")
   const [licensePlate, setLicensePlate] = useState("")
   const [dni, setDni] = useState("")
   const [loading, setLoading] = useState(false)
@@ -47,6 +50,148 @@ export default function SoportePage() {
   const [incidenciaTexts, setIncidenciaTexts] = useState<Record<string, string>>({})
   const [showDocumentacionModal, setShowDocumentacionModal] = useState(false)
   const [documentacionInfo, setDocumentacionInfo] = useState<string | null>(null)
+  const [captchaVerified, setCaptchaVerified] = useState(false)
+  const [captchaChecked, setCaptchaChecked] = useState(false)
+  const [verifying, setVerifying] = useState(false)
+  const [expandedCards, setExpandedCards] = useState<string[]>(["vehicle-info"])
+
+  const incidents = [
+    {
+      id: 1,
+      tipo: "Llaves",
+      estado: "Abierta",
+      fecha: "2024-12-15",
+      descripcion: "Llave de repuesto no funciona correctamente. Al intentar abrir el vehículo, la llave no responde y es necesario usar la llave principal.",
+      prioridad: "Media",
+    },
+    {
+      id: 2,
+      tipo: "Documentación",
+      estado: "Cerrada",
+      fecha: "2024-12-10",
+      descripcion: "Falta manual de usuario en el vehículo",
+      prioridad: "Baja",
+    },
+    {
+      id: 3,
+      tipo: "Mecánica",
+      estado: "En Proceso",
+      fecha: "2024-12-12",
+      descripcion: "Ruido extraño en el motor al arrancar en frío. Se escucha un sonido metálico durante los primeros segundos.",
+      prioridad: "Alta",
+    },
+  ]
+
+  // Datos del dashboard
+  const dashboardVehicleData = {
+    matricula: "2025JVS",
+    marca: "BMW",
+    modelo: "Serie 3 320d",
+    año: 2022,
+    color: "Azul Metalizado",
+    combustible: "Diésel",
+    kilometraje: 45678,
+    vin: "WBABA91060AL12345",
+    fechaMatriculacion: "15/03/2022",
+    fechaVenta: "28/11/2024",
+    fechaCertificacion: "25/11/2024",
+    diasDesdeVenta: 45,
+    precio: 28500,
+    precioOriginal: 45000,
+  }
+
+  const dashboardOwnerData = {
+    nombre: "Carlos Rodríguez Martín",
+    dni: "45641484P",
+    telefono: "+34 666 123 456",
+    email: "carlos.rodriguez@email.com",
+    direccion: "Calle Mayor 123, 28001 Madrid",
+  }
+
+  const dashboardSaleData = {
+    asesorComercial: "Ana García López",
+    concesionario: "AutoMadrid Premium",
+    telefonoAsesor: "+34 911 234 567",
+    emailAsesor: "ana.garcia@automadrid.com",
+    garantia: "24 meses",
+    financiacion: "Financiado 60 meses",
+    seguro: "Mapfre Comprehensive",
+  }
+
+  const dashboardIncidents = [
+    {
+      id: 1,
+      tipo: "Llaves",
+      estado: "Abierta",
+      fecha: "2024-12-15",
+      descripcion: "Llave de repuesto no funciona correctamente",
+      prioridad: "Media",
+    },
+    {
+      id: 2,
+      tipo: "Documentación",
+      estado: "Cerrada",
+      fecha: "2024-12-10",
+      descripcion: "Falta manual de usuario",
+      prioridad: "Baja",
+    },
+    {
+      id: 3,
+      tipo: "Mecánica",
+      estado: "En Proceso",
+      fecha: "2024-12-12",
+      descripcion: "Ruido extraño en el motor al arrancar",
+      prioridad: "Alta",
+    },
+  ]
+
+  // Funciones del dashboard
+  const toggleCard = (cardId: string) => {
+    setExpandedCards((prev) => (prev.includes(cardId) ? prev.filter((id) => id !== cardId) : [...prev, cardId]))
+  }
+
+  const getIncidentIcon = (tipo: string) => {
+    switch (tipo) {
+      case "Llaves":
+        return <Key className="h-4 w-4" />
+      case "Documentación":
+        return <FileText className="h-4 w-4" />
+      case "Mecánica":
+        return <Wrench className="h-4 w-4" />
+      case "Carrocería":
+        return <Car className="h-4 w-4" />
+      case "Limpieza":
+        return <Sparkles className="h-4 w-4" />
+      default:
+        return <AlertTriangle className="h-4 w-4" />
+    }
+  }
+
+  const getDashboardStatusColor = (estado: string) => {
+    switch (estado) {
+      case "Abierta":
+        return "bg-red-100 text-red-800"
+      case "En Proceso":
+        return "bg-yellow-100 text-yellow-800"
+      case "Cerrada":
+        return "bg-green-100 text-green-800"
+      default:
+        return "bg-gray-100 text-gray-800"
+    }
+  }
+
+  const getPriorityColor = (prioridad: string) => {
+    switch (prioridad) {
+      case "Alta":
+        return "bg-red-500"
+      case "Media":
+        return "bg-yellow-500"
+      case "Baja":
+        return "bg-green-500"
+      default:
+        return "bg-gray-500"
+    }
+  }
 
   // Tipos de incidencia disponibles
   const incidenciaTypes = [
@@ -58,6 +203,30 @@ export default function SoportePage() {
     { id: "Otros", label: "Otros", icon: AlertTriangle },
   ]
 
+  const handleCaptchaVerification = () => {
+    if (!captchaChecked) {
+      toast({
+        title: "Verificación requerida",
+        description: "Debe marcar la casilla 'No soy un robot'",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setVerifying(true)
+    
+    // Simular proceso de verificación
+    setTimeout(() => {
+      setVerifying(false)
+      setCaptchaVerified(true)
+      setStep("login")
+      toast({
+        title: "Verificación completada",
+        description: "Puede continuar con el acceso al sistema",
+      })
+    }, 2000)
+  }
+
   const validateVehicle = async () => {
     if (!licensePlate.trim() || !dni.trim()) {
       setError("Por favor, complete todos los campos")
@@ -67,32 +236,11 @@ export default function SoportePage() {
     setLoading(true)
     setError(null)
 
-    try {
-      const response = await fetch("/api/soporte/validate-vehicle", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          license_plate: licensePlate.trim().toUpperCase(),
-          client_dni: dni.trim().toUpperCase(),
-        }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        setError(data.error || "Error al validar los datos")
-        return
-      }
-
-      setVehicleData(data.vehicle)
-      setClientEmail(data.vehicle.client_email || "")
-      setClientPhone(data.vehicle.client_phone || "")
-      setStep("ticket")
-    } catch (error) {
-      setError("Error de conexión. Por favor, inténtelo de nuevo.")
-    } finally {
-      setLoading(false)
-    }
+    // Simular validación con datos de prueba
+    setTimeout(() => {
+      // Redirección normal como un login corriente
+      window.location.href = "/dashboard-cliente"
+    }, 1500)
   }
 
   const handleIncidenciaToggle = (tipo: string) => {
@@ -104,7 +252,6 @@ export default function SoportePage() {
     } else {
       setSelectedIncidencias([...selectedIncidencias, tipo])
       
-      // Check documentacion info for Documentacion type
       if (tipo === "Documentacion") {
         checkDocumentacionInfo(tipo)
       }
@@ -163,12 +310,17 @@ export default function SoportePage() {
       const data = await response.json()
 
       if (response.ok) {
-        setTicketData(data.ticket)
-        setStep("history")
         toast({
           title: "Ticket creado",
           description: `Ticket #${data.ticket.ticket_number} creado exitosamente`,
         })
+        
+        // FORZAR que aparezca el dashboard inmediatamente
+        console.log("Ticket creado, mostrando dashboard...")
+        setTimeout(() => {
+          console.log("Cambiando a dashboard...")
+          setStep("dashboard")
+        }, 100)
       } else {
         setError(data.error || "Error al crear el ticket")
       }
@@ -216,13 +368,13 @@ export default function SoportePage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "abierto":
-        return "bg-gray-700 text-gray-200"
+        return "bg-red-100 text-red-800 border-red-200"
       case "en_tramite":
-        return "bg-gray-600 text-gray-200"
+        return "bg-yellow-100 text-yellow-800 border-yellow-200"
       case "cerrado":
-        return "bg-gray-500 text-gray-200"
+        return "bg-green-100 text-green-800 border-green-200"
       default:
-        return "bg-gray-800 text-gray-200"
+        return "bg-gray-100 text-gray-800 border-gray-200"
     }
   }
 
@@ -239,16 +391,18 @@ export default function SoportePage() {
     }
   }
 
+
+
   const title = "Portal Soporte"
   const words = title.split(" ")
 
   return (
-    <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-black dark:bg-neutral-950">
+    <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       {/* Background Paths */}
       <BuildingLines />
       
-      {/* Main Content */}
-      <div className="relative z-10 container mx-auto px-4 md:px-6 text-center">
+      {/* Fixed Header */}
+      <div className="relative z-20 container mx-auto px-4 md:px-6 text-center mb-8">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -271,8 +425,7 @@ export default function SoportePage() {
                       damping: 25,
                     }}
                     className="inline-block text-transparent bg-clip-text 
-                                        bg-gradient-to-r from-white to-gray-300/80 
-                                        dark:from-white dark:to-gray-300/80"
+                                        bg-gradient-to-r from-gray-900 to-gray-700"
                   >
                     {letter}
                   </motion.span>
@@ -282,97 +435,160 @@ export default function SoportePage() {
           </h1>
 
           <motion.p 
-            className="text-xl text-gray-300 dark:text-gray-400 mb-12"
+            className="text-xl text-gray-600"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 1, delay: 1 }}
           >
             Motor Munich - Dept. Vehículo de Ocasión
           </motion.p>
+        </motion.div>
+      </div>
 
-          {/* Main Content */}
-          <div className="w-full max-w-md mx-auto">
-            {step === "validation" && (
+      {/* Main Content */}
+      <div className="relative z-10 container mx-auto px-4 md:px-6 text-center">
+        <div className="w-full max-w-md mx-auto">
+          <AnimatePresence mode="wait">
+            {step === "captcha" && (
               <motion.div
+                key="captcha"
                 initial={{ opacity: 0, y: 50 }}
                 animate={{ opacity: 1, y: 0 }}
+                exit={{ x: -1000, opacity: 0 }}
                 transition={{ duration: 0.8, delay: 1.5 }}
               >
-                <div
-                  className="inline-block group relative bg-gradient-to-b from-white/10 to-black/10 
-                              dark:from-white/10 dark:to-black/10 p-px rounded-2xl backdrop-blur-lg 
-                              overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300"
-                >
-                  <Card className="rounded-[1.15rem] backdrop-blur-md bg-black/95 hover:bg-black/100 
-                                   dark:bg-black/95 dark:hover:bg-black/100 border border-white/10 
-                                   dark:border-white/10 hover:shadow-md dark:hover:shadow-white/10">
+                <div className="inline-block group relative bg-gradient-to-b from-white/20 to-white/10 
+                              p-px rounded-2xl backdrop-blur-lg 
+                              overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
+                  <Card className="rounded-[1.15rem] backdrop-blur-md bg-white/95 hover:bg-white/100 
+                                   border border-gray-200 hover:shadow-md">
                     <CardHeader className="text-center pb-4">
-                      <CardTitle className="text-xl font-semibold text-white">Acceso al Sistema</CardTitle>
-                      <CardDescription className="text-sm text-gray-300">
-                        Introduzca su matrícula y DNI para acceder al sistema de soporte
+                      <div className="flex items-center justify-center gap-3 mb-2">
+                        <Shield className="h-8 w-8 text-green-600" />
+                        <CardTitle className="text-xl font-semibold text-gray-900">Verificación de Seguridad</CardTitle>
+                      </div>
+                      <CardDescription className="text-sm text-gray-600">
+                        Complete la verificación para acceder al sistema de soporte
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      {error && (
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ duration: 0.3 }}
-                        >
-                          <Alert variant="destructive">
-                            <AlertTriangle className="h-4 w-4" />
-                            <AlertDescription>{error}</AlertDescription>
-                          </Alert>
-                        </motion.div>
-                      )}
-
-                      <div className="space-y-3">
-                        <div>
-                          <Label htmlFor="licensePlate" className="text-sm text-gray-300">Matrícula</Label>
-                          <Input
-                            id="licensePlate"
-                            value={licensePlate}
-                            onChange={(e) => setLicensePlate(e.target.value)}
-                            placeholder="Ej: 1234ABC"
-                            className="text-center h-10 border border-gray-600 focus:border-white bg-gray-900 text-white placeholder-gray-400"
-                            disabled={loading}
-                          />
-                        </div>
-
-                        <div>
-                          <Label htmlFor="dni" className="text-sm text-gray-300">DNI</Label>
-                          <Input
-                            id="dni"
-                            value={dni}
-                            onChange={(e) => setDni(e.target.value)}
-                            placeholder="Ej: 12345678A"
-                            className="text-center h-10 border border-gray-600 focus:border-white bg-gray-900 text-white placeholder-gray-400"
-                            disabled={loading}
-                          />
+                      <div 
+                        className="flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
+                        onClick={() => setCaptchaChecked(!captchaChecked)}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-5 h-5 border-2 rounded flex items-center justify-center transition-all duration-200 ${
+                            captchaChecked 
+                              ? 'border-green-500 bg-green-500' 
+                              : 'border-gray-400 hover:border-gray-500'
+                          }`}>
+                            {captchaChecked && <CheckCircle className="h-4 w-4 text-white" />}
+                          </div>
+                          <span className="text-gray-700 font-medium">No soy un robot</span>
                         </div>
                       </div>
 
                       <Button
+                        onClick={handleCaptchaVerification}
+                        disabled={verifying}
+                        className={`w-full h-10 font-medium transition-all duration-200 ${
+                          captchaChecked 
+                            ? 'bg-green-600 hover:bg-green-700 text-white' 
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        }`}
+                      >
+                        {verifying ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Verificando...
+                          </>
+                        ) : (
+                          <>
+                            <Shield className="h-4 w-4 mr-2" />
+                            Verificar
+                          </>
+                        )}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </div>
+              </motion.div>
+            )}
+
+            {step === "login" && (
+              <motion.div
+                key="login"
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.8, type: "spring", stiffness: 200 }}
+              >
+                <div className="inline-block group relative bg-gradient-to-b from-white/20 to-white/10 
+                              p-px rounded-2xl backdrop-blur-lg 
+                              overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
+                  <Card className="rounded-[1.15rem] backdrop-blur-md bg-white/95 hover:bg-white/100 
+                                   border border-gray-200 hover:shadow-md">
+                    <CardHeader className="text-center pb-4">
+                      <CardTitle className="text-xl font-semibold text-gray-900">Acceso al Sistema</CardTitle>
+                      <CardDescription className="text-sm text-gray-600">
+                        Ingrese los datos de su vehículo para continuar
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="licensePlate" className="text-left block text-sm font-medium text-gray-700">
+                          Matrícula del Vehículo
+                        </Label>
+                        <Input
+                          id="licensePlate"
+                          value={licensePlate}
+                          onChange={(e) => setLicensePlate(e.target.value.toUpperCase())}
+                          placeholder="Ej: 1234ABC"
+                          className="h-10 border border-gray-300 focus:border-blue-500 bg-white text-gray-900 text-center"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="dni" className="text-left block text-sm font-medium text-gray-700">
+                          DNI del Propietario
+                        </Label>
+                        <Input
+                          id="dni"
+                          value={dni}
+                          onChange={(e) => setDni(e.target.value.toUpperCase())}
+                          placeholder="Ej: 12345678A"
+                          className="h-10 border border-gray-300 focus:border-blue-500 bg-white text-gray-900 text-center"
+                        />
+                      </div>
+
+                      {error && (
+                        <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                          <p className="text-sm text-red-600">{error}</p>
+                        </div>
+                      )}
+
+                      <Button
                         onClick={validateVehicle}
-                        disabled={loading || !licensePlate.trim() || !dni.trim()}
-                        className="w-full h-10 bg-white hover:bg-gray-200 text-black font-medium"
+                        disabled={loading || !licensePlate || !dni}
+                        className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white font-medium"
                       >
                         {loading ? (
                           <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                             Validando...
                           </>
                         ) : (
-                          "Registrar"
+                          <>
+                            <Car className="h-4 w-4 mr-2" />
+                            Validar Vehículo
+                          </>
                         )}
                       </Button>
 
-                      <div className="text-center pt-2">
+                      <div className="text-center">
                         <Button
                           variant="link"
                           onClick={loadTicketHistory}
-                          disabled={loading}
-                          className="text-gray-300 hover:text-white text-sm"
+                          className="text-blue-600 hover:text-blue-800 text-sm"
                         >
                           ¿Ya tiene un ticket? Ver historial
                         </Button>
@@ -383,274 +599,272 @@ export default function SoportePage() {
               </motion.div>
             )}
 
-            {step === "ticket" && vehicleData && (
-              <motion.div 
-                className="space-y-4"
-                initial={{ opacity: 0, y: 50 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8 }}
-              >
-                {/* Vehicle Info Card */}
-                <div
-                  className="inline-block group relative bg-gradient-to-b from-white/10 to-black/10 
-                              dark:from-white/10 dark:to-black/10 p-px rounded-2xl backdrop-blur-lg 
-                              overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300"
-                >
-                  <Card className="rounded-[1.15rem] backdrop-blur-md bg-black/95 hover:bg-black/100 
-                                   dark:bg-black/95 dark:hover:bg-black/100 border border-white/10 
-                                   dark:border-white/10 hover:shadow-md dark:hover:shadow-white/10">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-lg font-semibold text-white">Información del Vehículo</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-300">Matrícula:</span>
-                        <Badge variant="outline" className="font-mono bg-gray-800 text-white border-gray-600">
-                          {vehicleData.license_plate}
-                        </Badge>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-300">Modelo:</span>
-                        <span className="font-medium text-white">{vehicleData.model}</span>
-                      </div>
-                      
-                      <Separator className="bg-gray-700" />
-                      
-                      <div className="space-y-3">
-                        <div>
-                          <Label htmlFor="clientEmail" className="text-sm text-gray-300">Email</Label>
-                          <Input
-                            id="clientEmail"
-                            value={clientEmail}
-                            onChange={(e) => setClientEmail(e.target.value)}
-                            placeholder="Su email"
-                            className="h-9 border border-gray-600 focus:border-white bg-gray-900 text-white placeholder-gray-400"
-                          />
+
+
+            {step === "dashboard" && (
+              <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+                {/* Header */}
+                <div className="bg-white shadow-sm border-b">
+                  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex justify-between items-center py-4">
+                      <div className="flex items-center space-x-4">
+                        <div className="bg-blue-600 p-2 rounded-lg">
+                          <Car className="h-6 w-6 text-white" />
                         </div>
                         <div>
-                          <Label htmlFor="clientPhone" className="text-sm text-gray-300">Teléfono</Label>
-                          <Input
-                            id="clientPhone"
-                            value={clientPhone}
-                            onChange={(e) => setClientPhone(e.target.value)}
-                            placeholder="Su teléfono"
-                            className="h-9 border border-gray-600 focus:border-white bg-gray-900 text-white placeholder-gray-400"
-                          />
+                          <h1 className="text-2xl font-bold text-gray-900">Dashboard Vehicular</h1>
+                          <p className="text-sm text-gray-600">Matrícula: 2025JVS</p>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Incidencias Selection */}
-                <div
-                  className="inline-block group relative bg-gradient-to-b from-white/10 to-black/10 
-                              dark:from-white/10 dark:to-black/10 p-px rounded-2xl backdrop-blur-lg 
-                              overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300"
-                >
-                  <Card className="rounded-[1.15rem] backdrop-blur-md bg-black/95 hover:bg-black/100 
-                                   dark:bg-black/95 dark:hover:bg-black/100 border border-white/10 
-                                   dark:border-white/10 hover:shadow-md dark:hover:shadow-white/10">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-lg font-semibold text-white">Tipos de Incidencia</CardTitle>
-                      <CardDescription className="text-sm text-gray-300">
-                        Seleccione los tipos de incidencia que desea reportar
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-2 gap-2">
-                        {incidenciaTypes.map((tipo) => {
-                          const Icon = tipo.icon
-                          const isSelected = selectedIncidencias.includes(tipo.id)
-                          
-                          return (
-                            <Button
-                              key={tipo.id}
-                              variant={isSelected ? "default" : "outline"}
-                              className={`h-auto p-3 flex flex-col items-center gap-1 text-xs ${
-                                isSelected 
-                                  ? "bg-white text-black" 
-                                  : "hover:bg-gray-800 border-gray-600 text-gray-300"
-                              }`}
-                              onClick={() => handleIncidenciaToggle(tipo.id)}
-                            >
-                              <Icon className="h-4 w-4" />
-                              <span className="font-medium">{tipo.label}</span>
-                            </Button>
-                          )
-                        })}
-                      </div>
-
-                      {/* Text inputs for selected incidencias */}
-                      {selectedIncidencias.length > 0 && (
-                        <div className="mt-4 space-y-3">
-                          <Separator className="bg-gray-700" />
-                          <h4 className="font-medium text-sm text-white">Descripción de las incidencias</h4>
-                          
-                          {selectedIncidencias.map((tipo) => {
-                            // Skip text input for Documentacion and 2ª Llave
-                            if (tipo === "Documentacion" || tipo === "2ª Llave") {
-                              return null
-                            }
-                            
-                            return (
-                              <div key={tipo} className="space-y-1">
-                                <Label htmlFor={`desc-${tipo}`} className="text-sm text-gray-300">
-                                  {incidenciaTypes.find(t => t.id === tipo)?.label}
-                                </Label>
-                                <textarea
-                                  id={`desc-${tipo}`}
-                                  value={incidenciaTexts[tipo] || ""}
-                                  onChange={(e) => setIncidenciaTexts({
-                                    ...incidenciaTexts,
-                                    [tipo]: e.target.value
-                                  })}
-                                  placeholder={`Describa su problema con ${incidenciaTypes.find(t => t.id === tipo)?.label.toLowerCase()}`}
-                                  className="w-full p-2 border border-gray-600 resize-none focus:border-white bg-gray-900 text-white placeholder-gray-400 text-sm"
-                                  rows={2}
-                                />
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Submit Button */}
-                <Button
-                  onClick={createTicket}
-                  disabled={loading || selectedIncidencias.length === 0}
-                  className="w-full h-10 bg-white hover:bg-gray-200 text-black font-medium"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creando ticket...
-                    </>
-                  ) : (
-                    <>
-                      <Ticket className="mr-2 h-4 w-4" />
-                      Registrar Ticket
-                    </>
-                  )}
-                </Button>
-              </motion.div>
-            )}
-
-            {step === "history" && ticketData && (
-              <motion.div
-                initial={{ opacity: 0, y: 50 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8 }}
-              >
-                <div
-                  className="inline-block group relative bg-gradient-to-b from-white/10 to-black/10 
-                              dark:from-white/10 dark:to-black/10 p-px rounded-2xl backdrop-blur-lg 
-                              overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300"
-                >
-                  <Card className="rounded-[1.15rem] backdrop-blur-md bg-black/95 hover:bg-black/100 
-                                   dark:bg-black/95 dark:hover:bg-black/100 border border-white/10 
-                                   dark:border-white/10 hover:shadow-md dark:hover:shadow-white/10">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-lg font-semibold text-white">
-                        Ticket #{ticketData.ticket_number}
-                      </CardTitle>
-                      <CardDescription className="text-sm text-gray-300">
-                        Detalles del ticket y respuestas del equipo de soporte
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {/* Ticket Info */}
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-gray-300">Fecha de creación:</span>
-                          <span className="font-medium text-white">
-                            {new Date(ticketData.created_at).toLocaleDateString('es-ES')}
-                          </span>
-                        </div>
-                        
-                        <div className="flex justify-between">
-                          <span className="text-gray-300">Tiempo desde la venta:</span>
-                          <span className="font-medium text-white">{ticketData.time_since_sale}</span>
-                        </div>
-                        
-                        <div className="flex justify-between">
-                          <span className="text-gray-300">Email:</span>
-                          <span className="font-medium text-white">{ticketData.client_email}</span>
-                        </div>
-                        
-                        <div className="flex justify-between">
-                          <span className="text-gray-300">Teléfono:</span>
-                          <span className="font-medium text-white">{ticketData.client_phone}</span>
-                        </div>
-                      </div>
-
-                      <Separator className="bg-gray-700" />
-
-                      {/* Status */}
-                      <div className="flex items-center gap-2">
-                        <Badge className={`${getStatusColor(ticketData.status)} text-xs`}>
-                          {getStatusText(ticketData.status)}
+                      <div className="flex items-center space-x-4">
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Activo
                         </Badge>
-                        <span className="text-sm text-gray-300">Estado del ticket</span>
+                        <Button variant="outline" size="sm">
+                          <User className="h-4 w-4 mr-2" />
+                          Carlos Rodríguez Martín
+                        </Button>
                       </div>
+                    </div>
+                  </div>
+                </div>
 
-                      {/* Incidencias */}
-                      {ticketData.incidencias && ticketData.incidencias.length > 0 && (
-                        <div className="space-y-3">
-                          <h4 className="font-medium text-sm text-white">Incidencias reportadas</h4>
-                          {ticketData.incidencias.map((incidencia: any, index: number) => (
-                            <div 
-                              key={index} 
-                              className="border border-gray-700 p-3 bg-gray-800"
-                            >
-                              <div className="flex items-center justify-between mb-2">
-                                <h5 className="font-medium text-sm text-white">{incidencia.tipo_incidencia}</h5>
-                                <Badge variant="outline" className={`${getStatusColor(incidencia.estado)} text-xs border-gray-600`}>
-                                  {getStatusText(incidencia.estado)}
-                                </Badge>
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                  {/* Progress Steps */}
+                  <div className="mb-8">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-lg font-semibold text-gray-900">Progreso del Dashboard</h2>
+                      <span className="text-sm text-gray-600">1 de 6 secciones expandidas</span>
+                    </div>
+                    <Progress value={(1 / 6) * 100} className="h-2" />
+                  </div>
+
+                  <Tabs defaultValue="overview" className="space-y-6">
+                    <TabsList className="grid w-full grid-cols-4">
+                      <TabsTrigger value="overview">Resumen</TabsTrigger>
+                      <TabsTrigger value="incidents">Incidencias</TabsTrigger>
+                      <TabsTrigger value="documents">Documentos</TabsTrigger>
+                      <TabsTrigger value="history">Historial</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="overview" className="space-y-6">
+                      {/* Vehicle Info Card */}
+                      <Card
+                        className={`transition-all duration-300 ${expandedCards.includes("vehicle-info") ? "ring-2 ring-blue-200" : ""}`}
+                      >
+                        <CardHeader className="cursor-pointer" onClick={() => toggleCard("vehicle-info")}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <div className="bg-blue-100 p-2 rounded-lg">
+                                <Car className="h-5 w-5 text-blue-600" />
                               </div>
-                              
-                              {incidencia.descripcion && (
-                                <p className="text-gray-300 text-sm mb-2">{incidencia.descripcion}</p>
-                              )}
-                              
-                              {incidencia.respuesta_admin && (
-                                <div className="bg-gray-700 p-2 rounded">
-                                  <p className="text-xs font-medium text-gray-200 mb-1">Respuesta del equipo:</p>
-                                  <p className="text-xs text-gray-300">{incidencia.respuesta_admin}</p>
-                                </div>
-                              )}
+                              <div>
+                                <CardTitle>Información del Vehículo</CardTitle>
+                                <CardDescription>Datos técnicos y características</CardDescription>
+                              </div>
                             </div>
-                          ))}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
-              </motion.div>
-            )}
-          </div>
-        </motion.div>
-      </div>
+                            <Badge variant="secondary">
+                              {expandedCards.includes("vehicle-info") ? "Expandido" : "Contraído"}
+                            </Badge>
+                          </div>
+                        </CardHeader>
+                        {expandedCards.includes("vehicle-info") && (
+                          <CardContent className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                              <div className="space-y-4">
+                                <h4 className="font-semibold text-gray-900 border-b pb-2">Datos Básicos</h4>
+                                <div className="space-y-3">
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">Marca:</span>
+                                    <span className="font-medium">BMW</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">Modelo:</span>
+                                    <span className="font-medium">Serie 3 320d</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">Año:</span>
+                                    <span className="font-medium">2022</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">Color:</span>
+                                    <span className="font-medium">Azul Metalizado</span>
+                                  </div>
+                                </div>
+                              </div>
 
-      {/* Documentación Modal */}
-      {showDocumentacionModal && documentacionInfo && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-black rounded-lg p-4 max-w-sm w-full shadow-lg border border-white/10">
-            <h3 className="text-lg font-medium mb-3 text-white">Información de Documentación</h3>
-            <p className="text-gray-300 text-sm mb-4">{documentacionInfo}</p>
-            <Button
-              onClick={() => setShowDocumentacionModal(false)}
-              className="w-full bg-white hover:bg-gray-200 text-black"
-            >
-              Entendido
-            </Button>
-          </div>
+                              <div className="space-y-4">
+                                <h4 className="font-semibold text-gray-900 border-b pb-2">Especificaciones</h4>
+                                <div className="space-y-3">
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">Combustible:</span>
+                                    <span className="font-medium">Diésel</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">Kilometraje:</span>
+                                    <span className="font-medium">45,678 km</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">VIN:</span>
+                                    <span className="font-medium font-mono text-xs">WBABA91060AL12345</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">Matriculación:</span>
+                                    <span className="font-medium">15/03/2022</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="space-y-4">
+                                <h4 className="font-semibold text-gray-900 border-b pb-2">Estado</h4>
+                                <div className="space-y-3">
+                                  <div className="bg-green-50 p-3 rounded-lg">
+                                    <div className="flex items-center space-x-2">
+                                      <CheckCircle className="h-4 w-4 text-green-600" />
+                                      <span className="text-sm font-medium text-green-800">Certificado</span>
+                                    </div>
+                                    <p className="text-xs text-green-600 mt-1">
+                                      Última revisión: 25/11/2024
+                                    </p>
+                                  </div>
+                                  <div className="bg-blue-50 p-3 rounded-lg">
+                                    <div className="flex items-center space-x-2">
+                                      <TrendingUp className="h-4 w-4 text-blue-600" />
+                                      <span className="text-sm font-medium text-blue-800">Valoración</span>
+                                    </div>
+                                    <p className="text-xs text-blue-600 mt-1">Excelente estado general</p>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        )}
+                      </Card>
+
+                      {/* Sale Information Card */}
+                      <Card
+                        className={`transition-all duration-300 ${expandedCards.includes("sale-info") ? "ring-2 ring-green-200" : ""}`}
+                      >
+                        <CardHeader className="cursor-pointer" onClick={() => toggleCard("sale-info")}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <div className="bg-green-100 p-2 rounded-lg">
+                                <DollarSign className="h-5 w-5 text-green-600" />
+                              </div>
+                              <div>
+                                <CardTitle>Información de Venta</CardTitle>
+                                <CardDescription>Detalles de la transacción y asesor comercial</CardDescription>
+                              </div>
+                            </div>
+                            <Badge variant="secondary" className="bg-green-50 text-green-700">
+                              45 días desde venta
+                            </Badge>
+                          </div>
+                        </CardHeader>
+                      </Card>
+
+                      {/* Owner Information Card */}
+                      <Card
+                        className={`transition-all duration-300 ${expandedCards.includes("owner-info") ? "ring-2 ring-purple-200" : ""}`}
+                      >
+                        <CardHeader className="cursor-pointer" onClick={() => toggleCard("owner-info")}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <div className="bg-purple-100 p-2 rounded-lg">
+                                <User className="h-5 w-5 text-purple-600" />
+                              </div>
+                              <div>
+                                <CardTitle>Información del Propietario</CardTitle>
+                                <CardDescription>Datos de contacto y personales</CardDescription>
+                              </div>
+                            </div>
+                            <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                              Verificado
+                            </Badge>
+                          </div>
+                        </CardHeader>
+                      </Card>
+
+                      {/* Incidents Summary Card */}
+                      <Card
+                        className={`transition-all duration-300 ${expandedCards.includes("incidents-summary") ? "ring-2 ring-red-200" : ""}`}
+                      >
+                        <CardHeader className="cursor-pointer" onClick={() => toggleCard("incidents-summary")}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <div className="bg-red-100 p-2 rounded-lg">
+                                <AlertCircle className="h-5 w-5 text-red-600" />
+                              </div>
+                              <div>
+                                <CardTitle>Resumen de Incidencias</CardTitle>
+                                <CardDescription>Estado actual de las incidencias reportadas</CardDescription>
+                              </div>
+                            </div>
+                            <div className="flex space-x-2">
+                              <Badge variant="destructive">
+                                {incidents.filter((i) => i.estado === "Abierta").length} Abiertas
+                              </Badge>
+                              <Badge variant="secondary">
+                                {incidents.filter((i) => i.estado === "En Proceso").length} En Proceso
+                              </Badge>
+                            </div>
+                          </div>
+                        </CardHeader>
+                      </Card>
+                    </TabsContent>
+
+                    <TabsContent value="incidents">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Gestión de Incidencias</CardTitle>
+                          <CardDescription>Administra y da seguimiento a las incidencias reportadas</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-center py-8 text-gray-500">
+                            <AlertCircle className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                            <p>Sección de incidencias en desarrollo</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+
+                    <TabsContent value="documents">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Documentos del Vehículo</CardTitle>
+                          <CardDescription>Gestión de documentación oficial y certificados</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-center py-8 text-gray-500">
+                            <FileText className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                            <p>Sección de documentos en desarrollo</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+
+                    <TabsContent value="history">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Historial del Vehículo</CardTitle>
+                          <CardDescription>Cronología completa de eventos y mantenimientos</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-center py-8 text-gray-500">
+                            <Clock className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                            <p>Historial completo en desarrollo</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                  </Tabs>
+                </div>
+              </div>
+            )}
+          </AnimatePresence>
         </div>
-      )}
+      </div>
     </div>
   )
 } 
