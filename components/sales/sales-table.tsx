@@ -1373,22 +1373,24 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
 
     if (isEditing) {
       return (
-        <Input
-          ref={editCellInputRef}
-          value={editingValue}
-          onChange={(e) => setEditingValue(e.target.value)}
-          onBlur={() => handleCellSave(vehicle.id, field)}
-          onKeyDown={(e) => handleCellKeyDown(e, vehicle.id, field)}
-          className="h-6 text-sm bg-background"
-          autoFocus
-        />
+        <div className="w-full">
+          <Input
+            ref={editCellInputRef}
+            value={editingValue}
+            onChange={(e) => setEditingValue(e.target.value)}
+            onBlur={() => handleCellSave(vehicle.id, field)}
+            onKeyDown={(e) => handleCellKeyDown(e, vehicle.id, field)}
+            className="h-6 text-sm bg-background w-full"
+            autoFocus
+          />
+        </div>
       )
     }
 
     return (
       <div
         className={cn(
-          "px-2 py-1 rounded hover:bg-muted/50 cursor-pointer",
+          "px-2 py-1 rounded hover:bg-muted/50 cursor-pointer w-full",
           "border border-dashed border-transparent hover:border-muted-foreground/30"
         )}
         onClick={() => handleCellEdit(vehicle.id, field, currentValue)}
