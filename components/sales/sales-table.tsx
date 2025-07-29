@@ -1706,7 +1706,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                             "transition-all duration-300 ease-in-out cursor-pointer border-b relative",
                             index % 2 === 0 ? "bg-background" : "bg-muted/10",
                             selectedRowId === vehicle.id 
-                              ? "border-2 border-primary shadow-md ring-2 ring-primary/20" 
+                              ? "bg-primary/10 border-l-4 border-l-primary" 
                               : "hover:bg-muted/30"
                           )}
                           data-selected={selectedRowId === vehicle.id}
@@ -1764,7 +1764,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                           </TableCell>
 
                           {/* MATRÍCULA */}
-                          <TableCell className="font-medium py-1">
+                          <TableCell className="font-medium py-1 w-20">
                             {renderEditableCell(
                               vehicle,
                               "license_plate",
@@ -1779,7 +1779,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                           </TableCell>
 
                           {/* MODELO */}
-                          <TableCell className="py-1">
+                          <TableCell className="py-1 w-24">
                             {renderEditableCell(
                               vehicle,
                               "model",
@@ -1795,7 +1795,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
 
                           {/* CLIENTE - Solo visible cuando las columnas están visibles */}
                           {!Object.values(hiddenColumns).some(hidden => hidden) && (
-                            <TableCell className="py-1">
+                            <TableCell className="py-1 w-20">
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <div className="truncate max-w-[80px] text-sm">
@@ -1811,7 +1811,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
 
                           {/* MARCA (brand) - Nueva columna */}
                           {!hiddenColumns.brand && (
-                            <TableCell className="py-1">
+                            <TableCell className="py-1 w-16">
                               {renderEditableCell(
                                 vehicle,
                                 "brand",
@@ -1827,7 +1827,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                           )}
 
                           {/* TIPO */}
-                          <TableCell className="py-1">
+                          <TableCell className="py-1 w-16">
                             {vehicle.vehicle_type === "Moto" ? (
                               <div className="flex items-center">
                                 <Bike className="h-4 w-4 mr-1 text-orange-500" />
@@ -1843,7 +1843,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
 
                           {/* CONCESIONARIO (dealership_code) - Nueva columna */}
                           {!hiddenColumns.dealershipCode && (
-                            <TableCell className="py-1">
+                            <TableCell className="py-1 w-20">
                               {renderEditableCell(
                                 vehicle,
                                 "dealership_code",
@@ -1860,7 +1860,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
 
                           {/* PRECIO - Solo visible si hiddenColumns.price es false */}
                           {!hiddenColumns.price && (
-                            <TableCell className="py-1">
+                            <TableCell className="py-1 w-20">
                               {renderEditableCell(
                                 vehicle,
                                 "price",
@@ -1881,7 +1881,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
 
                           {/* VENTA - Solo visible si showHiddenColumns is true */}
                           {!hiddenColumns.saleDate && (
-                            <TableCell className="py-1">
+                            <TableCell className="py-1 w-20">
                               <div className="flex items-center">
                                 <Calendar className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
                                 {formatDate(vehicle.sale_date)}
@@ -1890,7 +1890,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                           )}
 
                           {/* ASESOR */}
-                          <TableCell className="py-1">
+                          <TableCell className="py-1 w-20">
                             {renderEditableCell(
                               vehicle,
                               "advisor",

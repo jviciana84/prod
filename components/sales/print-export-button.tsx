@@ -153,7 +153,7 @@ export function PrintExportButton({
             .status-completed { background-color: #d4edda; }
             .status-pending { background-color: #fff3cd; }
             .status-process { background-color: #cce5ff; }
-            .row-even { background-color: #f9f9f9; }
+            .row-even { background-color: #e8e8e8; }
             .row-odd { background-color: #ffffff; }
             .page-break { page-break-before: always; }
           </style>
