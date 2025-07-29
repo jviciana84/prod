@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Search, RefreshCw, Printer } from "lucide-react"
+import { PrintExportButton } from "./print-export-button"
 import { differenceInDays, parseISO, format } from "date-fns"
 import { es } from "date-fns/locale"
 
@@ -257,7 +258,7 @@ export default function PhotosManager({ initialVehicles, photographers }: Photos
     return vehicle.assigned_to
   }
 
-  // Función para imprimir la tabla
+  // Función para imprimir la tabla (mantenida para compatibilidad)
   const handlePrint = () => {
     const printWindow = window.open("", "_blank")
     if (!printWindow) {
@@ -401,9 +402,13 @@ export default function PhotosManager({ initialVehicles, photographers }: Photos
           <Button variant="outline" size="icon" onClick={fetchVehicles} disabled={isLoading} className="h-10 w-10">
             <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
           </Button>
-          <Button variant="outline" size="icon" onClick={handlePrint} className="h-10 w-10">
-            <Printer className="h-4 w-4" />
-          </Button>
+          <PrintExportButton
+            vehicles={filteredVehicles}
+            searchQuery={searchTerm}
+            statusFilter={statusFilter}
+            photographerFilter={photographerFilter}
+            photographers={photographers}
+          />
         </div>
       </div>
 

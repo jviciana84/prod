@@ -11,6 +11,7 @@ import TransportQuickForm from "./transport-quick-form"
 import ScraperConsole from "./scraper-console"
 import { AutoRefreshIndicator } from "@/components/ui/auto-refresh-indicator"
 import { AutoRefreshSettings } from "@/components/ui/auto-refresh-settings"
+import { CheckRemovedVehiclesButton } from "@/components/ui/check-removed-vehicles-button"
 
 interface TransportDashboardProps {
   initialTransports: any[]
@@ -222,6 +223,11 @@ export default function TransportDashboard({
           </div>
         </CardHeader>
         <CardContent className="p-6">
+          {/* Botón para ver vehículos eliminados - justo debajo de los controles auto refresh */}
+          <div className="mb-4 flex justify-end">
+            <CheckRemovedVehiclesButton />
+          </div>
+          
           <TransportTable
             initialTransports={transports}
             locations={locations}

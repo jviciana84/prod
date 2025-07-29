@@ -9,6 +9,7 @@ import { Car } from "lucide-react"
 import { AutoRefreshIndicator } from "@/components/ui/auto-refresh-indicator"
 import { AutoRefreshSettings } from "@/components/ui/auto-refresh-settings"
 import { AutoRefreshNotification } from "@/components/ui/auto-refresh-notification"
+import { CheckRemovedVehiclesButton } from "@/components/ui/check-removed-vehicles-button"
 import { useAutoRefresh } from "@/hooks/use-auto-refresh"
 import { useAutoRefreshPreferences } from "@/hooks/use-auto-refresh-preferences"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -89,6 +90,10 @@ export default function VehiclesPage() {
           </div>
         </CardHeader>
         <CardContent className="p-4">
+          {/* Botón para ver vehículos eliminados - justo debajo de los controles auto refresh */}
+          <div className="mb-4 flex justify-end">
+            <CheckRemovedVehiclesButton />
+          </div>
           {/* Tabs principales justo antes de las tabs de filtro */}
           <div className="w-full mb-4">
             <Tabs defaultValue="inventory" className="w-full">

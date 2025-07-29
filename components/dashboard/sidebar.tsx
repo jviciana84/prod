@@ -33,6 +33,7 @@ import {
   Truck,
   Headphones,
   Database,
+  Tag,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
@@ -301,6 +302,14 @@ export default function DashboardSidebar({ roles }: DashboardSidebarProps) {
           icon={<ShoppingCart className="h-5 w-5" />}
           title="Gestión ventas"
           isActive={pathname.startsWith("/dashboard/ventas") || pathname.startsWith("/dashboard/sales")}
+          isExpanded={isExpanded}
+        />
+
+        <SidebarItem
+          href="/dashboard/ventas-profesionales"
+          icon={<Tag className="h-5 w-5" />}
+          title="Ventas Profesionales"
+          isActive={pathname === "/dashboard/ventas-profesionales"}
           isExpanded={isExpanded}
         />
 

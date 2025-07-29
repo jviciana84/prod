@@ -25,6 +25,7 @@ import {
   Timer,
   AlertTriangle,
   Car,
+  Tag,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
@@ -193,6 +194,12 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
           (item.body_status === "apto" || item.body_status === "no_apto"),
         // Ya no verificamos el estado mecánico
       )
+    } else if (activeTab === "vendido") {
+      // Filtrar vehículos vendidos (por ahora vacío, se implementará cuando se defina la lógica)
+      filtered = filtered.filter((item) => false) // Temporalmente vacío
+    } else if (activeTab === "profesionales") {
+      // Filtrar vehículos marcados como venta profesional (por ahora vacío, se implementará cuando se defina la lógica)
+      filtered = filtered.filter((item) => false) // Temporalmente vacío
     } else if (activeTab === "premature_sales") {
       // Obtener vehículos con ventas prematuras
       const fetchPrematureSales = async () => {
@@ -1019,6 +1026,16 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
             <TabsTrigger value="completed" className="px-3 py-1 h-7 data-[state=active]:bg-background">
               <CheckCircle className="h-3.5 w-3.5 mr-1" />
               <span>Completados</span>
+            </TabsTrigger>
+            <TabsTrigger value="vendido" className="px-3 py-1 h-7 data-[state=active]:bg-background">
+              <svg className="h-3.5 w-3.5 mr-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>Vendido</span>
+            </TabsTrigger>
+            <TabsTrigger value="profesionales" className="px-3 py-1 h-7 data-[state=active]:bg-background">
+              <Tag className="h-3.5 w-3.5 mr-1" />
+              <span>Profesionales</span>
             </TabsTrigger>
             <TabsTrigger value="premature_sales" className="px-3 py-1 h-7 data-[state=active]:bg-background">
               <AlertTriangle className="h-3.5 w-3.5 mr-1" />

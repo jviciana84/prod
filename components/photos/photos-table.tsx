@@ -27,6 +27,8 @@ import {
   ChevronRight,
   Settings,
   Loader2,
+  Printer,
+  FileSpreadsheet,
 } from "lucide-react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { differenceInDays } from "date-fns"
@@ -432,6 +434,229 @@ export default function PhotosTable() {
     return `${day}/${month}/${year}`
   }
 
+  // Función para generar CSV
+  const generateCSV = (data: PhotoVehicle[]) => {
+    const columns = [
+      { key: 'license_plate', label: 'Matrícula' },
+      { key: 'model', label: 'Modelo' },
+      { key: 'disponible', label: 'Fecha Disponible' },
+      { key: 'estado_pintura', label: 'Estado Pintura' },
+      { key: 'assigned_to', label: 'Asignado' },
+      { key: 'photos_completed', label: 'Fotografiado' },
+      { key: 'photos_completed_date', label: 'Fecha Fotografía' },
+      { key: 'days_pending', label: 'Días Pendiente' }
+    ]
+
+    const header = columns.map(col => col.label).join(',')
+
+    const rows = data.map(vehicle => {
+      const getAssignedPhotographerName = (vehicle: PhotoVehicle) => {
+        if (!vehicle.assigned_to) return "Sin asignar"
+        const photographer = photographers.find(p => p.user_id === vehicle.assigned_to)
+        return photographer?.display_name || vehicle.assigned_to
+      }
+
+      const calculatePendingDays = (vehicle: PhotoVehicle) => {
+        if (vehicle.photos_completed) return 0
+        if (vehicle.estado_pintura === "apto" && vehicle.paint_apto_date) {
+          return differenceInDays(new Date(), new Date(vehicle.paint_apto_date))
+        }
+        return differenceInDays(new Date(), new Date(vehicle.disponible))
+      }
+
+      return columns.map(col => {
+        let value: any = vehicle[col.key as keyof PhotoVehicle]
+        
+        if (col.key === 'assigned_to') {
+          value = getAssignedPhotographerName(vehicle)
+        } else if (col.key === 'photos_completed') {
+          value = value ? 'Sí' : 'No'
+        } else if (col.key === 'photos_completed_date' && value) {
+          value = formatDate(value)
+        } else if (col.key === 'disponible' && value) {
+          value = formatDate(value)
+        } else if (col.key === 'days_pending') {
+          value = calculatePendingDays(vehicle)
+        }
+        
+        if (typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n'))) {
+          value = `"${value.replace(/"/g, '""')}"`
+        }
+        
+        return value || ''
+      }).join(',')
+    })
+
+    return `${header}\n${rows.join('\n')}`
+  }
+
+  // Función para generar PDF
+  const generatePDF = async (data: PhotoVehicle[]) => {
+    try {
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Reporte de Vehículos - Gestión de Fotos</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 10px; }
+            .filters { margin-bottom: 20px; font-size: 12px; color: #666; }
+            table { width: 100%; border-collapse: collapse; font-size: 10px; }
+            th, td { border: 1px solid #ddd; padding: 4px; text-align: left; }
+            th { background-color: #f5f5f5; font-weight: bold; }
+            .status-completed { background-color: #d4edda; }
+            .status-pending { background-color: #fff3cd; }
+            .row-even { background-color: #e8e8e8; }
+            .row-odd { background-color: #ffffff; }
+            .badge { padding: 2px 6px; border-radius: 3px; font-size: 9px; }
+            .badge-green { background-color: #d4edda; color: #155724; }
+            .badge-amber { background-color: #fff3cd; color: #856404; }
+            .badge-red { background-color: #f8d7da; color: #721c24; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Reporte de Vehículos - Gestión de Fotos</h1>
+            <p>Total: ${data.length} vehículos</p>
+            <p>Fecha de generación: ${new Date().toLocaleDateString('es-ES')}</p>
+          </div>
+          
+          <div class="filters">
+            <strong>Filtros aplicados:</strong><br>
+            ${searchTerm ? `Búsqueda: "${searchTerm}"<br>` : ''}
+            Estado: ${statusFilter === 'all' ? 'Todos' : statusFilter === 'completed' ? 'Fotografiados' : 'Pendientes'}<br>
+            Fotógrafo: ${photographerFilter === 'all' ? 'Todos' : photographerFilter === 'null' ? 'Sin asignar' : photographers.find(p => p.user_id === photographerFilter)?.display_name || photographerFilter}<br>
+            Pintura: ${paintStatusFilter === 'all' ? 'Todos' : paintStatusFilter}
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Matrícula</th>
+                <th>Modelo</th>
+                <th>Fecha Disponible</th>
+                <th>Estado Pintura</th>
+                <th>Asignado</th>
+                <th>Fotografiado</th>
+                <th>Fecha Fotografía</th>
+                <th>Días Pendiente</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${data.map((vehicle, index) => {
+                const getAssignedPhotographerName = (vehicle: PhotoVehicle) => {
+                  if (!vehicle.assigned_to) return "Sin asignar"
+                  const photographer = photographers.find(p => p.user_id === vehicle.assigned_to)
+                  return photographer?.display_name || vehicle.assigned_to
+                }
+
+                const calculatePendingDays = (vehicle: PhotoVehicle) => {
+                  if (vehicle.photos_completed) return 0
+                  if (vehicle.estado_pintura === "apto" && vehicle.paint_apto_date) {
+                    return differenceInDays(new Date(), new Date(vehicle.paint_apto_date))
+                  }
+                  return differenceInDays(new Date(), new Date(vehicle.disponible))
+                }
+
+                const pendingDays = calculatePendingDays(vehicle)
+                let badgeClass = ''
+                if (pendingDays <= 3) {
+                  badgeClass = 'badge-green'
+                } else if (pendingDays <= 7) {
+                  badgeClass = 'badge-amber'
+                } else {
+                  badgeClass = 'badge-red'
+                }
+
+                return `
+                <tr class="${index % 2 === 0 ? 'row-even' : 'row-odd'}">
+                  <td>${vehicle.license_plate || ''}</td>
+                  <td>${vehicle.model || ''}</td>
+                  <td>${formatDate(vehicle.disponible)}</td>
+                  <td>${vehicle.estado_pintura || 'pendiente'}</td>
+                  <td>${getAssignedPhotographerName(vehicle)}</td>
+                  <td class="${vehicle.photos_completed ? 'status-completed' : 'status-pending'}">${vehicle.photos_completed ? 'Sí' : 'No'}</td>
+                  <td>${vehicle.photos_completed_date ? formatDate(vehicle.photos_completed_date) : ''}</td>
+                  <td><span class="badge ${badgeClass}">${pendingDays}</span></td>
+                </tr>
+              `}).join('')}
+            </tbody>
+          </table>
+        </body>
+        </html>
+      `
+
+      const blob = new Blob([htmlContent], { type: 'text/html' })
+      const url = URL.createObjectURL(blob)
+
+      const printWindow = window.open(url, '_blank')
+      if (printWindow) {
+        printWindow.document.close()
+        printWindow.focus()
+        setTimeout(() => {
+          printWindow.print()
+        }, 500)
+      }
+
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+
+    } catch (error) {
+      console.error('Error generando PDF:', error)
+      toast({
+        title: "Error",
+        description: "Error al generar el PDF",
+        variant: "destructive",
+      })
+    }
+  }
+
+  // Función para manejar exportación
+  const handleExport = async (type: 'pdf' | 'excel') => {
+    if (paginatedVehicles.length === 0) {
+      toast({
+        title: "Error",
+        description: "No hay datos para exportar",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      if (type === 'excel') {
+        const csv = generateCSV(paginatedVehicles)
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+        const link = document.createElement('a')
+        const url = URL.createObjectURL(blob)
+        link.setAttribute('href', url)
+        link.setAttribute('download', `fotos_vehiculos_${new Date().toISOString().split('T')[0]}.csv`)
+        link.style.visibility = 'hidden'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+        toast({
+          title: "Éxito",
+          description: "Archivo Excel descargado correctamente",
+        })
+      } else {
+        await generatePDF(paginatedVehicles)
+        toast({
+          title: "Éxito",
+          description: "PDF generado correctamente",
+        })
+      }
+    } catch (error) {
+      console.error('Error en la exportación:', error)
+      toast({
+        title: "Error",
+        description: "Error al exportar los datos",
+        variant: "destructive",
+      })
+    }
+  }
+
   const handlePhotoStatusChange = async (id: string, completed: boolean) => {
     try {
       const updates = {
@@ -804,6 +1029,24 @@ export default function PhotosTable() {
                 title="Filtrar por fecha"
               >
                 <Calendar className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handleExport('pdf')}
+                className="h-8 w-8 p-0"
+                title="Imprimir PDF"
+              >
+                <Printer className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handleExport('excel')}
+                className="h-8 w-8 p-0"
+                title="Exportar Excel"
+              >
+                <FileSpreadsheet className="h-4 w-4" />
               </Button>
             </div>
             <div className="flex flex-wrap gap-2 items-center justify-end w-full">
