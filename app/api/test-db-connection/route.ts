@@ -1,33 +1,34 @@
 import { NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createClient } from '@/lib/supabase/server'
 
 export async function GET() {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = createClient()
     
-    // Hacer una consulta simple para probar la conexión
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('count')
-      .limit(1)
+    // Test simple de conexión - contar registros en stock
+    const { count, error } = await supabase
+      .from('stock')
+      .select('*', { count: 'exact', head: true })
     
     if (error) {
-      console.error('Error de conexión a la base de datos:', error)
       return NextResponse.json(
-        { status: 'error', message: error.message },
+        { error: 'Database connection failed', details: error.message },
         { status: 500 }
       )
     }
     
     return NextResponse.json(
-      { status: 'connected', message: 'Conexión exitosa' },
+      { 
+        status: 'ok', 
+        message: 'Database connection successful',
+        recordCount: count || 0,
+        timestamp: new Date().toISOString()
+      },
       { status: 200 }
     )
   } catch (error) {
-    console.error('Error inesperado en test-db-connection:', error)
     return NextResponse.json(
-      { status: 'error', message: 'Error de conexión' },
+      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }

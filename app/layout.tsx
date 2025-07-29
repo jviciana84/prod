@@ -14,6 +14,7 @@ const inter = Inter({
   subsets: ["latin"],
   display: 'swap',
   variable: '--font-inter',
+  preload: true,
 })
 
 export const metadata: Metadata = {
@@ -23,6 +24,9 @@ export const metadata: Metadata = {
   icons: {
     icon: '/favicon-round.svg',
     apple: '/favicon-round.svg',
+  },
+  other: {
+    'theme-color': '#000000',
   },
 }
 
@@ -41,6 +45,8 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <head>
         <ThemeScript />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body className={`${inter.className} antialiased`} suppressHydrationWarning>
         <ThemeInitializer />

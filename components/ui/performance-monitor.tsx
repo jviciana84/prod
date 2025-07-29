@@ -27,6 +27,7 @@ interface PerformanceMetrics {
 }
 
 export function PerformanceMonitor() {
+  const [isVisible, setIsVisible] = useState(false)
   const [metrics, setMetrics] = useState<PerformanceMetrics>({
     loadTime: 0,
     memoryUsage: 0,
@@ -34,9 +35,8 @@ export function PerformanceMonitor() {
     databaseStatus: 'checking',
     autoRefreshStatus: 'disabled',
     activeIntervals: 0,
-    isLoaded: false
+    isLoaded: false,
   })
-  const [isVisible, setIsVisible] = useState(false)
   const [startTime] = useState(Date.now())
   const cardRef = useRef<HTMLDivElement>(null)
 
@@ -95,14 +95,22 @@ export function PerformanceMonitor() {
     }
   }, [])
 
-  // Verificar estado de la base de datos
+  // Verificar estado de la base de datos - MEJORADO
   useEffect(() => {
     const checkDatabase = async () => {
       try {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 segundos timeout
+        
         const response = await fetch('/api/test-db-connection', { 
           method: 'GET',
-          signal: AbortSignal.timeout(5000) // 5 segundos timeout
+          signal: controller.signal,
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
         })
+        
+        clearTimeout(timeoutId)
         
         if (response.ok) {
           setMetrics(prev => ({ ...prev, databaseStatus: 'connected' }))
@@ -110,17 +118,21 @@ export function PerformanceMonitor() {
           setMetrics(prev => ({ ...prev, databaseStatus: 'disconnected' }))
         }
       } catch (error) {
+        // Silenciar errores de red para evitar spam en consola
         setMetrics(prev => ({ ...prev, databaseStatus: 'disconnected' }))
       }
     }
 
+    // Verificar al cargar
     checkDatabase()
-    const interval = setInterval(checkDatabase, 30000) // Verificar cada 30 segundos
+    
+    // Verificar cada 5 minutos (más espaciado para evitar spam)
+    const interval = setInterval(checkDatabase, 300000)
 
     return () => clearInterval(interval)
   }, [])
 
-  // Verificar estado del auto-refresh
+  // Verificar estado del auto-refresh - MEJORADO
   useEffect(() => {
     const checkAutoRefresh = () => {
       try {
@@ -131,31 +143,40 @@ export function PerformanceMonitor() {
             ...prev, 
             autoRefreshStatus: preferences.enabled ? 'enabled' : 'disabled' 
           }))
+        } else {
+          setMetrics(prev => ({ ...prev, autoRefreshStatus: 'disabled' }))
         }
       } catch (error) {
-        console.error('Error checking auto-refresh status:', error)
+        // Silenciar errores de localStorage
+        setMetrics(prev => ({ ...prev, autoRefreshStatus: 'disabled' }))
       }
     }
 
     checkAutoRefresh()
-    const interval = setInterval(checkAutoRefresh, 10000) // Verificar cada 10 segundos
+    // Verificar cada 10 minutos
+    const interval = setInterval(checkAutoRefresh, 600000)
 
     return () => clearInterval(interval)
   }, [])
 
-  // Monitorear uso de memoria (si está disponible)
+  // Monitorear uso de memoria (si está disponible) - MEJORADO
   useEffect(() => {
     if ('memory' in performance) {
       const updateMemoryUsage = () => {
-        const memory = (performance as any).memory
-        setMetrics(prev => ({
-          ...prev,
-          memoryUsage: Math.round(memory.usedJSHeapSize / 1024 / 1024) // MB
-        }))
+        try {
+          const memory = (performance as any).memory
+          setMetrics(prev => ({
+            ...prev,
+            memoryUsage: Math.round(memory.usedJSHeapSize / 1024 / 1024) // MB
+          }))
+        } catch (error) {
+          // Silenciar errores de memoria
+        }
       }
 
       updateMemoryUsage()
-      const interval = setInterval(updateMemoryUsage, 5000) // Actualizar cada 5 segundos
+      // Actualizar cada 2 minutos
+      const interval = setInterval(updateMemoryUsage, 120000)
 
       return () => clearInterval(interval)
     }

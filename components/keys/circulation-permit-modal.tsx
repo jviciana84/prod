@@ -717,7 +717,7 @@ export function CirculationPermitModal({ open, onOpenChange }: CirculationPermit
       </head>
       <body>
         <div class="header">
-          <img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/cvo-KUNh8rXJGJ38lK00MJ9JTEci2nGA5o.png" alt="CVO Logo" class="logo-cvo" />
+          <img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/cvo-KUNh8rXJGJ38lK00MJ9JTEci2nGA5o.png" alt="CVO Logo" class="logo-cvo" style="width: auto; height: auto;" />
           <hr class="cvo-line" />
           <div class="header-title">SOLICITUDES PERMISOS DE CIRCULACIÓN</div>
           <div class="header-content">

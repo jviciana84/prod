@@ -844,7 +844,7 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
       </head>
       <body>
         <div class="header">
-          <img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/cvo-KUNh8rXJGJ38lK00MJ9JTEci2nGA5o.png" alt="CVO Logo" class="logo-cvo" />
+          <img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/cvo-KUNh8rXJGJ38lK00MJ9JTEci2nGA5o.png" alt="CVO Logo" class="logo-cvo" style="width: auto; height: auto;" />
           <hr class="cvo-line" />
           <div class="header-title">SOLICITUDES DOCUWARE - ${activeTab === "second_keys" ? "2ª LLAVES" : "FICHAS TÉCNICAS"}</div>
           <div class="header-content">

@@ -403,7 +403,7 @@ export function SalesQuickForm({ onSaleRegistered }: { onSaleRegistered?: () => 
         cyp_status: "pendiente",
         photo_360_status: "pendiente",
         validated: false,
-        delivery_center: "Terrassa",
+        delivery_center: vehicleData?.work_center || "Terrassa", // Heredar del vehículo en stock
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       }

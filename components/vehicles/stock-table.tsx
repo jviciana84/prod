@@ -230,7 +230,7 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
           console.log("🔍 Buscando vehículos vendidos...")
           const { data: soldVehicles, error } = await supabase
             .from("sales_vehicles")
-            .select("id, license_plate, model, vehicle_type, brand, sale_date, advisor, price, payment_status")
+            .select("id, license_plate, model, vehicle_type, brand, sale_date, advisor, advisor_name, price, payment_status")
 
           if (error) {
             console.error("❌ Error al obtener vehículos vendidos:", error)
@@ -248,7 +248,7 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
               vehicle_type: sv.vehicle_type,
               brand: sv.brand,
               reception_date: sv.sale_date,
-              work_center: sv.advisor,
+              work_center: sv.advisor_name || sv.advisor, // Usar nombre completo, fallback a alias
               external_provider: "",
               or: "",
               expense_charge: "",
@@ -258,7 +258,7 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
               paint_status: "",
               is_sold: true,
               sale_date: sv.sale_date,
-              advisor: sv.advisor,
+              advisor: sv.advisor_name || sv.advisor, // Usar nombre completo, fallback a alias
               price: sv.price,
               payment_status: sv.payment_status
             } as StockItem))
@@ -1122,23 +1122,115 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
 
       const updateData: any = {
         work_center: value,
+        updated_at: new Date().toISOString(),
       }
 
       // Si no es "Externo", guardar directamente y limpiar external_provider
       if (value !== "Externo") {
         updateData.external_provider = null
 
+        console.log("🔄 Intentando actualizar centro de trabajo:", {
+          id: item.id,
+          license_plate: item.license_plate,
+          old_work_center: item.work_center,
+          new_work_center: value
+        })
+
+        // Verificar si el work_center actual es válido
+        const validWorkCenters = ['Terrassa', 'Sabadell', 'Vilanova', 'Sant Fruitos', 'Externo']
+        const currentWorkCenter = item.work_center || ''
+        
+        if (currentWorkCenter && !validWorkCenters.includes(currentWorkCenter)) {
+          console.warn("⚠️ Work center actual no es válido:", currentWorkCenter)
+        }
+
         // Actualizar en la base de datos
-        const { error } = await supabase.from("stock").update(updateData).eq("id", item.id)
+        const { data, error } = await supabase
+          .from("stock")
+          .update(updateData)
+          .eq("id", item.id)
+          .select()
 
         if (error) {
-          console.error("Error al actualizar centro de trabajo:", error)
-          throw new Error(error.message)
+          console.error("❌ Error al actualizar centro de trabajo:", error)
+          throw new Error(`Error de base de datos: ${error.message}`)
+        }
+
+        if (!data || data.length === 0) {
+          console.error("❌ No se actualizó ningún registro")
+          console.log("🔍 Intentando con upsert...")
+          
+          // Intentar con upsert como fallback - usar solo columnas esenciales
+          const upsertPayload = {
+            id: item.id,
+            license_plate: item.license_plate,
+            model: item.model,
+            vehicle_type: item.vehicle_type || 'Coche',
+            reception_date: item.reception_date,
+            work_center: value,
+            external_provider: item.external_provider,
+            expense_charge: item.expense_charge,
+            body_status: item.body_status || 'pendiente',
+            mechanical_status: item.mechanical_status || 'pendiente',
+            inspection_date: item.inspection_date,
+            paint_status: item.paint_status || 'pendiente',
+            updated_at: new Date().toISOString(),
+          }
+
+          const { data: upsertResult, error: upsertError } = await supabase
+            .from("stock")
+            .upsert(upsertPayload)
+            .select()
+
+          if (upsertError) {
+            console.error("❌ Error en upsert:", upsertError)
+            throw new Error(`Error en upsert: ${upsertError.message}`)
+          }
+
+          if (!upsertResult || upsertResult.length === 0) {
+            throw new Error("No se pudo actualizar el registro ni con upsert")
+          }
+
+          console.log("✅ Centro de trabajo actualizado con upsert:", upsertResult[0])
+          
+          // Actualizar el estado local para reflejar el cambio inmediatamente
+          setStock(prevStock => 
+            prevStock.map(stockItem => 
+              stockItem.id === item.id 
+                ? { ...stockItem, work_center: value }
+                : stockItem
+            )
+          )
+        } else {
+          console.log("✅ Centro de trabajo actualizado exitosamente:", data[0])
+          
+          // Actualizar el estado local para reflejar el cambio inmediatamente
+          setStock(prevStock => 
+            prevStock.map(stockItem => 
+              stockItem.id === item.id 
+                ? { ...stockItem, work_center: value }
+                : stockItem
+            )
+          )
         }
 
         // Actualizar la UI optimistamente
         setStock((prevStock) =>
           prevStock.map((stockItem) => {
+            if (stockItem.id === item.id) {
+              return {
+                ...stockItem,
+                ...updateData,
+                updated_at: new Date().toISOString(),
+              }
+            }
+            return stockItem
+          }),
+        )
+
+        // Actualizar también filteredStock si es necesario
+        setFilteredStock((prevFiltered) =>
+          prevFiltered.map((stockItem) => {
             if (stockItem.id === item.id) {
               return {
                 ...stockItem,
@@ -1167,10 +1259,10 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
         }, 100)
       }
     } catch (error: any) {
-      console.error("Error al actualizar centro de trabajo:", error)
+      console.error("❌ Error al actualizar centro de trabajo:", error)
       toast({
-        title: "Error",
-        description: error.message || "No se pudo actualizar el centro de trabajo",
+        title: "Error al actualizar",
+        description: error.message || "No se pudo actualizar el centro de trabajo. Verifica los permisos.",
         variant: "destructive",
       })
     } finally {
