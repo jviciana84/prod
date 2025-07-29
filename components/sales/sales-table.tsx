@@ -93,21 +93,22 @@ const PROCESS_STATUSES = [
 
 // Función para obtener el color de la prioridad
 function getPriorityColor(priorityValue: number): string {
-  if (priorityValue >= 60) return "bg-red-600 dark:bg-red-500" // Financiado pagado
-  if (priorityValue >= 50) return "bg-red-500 dark:bg-red-400" // Contado pagado
-  if (priorityValue >= 40) return "bg-orange-500 dark:bg-orange-400" // Aprobado
-  if (priorityValue >= 30) return "bg-amber-500 dark:bg-amber-400" // En estudio
-  if (priorityValue >= 20) return "bg-yellow-500 dark:bg-yellow-400" // Financiado
-  if (priorityValue >= 10) return "bg-yellow-400 dark:bg-yellow-300" // Contado
-  return "bg-gray-300 dark:bg-gray-600" // Sin prioridad (no validado)
+  if (priorityValue >= 1200) return "bg-red-600 dark:bg-red-500" // Validados con alta prioridad
+  if (priorityValue >= 1100) return "bg-red-500 dark:bg-red-400" // Validados con prioridad alta
+  if (priorityValue >= 1000) return "bg-orange-500 dark:bg-orange-400" // Validados base
+  if (priorityValue >= 200) return "bg-amber-500 dark:bg-amber-400" // No validados muy antiguos
+  if (priorityValue >= 100) return "bg-yellow-500 dark:bg-yellow-400" // No validados antiguos
+  if (priorityValue >= 50) return "bg-yellow-400 dark:bg-yellow-300" // No validados medianos
+  return "bg-gray-300 dark:bg-gray-600" // No validados recientes
 }
 
 // Función para calcular el tamaño del ping según la prioridad
 function getPrioritySize(priorityValue: number): string {
-  if (priorityValue >= 40) return "h-4 w-4" // Más grande para mayor prioridad
-  if (priorityValue >= 20) return "h-3.5 w-3.5"
-  if (priorityValue > 0) return "h-3 w-3"
-  return "h-2.5 w-2.5" // Más pequeño para menor prioridad
+  if (priorityValue >= 1000) return "h-4 w-4" // Validados (más grande)
+  if (priorityValue >= 200) return "h-3.5 w-3.5" // No validados muy antiguos
+  if (priorityValue >= 100) return "h-3 w-3" // No validados antiguos
+  if (priorityValue >= 50) return "h-2.5 w-2.5" // No validados medianos
+  return "h-2 w-2" // No validados recientes (más pequeño)
 }
 
 // Tipo para los vehículos vendidos
@@ -257,32 +258,59 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
   // Estado para el criterio de ordenación
   const [sortOrder, setSortOrder] = useState<"priority" | "validation_date">("validation_date")
 
-  // Función para calcular la prioridad automáticamente
+  // Función para calcular la prioridad automáticamente basada en puntos
   const calculatePriority = useMemo(() => (vehicle: SoldVehicle): number => {
-    // Si no está validado, prioridad 0
-    if (!vehicle.validated) return 0
+    let totalPoints = 0
 
-    // Asignar prioridad base según el tipo de pago y estado
-    let priority = 0
-
-    // Prioridades por estado de pago
-    if (vehicle.payment_status === "pagado") {
-      if (vehicle.payment_method?.toLowerCase().includes("financ")) {
-        priority = 60 // Financiado pagado (máxima prioridad)
-      } else {
-        priority = 50 // Contado pagado
+    // Si no está validado, prioridad mínima (solo puntos por fecha de venta)
+    if (!vehicle.validated) {
+      // Puntos por fecha de venta (más antiguo = más puntos)
+      if (vehicle.sale_date) {
+        const saleDate = new Date(vehicle.sale_date)
+        const now = new Date()
+        const daysSinceSale = Math.floor((now.getTime() - saleDate.getTime()) / (1000 * 60 * 60 * 24))
+        totalPoints += Math.min(daysSinceSale * 2, 100) // Máximo 100 puntos por antigüedad
       }
-    } else if (vehicle.payment_status === "aprobada") {
-      priority = 40 // Aprobado
-    } else if (vehicle.payment_status === "en_estudio") {
-      priority = 30 // En estudio
-    } else if (vehicle.payment_method?.toLowerCase().includes("financ")) {
-      priority = 20 // Financiado
-    } else {
-      priority = 10 // Contado (mínima prioridad para validados)
+      return totalPoints
     }
 
-    return priority
+    // Vehículos validados: puntos base + antigüedad + estado de pago
+    totalPoints += 1000 // Base para validados (siempre más que no validados)
+
+    // Puntos por fecha de validación (más antiguo = más puntos)
+    if (vehicle.validation_date) {
+      const validationDate = new Date(vehicle.validation_date)
+      const now = new Date()
+      const daysSinceValidation = Math.floor((now.getTime() - validationDate.getTime()) / (1000 * 60 * 60 * 24))
+      totalPoints += Math.min(daysSinceValidation * 5, 200) // Máximo 200 puntos por antigüedad de validación
+    }
+
+    // Puntos por fecha de venta (más antiguo = más puntos)
+    if (vehicle.sale_date) {
+      const saleDate = new Date(vehicle.sale_date)
+      const now = new Date()
+      const daysSinceSale = Math.floor((now.getTime() - saleDate.getTime()) / (1000 * 60 * 60 * 24))
+      totalPoints += Math.min(daysSinceSale * 3, 150) // Máximo 150 puntos por antigüedad de venta
+    }
+
+    // Puntos por estado de pago
+    if (vehicle.payment_status === "pagado") {
+      if (vehicle.payment_method?.toLowerCase().includes("financ")) {
+        totalPoints += 100 // Financiado pagado
+      } else {
+        totalPoints += 80 // Contado pagado
+      }
+    } else if (vehicle.payment_status === "aprobada") {
+      totalPoints += 60 // Aprobado
+    } else if (vehicle.payment_status === "en_estudio") {
+      totalPoints += 40 // En estudio
+    } else if (vehicle.payment_method?.toLowerCase().includes("financ")) {
+      totalPoints += 30 // Financiado
+    } else {
+      totalPoints += 20 // Contado
+    }
+
+    return totalPoints
   }, [])
 
   // Función para ordenar los vehículos
@@ -293,7 +321,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
       const bInProcess = b.cyp_status === "en_proceso" || b.photo_360_status === "en_proceso"
 
       if (aInProcess && bInProcess) {
-        // Si ambos están en proceso, ordenar por prioridad
+        // Si ambos están en proceso, ordenar por prioridad (puntos)
         return (b.priority || 0) - (a.priority || 0)
       } else if (aInProcess) {
         // Si solo A está en proceso, darle prioridad
@@ -303,7 +331,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
         return 1
       }
 
-      // Ordenar primero por prioridad (mayor prioridad primero)
+      // Ordenar por prioridad (puntos) - mayor prioridad primero
       if ((a.priority || 0) !== (b.priority || 0)) {
         return (b.priority || 0) - (a.priority || 0)
       }
@@ -323,7 +351,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
       // Si llegamos aquí, ambos no están validados, ordenar por fecha de venta
       const saleDateA = a.sale_date ? new Date(a.sale_date).getTime() : 0
       const saleDateB = b.sale_date ? new Date(b.sale_date).getTime() : 0
-      return saleDateB - saleDateA // Orden descendente por fecha de venta (más reciente primero)
+      return saleDateA - saleDateB // Orden ascendente por fecha de venta (más antigua primero)
     })
   }, [])
 
@@ -1692,20 +1720,24 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                                   <div
                                     className={cn(
                                       "rounded-full relative z-10",
-                                      vehicle.priority >= 40
+                                      vehicle.priority >= 1100
                                         ? "animate-[priorityPulseHigh_2s_ease-in-out_infinite]"
-                                        : vehicle.priority >= 20
+                                        : vehicle.priority >= 1000
                                           ? "animate-[priorityPulseMedium_3s_ease-in-out_infinite]"
-                                          : vehicle.priority > 0
+                                          : vehicle.priority >= 200
                                             ? "animate-[priorityPulseLow_5s_ease-in-out_infinite]"
                                             : "",
                                       getPriorityColor(vehicle.priority || 0),
                                     )}
                                     style={{
-                                      width: vehicle.priority && vehicle.priority > 0 ? "10px" : "8px",
-                                      height: vehicle.priority && vehicle.priority > 0 ? "10px" : "8px",
+                                      width: getPrioritySize(vehicle.priority || 0).includes('h-4') ? "16px" : 
+                                             getPrioritySize(vehicle.priority || 0).includes('h-3.5') ? "14px" :
+                                             getPrioritySize(vehicle.priority || 0).includes('h-3') ? "12px" : "8px",
+                                      height: getPrioritySize(vehicle.priority || 0).includes('h-4') ? "16px" : 
+                                              getPrioritySize(vehicle.priority || 0).includes('h-3.5') ? "14px" :
+                                              getPrioritySize(vehicle.priority || 0).includes('h-3') ? "12px" : "8px",
                                     }}
-                                    title={`Prioridad: ${vehicle.priority || 0}`}
+                                    title={`Prioridad: ${vehicle.priority || 0} puntos`}
                                   />
                                   {vehicle.priority > 0 && (
                                     <div
@@ -1714,9 +1746,13 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                                         getPriorityColor(vehicle.priority || 0),
                                       )}
                                       style={{
-                                        width: vehicle.priority && vehicle.priority > 0 ? "10px" : "8px",
-                                        height: vehicle.priority && vehicle.priority > 0 ? "10px" : "8px",
-                                        animationDuration: vehicle.priority >= 40 ? "2s" : vehicle.priority >= 20 ? "3s" : "4s",
+                                        width: getPrioritySize(vehicle.priority || 0).includes('h-4') ? "16px" : 
+                                               getPrioritySize(vehicle.priority || 0).includes('h-3.5') ? "14px" :
+                                               getPrioritySize(vehicle.priority || 0).includes('h-3') ? "12px" : "8px",
+                                        height: getPrioritySize(vehicle.priority || 0).includes('h-4') ? "16px" : 
+                                                getPrioritySize(vehicle.priority || 0).includes('h-3.5') ? "14px" :
+                                                getPrioritySize(vehicle.priority || 0).includes('h-3') ? "12px" : "8px",
+                                        animationDuration: vehicle.priority >= 1100 ? "2s" : vehicle.priority >= 1000 ? "3s" : "4s",
                                       }}
                                     />
                                   )}
