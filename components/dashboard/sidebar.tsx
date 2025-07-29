@@ -305,13 +305,7 @@ export default function DashboardSidebar({ roles }: DashboardSidebarProps) {
           isExpanded={isExpanded}
         />
 
-        <SidebarItem
-          href="/dashboard/ventas-profesionales"
-          icon={<Tag className="h-5 w-5" />}
-          title="Ventas Profesionales"
-          isActive={pathname === "/dashboard/ventas-profesionales"}
-          isExpanded={isExpanded}
-        />
+
 
         <SidebarItem
           href="/dashboard/validados"

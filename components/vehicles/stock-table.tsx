@@ -112,6 +112,7 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
   const [paintStatus, setPaintStatus] = useState<Record<string, string>>({})
   const [showDateFilter, setShowDateFilter] = useState(false)
   const [dateFilter, setDateFilter] = useState<{ startDate: Date | null; endDate: Date | null }>({ startDate: null, endDate: null })
+  const [expenseTypes, setExpenseTypes] = useState<Array<{ value: string; label: string }>>([])
 
   const supabase = getSupabaseClient()
   const { toast } = useToast()
@@ -130,6 +131,7 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
   useEffect(() => {
     // Cargar datos al montar el componente
     fetchStock()
+    fetchExpenseTypes()
   }, []) // Array de dependencias vacío para que solo se ejecute al montar
 
   // Cargar el estado de fotografiado y pintura para cada vehículo
@@ -195,46 +197,118 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
           (item.body_status === "apto" || item.body_status === "no_apto"),
         // Ya no verificamos el estado mecánico
       )
-    } else if (activeTab === "vendido") {
-      // Filtrar vehículos marcados como vendidos
-      const fetchSoldVehicles = async () => {
+    } else if (activeTab === "disponible") {
+      // Filtrar vehículos disponibles (que NO estén en otros estados)
+      const fetchAvailableVehicles = async () => {
         try {
-          const { data: soldVehicles, error } = await supabase
+          const { data: classifiedVehicles, error } = await supabase
             .from("vehicle_sale_status")
             .select("vehicle_id, source_table, license_plate")
-            .eq("sale_status", "vendido")
 
-          if (!error && soldVehicles) {
-            const soldVehicleIds = soldVehicles.map(v => v.vehicle_id)
-            const soldVehiclesList = filtered.filter((vehicle) =>
-              soldVehicleIds.includes(vehicle.id)
+          if (!error && classifiedVehicles) {
+            const classifiedVehicleIds = classifiedVehicles.map(v => v.vehicle_id)
+            // Mostrar solo vehículos que NO están en vehicle_sale_status (disponibles)
+            const availableVehiclesList = filtered.filter((vehicle) =>
+              !classifiedVehicleIds.includes(vehicle.id)
             )
 
-            setFilteredStock(soldVehiclesList)
-            setTotalPages(Math.max(1, Math.ceil(soldVehiclesList.length / itemsPerPage)))
+            setFilteredStock(availableVehiclesList)
+            setTotalPages(Math.max(1, Math.ceil(availableVehiclesList.length / itemsPerPage)))
             setCurrentPage(1)
           }
         } catch (err) {
-          console.error("Error al obtener vehículos vendidos:", err)
+          console.error("Error al obtener vehículos disponibles:", err)
+        }
+      }
+
+      fetchAvailableVehicles()
+      return
+    } else if (activeTab === "vendido") {
+      // Obtener vehículos vendidos directamente de sales_vehicles
+      const fetchSoldVehicles = async () => {
+        try {
+          console.log("🔍 Buscando vehículos vendidos...")
+          const { data: soldVehicles, error } = await supabase
+            .from("sales_vehicles")
+            .select("id, license_plate, model, vehicle_type, brand, sale_date, advisor, price, payment_status")
+
+          if (error) {
+            console.error("❌ Error al obtener vehículos vendidos:", error)
+            return
+          }
+
+          console.log("📊 Vehículos vendidos encontrados:", soldVehicles?.length || 0)
+          
+          if (soldVehicles && soldVehicles.length > 0) {
+            // Convertir a formato StockItem para mantener compatibilidad
+            const soldVehiclesList = soldVehicles.map((sv) => ({
+              id: sv.id,
+              license_plate: sv.license_plate,
+              model: sv.model,
+              vehicle_type: sv.vehicle_type,
+              brand: sv.brand,
+              reception_date: sv.sale_date,
+              work_center: sv.advisor,
+              external_provider: "",
+              or: "",
+              expense_charge: "",
+              body_status: "",
+              mechanical_status: "",
+              inspection_date: null,
+              paint_status: "",
+              is_sold: true,
+              sale_date: sv.sale_date,
+              advisor: sv.advisor,
+              price: sv.price,
+              payment_status: sv.payment_status
+            } as StockItem))
+
+            console.log("✅ Vehículos vendidos procesados:", soldVehiclesList.length)
+            setFilteredStock(soldVehiclesList)
+            setTotalPages(Math.max(1, Math.ceil(soldVehiclesList.length / itemsPerPage)))
+            setCurrentPage(1)
+          } else {
+            console.log("⚠️ No se encontraron vehículos vendidos")
+            setFilteredStock([])
+            setTotalPages(1)
+            setCurrentPage(1)
+          }
+        } catch (err) {
+          console.error("❌ Error inesperado al obtener vehículos vendidos:", err)
         }
       }
 
       fetchSoldVehicles()
       return
     } else if (activeTab === "profesionales") {
-      // Filtrar vehículos marcados como profesional o táctico VN (No Retail)
+      // Obtener vehículos No Retail directamente de vehicle_sale_status
       const fetchNoRetailVehicles = async () => {
         try {
           const { data: noRetailVehicles, error } = await supabase
             .from("vehicle_sale_status")
-            .select("vehicle_id, source_table, license_plate, sale_status")
+            .select("vehicle_id, source_table, license_plate, sale_status, created_at")
             .in("sale_status", ["profesional", "tactico_vn"])
 
           if (!error && noRetailVehicles) {
-            const noRetailVehicleIds = noRetailVehicles.map(v => v.vehicle_id)
-            const noRetailVehiclesList = filtered.filter((vehicle) =>
-              noRetailVehicleIds.includes(vehicle.id)
-            )
+            // Convertir a formato StockItem para mantener compatibilidad
+            const noRetailVehiclesList = noRetailVehicles.map((vss) => ({
+              id: vss.vehicle_id,
+              license_plate: vss.license_plate,
+              model: "",
+              vehicle_type: "",
+              brand: "",
+              reception_date: vss.created_at,
+              work_center: "",
+              external_provider: "",
+              or: "",
+              expense_charge: "",
+              body_status: "",
+              mechanical_status: "",
+              inspection_date: null,
+              paint_status: "",
+              is_sold: true,
+              sale_status: vss.sale_status
+            } as StockItem))
 
             setFilteredStock(noRetailVehiclesList)
             setTotalPages(Math.max(1, Math.ceil(noRetailVehiclesList.length / itemsPerPage)))
@@ -274,19 +348,33 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
       fetchPrematureSales()
       return
     } else if (activeTab === "entregados") {
-      // Filtrar vehículos marcados como entregados
+      // Obtener vehículos entregados directamente de entregas
       const fetchDeliveredVehicles = async () => {
         try {
           const { data: deliveredVehicles, error } = await supabase
-            .from("vehicle_sale_status")
-            .select("vehicle_id, source_table, license_plate")
-            .eq("sale_status", "entregado")
+            .from("entregas")
+            .select("id, matricula, modelo, tipo_vehiculo, marca, fecha_entrega, asesor")
 
           if (!error && deliveredVehicles) {
-            const deliveredVehicleIds = deliveredVehicles.map(v => v.vehicle_id)
-            const deliveredVehiclesList = filtered.filter((vehicle) =>
-              deliveredVehicleIds.includes(vehicle.id)
-            )
+            // Convertir a formato StockItem para mantener compatibilidad
+            const deliveredVehiclesList = deliveredVehicles.map((e) => ({
+              id: e.id,
+              license_plate: e.matricula,
+              model: e.modelo,
+              vehicle_type: e.tipo_vehiculo,
+              brand: e.marca,
+              reception_date: e.fecha_entrega,
+              work_center: e.asesor,
+              external_provider: "",
+              or: "",
+              expense_charge: "",
+              body_status: "",
+              mechanical_status: "",
+              inspection_date: null,
+              paint_status: "",
+              is_sold: true,
+              delivery_date: e.fecha_entrega
+            } as StockItem))
 
             setFilteredStock(deliveredVehiclesList)
             setTotalPages(Math.max(1, Math.ceil(deliveredVehiclesList.length / itemsPerPage)))
@@ -419,6 +507,30 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
     const endIndex = startIndex + itemsPerPage
     setDisplayedStock(sorted.slice(startIndex, endIndex))
   }, [filteredStock, currentPage, itemsPerPage, sortDirection, sortField, photoStatus, paintStatus, calculatePriority])
+
+  // Cargar tipos de gastos
+  const fetchExpenseTypes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("expense_types")
+        .select("id, name")
+        .order("name")
+
+      if (error) {
+        console.error("Error al obtener tipos de gastos:", error)
+        return
+      }
+
+      const types = (data || []).map((type) => ({
+        value: type.id.toString(),
+        label: type.name,
+      }))
+
+      setExpenseTypes(types)
+    } catch (error) {
+      console.error("Error inesperado al cargar tipos de gastos:", error)
+    }
+  }
 
   // Cargar datos completos de stock
   const fetchStock = async () => {
@@ -956,6 +1068,53 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
     }
   }
 
+  // Función para actualizar cargo de gastos
+  const handleExpenseChargeChange = async (item: StockItem, value: string) => {
+    try {
+      setPendingUpdates((prev) => new Set(prev).add(item.id))
+
+      const { error } = await supabase
+        .from("stock")
+        .update({ expense_charge: value })
+        .eq("id", item.id)
+
+      if (error) {
+        console.error("Error al actualizar cargo de gastos:", error)
+        toast({
+          title: "Error",
+          description: "No se pudo actualizar el cargo de gastos",
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Actualizar el estado local
+      setStock((prev) =>
+        prev.map((stockItem) =>
+          stockItem.id === item.id ? { ...stockItem, expense_charge: value } : stockItem
+        )
+      )
+
+      toast({
+        title: "Cargo de gastos actualizado",
+        description: `Cargo actualizado a: ${value}`,
+      })
+    } catch (error) {
+      console.error("Error inesperado:", error)
+      toast({
+        title: "Error",
+        description: "Error inesperado al actualizar el cargo de gastos",
+        variant: "destructive",
+      })
+    } finally {
+      setPendingUpdates((prev) => {
+        const newSet = new Set(prev)
+        newSet.delete(item.id)
+        return newSet
+      })
+    }
+  }
+
   // Modificar la función para actualizar el centro de trabajo
   const handleWorkCenterChange = async (item: StockItem, value: string) => {
     try {
@@ -1032,16 +1191,34 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
       {/* Estilos para las animaciones personalizadas */}
       <style jsx global>{`
         @keyframes priorityPulseHigh {
-          0%, 100% { transform: scale(0.7); opacity: 0.9; }
-          50% { transform: scale(1); opacity: 1; }
+          0%, 100% { 
+            transform: scale(0.7); 
+            opacity: 0.9; 
+          }
+          50% { 
+            transform: scale(1); 
+            opacity: 1; 
+          }
         }
         @keyframes priorityPulseMedium {
-          0%, 100% { transform: scale(0.7); opacity: 0.9; }
-          50% { transform: scale(1); opacity: 1; }
+          0%, 100% { 
+            transform: scale(0.7); 
+            opacity: 0.9; 
+          }
+          50% { 
+            transform: scale(1); 
+            opacity: 1; 
+          }
         }
         @keyframes priorityPulseLow {
-          0%, 100% { transform: scale(0.7); opacity: 0.9; }
-          50% { transform: scale(1); opacity: 1; }
+          0%, 100% { 
+            transform: scale(0.7); 
+            opacity: 0.9; 
+          }
+          50% { 
+            transform: scale(1); 
+            opacity: 1; 
+          }
         }
       `}</style>
 
@@ -1087,6 +1264,10 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
             <TabsTrigger value="all" className="px-3 py-1 h-7 data-[state=active]:bg-background">
               <Filter className="h-3.5 w-3.5 mr-1" />
               <span>Todos</span>
+            </TabsTrigger>
+            <TabsTrigger value="disponible" className="px-3 py-1 h-7 data-[state=active]:bg-background">
+              <Car className="h-3.5 w-3.5 mr-1" />
+              <span>Disponible</span>
             </TabsTrigger>
             <TabsTrigger value="pending" className="px-3 py-1 h-7 data-[state=active]:bg-background">
               <Clock className="h-3.5 w-3.5 mr-1" />
@@ -1156,6 +1337,639 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
                       <div className="flex flex-col items-center justify-center text-muted-foreground">
                         <Car className="h-10 w-10 mb-2" />
                         <p>No se encontraron vehículos en stock</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  displayedStock.map((item, index) => {
+                    const isUpdating = pendingUpdates.has(item.id)
+                    const isEditing = editingId === item.id
+                    const isEditingOR = editingOR === item.id
+                    const isPhotographed = photoStatus[item.license_plate] || false
+                    const paintStatusValue = paintStatus[item.license_plate] || ""
+
+                    return (
+                      <TableRow
+                        key={item.id}
+                        className={cn("h-8 hover:bg-muted/30", index % 2 === 0 ? "bg-black/5 dark:bg-black/20" : "", isEditing && "bg-blue-50 dark:bg-blue-900/20")}
+                      >
+                        <TableCell className="py-0.5 font-medium">
+                          <div className="flex items-center gap-2">
+                            {(item as StockItemWithPriority).calculatedPriority === Priority.HIGH && (
+                              <div className={priorityStyles.container}>
+                                <div className={priorityStyles.high.dot} title="Prioridad alta" />
+                                <div className={priorityStyles.high.wave} />
+                              </div>
+                            )}
+                            {(item as StockItemWithPriority).calculatedPriority === Priority.MEDIUM && (
+                              <div className={priorityStyles.container}>
+                                <div className={priorityStyles.medium.dot} title="Prioridad media" />
+                                <div className={priorityStyles.medium.wave} />
+                              </div>
+                            )}
+                            {(item as StockItemWithPriority).calculatedPriority === Priority.LOW && (
+                              <div className={priorityStyles.container}>
+                                <div className={priorityStyles.low.dot} title="Prioridad baja" />
+                                <div className={priorityStyles.low.wave} />
+                              </div>
+                            )}
+                            {item.license_plate}
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-0.5">{item.model}</TableCell>
+                        <TableCell className="py-0.5">{item.vehicle_type || "-"}</TableCell>
+                        <TableCell className="py-0.5">
+                          <div className="flex items-center gap-1">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                                </TooltipTrigger>
+                                <TooltipContent>Fecha de venta</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            <span>{formatDate(item.reception_date)}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-0.5">
+                          {item.reception_date
+                            ? Math.ceil(
+                                (new Date().getTime() - new Date(item.reception_date).getTime()) / (1000 * 60 * 60 * 24),
+                              )
+                            : "-"}
+                        </TableCell>
+                        <TableCell className="py-0.5 w-32">
+                          {isEditingOR ? (
+                            <div className="flex items-center">
+                              <Input
+                                ref={orInputRef}
+                                value={orValues[item.id] || "ORT"}
+                                onChange={(e) => handleORChange(item.id, e.target.value)}
+                                onBlur={() => handleORSave(item.id)}
+                                onKeyDown={(e) => handleORKeyDown(e, item.id)}
+                                className="h-8 text-sm font-mono"
+                                style={{ minWidth: "14ch", width: "14ch" }}
+                                autoFocus
+                              />
+                            </div>
+                          ) : (
+                            <div
+                              className="h-8 flex items-center px-2 border border-gray-300 rounded-md cursor-pointer font-mono overflow-hidden"
+                              style={{ minWidth: "14ch", width: "auto", maxWidth: "14ch" }}
+                              onClick={() => handleOREdit(item.id)}
+                            >
+                              <span className="truncate w-full" title={orValues[item.id] || "ORT"}>
+                                {orValues[item.id] || "ORT"}
+                              </span>
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="py-0.5">{item.expense_type_name || item.expense_charge || "-"}</TableCell>
+                        <TableCell className="py-0.5">
+                          {isEditing ? (
+                            <Select
+                              value={editFormData.body_status || item.body_status}
+                              onValueChange={(value) => handleEditFormChange("body_status", value)}
+                            >
+                              <SelectTrigger className="h-8 text-sm">
+                                <SelectValue placeholder="Seleccionar estado" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {STATUS_OPTIONS.map((option) => (
+                                  <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : item.body_status === "apto" ? (
+                            <div className="flex flex-col">
+                              <div className="flex items-center justify-center h-8 w-full border border-green-300 dark:border-green-700 rounded-md px-2 text-green-600">
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                {item.body_status_date ? formatDate(item.body_status_date) : "Apto"}
+                              </div>
+                            </div>
+                          ) : item.body_status === "en_proceso" ? (
+                            <div className="flex items-center">
+                              <button
+                                className="flex items-center justify-center h-8 w-full rounded-md px-2 bg-blue-100 text-blue-800 border border-blue-300 hover:bg-blue-300 hover:text-blue-950 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700 dark:hover:bg-blue-800 dark:hover:text-blue-100 transition-colors"
+                                onClick={() => handleBodyStatusToggle(item)}
+                                disabled={isUpdating || isEditing}
+                              >
+                                <Wrench className="h-4 w-4 mr-1" />
+                                <span className="whitespace-nowrap">En proceso</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              className="flex items-center justify-center h-8 w-full rounded-md px-2 bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-300 hover:text-amber-950 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700 dark:hover:bg-amber-800 dark:hover:text-amber-100 transition-colors"
+                              onClick={() => handleBodyStatusToggle(item)}
+                              disabled={isUpdating || isEditing}
+                            >
+                              <Clock className="h-4 w-4 mr-1" />
+                              Pendiente
+                            </button>
+                          )}
+                        </TableCell>
+                        <TableCell className="py-0.5">
+                          {isEditing ? (
+                            <Select
+                              value={editFormData.mechanical_status || item.mechanical_status}
+                              onValueChange={(value) => handleEditFormChange("mechanical_status", value)}
+                            >
+                              <SelectTrigger className="h-8 text-sm">
+                                <SelectValue placeholder="Seleccionar estado" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {STATUS_OPTIONS.map((option) => (
+                                  <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : item.mechanical_status === "apto" ? (
+                            <div className="flex flex-col">
+                              <div className="flex items-center justify-center h-8 w-full border border-green-300 dark:border-green-700 rounded-md px-2 text-green-600">
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                {item.mechanical_status_date ? formatDate(item.mechanical_status_date) : "Apto"}
+                              </div>
+                            </div>
+                          ) : item.mechanical_status === "en_proceso" ? (
+                            <div className="flex items-center">
+                              <button
+                                className="flex items-center justify-center h-8 w-full rounded-md px-2 bg-blue-100 text-blue-800 border border-blue-300 hover:bg-blue-300 hover:text-blue-950 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700 dark:hover:bg-blue-800 dark:hover:text-blue-100 transition-colors"
+                                onClick={() => handleMechanicalStatusToggle(item)}
+                                disabled={isUpdating || isEditing}
+                              >
+                                <Wrench className="h-4 w-4 mr-1" />
+                                <span className="whitespace-nowrap">En proceso</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              className="flex items-center justify-center h-8 w-full rounded-md px-2 bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-300 hover:text-amber-950 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700 dark:hover:bg-amber-800 dark:hover:text-amber-100 transition-colors"
+                              onClick={() => handleMechanicalStatusToggle(item)}
+                              disabled={isUpdating || isEditing}
+                            >
+                              <Clock className="h-4 w-4 mr-1" />
+                              Pendiente
+                            </button>
+                          )}
+                        </TableCell>
+                        <TableCell className="py-0.5">
+                          {item.inspection_date ? (
+                            <div className="flex items-center justify-center h-8 w-full border border-green-300 dark:border-green-700 rounded-md px-2 text-green-600">
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              {formatDate(item.inspection_date)}
+                            </div>
+                          ) : (
+                            <button
+                              className="flex items-center justify-center h-8 w-full rounded-md px-2 bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-300 hover:text-amber-950 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700 dark:hover:bg-amber-800 dark:hover:text-amber-100 transition-colors"
+                              onClick={() => handleInspectionToggle(item)}
+                              disabled={isUpdating || isEditing}
+                            >
+                              <Clock className="h-4 w-4 mr-1" />
+                              Pendiente
+                            </button>
+                          )}
+                        </TableCell>
+                        <TableCell className="py-0.5">
+                          {isEditing ? (
+                            <div className="space-y-2">
+                              <Select
+                                value={editFormData.work_center || item.work_center || ""}
+                                onValueChange={(value) => handleEditFormChange("work_center", value)}
+                              >
+                                <SelectTrigger className="h-8 text-sm">
+                                  <SelectValue placeholder="Seleccionar centro" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {WORK_CENTER_OPTIONS.map((option) => (
+                                    <SelectItem key={option.value} value={option.value}>
+                                      {option.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+
+                              {(editFormData.work_center === "Externo" ||
+                                (item.work_center === "Externo" && editFormData.work_center === undefined)) && (
+                                <Input
+                                  ref={externalProviderInputRef}
+                                  placeholder="Nombre del proveedor"
+                                  value={editFormData.external_provider || item.external_provider || ""}
+                                  onChange={(e) => handleEditFormChange("external_provider", e.target.value)}
+                                  className="h-8 text-sm"
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault()
+                                      handleSaveEdit()
+                                    }
+                                  }}
+                                  onBlur={handleSaveEdit}
+                                />
+                              )}
+                            </div>
+                          ) : (
+                            <Select
+                              value={item.work_center || "Terrassa"}
+                              onValueChange={(value) => handleWorkCenterChange(item, value)}
+                            >
+                              <SelectTrigger className="h-8 text-sm">
+                                <SelectValue placeholder="Seleccionar centro">
+                                  <div className="flex items-center gap-1">
+                                    <span>
+                                      {item.work_center || "Terrassa"}
+                                      {item.work_center === "Externo" && item.external_provider && (
+                                        <span className="text-xs text-muted-foreground ml-1">
+                                          ({item.external_provider})
+                                        </span>
+                                      )}
+                                    </span>
+                                  </div>
+                                </SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                {WORK_CENTER_OPTIONS.map((option) => (
+                                  <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          {/* Paginación fuera del div de la tabla */}
+          {filteredStock.length > 0 && (
+            <div className="mt-4 rounded-lg border bg-card shadow-sm px-0 py-0">
+              <ReusablePagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={filteredStock.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={handlePageChange}
+                onItemsPerPageChange={(value) => {
+                  setItemsPerPage(value)
+                  setCurrentPage(1)
+                }}
+                itemsPerPageOptions={[5, 10, 20, 50]}
+                showItemsPerPage={true}
+                showFirstLastButtons={true}
+              />
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Pestaña Vendido */}
+        <TabsContent value="vendido" className="mt-0">
+          <div className="rounded-lg border shadow-sm overflow-hidden mb-0">
+            <Table>
+              <TableHeader className="bg-muted/50">
+                <TableRow className="hover:bg-transparent border-b border-border">
+                  <TableHead className="text-xs py-2">MATRÍCULA</TableHead>
+                  <TableHead className="text-xs py-2">MODELO</TableHead>
+                  <TableHead className="text-xs py-2">TIPO</TableHead>
+                  <TableHead className="text-xs py-2">VENTA</TableHead>
+                  <TableHead className="text-xs py-2">DÍAS</TableHead>
+                  <TableHead className="text-xs py-2">OR</TableHead>
+                  <TableHead className="text-xs py-2">CARGO GASTOS</TableHead>
+                  <TableHead className="text-xs py-2">ESTADO CARROCERIA</TableHead>
+                  <TableHead className="text-xs py-2">ESTADO MECÁNICA</TableHead>
+                  <TableHead className="text-xs py-2">PERITADO</TableHead>
+                  <TableHead className="text-xs py-2">CENTRO TRABAJO</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={16} className="text-center py-8">
+                      <div className="flex justify-center items-center">
+                        <BMWMSpinner size={20} />
+                        <span className="ml-2">Cargando datos...</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : displayedStock.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={16} className="text-center py-8">
+                      <div className="flex flex-col items-center justify-center text-muted-foreground">
+                        <Car className="h-10 w-10 mb-2" />
+                        <p>No se encontraron vehículos vendidos</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  displayedStock.map((item, index) => {
+                    const isUpdating = pendingUpdates.has(item.id)
+                    const isEditing = editingId === item.id
+                    const isEditingOR = editingOR === item.id
+                    const isPhotographed = photoStatus[item.license_plate] || false
+                    const paintStatusValue = paintStatus[item.license_plate] || ""
+
+                    return (
+                      <TableRow
+                        key={item.id}
+                        className={cn("h-8 hover:bg-muted/30", index % 2 === 0 ? "bg-black/5 dark:bg-black/20" : "", isEditing && "bg-blue-50 dark:bg-blue-900/20")}
+                      >
+                        <TableCell className="py-0.5 font-medium">
+                          <div className="flex items-center gap-2">
+                            {(item as StockItemWithPriority).calculatedPriority === Priority.HIGH && (
+                              <div className={priorityStyles.container}>
+                                <div className={priorityStyles.high.dot} title="Prioridad alta" />
+                                <div className={priorityStyles.high.wave} />
+                              </div>
+                            )}
+                            {(item as StockItemWithPriority).calculatedPriority === Priority.MEDIUM && (
+                              <div className={priorityStyles.container}>
+                                <div className={priorityStyles.medium.dot} title="Prioridad media" />
+                                <div className={priorityStyles.medium.wave} />
+                              </div>
+                            )}
+                            {(item as StockItemWithPriority).calculatedPriority === Priority.LOW && (
+                              <div className={priorityStyles.container}>
+                                <div className={priorityStyles.low.dot} title="Prioridad baja" />
+                                <div className={priorityStyles.low.wave} />
+                              </div>
+                            )}
+                            {item.license_plate}
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-0.5">{item.model}</TableCell>
+                        <TableCell className="py-0.5">{item.vehicle_type || "-"}</TableCell>
+                        <TableCell className="py-0.5">
+                          <div className="flex items-center gap-1">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                                </TooltipTrigger>
+                                <TooltipContent>Fecha de venta</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            <span>{formatDate(item.reception_date)}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-0.5">
+                          {item.reception_date
+                            ? Math.ceil(
+                                (new Date().getTime() - new Date(item.reception_date).getTime()) / (1000 * 60 * 60 * 24),
+                              )
+                            : "-"}
+                        </TableCell>
+                        <TableCell className="py-0.5 w-32">
+                          {isEditingOR ? (
+                            <div className="flex items-center">
+                              <Input
+                                ref={orInputRef}
+                                value={orValues[item.id] || "ORT"}
+                                onChange={(e) => handleORChange(item.id, e.target.value)}
+                                onBlur={() => handleORSave(item.id)}
+                                onKeyDown={(e) => handleORKeyDown(e, item.id)}
+                                className="h-8 text-sm font-mono"
+                                style={{ minWidth: "14ch", width: "14ch" }}
+                                autoFocus
+                              />
+                            </div>
+                          ) : (
+                            <div
+                              className="h-8 flex items-center px-2 border border-gray-300 rounded-md cursor-pointer font-mono overflow-hidden"
+                              style={{ minWidth: "14ch", width: "auto", maxWidth: "14ch" }}
+                              onClick={() => handleOREdit(item.id)}
+                            >
+                              <span className="truncate w-full" title={orValues[item.id] || "ORT"}>
+                                {orValues[item.id] || "ORT"}
+                              </span>
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="py-0.5">{item.expense_type_name || item.expense_charge || "-"}</TableCell>
+                        <TableCell className="py-0.5">
+                          {isEditing ? (
+                            <Select
+                              value={editFormData.body_status || item.body_status}
+                              onValueChange={(value) => handleEditFormChange("body_status", value)}
+                            >
+                              <SelectTrigger className="h-8 text-sm">
+                                <SelectValue placeholder="Seleccionar estado" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {STATUS_OPTIONS.map((option) => (
+                                  <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : item.body_status === "apto" ? (
+                            <div className="flex flex-col">
+                              <div className="flex items-center justify-center h-8 w-full border border-green-300 dark:border-green-700 rounded-md px-2 text-green-600">
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                {item.body_status_date ? formatDate(item.body_status_date) : "Apto"}
+                              </div>
+                            </div>
+                          ) : item.body_status === "en_proceso" ? (
+                            <div className="flex items-center">
+                              <button
+                                className="flex items-center justify-center h-8 w-full rounded-md px-2 bg-blue-100 text-blue-800 border border-blue-300 hover:bg-blue-300 hover:text-blue-950 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700 dark:hover:bg-blue-800 dark:hover:text-blue-100 transition-colors"
+                                onClick={() => handleBodyStatusToggle(item)}
+                                disabled={isUpdating || isEditing}
+                              >
+                                <Wrench className="h-4 w-4 mr-1" />
+                                <span className="whitespace-nowrap">En proceso</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              className="flex items-center justify-center h-8 w-full rounded-md px-2 bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-300 hover:text-amber-950 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700 dark:hover:bg-amber-800 dark:hover:text-amber-100 transition-colors"
+                              onClick={() => handleBodyStatusToggle(item)}
+                              disabled={isUpdating || isEditing}
+                            >
+                              <Clock className="h-4 w-4 mr-1" />
+                              Pendiente
+                            </button>
+                          )}
+                        </TableCell>
+                        <TableCell className="py-0.5">
+                          {isEditing ? (
+                            <Select
+                              value={editFormData.mechanical_status || item.mechanical_status}
+                              onValueChange={(value) => handleEditFormChange("mechanical_status", value)}
+                            >
+                              <SelectTrigger className="h-8 text-sm">
+                                <SelectValue placeholder="Seleccionar estado" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {STATUS_OPTIONS.map((option) => (
+                                  <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : item.mechanical_status === "apto" ? (
+                            <div className="flex flex-col">
+                              <div className="flex items-center justify-center h-8 w-full border border-green-300 dark:border-green-700 rounded-md px-2 text-green-600">
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                {item.mechanical_status_date ? formatDate(item.mechanical_status_date) : "Apto"}
+                              </div>
+                            </div>
+                          ) : item.mechanical_status === "en_proceso" ? (
+                            <div className="flex items-center">
+                              <button
+                                className="flex items-center justify-center h-8 w-full rounded-md px-2 bg-blue-100 text-blue-800 border border-blue-300 hover:bg-blue-300 hover:text-blue-950 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700 dark:hover:bg-blue-800 dark:hover:text-blue-100 transition-colors"
+                                onClick={() => handleMechanicalStatusToggle(item)}
+                                disabled={isUpdating || isEditing}
+                              >
+                                <Wrench className="h-4 w-4 mr-1" />
+                                <span className="whitespace-nowrap">En proceso</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              className="flex items-center justify-center h-8 w-full rounded-md px-2 bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-300 hover:text-amber-950 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700 dark:hover:bg-amber-800 dark:hover:text-amber-100 transition-colors"
+                              onClick={() => handleMechanicalStatusToggle(item)}
+                              disabled={isUpdating || isEditing}
+                            >
+                              <Clock className="h-4 w-4 mr-1" />
+                              Pendiente
+                            </button>
+                          )}
+                        </TableCell>
+                        <TableCell className="py-0.5">
+                          {item.inspection_date ? (
+                            <div className="flex items-center justify-center h-8 w-full border border-green-300 dark:border-green-700 rounded-md px-2 text-green-600">
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              {formatDate(item.inspection_date)}
+                            </div>
+                          ) : (
+                            <button
+                              className="flex items-center justify-center h-8 w-full rounded-md px-2 bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-300 hover:text-amber-950 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700 dark:hover:bg-amber-800 dark:hover:text-amber-100 transition-colors"
+                              onClick={() => handleInspectionToggle(item)}
+                              disabled={isUpdating || isEditing}
+                            >
+                              <Clock className="h-4 w-4 mr-1" />
+                              Pendiente
+                            </button>
+                          )}
+                        </TableCell>
+                        <TableCell className="py-0.5">
+                          {isEditing ? (
+                            <div className="space-y-2">
+                              <Select
+                                value={editFormData.work_center || item.work_center || ""}
+                                onValueChange={(value) => handleEditFormChange("work_center", value)}
+                              >
+                                <SelectTrigger className="h-8 text-sm">
+                                  <SelectValue placeholder="Seleccionar centro" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {WORK_CENTER_OPTIONS.map((option) => (
+                                    <SelectItem key={option.value} value={option.value}>
+                                      {option.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+
+                              {(editFormData.work_center === "Externo" ||
+                                (item.work_center === "Externo" && editFormData.work_center === undefined)) && (
+                                <Input
+                                  ref={externalProviderInputRef}
+                                  placeholder="Nombre del proveedor"
+                                  value={editFormData.external_provider || item.external_provider || ""}
+                                  onChange={(e) => handleEditFormChange("external_provider", e.target.value)}
+                                  className="h-8 text-sm"
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault()
+                                      handleSaveEdit()
+                                    }
+                                  }}
+                                  onBlur={handleSaveEdit}
+                                />
+                              )}
+                            </div>
+                          ) : (
+                            <Select
+                              value={item.work_center || "Terrassa"}
+                              onValueChange={(value) => handleWorkCenterChange(item, value)}
+                            >
+                              <SelectTrigger className="h-8 text-sm">
+                                <SelectValue placeholder="Seleccionar centro">
+                                  <div className="flex items-center gap-1">
+                                    <span>
+                                      {item.work_center || "Terrassa"}
+                                      {item.work_center === "Externo" && item.external_provider && (
+                                        <span className="text-xs text-muted-foreground ml-1">
+                                          ({item.external_provider})
+                                        </span>
+                                      )}
+                                    </span>
+                                  </div>
+                                </SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                {WORK_CENTER_OPTIONS.map((option) => (
+                                  <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </TabsContent>
+
+        {/* Pestaña Disponible */}
+        <TabsContent value="disponible" className="mt-0">
+          <div className="rounded-lg border shadow-sm overflow-hidden mb-0">
+            <Table>
+              <TableHeader className="bg-muted/50">
+                <TableRow className="hover:bg-transparent border-b border-border">
+                  <TableHead className="text-xs py-2">MATRÍCULA</TableHead>
+                  <TableHead className="text-xs py-2">MODELO</TableHead>
+                  <TableHead className="text-xs py-2">TIPO</TableHead>
+                  <TableHead className="text-xs py-2">VENTA</TableHead>
+                  <TableHead className="text-xs py-2">DÍAS</TableHead>
+                  <TableHead className="text-xs py-2">OR</TableHead>
+                  <TableHead className="text-xs py-2">CARGO GASTOS</TableHead>
+                  <TableHead className="text-xs py-2">ESTADO CARROCERIA</TableHead>
+                  <TableHead className="text-xs py-2">ESTADO MECÁNICA</TableHead>
+                  <TableHead className="text-xs py-2">PERITADO</TableHead>
+                  <TableHead className="text-xs py-2">CENTRO TRABAJO</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={16} className="text-center py-8">
+                      <div className="flex justify-center items-center">
+                        <BMWMSpinner size={20} />
+                        <span className="ml-2">Cargando datos...</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : displayedStock.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={16} className="text-center py-8">
+                      <div className="flex flex-col items-center justify-center text-muted-foreground">
+                        <Car className="h-10 w-10 mb-2" />
+                        <p>No se encontraron vehículos disponibles</p>
                       </div>
                     </TableCell>
                   </TableRow>
