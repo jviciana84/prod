@@ -1706,7 +1706,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                             "transition-all duration-300 ease-in-out cursor-pointer border-b relative",
                             index % 2 === 0 ? "bg-background" : "bg-muted/10",
                             selectedRowId === vehicle.id 
-                              ? "outline-2 outline-primary outline-offset-0 bg-primary/5" 
+                              ? "border-2 border-primary shadow-md bg-primary/5" 
                               : "hover:bg-muted/30"
                           )}
                           data-selected={selectedRowId === vehicle.id}
