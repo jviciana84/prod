@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -23,6 +23,7 @@ interface PerformanceMetrics {
   databaseStatus: 'connected' | 'disconnected' | 'checking'
   autoRefreshStatus: 'enabled' | 'disabled'
   activeIntervals: number
+  isLoaded: boolean
 }
 
 export function PerformanceMonitor() {
@@ -32,22 +33,53 @@ export function PerformanceMonitor() {
     networkStatus: 'online',
     databaseStatus: 'checking',
     autoRefreshStatus: 'disabled',
-    activeIntervals: 0
+    activeIntervals: 0,
+    isLoaded: false
   })
   const [isVisible, setIsVisible] = useState(false)
   const [startTime] = useState(Date.now())
+  const cardRef = useRef<HTMLDivElement>(null)
 
-  // Monitorear tiempo de carga
+  // Detectar clic fuera del card para cerrarlo
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (cardRef.current && !cardRef.current.contains(event.target as Node)) {
+        setIsVisible(false)
+      }
+    }
+
+    if (isVisible) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isVisible])
+
+  // Monitorear tiempo de carga y parar cuando termine
   useEffect(() => {
     const interval = setInterval(() => {
-      setMetrics(prev => ({
-        ...prev,
-        loadTime: Date.now() - startTime
-      }))
+      const currentTime = Date.now() - startTime
+      
+      // Detectar cuando la página ha terminado de cargar
+      if (document.readyState === 'complete' && !metrics.isLoaded) {
+        setMetrics(prev => ({
+          ...prev,
+          loadTime: currentTime,
+          isLoaded: true
+        }))
+        clearInterval(interval)
+      } else if (!metrics.isLoaded) {
+        setMetrics(prev => ({
+          ...prev,
+          loadTime: currentTime
+        }))
+      }
     }, 1000)
 
     return () => clearInterval(interval)
-  }, [startTime])
+  }, [startTime, metrics.isLoaded])
 
   // Monitorear estado de red
   useEffect(() => {
@@ -172,6 +204,14 @@ export function PerformanceMonitor() {
     return `${seconds}s`
   }
 
+  // Determinar el color del icono según el rendimiento
+  const getPerformanceIconColor = () => {
+    if (!metrics.isLoaded) return "text-blue-500" // Cargando
+    if (metrics.loadTime < 3000) return "text-green-500" // Bueno (verde sutil)
+    if (metrics.loadTime < 8000) return "text-amber-500" // Regular (ámbar)
+    return "text-red-500" // Lento (rojo)
+  }
+
   if (!isVisible) {
     return (
       <Button
@@ -180,17 +220,17 @@ export function PerformanceMonitor() {
         size="icon"
         className="h-6 w-6 rounded-full shadow-sm bg-background/80 backdrop-blur-sm border hover:bg-background/90 transition-all duration-200"
       >
-        <Activity className="h-3 w-3" />
+        <Activity className={`h-3 w-3 ${getPerformanceIconColor()}`} />
       </Button>
     )
   }
 
   return (
-    <Card className="absolute bottom-full right-0 mb-2 w-80 z-50 shadow-lg">
+    <Card ref={cardRef} className="absolute bottom-full right-0 mb-2 w-80 z-50 shadow-lg">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm flex items-center">
-            <Activity className="h-4 w-4 mr-2" />
+            <Activity className={`h-4 w-4 mr-2 ${getPerformanceIconColor()}`} />
             Monitoreo de Rendimiento
           </CardTitle>
           <Button
@@ -207,7 +247,9 @@ export function PerformanceMonitor() {
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div className="flex items-center justify-between">
             <span>Tiempo de carga:</span>
-            <Badge variant="outline">{formatTime(metrics.loadTime)}</Badge>
+            <Badge variant="outline">
+              {metrics.isLoaded ? formatTime(metrics.loadTime) : `${Math.floor(metrics.loadTime / 1000)}s...`}
+            </Badge>
           </div>
           {metrics.memoryUsage > 0 && (
             <div className="flex items-center justify-between">
@@ -252,7 +294,7 @@ export function PerformanceMonitor() {
           </div>
         </div>
 
-        {metrics.loadTime > 10000 && (
+        {metrics.loadTime > 10000 && metrics.isLoaded && (
           <Alert>
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
