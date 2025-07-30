@@ -49,7 +49,7 @@ export interface PhotoVehicle {
   license_plate: string
   model: string
   disponible: string // Fecha en formato ISO
-  estado_pintura: "pendiente" | "apto" | "no_apto"
+  estado_pintura: "pendiente" | "apto" | "no_apto" | "vendido"
   paint_status_date: string | null // Fecha en formato ISO
   paint_apto_date: string | null // Fecha en formato ISO
   assigned_to: string | null // UUID del fotógrafo
@@ -262,6 +262,56 @@ export default function PhotosTable() {
   useEffect(() => {
     let filtered = vehicles
 
+    // Filtro por activePhotoTab (pestañas principales)
+    if (activePhotoTab === "sold_without_photos") {
+      // Obtener vehículos vendidos de sales_vehicles
+      const fetchSoldVehicles = async () => {
+        try {
+          console.log("🔍 Buscando vehículos vendidos sin fotos...")
+          const { data: soldVehicles, error } = await supabase
+            .from("sales_vehicles")
+            .select("license_plate, model, sale_date, advisor, advisor_name")
+
+          if (error) {
+            console.error("❌ Error al obtener vehículos vendidos:", error)
+            return
+          }
+
+          console.log("📊 Vehículos vendidos encontrados:", soldVehicles?.length || 0)
+
+          if (soldVehicles && soldVehicles.length > 0) {
+            // Filtrar vehículos que están en fotos pero marcados como vendidos
+            const soldLicensePlates = soldVehicles.map(v => v.license_plate)
+            filtered = vehicles.filter(vehicle => 
+              soldLicensePlates.includes(vehicle.license_plate) && 
+              vehicle.estado_pintura === 'vendido'
+            )
+            
+            console.log("✅ Vehículos vendidos sin fotos filtrados:", filtered.length)
+          }
+        } catch (error) {
+          console.error("❌ Error en fetchSoldVehicles:", error)
+        }
+      }
+
+      fetchSoldVehicles()
+    } else {
+      // Filtros normales para otras pestañas
+      if (activePhotoTab === "pending") {
+        filtered = vehicles.filter((vehicle) => !vehicle.photos_completed)
+      } else if (activePhotoTab === "completed") {
+        filtered = vehicles.filter((vehicle) => vehicle.photos_completed)
+      } else if (activePhotoTab === "errors") {
+        filtered = vehicles.filter((vehicle) => vehicle.error_count > 0)
+      } else if (activePhotoTab === "paint_apto") {
+        filtered = vehicles.filter((vehicle) => vehicle.estado_pintura === "apto")
+      } else if (activePhotoTab === "paint_no_apto") {
+        filtered = vehicles.filter((vehicle) => vehicle.estado_pintura === "no_apto")
+      } else if (activePhotoTab === "paint_pendiente") {
+        filtered = vehicles.filter((vehicle) => vehicle.estado_pintura === "pendiente")
+      }
+    }
+
     // Filtro por búsqueda
     if (searchTerm) {
       filtered = filtered.filter((vehicle) =>
@@ -344,7 +394,8 @@ export default function PhotosTable() {
     currentPage, 
     itemsPerPage, 
     dateFilter.from?.getTime(), // Usar getTime() para valores primitivos
-    dateFilter.to?.getTime()    // Usar getTime() para valores primitivos
+    dateFilter.to?.getTime(),   // Usar getTime() para valores primitivos
+    activePhotoTab // ✅ Añadir activePhotoTab como dependencia
   ])
 
   // Función para obtener números de página
@@ -941,6 +992,58 @@ export default function PhotosTable() {
     }
   }
 
+  const handleSyncPhotosWithSales = async () => {
+    if (isLoading) {
+      toast({
+        title: "Error",
+        description: "Ya se está sincronizando. Por favor, espera.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      console.log("🔄 Iniciando sincronización de fotos con ventas...")
+      
+      // Llamar a la API de sincronización
+      const response = await fetch('/api/sync-photos-with-sales', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+      
+      if (result.success) {
+        console.log("✅ Sincronización completada:", result)
+        toast({
+          title: "Sincronización completada",
+          description: result.message || `Se han procesado ${result.processed_count} vehículos y eliminado ${result.removed_count} registros de fotos.`,
+        })
+        
+        // Recargar los datos después de la sincronización
+        await fetchData()
+      } else {
+        throw new Error(result.error || 'Error desconocido en la sincronización')
+      }
+    } catch (error: any) {
+      console.error("❌ Error al sincronizar fotos con ventas:", error)
+      toast({
+        title: "Error de sincronización",
+        description: error.message || "No se pudieron sincronizar las fotos con las ventas. Por favor, inténtalo de nuevo.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <div key={componentId} className="space-y-4">
       {/* Estadísticas en cards individuales */}
@@ -1101,6 +1204,16 @@ export default function PhotosTable() {
                 title="Exportar Excel"
               >
                 <FileSpreadsheet className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleSyncPhotosWithSales}
+                disabled={isLoading}
+                className="h-8 w-8 p-0"
+                title="Sincronizar fotos con ventas"
+              >
+                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
               </Button>
             </div>
             <div className="flex flex-wrap gap-2 items-center justify-end w-full">
