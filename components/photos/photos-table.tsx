@@ -487,6 +487,9 @@ export default function PhotosTable() {
 
   // Función para generar CSV
   const generateCSV = (data: PhotoVehicle[]) => {
+    // Determinar si mostrar la columna de fecha de fotografía
+    const showPhotoDate = data.some(vehicle => vehicle.photos_completed)
+    
     const columns = [
       { key: 'license_plate', label: 'Matrícula' },
       { key: 'model', label: 'Modelo' },
@@ -494,7 +497,8 @@ export default function PhotosTable() {
       { key: 'estado_pintura', label: 'Estado Pintura' },
       { key: 'assigned_to', label: 'Asignado' },
       { key: 'photos_completed', label: 'Fotografiado' },
-      { key: 'photos_completed_date', label: 'Fecha Fotografía' },
+      ...(showPhotoDate ? [{ key: 'photos_completed_date', label: 'Fecha Fotografía' }] : []),
+      { key: 'error_count', label: 'Incidencias' },
       { key: 'days_pending', label: 'Días Pendiente' }
     ]
 
@@ -526,6 +530,8 @@ export default function PhotosTable() {
           value = formatDate(value)
         } else if (col.key === 'disponible' && value) {
           value = formatDate(value)
+        } else if (col.key === 'error_count') {
+          value = value > 0 ? `${value} incidencia${value > 1 ? 's' : ''}` : 'Sin incidencias'
         } else if (col.key === 'days_pending') {
           value = calculatePendingDays(vehicle)
         }
@@ -544,6 +550,9 @@ export default function PhotosTable() {
   // Función para generar PDF
   const generatePDF = async (data: PhotoVehicle[]) => {
     try {
+      // Determinar si mostrar la columna de fecha de fotografía
+      const showPhotoDate = data.some(vehicle => vehicle.photos_completed)
+      
       const htmlContent = `
         <!DOCTYPE html>
         <html>
@@ -591,7 +600,8 @@ export default function PhotosTable() {
                 <th>Estado Pintura</th>
                 <th>Asignado</th>
                 <th>Fotografiado</th>
-                <th>Fecha Fotografía</th>
+                ${showPhotoDate ? '<th>Fecha Fotografía</th>' : ''}
+                <th>Incidencias</th>
                 <th>Días Pendiente</th>
               </tr>
             </thead>
@@ -629,7 +639,8 @@ export default function PhotosTable() {
                   <td>${vehicle.estado_pintura || 'pendiente'}</td>
                   <td>${getAssignedPhotographerName(vehicle)}</td>
                   <td class="${vehicle.photos_completed ? 'status-completed' : 'status-pending'}">${vehicle.photos_completed ? 'Sí' : 'No'}</td>
-                  <td>${vehicle.photos_completed_date ? formatDate(vehicle.photos_completed_date) : ''}</td>
+                  ${showPhotoDate ? `<td>${vehicle.photos_completed_date ? formatDate(vehicle.photos_completed_date) : ''}</td>` : ''}
+                  <td>${vehicle.error_count > 0 ? `<span class="badge badge-red">${vehicle.error_count} incidencia${vehicle.error_count > 1 ? 's' : ''}</span>` : 'Sin incidencias'}</td>
                   <td><span class="badge ${badgeClass}">${pendingDays}</span></td>
                 </tr>
               `}).join('')}
