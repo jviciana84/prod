@@ -5,10 +5,10 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from "@/components/auth/auth-provider"
-import ThemeHtmlSync from "@/components/theme-html-sync"
-import { RoundFavicon } from "@/components/ui/round-favicon"
-import { ThemeScript } from "@/components/theme-script"
-import { ThemeInitializer } from "@/components/theme-initializer"
+// import ThemeHtmlSync from "@/components/theme-html-sync"
+// import { RoundFavicon } from "@/components/ui/round-favicon"
+// import { ThemeScript } from "@/components/theme-script"
+// import { ThemeInitializer } from "@/components/theme-initializer"
 
 const inter = Inter({ 
   subsets: ["latin"],
@@ -44,12 +44,12 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
-        <ThemeScript />
+        {/* <ThemeScript /> */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body className={`${inter.className} antialiased`} suppressHydrationWarning>
-        <ThemeInitializer />
+        {/* <ThemeInitializer /> */}
         <ThemeProvider 
           attribute="class" 
           defaultTheme="light" 
@@ -57,8 +57,8 @@ export default function RootLayout({
           disableTransitionOnChange
           storageKey="theme"
         >
-          <ThemeHtmlSync />
-          <RoundFavicon />
+          {/* <ThemeHtmlSync /> */}
+          {/* <RoundFavicon /> */}
           <AuthProvider>
             {children}
             <Toaster />

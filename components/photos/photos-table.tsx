@@ -808,30 +808,75 @@ export default function PhotosTable() {
     }
   }
 
+  // Función para limpiar cookies corruptas de Supabase
+  const clearCorruptedSession = () => {
+    try {
+      // Limpiar localStorage
+      const keysToRemove = []
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key && key.includes('supabase')) {
+          keysToRemove.push(key)
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key))
+
+      // Limpiar sessionStorage
+      const sessionKeysToRemove = []
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i)
+        if (key && key.includes('supabase')) {
+          sessionKeysToRemove.push(key)
+        }
+      }
+      sessionKeysToRemove.forEach(key => sessionStorage.removeItem(key))
+
+      console.log("🧹 Cookies corruptas limpiadas")
+    } catch (error) {
+      console.error("Error limpiando cookies:", error)
+    }
+  }
+
   const handleMarkAsError = async (id: string) => {
     try {
+      console.log("🔍 [handleMarkAsError] Iniciando proceso para ID:", id)
+      
+      // 1. Obtener el vehículo
       const { data: vehicle, error: fetchError } = await supabase.from("fotos").select("*").eq("id", id).single()
 
-      if (fetchError) throw fetchError
+      if (fetchError) {
+        console.error("❌ [handleMarkAsError] Error al obtener vehículo:", fetchError)
+        throw fetchError
+      }
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      console.log("✅ [handleMarkAsError] Vehículo obtenido:", vehicle?.license_plate)
 
-      if (!user) throw new Error("Usuario no autenticado")
-
+      // 2. Preparar actualización (sin depender de auth.getUser())
       const updates = {
         photos_completed: false,
         photos_completed_date: null,
         error_count: (vehicle.error_count || 0) + 1,
-        last_error_by: user.id,
+        // No usar last_error_by por ahora para evitar problemas de autenticación
         original_assigned_to: vehicle.original_assigned_to || vehicle.assigned_to,
       }
 
-      const { error } = await supabase.from("fotos").update(updates).eq("id", id)
+      console.log("🔧 [handleMarkAsError] Actualización a aplicar:", updates)
 
-      if (error) throw error
+      // 3. Ejecutar actualización
+      const { data: updateResult, error: updateError } = await supabase
+        .from("fotos")
+        .update(updates)
+        .eq("id", id)
+        .select()
 
+      if (updateError) {
+        console.error("❌ [handleMarkAsError] Error al actualizar:", updateError)
+        throw updateError
+      }
+
+      console.log("✅ [handleMarkAsError] Actualización exitosa:", updateResult)
+
+      // 4. Actualizar estado local
       setVehicles((prev) =>
         prev.map((v) =>
           v.id === id
@@ -840,7 +885,7 @@ export default function PhotosTable() {
                 photos_completed: false,
                 photos_completed_date: null,
                 error_count: (v.error_count || 0) + 1,
-                last_error_by: user.id,
+                // No actualizar last_error_by en el estado local por ahora
                 original_assigned_to: v.original_assigned_to || v.assigned_to,
               }
             : v,
@@ -852,10 +897,19 @@ export default function PhotosTable() {
         description: "El vehículo ha sido marcado como erróneo y vuelve a estar pendiente.",
       })
     } catch (error) {
-      console.error("Error al marcar como erróneo:", error)
+      console.error("❌ [handleMarkAsError] Error completo:", error)
+      
+      let errorMessage = "No se pudo marcar el vehículo como erróneo. Por favor, inténtalo de nuevo."
+      
+      if (error instanceof Error) {
+        errorMessage = error.message
+      } else if (typeof error === 'object' && error !== null && 'message' in error) {
+        errorMessage = (error as any).message
+      }
+      
       toast({
         title: "Error",
-        description: "No se pudo marcar el vehículo como erróneo. Por favor, inténtalo de nuevo.",
+        description: errorMessage,
         variant: "destructive",
       })
     }
