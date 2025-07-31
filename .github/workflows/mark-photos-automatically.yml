@@ -1,4 +1,4 @@
-name: Auto Mark Photos as Completed
+name: Mark Photos Automatically
 
 on:
   schedule:
