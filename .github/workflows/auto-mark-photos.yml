@@ -2,9 +2,8 @@ name: Auto Mark Photos as Completed
 
 on:
   schedule:
-    # Ejecutar cada 15 minutos
     - cron: '*/15 * * * *'
-  workflow_dispatch: # Permite ejecución manual
+  workflow_dispatch:
 
 jobs:
   mark-photos:
