@@ -21,6 +21,9 @@ jobs:
     - name: Install dependencies
       run: npm ci
       
+    - name: Install Supabase client
+      run: npm install @supabase/supabase-js
+      
     - name: Execute photo marking script
       env:
         SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -33,8 +36,13 @@ jobs:
         const supabaseUrl = process.env.SUPABASE_URL;
         const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
         
+        console.log('🔍 Verificando variables de entorno...');
+        console.log('SUPABASE_URL:', supabaseUrl ? '✅ Configurado' : '❌ No configurado');
+        console.log('SUPABASE_SERVICE_ROLE_KEY:', supabaseKey ? '✅ Configurado' : '❌ No configurado');
+        
         if (!supabaseUrl || !supabaseKey) {
           console.error('❌ Variables de entorno de Supabase no encontradas');
+          console.error('Por favor, configura SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY en GitHub Secrets');
           process.exit(1);
         }
         
@@ -44,11 +52,24 @@ jobs:
           try {
             console.log('🚀 Iniciando marcado automático de fotos...');
             
+            // Verificar conexión a Supabase
+            console.log('🔗 Probando conexión a Supabase...');
+            const { data: testData, error: testError } = await supabase.from('fotos').select('count').limit(1);
+            
+            if (testError) {
+              console.error('❌ Error conectando a Supabase:', testError);
+              process.exit(1);
+            }
+            
+            console.log('✅ Conexión a Supabase exitosa');
+            
             // Ejecutar la función SQL que marca las fotos
+            console.log('📊 Ejecutando función mark_photos_as_completed...');
             const { data, error } = await supabase.rpc('mark_photos_as_completed');
             
             if (error) {
               console.error('❌ Error ejecutando función:', error);
+              console.error('Detalles del error:', JSON.stringify(error, null, 2));
               process.exit(1);
             }
             
@@ -63,16 +84,14 @@ jobs:
             }
             
           } catch (error) {
-            console.error('❌ Error:', error);
+            console.error('❌ Error inesperado:', error);
+            console.error('Stack trace:', error.stack);
             process.exit(1);
           }
         }
         
         markPhotosAsCompleted();
         EOF
-        
-        # Instalar dependencias necesarias
-        npm install @supabase/supabase-js
         
         # Ejecutar el script
         node execute_photo_marking.js 
