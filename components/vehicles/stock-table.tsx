@@ -202,7 +202,48 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
     console.log("🔄 useEffect filtrado - activeTab:", activeTab, "stock.length:", stock.length)
     let filtered = stock
 
-    // Primero aplicar filtro por estado (pestaña)
+    // Primero aplicar filtro de búsqueda (ANTES de los filtros de pestaña)
+    console.log("🔍 Aplicando filtro de búsqueda - searchTerm:", searchTerm, "filtered.length antes:", filtered.length)
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase()
+      console.log("🔍 Término de búsqueda (lowercase):", term)
+      
+      const beforeFilter = filtered.length
+      filtered = filtered.filter(
+        (item) => {
+          const matchesLicense = item.license_plate?.toLowerCase().includes(term) || false
+          const matchesModel = item.model?.toLowerCase().includes(term) || false
+          const matchesWorkCenter = item.work_center?.toLowerCase().includes(term) || false
+          const matchesProvider = item.external_provider?.toLowerCase().includes(term) || false
+          const matchesOR = (orValues[item.id] && orValues[item.id].toLowerCase().includes(term)) || false
+          const matchesExpense = (item.expense_charge && item.expense_charge.toLowerCase().includes(term)) || false
+          
+          const matches = matchesLicense || matchesModel || matchesWorkCenter || matchesProvider || matchesOR || matchesExpense
+          
+          if (matches) {
+            console.log("✅ Coincidencia encontrada:", item.license_plate, "matches:", { matchesLicense, matchesModel, matchesWorkCenter, matchesProvider, matchesOR, matchesExpense })
+          }
+          
+          return matches
+        }
+      )
+      console.log("🔍 Filtro de búsqueda aplicado - antes:", beforeFilter, "después:", filtered.length)
+    }
+
+    // Aplicar filtro de fechas
+    if (dateFilter.startDate || dateFilter.endDate) {
+      filtered = filtered.filter((item) => {
+        if (!item.reception_date) return false
+        const receptionDate = new Date(item.reception_date)
+        
+        if (dateFilter.startDate && receptionDate < dateFilter.startDate) return false
+        if (dateFilter.endDate && receptionDate > dateFilter.endDate) return false
+        
+        return true
+      })
+    }
+
+    // Luego aplicar filtro por estado (pestaña)
     if (activeTab === "pending") {
       // Pendientes = NO vendidos Y NO completados (NO tienen body_status Y mechanical_status ambos "apto")
       filtered = filtered.filter((item) => {
@@ -245,38 +286,26 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
         return isBodyCompleted && isMechanicalCompleted
       })
       console.log("🔍 Pestaña 'completed' - Vehículos completados encontrados:", filtered.length)
-      setFilteredStock(filtered)
-      setTotalPages(Math.max(1, Math.ceil(filtered.length / itemsPerPage)))
-      setCurrentPage(1)
-      return
     } else if (activeTab === "disponible") {
       // Filtrar vehículos disponibles (que NO estén vendidos)
-      const availableVehicles = filtered.filter((item) => 
+      filtered = filtered.filter((item) => 
         !item.is_sold
       )
       
-      console.log("🔍 Vehículos disponibles encontrados:", availableVehicles.length)
-      console.log("🔍 Ejemplos de vehículos disponibles:", availableVehicles.slice(0, 3).map(v => ({ license_plate: v.license_plate, is_sold: v.is_sold })))
-      setFilteredStock(availableVehicles)
-      setTotalPages(Math.max(1, Math.ceil(availableVehicles.length / itemsPerPage)))
-      setCurrentPage(1)
-      return
+      console.log("🔍 Vehículos disponibles encontrados:", filtered.length)
+      console.log("🔍 Ejemplos de vehículos disponibles:", filtered.slice(0, 3).map(v => ({ license_plate: v.license_plate, is_sold: v.is_sold })))
     } else if (activeTab === "vendido") {
       // Filtrar vehículos vendidos usando is_sold
-      const soldVehicles = filtered.filter((item) => 
+      filtered = filtered.filter((item) => 
         item.is_sold === true
       )
       
-      console.log("🔍 Vehículos vendidos encontrados:", soldVehicles.length)
-      console.log("🔍 Ejemplos de vehículos vendidos:", soldVehicles.slice(0, 3).map(v => ({ license_plate: v.license_plate, is_sold: v.is_sold })))
-      setFilteredStock(soldVehicles)
-      setTotalPages(Math.max(1, Math.ceil(soldVehicles.length / itemsPerPage)))
-      setCurrentPage(1)
-      return
+      console.log("🔍 Vehículos vendidos encontrados:", filtered.length)
+      console.log("🔍 Ejemplos de vehículos vendidos:", filtered.slice(0, 3).map(v => ({ license_plate: v.license_plate, is_sold: v.is_sold })))
     } else if (activeTab === "profesionales") {
       // Obtener vehículos No Retail directamente de vehicle_sale_status
       const fetchNoRetailVehicles = async () => {
-        console.log("�� Buscando vehículos profesionales en vehicle_sale_status...")
+        console.log("🔍 Buscando vehículos profesionales en vehicle_sale_status...")
         try {
           // Primero intentamos obtener la estructura de la tabla
           const { data: structureData, error: structureError } = await supabase
@@ -286,6 +315,9 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
 
           if (structureError) {
             console.log("❌ Error al obtener estructura:", structureError.message)
+            setFilteredStock([])
+            setTotalPages(1)
+            setCurrentPage(1)
             return
           }
 
@@ -316,6 +348,9 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
 
             if (error) {
               console.log("❌ Error en consulta profesionales:", error.message)
+              setFilteredStock([])
+              setTotalPages(1)
+              setCurrentPage(1)
               return
             }
 
@@ -455,47 +490,7 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
       return
     }
 
-    // Luego aplicar filtro de búsqueda
-    console.log("🔍 Aplicando filtro de búsqueda - searchTerm:", searchTerm, "filtered.length antes:", filtered.length)
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase()
-      console.log("🔍 Término de búsqueda (lowercase):", term)
-      
-      const beforeFilter = filtered.length
-      filtered = filtered.filter(
-        (item) => {
-          const matchesLicense = item.license_plate?.toLowerCase().includes(term) || false
-          const matchesModel = item.model?.toLowerCase().includes(term) || false
-          const matchesWorkCenter = item.work_center?.toLowerCase().includes(term) || false
-          const matchesProvider = item.external_provider?.toLowerCase().includes(term) || false
-          const matchesOR = (orValues[item.id] && orValues[item.id].toLowerCase().includes(term)) || false
-          const matchesExpense = (item.expense_charge && item.expense_charge.toLowerCase().includes(term)) || false
-          
-          const matches = matchesLicense || matchesModel || matchesWorkCenter || matchesProvider || matchesOR || matchesExpense
-          
-          if (matches) {
-            console.log("✅ Coincidencia encontrada:", item.license_plate, "matches:", { matchesLicense, matchesModel, matchesWorkCenter, matchesProvider, matchesOR, matchesExpense })
-          }
-          
-          return matches
-        }
-      )
-      console.log("🔍 Filtro de búsqueda aplicado - antes:", beforeFilter, "después:", filtered.length)
-    }
-
-    // Aplicar filtro de fechas
-    if (dateFilter.startDate || dateFilter.endDate) {
-      filtered = filtered.filter((item) => {
-        if (!item.reception_date) return false
-        const receptionDate = new Date(item.reception_date)
-        
-        if (dateFilter.startDate && receptionDate < dateFilter.startDate) return false
-        if (dateFilter.endDate && receptionDate > dateFilter.endDate) return false
-        
-        return true
-      })
-    }
-
+    // Para las pestañas que no tienen return statements, aplicar el filtrado normal
     setFilteredStock(filtered)
     setTotalPages(Math.max(1, Math.ceil(filtered.length / itemsPerPage)))
     setCurrentPage(1) // Resetear a la primera página cuando cambian los filtros
@@ -3657,6 +3652,64 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
           </div>
           
           {/* Paginación para Ventas Prematuras */}
+          {!isLoading && displayedStock.length > 0 && (
+            <div className="mt-4">
+              <ReusablePagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                totalItems={filteredStock.length}
+                itemsPerPage={itemsPerPage}
+                onItemsPerPageChange={setItemsPerPage}
+              />
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Pestaña Entregados */}
+        <TabsContent value="entregados" className="mt-0">
+          <div className="rounded-lg border shadow-sm overflow-hidden mb-0">
+            <Table>
+              <TableHeader className="bg-muted/50">
+                <TableRow className="hover:bg-transparent border-b border-border">
+                  <TableHead className="text-xs py-2">MATRÍCULA</TableHead>
+                  <TableHead className="text-xs py-2">MODELO</TableHead>
+                  <TableHead className="text-xs py-2">MARCA</TableHead>
+                  <TableHead className="text-xs py-2">FECHA ENTREGA</TableHead>
+                  <TableHead className="text-xs py-2">ASESOR</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={16} className="text-center py-8">
+                      <div className="flex justify-center items-center">
+                        <BMWMSpinner size={20} />
+                        <span className="ml-2">Cargando datos...</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : displayedStock.length === 0 ? (
+                  <NoDataMessage message="No hay vehículos entregados" />
+                ) : (
+                  displayedStock.map((item, index) => (
+                    <TableRow
+                      key={item.id}
+                      className={cn("h-8 hover:bg-muted/30", index % 2 === 0 ? "bg-black/5 dark:bg-black/20" : "")}
+                    >
+                      <TableCell className="py-0.5 font-medium">{item.license_plate}</TableCell>
+                      <TableCell className="py-0.5">{item.model}</TableCell>
+                      <TableCell className="py-0.5">{item.brand || "-"}</TableCell>
+                      <TableCell className="py-0.5">{formatDate(item.reception_date)}</TableCell>
+                      <TableCell className="py-0.5">{item.work_center || "-"}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          
+          {/* Paginación para Entregados */}
           {!isLoading && displayedStock.length > 0 && (
             <div className="mt-4">
               <ReusablePagination
