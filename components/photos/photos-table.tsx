@@ -258,17 +258,16 @@ export default function PhotosTable() {
     setCurrentPage(1)
   }
 
-  // Calcular datos filtrados y paginados
-  useEffect(() => {
-    let filtered = vehicles
+  // Estado para vehículos vendidos
+  const [soldVehicles, setSoldVehicles] = useState<string[]>([])
 
-    // Filtro por activePhotoTab (pestañas principales)
+  // Cargar vehículos vendidos cuando cambie la pestaña
+  useEffect(() => {
     if (activePhotoTab === "sold_without_photos") {
-      // Obtener vehículos vendidos de sales_vehicles
       const fetchSoldVehicles = async () => {
         try {
           console.log("🔍 Buscando vehículos vendidos sin fotos...")
-          const { data: soldVehicles, error } = await supabase
+          const { data: soldVehiclesData, error } = await supabase
             .from("sales_vehicles")
             .select("license_plate, model, sale_date, advisor, advisor_name")
 
@@ -277,17 +276,12 @@ export default function PhotosTable() {
             return
           }
 
-          console.log("📊 Vehículos vendidos encontrados:", soldVehicles?.length || 0)
+          console.log("📊 Vehículos vendidos encontrados:", soldVehiclesData?.length || 0)
 
-          if (soldVehicles && soldVehicles.length > 0) {
-            // Filtrar vehículos que están en fotos pero marcados como vendidos
-            const soldLicensePlates = soldVehicles.map(v => v.license_plate)
-            filtered = vehicles.filter(vehicle => 
-              soldLicensePlates.includes(vehicle.license_plate) && 
-              vehicle.estado_pintura === 'vendido'
-            )
-            
-            console.log("✅ Vehículos vendidos sin fotos filtrados:", filtered.length)
+          if (soldVehiclesData && soldVehiclesData.length > 0) {
+            const soldLicensePlates = soldVehiclesData.map(v => v.license_plate)
+            setSoldVehicles(soldLicensePlates)
+            console.log("✅ Matrículas de vehículos vendidos cargadas:", soldLicensePlates.length)
           }
         } catch (error) {
           console.error("❌ Error en fetchSoldVehicles:", error)
@@ -295,6 +289,23 @@ export default function PhotosTable() {
       }
 
       fetchSoldVehicles()
+    } else {
+      setSoldVehicles([])
+    }
+  }, [activePhotoTab])
+
+  // Calcular datos filtrados y paginados
+  useEffect(() => {
+    let filtered = vehicles
+
+    // Filtro por activePhotoTab (pestañas principales)
+    if (activePhotoTab === "sold_without_photos") {
+      // Filtrar vehículos que están en fotos pero marcados como vendidos
+      filtered = vehicles.filter(vehicle => 
+        soldVehicles.includes(vehicle.license_plate) && 
+        vehicle.estado_pintura === 'vendido'
+      )
+      console.log("✅ Vehículos vendidos sin fotos filtrados:", filtered.length)
     } else {
       // Filtros normales para otras pestañas
       if (activePhotoTab === "pending") {
@@ -398,7 +409,8 @@ export default function PhotosTable() {
     itemsPerPage, 
     dateFilter.from?.getTime(), // Usar getTime() para valores primitivos
     dateFilter.to?.getTime(),   // Usar getTime() para valores primitivos
-    activePhotoTab // ✅ Añadir activePhotoTab como dependencia
+    activePhotoTab, // ✅ Añadir activePhotoTab como dependencia
+    soldVehicles // ✅ Añadir soldVehicles como dependencia
   ])
 
   // Función para obtener números de página
@@ -1164,115 +1176,216 @@ export default function PhotosTable() {
           )}
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Filtros organizados: buscador y botones a la izquierda, tabs y selects a la derecha */}
-          <div className="flex flex-col md:flex-row gap-4 items-center justify-between w-full">
-            <div className="flex items-center gap-2 min-w-[340px] w-full md:w-auto">
-              <div className="relative max-w-xs" style={{ flex: '0 0 220px' }}>
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Input
-                        placeholder="Buscar"
-                        className="pl-10 h-8"
-                        style={{ minWidth: 180, maxWidth: 220 }}
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                      />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      Buscar por matrícula o modelo
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+          {/* Filtros mejorados y organizados */}
+          <div className="space-y-4">
+            {/* Primera fila: Pestañas principales y búsqueda */}
+            <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+              {/* Pestañas principales */}
+              <div className="flex flex-wrap gap-2">
+                <Button 
+                  variant={activePhotoTab === "all" ? "default" : "outline"} 
+                  onClick={() => setActivePhotoTab("all")} 
+                  size="sm"
+                  className="h-9 px-4"
+                >
+                  Todos
+                </Button>
+                <Button 
+                  variant={activePhotoTab === "pending" ? "default" : "outline"} 
+                  onClick={() => setActivePhotoTab("pending")} 
+                  size="sm"
+                  className="h-9 px-4"
+                >
+                  Pendientes
+                </Button>
+                <Button 
+                  variant={activePhotoTab === "completed" ? "default" : "outline"} 
+                  onClick={() => setActivePhotoTab("completed")} 
+                  size="sm"
+                  className="h-9 px-4"
+                >
+                  Completados
+                </Button>
+                <Button 
+                  variant={activePhotoTab === "errors" ? "default" : "outline"} 
+                  onClick={() => setActivePhotoTab("errors")} 
+                  size="sm"
+                  className="h-9 px-4"
+                >
+                  Errores
+                </Button>
+                <Button 
+                  variant={activePhotoTab === "sold_without_photos" ? "default" : "outline"} 
+                  onClick={() => setActivePhotoTab("sold_without_photos")} 
+                  size="sm"
+                  className="h-9 px-4"
+                >
+                  Vendidos sin fotos
+                </Button>
               </div>
-              <Button variant="outline" size="icon" onClick={fetchData} disabled={isLoading} className="h-8 w-8 p-0 !important">
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setShowDateFilter(true)}
-                className={cn(
-                  "h-8 w-8 p-0 !important",
-                  (dateFilter.from || dateFilter.to) && "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-300"
-                )}
-                title="Filtrar por fecha"
-              >
-                <Calendar className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleExport('pdf')}
-                className="h-8 w-8 p-0"
-                title="Imprimir PDF"
-              >
-                <Printer className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleExport('excel')}
-                className="h-8 w-8 p-0"
-                title="Exportar Excel"
-              >
-                <FileSpreadsheet className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleSyncPhotosWithSales}
-                disabled={isLoading}
-                className="h-8 w-8 p-0"
-                title="Sincronizar fotos con ventas"
-              >
-                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-              </Button>
+
+              {/* Búsqueda y acciones */}
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar matrícula o modelo..."
+                    className="pl-10 h-9 w-64"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={fetchData} 
+                  disabled={isLoading} 
+                  className="h-9 w-9"
+                >
+                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                </Button>
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2 items-center justify-end w-full">
-              <Button variant={activePhotoTab === "all" ? "default" : "outline"} onClick={() => setActivePhotoTab("all")} size="sm">Todos</Button>
-              <Button variant={activePhotoTab === "sold_without_photos" ? "default" : "outline"} onClick={() => setActivePhotoTab("sold_without_photos")} size="sm">Vendidos sin fotografías</Button>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full md:w-[200px]">
-                  <SelectValue placeholder="Filtrar por estado" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los estados</SelectItem>
-                  <SelectItem value="completed">Fotografiados</SelectItem>
-                  <SelectItem value="pending">Pendientes</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={photographerFilter} onValueChange={setPhotographerFilter}>
-                <SelectTrigger className="w-full md:w-[200px]">
-                  <SelectValue placeholder="Filtrar por fotógrafo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los fotógrafos</SelectItem>
-                  <SelectItem value="null">Sin asignar</SelectItem>
-                  {photographers
-                    .filter((p, i, arr) => arr.findIndex(x => x.user_id === p.user_id) === i)
-                    .filter(p => p.is_active === true && p.is_hidden !== true)
-                    .filter(p => vehicles.some(v => v.assigned_to === p.user_id))
-                    .map((photographer, index) => (
-                      <SelectItem key={`photographer-${photographer.user_id}-${index}`} value={photographer.user_id}>
-                        {photographer.display_name || `Usuario ${photographer.user_id.substring(0, 8)}...`}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-              <Select value={paintStatusFilter} onValueChange={setpaintStatusFilter}>
-                <SelectTrigger className="w-full md:w-[200px]">
-                  <SelectValue placeholder="Filtrar por pintura" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los estados</SelectItem>
-                  <SelectItem value="pendiente">Pendiente</SelectItem>
-                  <SelectItem value="apto">Apto</SelectItem>
-                  <SelectItem value="no_apto">No apto</SelectItem>
-                </SelectContent>
-              </Select>
+
+            {/* Segunda fila: Filtros específicos */}
+            <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
+              {/* Filtros de estado */}
+              <div className="flex flex-wrap gap-3">
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-48 h-9">
+                    <SelectValue placeholder="Estado de fotografía" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los estados</SelectItem>
+                    <SelectItem value="completed">Fotografiados</SelectItem>
+                    <SelectItem value="pending">Pendientes</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={photographerFilter} onValueChange={setPhotographerFilter}>
+                  <SelectTrigger className="w-48 h-9">
+                    <SelectValue placeholder="Fotógrafo asignado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los fotógrafos</SelectItem>
+                    <SelectItem value="null">Sin asignar</SelectItem>
+                    {photographers
+                      .filter((p, i, arr) => arr.findIndex(x => x.user_id === p.user_id) === i)
+                      .filter(p => p.is_active === true && p.is_hidden !== true)
+                      .filter(p => vehicles.some(v => v.assigned_to === p.user_id))
+                      .map((photographer, index) => (
+                        <SelectItem key={`photographer-${photographer.user_id}-${index}`} value={photographer.user_id}>
+                          {photographer.display_name || `Usuario ${photographer.user_id.substring(0, 8)}...`}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={paintStatusFilter} onValueChange={setpaintStatusFilter}>
+                  <SelectTrigger className="w-48 h-9">
+                    <SelectValue placeholder="Estado de pintura" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los estados</SelectItem>
+                    <SelectItem value="pendiente">Pendiente</SelectItem>
+                    <SelectItem value="apto">Apto</SelectItem>
+                    <SelectItem value="no_apto">No apto</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Botones de acción */}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowDateFilter(true)}
+                  className={cn(
+                    "h-9 px-3",
+                    (dateFilter.from || dateFilter.to) && "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-300"
+                  )}
+                >
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Fecha
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleExport('pdf')}
+                  className="h-9 px-3"
+                >
+                  <Printer className="h-4 w-4 mr-2" />
+                  PDF
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleExport('excel')}
+                  className="h-9 px-3"
+                >
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  Excel
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSyncPhotosWithSales}
+                  disabled={isLoading}
+                  className="h-9 px-3"
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                  Sincronizar
+                </Button>
+              </div>
             </div>
+
+            {/* Indicador de filtros activos */}
+            {(searchTerm || statusFilter !== "all" || photographerFilter !== "all" || paintStatusFilter !== "all" || dateFilter.from || dateFilter.to) && (
+              <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
+                <span className="text-sm font-medium text-muted-foreground">Filtros activos:</span>
+                <div className="flex flex-wrap gap-2">
+                  {searchTerm && (
+                    <Badge variant="secondary" className="text-xs">
+                      Búsqueda: "{searchTerm}"
+                    </Badge>
+                  )}
+                  {statusFilter !== "all" && (
+                    <Badge variant="secondary" className="text-xs">
+                      Estado: {statusFilter === "completed" ? "Fotografiados" : "Pendientes"}
+                    </Badge>
+                  )}
+                  {photographerFilter !== "all" && (
+                    <Badge variant="secondary" className="text-xs">
+                      Fotógrafo: {photographerFilter === "null" ? "Sin asignar" : photographers.find(p => p.user_id === photographerFilter)?.display_name || photographerFilter}
+                    </Badge>
+                  )}
+                  {paintStatusFilter !== "all" && (
+                    <Badge variant="secondary" className="text-xs">
+                      Pintura: {paintStatusFilter}
+                    </Badge>
+                  )}
+                  {(dateFilter.from || dateFilter.to) && (
+                    <Badge variant="secondary" className="text-xs">
+                      Fecha: {dateFilter.from?.toLocaleDateString()} - {dateFilter.to?.toLocaleDateString() || "Hoy"}
+                    </Badge>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSearchTerm("")
+                      setStatusFilter("all")
+                      setPhotographerFilter("all")
+                      setpaintStatusFilter("all")
+                      setDateFilter({ from: undefined, to: undefined })
+                    }}
+                    className="h-6 px-2 text-xs"
+                  >
+                    Limpiar todos
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Tabla */}
@@ -1478,63 +1591,105 @@ export default function PhotosTable() {
             </CardContent>
           </Card>
 
-      {/* Modal de filtro de fechas */}
+      {/* Modal de filtro de fechas mejorado */}
       <Dialog open={showDateFilter} onOpenChange={setShowDateFilter}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Filtrar por fecha de disponibilidad</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Filtrar por fecha de disponibilidad
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
+          <div className="space-y-6">
+            {/* Filtros rápidos */}
+            <div className="space-y-3">
               <Label className="text-sm font-medium">Filtros rápidos</Label>
-              <div className="grid grid-cols-2 gap-2 mt-2">
+              <div className="grid grid-cols-2 gap-3">
                 {quickFilters.map((filter) => (
                   <Button
                     key={filter.days}
                     variant="outline"
                     size="sm"
                     onClick={() => applyQuickFilter(filter.days)}
-                    className="justify-start"
+                    className="justify-start h-10"
                   >
+                    <Calendar className="h-4 w-4 mr-2" />
                     {filter.label}
                   </Button>
                 ))}
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="from-date" className="text-sm font-medium">
-                Desde
-              </Label>
-              <Input
-                id="from-date"
-                type="date"
-                value={dateFilter.from?.toISOString().split("T")[0] || ""}
-                onChange={(e) => {
-                  const date = e.target.value ? new Date(e.target.value) : undefined
-                  applyDateFilter(date, dateFilter.to)
-                }}
-              />
+
+            {/* Separador */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">O selecciona un rango personalizado</span>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="to-date" className="text-sm font-medium">
-                Hasta
-              </Label>
-              <Input
-                id="to-date"
-                type="date"
-                value={dateFilter.to?.toISOString().split("T")[0] || ""}
-                onChange={(e) => {
-                  const date = e.target.value ? new Date(e.target.value) : undefined
-                  applyDateFilter(dateFilter.from, date)
-                }}
-              />
+
+            {/* Fechas personalizadas */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="from-date" className="text-sm font-medium">
+                  Desde
+                </Label>
+                <Input
+                  id="from-date"
+                  type="date"
+                  value={dateFilter.from?.toISOString().split("T")[0] || ""}
+                  onChange={(e) => {
+                    const date = e.target.value ? new Date(e.target.value) : undefined
+                    applyDateFilter(date, dateFilter.to)
+                  }}
+                  className="h-10"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="to-date" className="text-sm font-medium">
+                  Hasta
+                </Label>
+                <Input
+                  id="to-date"
+                  type="date"
+                  value={dateFilter.to?.toISOString().split("T")[0] || ""}
+                  onChange={(e) => {
+                    const date = e.target.value ? new Date(e.target.value) : undefined
+                    applyDateFilter(dateFilter.from, date)
+                  }}
+                  className="h-10"
+                />
+              </div>
             </div>
-            <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={clearDateFilter}>
-                Limpiar
+
+            {/* Indicador de filtro activo */}
+            {(dateFilter.from || dateFilter.to) && (
+              <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="flex items-center gap-2 text-sm">
+                  <Calendar className="h-4 w-4 text-blue-600" />
+                  <span className="text-blue-700 dark:text-blue-300">
+                    Filtro activo: {dateFilter.from?.toLocaleDateString()} - {dateFilter.to?.toLocaleDateString() || "Hoy"}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Botones de acción */}
+            <div className="flex justify-end gap-3 pt-4">
+              <Button 
+                variant="outline" 
+                onClick={clearDateFilter}
+                className="h-10 px-4"
+              >
+                Limpiar filtro
               </Button>
-              <Button onClick={() => setShowDateFilter(false)}>
-                Aplicar
+              <Button 
+                onClick={() => setShowDateFilter(false)}
+                className="h-10 px-6"
+              >
+                Aplicar filtro
               </Button>
             </div>
           </div>

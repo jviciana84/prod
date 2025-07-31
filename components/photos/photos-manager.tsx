@@ -364,52 +364,110 @@ export default function PhotosManager({ initialVehicles, photographers }: Photos
       </div>
 
       {/* Filtros */}
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por matrícula o modelo..."
-            className="pl-10"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      <div className="space-y-4">
+        {/* Primera fila: Búsqueda y acciones */}
+        <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+          {/* Búsqueda */}
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por matrícula o modelo..."
+                className="pl-10 h-9 w-64"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={fetchVehicles} 
+              disabled={isLoading} 
+              className="h-9 w-9"
+            >
+              {isLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            </Button>
+          </div>
+
+          {/* Botones de acción */}
+          <div className="flex items-center gap-2">
+            <PrintExportButton
+              vehicles={filteredVehicles}
+              searchQuery={searchTerm}
+              statusFilter={statusFilter}
+              photographerFilter={photographerFilter}
+              photographers={photographers}
+            />
+          </div>
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full md:w-[200px]">
-            <SelectValue placeholder="Filtrar por estado" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los estados</SelectItem>
-            <SelectItem value="completed">Fotografiados</SelectItem>
-            <SelectItem value="pending">Pendientes</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={photographerFilter} onValueChange={setPhotographerFilter}>
-          <SelectTrigger className="w-full md:w-[200px]">
-            <SelectValue placeholder="Filtrar por fotógrafo" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los fotógrafos</SelectItem>
-            <SelectItem value="null">Sin asignar</SelectItem>
-            {photographers.filter((p, i, arr) => arr.findIndex(x => x.user_id === p.user_id) === i).map((photographer, index) => (
-              <SelectItem key={`photographer-${photographer.user_id}-${index}`} value={photographer.user_id}>
-                {photographer.display_name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <div className="flex gap-2">
-          <Button variant="outline" size="icon" onClick={fetchVehicles} disabled={isLoading} className="h-10 w-10">
-            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-          </Button>
-          <PrintExportButton
-            vehicles={filteredVehicles}
-            searchQuery={searchTerm}
-            statusFilter={statusFilter}
-            photographerFilter={photographerFilter}
-            photographers={photographers}
-          />
+
+        {/* Segunda fila: Filtros específicos */}
+        <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
+          {/* Filtros de estado */}
+          <div className="flex flex-wrap gap-3">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-48 h-9">
+                <SelectValue placeholder="Estado de fotografía" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los estados</SelectItem>
+                <SelectItem value="completed">Fotografiados</SelectItem>
+                <SelectItem value="pending">Pendientes</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={photographerFilter} onValueChange={setPhotographerFilter}>
+              <SelectTrigger className="w-48 h-9">
+                <SelectValue placeholder="Fotógrafo asignado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los fotógrafos</SelectItem>
+                <SelectItem value="null">Sin asignar</SelectItem>
+                {photographers.filter((p, i, arr) => arr.findIndex(x => x.user_id === p.user_id) === i).map((photographer, index) => (
+                  <SelectItem key={`photographer-${photographer.user_id}-${index}`} value={photographer.user_id}>
+                    {photographer.display_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
+
+        {/* Indicador de filtros activos */}
+        {(searchTerm || statusFilter !== "all" || photographerFilter !== "all") && (
+          <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
+            <span className="text-sm font-medium text-muted-foreground">Filtros activos:</span>
+            <div className="flex flex-wrap gap-2">
+              {searchTerm && (
+                <Badge variant="secondary" className="text-xs">
+                  Búsqueda: "{searchTerm}"
+                </Badge>
+              )}
+              {statusFilter !== "all" && (
+                <Badge variant="secondary" className="text-xs">
+                  Estado: {statusFilter === "completed" ? "Fotografiados" : "Pendientes"}
+                </Badge>
+              )}
+              {photographerFilter !== "all" && (
+                <Badge variant="secondary" className="text-xs">
+                  Fotógrafo: {photographerFilter === "null" ? "Sin asignar" : photographers.find(p => p.user_id === photographerFilter)?.display_name || photographerFilter}
+                </Badge>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSearchTerm("")
+                  setStatusFilter("all")
+                  setPhotographerFilter("all")
+                }}
+                className="h-6 px-2 text-xs"
+              >
+                Limpiar todos
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Tabla */}
