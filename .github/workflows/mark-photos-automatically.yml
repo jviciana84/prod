@@ -16,7 +16,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '20'
         
     - name: Install dependencies
       run: npm ci
@@ -29,6 +29,10 @@ jobs:
         SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
         SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       run: |
+        echo "🔍 Verificando variables de entorno..."
+        echo "SUPABASE_URL: ${{ secrets.SUPABASE_URL != '' && '✅ Configurado' || '❌ No configurado' }}"
+        echo "SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY != '' && '✅ Configurado' || '❌ No configurado' }}"
+        
         # Crear script temporal para ejecutar la función
         cat > execute_photo_marking.js << 'EOF'
         const { createClient } = require('@supabase/supabase-js');
