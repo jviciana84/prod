@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { createClientComponentClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -35,6 +35,7 @@ import { canUserEditClient } from "@/lib/auth/permissions-client"
 import { ReusablePagination } from "@/components/ui/reusable-pagination"
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { Card, CardContent } from "@/components/ui/card"
+import { PrintExportButton } from "./print-export-button"
 
 interface TransportTableProps {
   initialTransports: any[]
@@ -97,6 +98,14 @@ export default function TransportTable({
     
     checkEditPermissions()
   }, [])
+
+  // Paginación - Calculado antes de los useEffect que lo usan
+  const totalPages = Math.ceil(filteredTransports.length / rowsPerPage)
+  const paginatedData = useMemo(() => {
+    return filteredTransports.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage)
+  }, [filteredTransports, currentPage, rowsPerPage])
+
+
 
   // Actualizar los transportes cuando cambian los initialTransports
   useEffect(() => {
@@ -373,9 +382,7 @@ export default function TransportTable({
     return "animate-[priorityPulseLow_4s_ease-in-out_infinite]"
   }
 
-  // Paginación
-  const totalPages = Math.ceil(filteredTransports.length / rowsPerPage)
-  const paginatedData = filteredTransports.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage)
+  // Paginación ya calculada arriba
 
   // Guardar celda secundaria en Supabase
   const saveCell = async (id: number, field: string, value: any) => {
@@ -498,126 +505,135 @@ export default function TransportTable({
       }
     `}</style>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 bg-card rounded-lg p-2 shadow-sm mb-4">
-        <div className="flex items-center gap-2 flex-1">
-          <Card className="p-3">
-            <div className="flex items-center gap-2 relative">
-              <Search className="h-4 w-4 text-muted-foreground" />
-              <Input
-                ref={searchInputRef}
-                type="search"
-                placeholder="Buscar por matrícula, modelo, sede o cargo..."
-                className="w-80"
-                value={searchTerm}
-                onChange={handleSearchChange}
-              />
-              {searchTerm && (
-                <button
-                  onClick={clearSearch}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          </Card>
-        </div>
+             <div className="flex flex-wrap items-center justify-between gap-2 bg-card rounded-lg p-2 shadow-sm mb-4">
+         <div className="flex items-center gap-2 flex-1">
+           <Card className="p-3">
+             <div className="flex items-center gap-2 relative">
+               <Search className="h-4 w-4 text-muted-foreground" />
+               <Input
+                 ref={searchInputRef}
+                 type="search"
+                 placeholder="Buscar por matrícula, modelo, sede o cargo..."
+                 className="w-80"
+                 value={searchTerm}
+                 onChange={handleSearchChange}
+               />
+               {searchTerm && (
+                 <button
+                   onClick={clearSearch}
+                   className="text-muted-foreground hover:text-foreground"
+                 >
+                   <X className="h-4 w-4" />
+                 </button>
+               )}
+             </div>
+           </Card>
+         </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={refreshData}
-            disabled={isLoading}
-            className="h-9 w-9"
-            title="Actualizar datos"
-          >
-            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-          </Button>
+         <div className="flex items-center gap-2">
+           <Button
+             variant="outline"
+             size="icon"
+             onClick={refreshData}
+             disabled={isLoading}
+             className="h-9 w-9"
+             title="Actualizar datos"
+           >
+             {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+           </Button>
 
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => {}}
-            className="h-9 w-9"
-            title="Ordenar"
-          >
-            <ArrowUpDown className="h-4 w-4" />
-          </Button>
+           <Button
+             variant="outline"
+             size="icon"
+             onClick={() => {}}
+             className="h-9 w-9"
+             title="Ordenar"
+           >
+             <ArrowUpDown className="h-4 w-4" />
+           </Button>
 
-          {/* Botón de filtro de fechas temporal */}
-          <Popover open={isDateFilterOpen} onOpenChange={setIsDateFilterOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className={cn(
-                  "h-9 w-9",
-                  (dateRange.from || dateRange.to) && "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
-                )}
-                title="Filtrar por rango de fechas"
-              >
-                <CalendarIcon className="h-4 w-4" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
-              <CalendarComponent
-                initialFocus
-                mode="range"
-                defaultMonth={dateRange.from}
-                selected={dateRange}
-                onSelect={(range) => {
-                  setDateRange(range || { from: undefined, to: undefined })
-                  setIsDateFilterOpen(false)
-                }}
-                numberOfMonths={2}
-                locale={es}
-              />
-              {(dateRange.from || dateRange.to) && (
-                <div className="p-3 border-t">
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm text-muted-foreground">
-                      {dateRange.from && (
-                        <span>Desde: {format(dateRange.from, "dd/MM/yyyy", { locale: es })}</span>
-                      )}
-                      {dateRange.to && (
-                        <span className="ml-2">
-                          Hasta: {format(dateRange.to, "dd/MM/yyyy", { locale: es })}
-                        </span>
-                      )}
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={clearDateRangeFilter}
-                      className="h-6 text-xs"
-                    >
-                      Limpiar
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </PopoverContent>
-          </Popover>
+           {/* Botón de filtro de fechas temporal */}
+           <Popover open={isDateFilterOpen} onOpenChange={setIsDateFilterOpen}>
+             <PopoverTrigger asChild>
+               <Button
+                 variant="outline"
+                 size="icon"
+                 className={cn(
+                   "h-9 w-9",
+                   (dateRange.from || dateRange.to) && "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                 )}
+                 title="Filtrar por rango de fechas"
+               >
+                 <CalendarIcon className="h-4 w-4" />
+               </Button>
+             </PopoverTrigger>
+             <PopoverContent className="w-auto p-0" align="end">
+               <CalendarComponent
+                 initialFocus
+                 mode="range"
+                 defaultMonth={dateRange.from}
+                 selected={dateRange}
+                 onSelect={(range) => {
+                   setDateRange(range || { from: undefined, to: undefined })
+                   setIsDateFilterOpen(false)
+                 }}
+                 numberOfMonths={2}
+                 locale={es}
+               />
+               {(dateRange.from || dateRange.to) && (
+                 <div className="p-3 border-t">
+                   <div className="flex items-center justify-between">
+                     <div className="text-sm text-muted-foreground">
+                       {dateRange.from && (
+                         <span>Desde: {format(dateRange.from, "dd/MM/yyyy", { locale: es })}</span>
+                       )}
+                       {dateRange.to && (
+                         <span className="ml-2">
+                           Hasta: {format(dateRange.to, "dd/MM/yyyy", { locale: es })}
+                         </span>
+                       )}
+                     </div>
+                     <Button
+                       variant="ghost"
+                       size="sm"
+                       onClick={clearDateRangeFilter}
+                       className="h-6 text-xs"
+                     >
+                       Limpiar
+                     </Button>
+                   </div>
+                 </div>
+               )}
+             </PopoverContent>
+           </Popover>
 
-          <Tabs value={activeFilter} onValueChange={handleFilterChange} className="w-full md:w-auto">
-            <TabsList className="grid grid-cols-3 w-full md:w-[400px]">
-              <TabsTrigger value="pending" className="flex items-center gap-1">
-                <Clock className="h-4 w-4" />
-                <span>Pendientes</span>
-              </TabsTrigger>
-              <TabsTrigger value="received" className="flex items-center gap-1">
-                <CheckCircle className="h-4 w-4" />
-                <span>Recibidos</span>
-              </TabsTrigger>
-              <TabsTrigger value="all" className="flex items-center gap-1">
-                <Filter className="h-4 w-4" />
-                <span>Todos</span>
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
-      </div>
+           <PrintExportButton
+             transports={transports}
+             searchQuery={searchTerm}
+             statusFilter={activeFilter}
+             locationFilter="all"
+             locations={locations}
+             currentDisplayData={paginatedData}
+           />
+
+           <Tabs value={activeFilter} onValueChange={handleFilterChange} className="w-auto">
+             <TabsList className="grid grid-cols-3 w-[300px]">
+               <TabsTrigger value="pending" className="flex items-center gap-1">
+                 <Clock className="h-4 w-4" />
+                 <span>Pendientes</span>
+               </TabsTrigger>
+               <TabsTrigger value="received" className="flex items-center gap-1">
+                 <CheckCircle className="h-4 w-4" />
+                 <span>Recibidos</span>
+               </TabsTrigger>
+               <TabsTrigger value="all" className="flex items-center gap-1">
+                 <Filter className="h-4 w-4" />
+                 <span>Todos</span>
+               </TabsTrigger>
+             </TabsList>
+           </Tabs>
+         </div>
+       </div>
 
 
 

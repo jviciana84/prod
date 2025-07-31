@@ -13,6 +13,7 @@ import { AutoRefreshIndicator } from "@/components/ui/auto-refresh-indicator"
 import { AutoRefreshSettings } from "@/components/ui/auto-refresh-settings"
 import { CheckRemovedVehiclesButton } from "@/components/ui/check-removed-vehicles-button"
 
+
 interface TransportDashboardProps {
   initialTransports: any[]
   locations: any[]
@@ -41,6 +42,7 @@ export default function TransportDashboard({
   const [isAdmin, setIsAdmin] = useState(false)
   const [lastScrapingDate, setLastScrapingDate] = useState<string>("")
   const [isConsoleOpen, setIsConsoleOpen] = useState(false)
+
 
   const supabase = createClientComponentClient()
   const { toast } = useToast()
@@ -217,13 +219,14 @@ export default function TransportDashboard({
                     currentInterval={autoRefreshProps.interval || 10 * 60 * 1000}
                     onIntervalChange={autoRefreshProps.onIntervalChange}
                   />
+
                 </div>
               )}
             </div>
           </div>
         </CardHeader>
         <CardContent className="p-6">
-          {/* Botón para ver vehículos eliminados - justo debajo de los controles auto refresh */}
+          {/* Botón para ver vehículos eliminados */}
           <div className="mb-4 flex justify-end">
             <CheckRemovedVehiclesButton />
           </div>

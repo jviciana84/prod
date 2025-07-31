@@ -136,7 +136,7 @@ export default function PhotosSummary() {
 
   // Calcular estadísticas
   const totalVehicles = vehicles.length
-  const pendingVehicles = vehicles.filter((v) => !v.photos_completed).length
+  const pendingVehicles = vehicles.filter((v) => !v.photos_completed && v.estado_pintura !== "vendido").length
   const completedVehicles = vehicles.filter((v) => v.photos_completed).length
   const aptoVehicles = vehicles.filter((v) => v.estado_pintura === "apto").length
   const noAptoVehicles = vehicles.filter((v) => v.estado_pintura === "no_apto").length

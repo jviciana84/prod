@@ -229,7 +229,7 @@ export default function PhotosTable() {
     }
   }
 
-  const pendingCount = vehicles.filter((v) => !v.photos_completed).length
+  const pendingCount = vehicles.filter((v) => !v.photos_completed && v.estado_pintura !== "vendido").length
   const completedCount = vehicles.filter((v) => v.photos_completed).length
   const totalCount = vehicles.length
   const aptoCount = vehicles.filter((v) => v.estado_pintura === "apto").length
@@ -298,7 +298,10 @@ export default function PhotosTable() {
     } else {
       // Filtros normales para otras pestañas
       if (activePhotoTab === "pending") {
-        filtered = vehicles.filter((vehicle) => !vehicle.photos_completed)
+        // Excluir vehículos vendidos de la pestaña pendientes
+        filtered = vehicles.filter((vehicle) => 
+          !vehicle.photos_completed && vehicle.estado_pintura !== "vendido"
+        )
       } else if (activePhotoTab === "completed") {
         filtered = vehicles.filter((vehicle) => vehicle.photos_completed)
       } else if (activePhotoTab === "errors") {
@@ -325,7 +328,7 @@ export default function PhotosTable() {
       if (statusFilter === "completed") {
         filtered = filtered.filter((vehicle) => vehicle.photos_completed)
       } else if (statusFilter === "pending") {
-        filtered = filtered.filter((vehicle) => !vehicle.photos_completed)
+        filtered = filtered.filter((vehicle) => !vehicle.photos_completed && vehicle.estado_pintura !== "vendido")
       }
     }
 

@@ -63,7 +63,7 @@ export default function PhotosManager({ initialVehicles, photographers }: Photos
   const { toast } = useToast()
 
   // Estadísticas
-  const pendingCount = vehicles.filter((v) => !v.photos_completed).length
+  const pendingCount = vehicles.filter((v) => !v.photos_completed && v.estado_pintura !== "vendido").length
   const completedCount = vehicles.filter((v) => v.photos_completed).length
   const totalCount = vehicles.length
 
@@ -88,7 +88,7 @@ export default function PhotosManager({ initialVehicles, photographers }: Photos
       if (statusFilter === "completed") {
         filtered = filtered.filter((vehicle) => vehicle.photos_completed)
       } else if (statusFilter === "pending") {
-        filtered = filtered.filter((vehicle) => !vehicle.photos_completed)
+        filtered = filtered.filter((vehicle) => !vehicle.photos_completed && vehicle.paint_status !== "vendido")
       }
     }
 
