@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { FileBarChart, FileText, AlertTriangle } from "lucide-react"
+import { FileBarChart, FileText, AlertTriangle, Clock } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import TerminalRetro from "@/components/dashboard/terminal-retro"
@@ -95,6 +95,24 @@ export default function ReportsPage() {
             <Link href="/dashboard/vehicles/stats">
               <Button variant="outline" className="w-full">
                 <FileBarChart className="mr-2 h-4 w-4" />
+                Ver Informe
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Días Preparación VO</CardTitle>
+            <CardDescription>Tiempos de preparación por asesor comercial</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Análisis de los días que tardan en preparar los coches desde la venta hasta certificación, separado por asesor comercial.
+            </p>
+            <Link href="/dashboard/reports/dias-preparacion-vo">
+              <Button variant="outline" className="w-full">
+                <Clock className="mr-2 h-4 w-4" />
                 Ver Informe
               </Button>
             </Link>
