@@ -67,6 +67,7 @@ export interface StockItem {
   created_at?: string
   updated_at?: string
   or_value?: string
+  is_sold?: boolean
 }
 
 export interface StockHistory {
