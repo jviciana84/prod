@@ -29,6 +29,8 @@ import {
   Loader2,
   Printer,
   FileSpreadsheet,
+  ArrowUpDown,
+  RotateCcw,
 } from "lucide-react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { differenceInDays } from "date-fns"
@@ -43,6 +45,8 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export interface PhotoVehicle {
   id: string
@@ -81,7 +85,7 @@ export default function PhotosTable() {
   const [photographerFilter, setPhotographerFilter] = useState<string>("all")
   const [paintStatusFilter, setpaintStatusFilter] = useState<string>("all")
   const [isLoading, setIsLoading] = useState(true)
-  const [activePhotoTab, setActivePhotoTab] = useState<string>("all")
+  const [activePhotoTab, setActivePhotoTab] = useState<string>("pending")
   
   // Estados para la paginación
   const [currentPage, setCurrentPage] = useState(1)
@@ -98,6 +102,14 @@ export default function PhotosTable() {
     from: undefined,
     to: undefined,
   })
+
+  // Estados para el ordenamiento
+  const [sortMenuOpen, setSortMenuOpen] = useState(false)
+  const [sortField, setSortField] = useState("disponible")
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
+
+  // Estado para selección de filas
+  const [selectedRowId, setSelectedRowId] = useState<string | null>(null)
   const [quickFilters] = useState([
     { label: "Hoy", days: 0 },
     { label: "Últimos 7 días", days: 7 },
@@ -149,6 +161,8 @@ export default function PhotosTable() {
 
   useEffect(() => {
     fetchData()
+    // También sincronizar automáticamente al cargar la página
+    handleSyncPhotosWithSales()
   }, [])
 
   const fetchData = async () => {
@@ -256,6 +270,73 @@ export default function PhotosTable() {
   const clearDateFilter = () => {
     setDateFilter({ from: undefined, to: undefined })
     setCurrentPage(1)
+  }
+
+  // Función para ordenar datos
+  const sortData = (data: PhotoVehicle[]) => {
+    return [...data].sort((a, b) => {
+      let aValue: any
+      let bValue: any
+
+      switch (sortField) {
+        case "disponible":
+          aValue = a.disponible ? new Date(a.disponible).getTime() : 0
+          bValue = b.disponible ? new Date(b.disponible).getTime() : 0
+          break
+        case "license_plate":
+          aValue = (a.license_plate || "").toLowerCase()
+          bValue = (b.license_plate || "").toLowerCase()
+          break
+        case "model":
+          aValue = (a.model || "").toLowerCase()
+          bValue = (b.model || "").toLowerCase()
+          break
+        case "estado_pintura":
+          aValue = (a.estado_pintura || "").toLowerCase()
+          bValue = (b.estado_pintura || "").toLowerCase()
+          break
+        case "photos_completed":
+          aValue = a.photos_completed ? 1 : 0
+          bValue = b.photos_completed ? 1 : 0
+          break
+        case "error_count":
+          aValue = a.error_count || 0
+          bValue = b.error_count || 0
+          break
+        default:
+          aValue = (a[sortField as keyof PhotoVehicle] || "").toString().toLowerCase()
+          bValue = (b[sortField as keyof PhotoVehicle] || "").toString().toLowerCase()
+      }
+
+      if (sortDirection === "asc") {
+        return aValue > bValue ? 1 : aValue < bValue ? -1 : 0
+      } else {
+        return aValue < bValue ? 1 : aValue > bValue ? -1 : 0
+      }
+    })
+  }
+
+  // Función para manejar el ordenamiento
+  const handleSort = (field: string, direction: "asc" | "desc") => {
+    setSortField(field)
+    setSortDirection(direction)
+    setSortMenuOpen(false)
+  }
+
+  // Función para manejar clic en fila
+  const handleRowClick = (vehicleId: string, event: React.MouseEvent) => {
+    // No deseleccionar si se hace clic en elementos interactivos
+    const target = event.target as Element
+    if (target.closest('button') || 
+        target.closest('input') || 
+        target.closest('[role="combobox"]') || 
+        target.closest('span[onClick]') ||
+        target.closest('a') ||
+        target.closest('[data-interactive]')) {
+      return
+    }
+    
+    setSelectedRowId(selectedRowId === vehicleId ? null : vehicleId)
   }
 
   // Estado para vehículos vendidos
@@ -371,6 +452,9 @@ export default function PhotosTable() {
       })
     }
 
+    // Aplicar ordenamiento
+    filtered = sortData(filtered)
+
     // Eliminar duplicados basados en ID y matrícula
     const seenIds = new Set<string>()
     filtered = filtered.filter((vehicle) => {
@@ -410,7 +494,9 @@ export default function PhotosTable() {
     dateFilter.from?.getTime(), // Usar getTime() para valores primitivos
     dateFilter.to?.getTime(),   // Usar getTime() para valores primitivos
     activePhotoTab, // ✅ Añadir activePhotoTab como dependencia
-    soldVehicles // ✅ Añadir soldVehicles como dependencia
+    soldVehicles, // ✅ Añadir soldVehicles como dependencia
+    sortField, // ✅ Añadir sortField como dependencia
+    sortDirection // ✅ Añadir sortDirection como dependencia
   ])
 
   // Función para obtener números de página
@@ -1022,7 +1108,7 @@ export default function PhotosTable() {
     if (isLoading) {
       toast({
         title: "Error",
-        description: "Ya se está sincronizando. Por favor, espera.",
+        description: "Ya se está procesando. Por favor, espera.",
         variant: "destructive",
       })
       return
@@ -1030,9 +1116,9 @@ export default function PhotosTable() {
 
     setIsLoading(true)
     try {
-      console.log("🔄 Iniciando sincronización de fotos con ventas...")
+      console.log("🔄 Iniciando sincronización y actualización de datos...")
       
-      // Llamar a la API de sincronización
+      // Primero sincronizar con ventas
       const response = await fetch('/api/sync-photos-with-sales', {
         method: 'POST',
         headers: {
@@ -1048,21 +1134,22 @@ export default function PhotosTable() {
       
       if (result.success) {
         console.log("✅ Sincronización completada:", result)
-        toast({
-          title: "Sincronización completada",
-          description: result.message || `Se han procesado ${result.processed_count} vehículos y eliminado ${result.removed_count} registros de fotos.`,
-        })
         
-        // Recargar los datos después de la sincronización
+        // Luego recargar todos los datos
         await fetchData()
+        
+        toast({
+          title: "Datos actualizados",
+          description: `Sincronización completada. Se han procesado ${result.processed_count} vehículos y eliminado ${result.removed_count} registros obsoletos.`,
+        })
       } else {
         throw new Error(result.error || 'Error desconocido en la sincronización')
       }
     } catch (error: any) {
-      console.error("❌ Error al sincronizar fotos con ventas:", error)
+      console.error("❌ Error al sincronizar y actualizar:", error)
       toast({
-        title: "Error de sincronización",
-        description: error.message || "No se pudieron sincronizar las fotos con las ventas. Por favor, inténtalo de nuevo.",
+        title: "Error de actualización",
+        description: error.message || "No se pudieron actualizar los datos. Por favor, inténtalo de nuevo.",
         variant: "destructive",
       })
     } finally {
@@ -1177,98 +1264,362 @@ export default function PhotosTable() {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Filtros mejorados y organizados */}
-          <div className="space-y-4">
-            {/* Primera fila: Pestañas principales y búsqueda */}
-            <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
-              {/* Pestañas principales */}
-              <div className="flex flex-wrap gap-2">
-                <Button 
-                  variant={activePhotoTab === "all" ? "default" : "outline"} 
-                  onClick={() => setActivePhotoTab("all")} 
-                  size="sm"
-                  className="h-9 px-4"
-                >
-                  Todos
-                </Button>
-                <Button 
-                  variant={activePhotoTab === "pending" ? "default" : "outline"} 
-                  onClick={() => setActivePhotoTab("pending")} 
-                  size="sm"
-                  className="h-9 px-4"
-                >
-                  Pendientes
-                </Button>
-                <Button 
-                  variant={activePhotoTab === "completed" ? "default" : "outline"} 
-                  onClick={() => setActivePhotoTab("completed")} 
-                  size="sm"
-                  className="h-9 px-4"
-                >
-                  Completados
-                </Button>
-                <Button 
-                  variant={activePhotoTab === "errors" ? "default" : "outline"} 
-                  onClick={() => setActivePhotoTab("errors")} 
-                  size="sm"
-                  className="h-9 px-4"
-                >
-                  Errores
-                </Button>
-                <Button 
-                  variant={activePhotoTab === "sold_without_photos" ? "default" : "outline"} 
-                  onClick={() => setActivePhotoTab("sold_without_photos")} 
-                  size="sm"
-                  className="h-9 px-4"
-                >
-                  Vendidos sin fotos
-                </Button>
-              </div>
+          <div className="space-y-2">
 
-              {/* Búsqueda y acciones */}
+
+            {/* Segunda fila: Buscador y botones de acción */}
+            <div className="flex items-center justify-between bg-card rounded-lg p-1 shadow-sm mb-2">
+              {/* Izquierda: Buscador y botones alineados */}
               <div className="flex items-center gap-2">
-                <div className="relative">
-                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar matrícula o modelo..."
-                    className="pl-10 h-9 w-64"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
+                {/* Buscador */}
+                <Card className="p-2">
+                  <div className="flex items-center gap-2 relative">
+                    <Search className="h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar matrícula o modelo..."
+                      className="w-80"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                </Card>
+
+                {/* Botones con la misma altura */}
                 <Button 
                   variant="outline" 
                   size="icon" 
                   onClick={fetchData} 
                   disabled={isLoading} 
                   className="h-9 w-9"
+                  title="Actualizar datos"
                 >
                   {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                 </Button>
+
+                {/* Popover de ordenamiento */}
+                <Popover open={sortMenuOpen} onOpenChange={setSortMenuOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9"
+                      title="Ordenar"
+                    >
+                      <ArrowUpDown className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-56 p-2" align="start" side="bottom">
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium">Ordenar por:</div>
+                      
+                      {/* Matrícula */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Matrícula</span>
+                        <div className="flex gap-1">
+                          <Button
+                            variant={sortField === "license_plate" && sortDirection === "asc" ? "default" : "ghost"}
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={() => {
+                              if (sortField === "license_plate" && sortDirection === "asc") {
+                                handleSort("license_plate", "desc")
+                              } else {
+                                handleSort("license_plate", "asc")
+                              }
+                            }}
+                          >
+                            ↑
+                          </Button>
+                          <Button
+                            variant={sortField === "license_plate" && sortDirection === "desc" ? "default" : "ghost"}
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={() => {
+                              if (sortField === "license_plate" && sortDirection === "desc") {
+                                handleSort("license_plate", "asc")
+                              } else {
+                                handleSort("license_plate", "desc")
+                              }
+                            }}
+                          >
+                            ↓
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Modelo */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Modelo</span>
+                        <div className="flex gap-1">
+                          <Button
+                            variant={sortField === "model" && sortDirection === "asc" ? "default" : "ghost"}
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={() => {
+                              if (sortField === "model" && sortDirection === "asc") {
+                                handleSort("model", "desc")
+                              } else {
+                                handleSort("model", "asc")
+                              }
+                            }}
+                          >
+                            ↑
+                          </Button>
+                          <Button
+                            variant={sortField === "model" && sortDirection === "desc" ? "default" : "ghost"}
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={() => {
+                              if (sortField === "model" && sortDirection === "desc") {
+                                handleSort("model", "asc")
+                              } else {
+                                handleSort("model", "desc")
+                              }
+                            }}
+                          >
+                            ↓
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Fecha disponible */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Fecha disponible</span>
+                        <div className="flex gap-1">
+                          <Button
+                            variant={sortField === "disponible" && sortDirection === "asc" ? "default" : "ghost"}
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={() => {
+                              if (sortField === "disponible" && sortDirection === "asc") {
+                                handleSort("disponible", "desc")
+                              } else {
+                                handleSort("disponible", "asc")
+                              }
+                            }}
+                          >
+                            ↑
+                          </Button>
+                          <Button
+                            variant={sortField === "disponible" && sortDirection === "desc" ? "default" : "ghost"}
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={() => {
+                              if (sortField === "disponible" && sortDirection === "desc") {
+                                handleSort("disponible", "asc")
+                              } else {
+                                handleSort("disponible", "desc")
+                              }
+                            }}
+                          >
+                            ↓
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Estado de pintura */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Estado pintura</span>
+                        <div className="flex gap-1">
+                          <Button
+                            variant={sortField === "estado_pintura" && sortDirection === "asc" ? "default" : "ghost"}
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={() => {
+                              if (sortField === "estado_pintura" && sortDirection === "asc") {
+                                handleSort("estado_pintura", "desc")
+                              } else {
+                                handleSort("estado_pintura", "asc")
+                              }
+                            }}
+                          >
+                            ↑
+                          </Button>
+                          <Button
+                            variant={sortField === "estado_pintura" && sortDirection === "desc" ? "default" : "ghost"}
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={() => {
+                              if (sortField === "estado_pintura" && sortDirection === "desc") {
+                                handleSort("estado_pintura", "asc")
+                              } else {
+                                handleSort("estado_pintura", "desc")
+                              }
+                            }}
+                          >
+                            ↓
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Fotos completadas */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Fotos completadas</span>
+                        <div className="flex gap-1">
+                          <Button
+                            variant={sortField === "photos_completed" && sortDirection === "asc" ? "default" : "ghost"}
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={() => {
+                              if (sortField === "photos_completed" && sortDirection === "asc") {
+                                handleSort("photos_completed", "desc")
+                              } else {
+                                handleSort("photos_completed", "asc")
+                              }
+                            }}
+                          >
+                            ↑
+                          </Button>
+                          <Button
+                            variant={sortField === "photos_completed" && sortDirection === "desc" ? "default" : "ghost"}
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={() => {
+                              if (sortField === "photos_completed" && sortDirection === "desc") {
+                                handleSort("photos_completed", "asc")
+                              } else {
+                                handleSort("photos_completed", "desc")
+                              }
+                            }}
+                          >
+                            ↓
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Errores */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Errores</span>
+                        <div className="flex gap-1">
+                          <Button
+                            variant={sortField === "error_count" && sortDirection === "asc" ? "default" : "ghost"}
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={() => {
+                              if (sortField === "error_count" && sortDirection === "asc") {
+                                handleSort("error_count", "desc")
+                              } else {
+                                handleSort("error_count", "asc")
+                              }
+                            }}
+                          >
+                            ↑
+                          </Button>
+                          <Button
+                            variant={sortField === "error_count" && sortDirection === "desc" ? "default" : "ghost"}
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={() => {
+                              if (sortField === "error_count" && sortDirection === "desc") {
+                                handleSort("error_count", "asc")
+                              } else {
+                                handleSort("error_count", "desc")
+                              }
+                            }}
+                          >
+                            ↓
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setShowDateFilter(true)}
+                  className={cn(
+                    "h-9 w-9",
+                    (dateFilter.from || dateFilter.to) && "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-300"
+                  )}
+                  title="Filtrar por fecha"
+                >
+                  <Calendar className="h-4 w-4" />
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handleExport('pdf')}
+                  className="h-9 w-9"
+                  title="Exportar PDF"
+                >
+                  <Printer className="h-4 w-4" />
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handleExport('excel')}
+                  className="h-9 w-9"
+                  title="Exportar Excel"
+                >
+                  <FileSpreadsheet className="h-4 w-4" />
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleSyncPhotosWithSales}
+                  disabled={isLoading}
+                  className="h-9 w-9"
+                  title="Sincronizar y actualizar datos"
+                >
+                  <RotateCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                </Button>
               </div>
+
+              {/* Derecha: Pestañas con contadores */}
+              <Tabs value={activePhotoTab} onValueChange={setActivePhotoTab} className="w-auto">
+                <TabsList className="grid grid-cols-5 w-[680px]">
+                  <TabsTrigger value="all" className="flex items-center gap-1 text-xs px-3">
+                    <span>Todos</span>
+                    <Badge variant="outline" className="ml-1 text-xs border-muted-foreground/20">
+                      {totalCount}
+                    </Badge>
+                  </TabsTrigger>
+                  <TabsTrigger value="pending" className="flex items-center gap-1 text-xs px-3">
+                    <span>Pendientes</span>
+                    <Badge variant="outline" className="ml-1 text-xs border-muted-foreground/20">
+                      {pendingCount}
+                    </Badge>
+                  </TabsTrigger>
+                  <TabsTrigger value="completed" className="flex items-center gap-1 text-xs px-3">
+                    <span>Completados</span>
+                    <Badge variant="outline" className="ml-1 text-xs border-muted-foreground/20">
+                      {completedCount}
+                    </Badge>
+                  </TabsTrigger>
+                  <TabsTrigger value="errors" className="flex items-center gap-1 text-xs px-3">
+                    <span>Errores</span>
+                    <Badge variant="outline" className="ml-1 text-xs border-muted-foreground/20">
+                      {errorCount}
+                    </Badge>
+                  </TabsTrigger>
+                  <TabsTrigger value="sold_without_photos" className="flex items-center gap-1 text-xs px-3">
+                    <span>Vendidos</span>
+                    <Badge variant="outline" className="ml-1 text-xs border-muted-foreground/20">
+                      {soldVehicles.length}
+                    </Badge>
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
             </div>
 
-            {/* Segunda fila: Filtros específicos */}
-            <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
-              {/* Filtros de estado */}
-              <div className="flex flex-wrap gap-3">
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-48 h-9">
-                    <SelectValue placeholder="Estado de fotografía" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos los estados</SelectItem>
-                    <SelectItem value="completed">Fotografiados</SelectItem>
-                    <SelectItem value="pending">Pendientes</SelectItem>
-                  </SelectContent>
-                </Select>
-
+            {/* Tercera fila: Filtros específicos */}
+            <div className="flex flex-col lg:flex-row gap-2 items-start lg:items-center justify-between">
+              {/* Espacio vacío a la izquierda */}
+              <div></div>
+              
+              {/* Filtros de estado alineados a la derecha */}
+              <div className="flex flex-wrap gap-2">
                 <Select value={photographerFilter} onValueChange={setPhotographerFilter}>
                   <SelectTrigger className="w-48 h-9">
                     <SelectValue placeholder="Fotógrafo asignado" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos los fotógrafos</SelectItem>
-                    <SelectItem value="null">Sin asignar</SelectItem>
                     {photographers
                       .filter((p, i, arr) => arr.findIndex(x => x.user_id === p.user_id) === i)
                       .filter(p => p.is_active === true && p.is_hidden !== true)
@@ -1293,65 +1644,16 @@ export default function PhotosTable() {
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* Botones de acción */}
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowDateFilter(true)}
-                  className={cn(
-                    "h-9 px-3",
-                    (dateFilter.from || dateFilter.to) && "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-300"
-                  )}
-                >
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Fecha
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleExport('pdf')}
-                  className="h-9 px-3"
-                >
-                  <Printer className="h-4 w-4 mr-2" />
-                  PDF
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleExport('excel')}
-                  className="h-9 px-3"
-                >
-                  <FileSpreadsheet className="h-4 w-4 mr-2" />
-                  Excel
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleSyncPhotosWithSales}
-                  disabled={isLoading}
-                  className="h-9 px-3"
-                >
-                  <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                  Sincronizar
-                </Button>
-              </div>
             </div>
 
             {/* Indicador de filtros activos */}
-            {(searchTerm || statusFilter !== "all" || photographerFilter !== "all" || paintStatusFilter !== "all" || dateFilter.from || dateFilter.to) && (
+            {(searchTerm || photographerFilter !== "all" || paintStatusFilter !== "all" || dateFilter.from || dateFilter.to) && (
               <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
                 <span className="text-sm font-medium text-muted-foreground">Filtros activos:</span>
                 <div className="flex flex-wrap gap-2">
                   {searchTerm && (
                     <Badge variant="secondary" className="text-xs">
                       Búsqueda: "{searchTerm}"
-                    </Badge>
-                  )}
-                  {statusFilter !== "all" && (
-                    <Badge variant="secondary" className="text-xs">
-                      Estado: {statusFilter === "completed" ? "Fotografiados" : "Pendientes"}
                     </Badge>
                   )}
                   {photographerFilter !== "all" && (
@@ -1374,7 +1676,6 @@ export default function PhotosTable() {
                     size="sm"
                     onClick={() => {
                       setSearchTerm("")
-                      setStatusFilter("all")
                       setPhotographerFilter("all")
                       setpaintStatusFilter("all")
                       setDateFilter({ from: undefined, to: undefined })
@@ -1431,7 +1732,18 @@ export default function PhotosTable() {
                     const { days, color } = calculatePendingDays(vehicle)
                     const uniqueKey = generateUniqueKey(vehicle, index)
                     return (
-                      <TableRow key={uniqueKey}>
+                      <TableRow 
+                        key={uniqueKey} 
+                        className={cn(
+                          "transition-all duration-300 ease-in-out cursor-pointer border-b relative",
+                          index % 2 === 0 ? "bg-background" : "bg-muted/10",
+                          selectedRowId === vehicle.id 
+                            ? "border-2 border-primary shadow-md bg-primary/5" 
+                            : "hover:bg-muted/30",
+                        )}
+                        data-selected={selectedRowId === vehicle.id}
+                        onClick={(e) => handleRowClick(vehicle.id, e)}
+                      >
                         <TableCell className="font-medium py-0.5">{vehicle.license_plate}</TableCell>
                         <TableCell className="py-0.5">{vehicle.model}</TableCell>
                         <TableCell className="py-0.5">
@@ -1450,6 +1762,7 @@ export default function PhotosTable() {
                             <button
                               className="flex items-center justify-center h-8 w-full rounded-md px-2 bg-red-100 text-red-800 border border-red-300 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700 dark:hover:bg-red-800/50 transition-colors"
                               onClick={() => handlePaintStatusChange(vehicle.id)}
+                              data-interactive
                             >
                               <XCircle className="h-4 w-4 mr-1" />
                               No Apto
@@ -1458,6 +1771,7 @@ export default function PhotosTable() {
                             <button
                               className="flex items-center justify-center h-8 w-full rounded-md px-2 bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-300 hover:text-amber-950 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700 dark:hover:bg-amber-800 dark:hover:text-amber-100 transition-colors"
                               onClick={() => handlePaintStatusChange(vehicle.id)}
+                              data-interactive
                             >
                               <Clock className="h-4 w-4 mr-1" />
                               Pendiente
@@ -1501,6 +1815,7 @@ export default function PhotosTable() {
                             <button
                               className="flex items-center justify-center h-8 w-full rounded-md px-2 bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-300 hover:text-amber-950 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700 dark:hover:bg-amber-800 dark:hover:text-amber-100 transition-colors"
                               onClick={() => handlePhotoStatusChange(vehicle.id, true)}
+                              data-interactive
                             >
                               <Clock className="h-4 w-4 mr-1" />
                               Pendiente
@@ -1524,6 +1839,7 @@ export default function PhotosTable() {
                               className="h-8 w-8 text-red-500 hover:text-red-600"
                               onClick={() => handleDeleteVehicle(vehicle.id, vehicle.license_plate)}
                               title="Eliminar"
+                              data-interactive
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -1534,6 +1850,7 @@ export default function PhotosTable() {
                                 className="h-8 w-8 text-amber-500 hover:text-amber-600"
                                 onClick={() => handleMarkAsError(vehicle.id)}
                                 title="Marcar como erróneo"
+                                data-interactive
                               >
                                 <AlertOctagon className="h-4 w-4" />
                               </Button>
@@ -1546,6 +1863,22 @@ export default function PhotosTable() {
                                 <AlertTriangle className="h-3 w-3 mr-1" />
                                 {vehicle.error_count}
                               </Badge>
+                            )}
+                            
+                            {/* Indicador de selección - punto en la esquina superior derecha */}
+                            {selectedRowId === vehicle.id && (
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  top: '0px',
+                                  right: '0px',
+                                  width: '8px',
+                                  height: '8px',
+                                  backgroundColor: 'hsl(var(--primary))',
+                                  borderRadius: '50%',
+                                  zIndex: 10,
+                                }}
+                              />
                             )}
                           </div>
                         </TableCell>

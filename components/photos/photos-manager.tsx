@@ -365,32 +365,34 @@ export default function PhotosManager({ initialVehicles, photographers }: Photos
 
       {/* Filtros */}
       <div className="space-y-4">
-        {/* Primera fila: Búsqueda y acciones */}
+        {/* Primera fila: Buscador y botones de acción */}
         <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
-          {/* Búsqueda */}
-          <div className="flex items-center gap-2">
+          {/* Buscador */}
+          <div className="flex items-center gap-2 flex-1">
             <div className="relative">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar por matrícula o modelo..."
-                className="pl-10 h-9 w-64"
+                className="pl-10 h-9 w-80"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
+          </div>
+
+          {/* Botones de acción a la derecha */}
+          <div className="flex items-center gap-2">
             <Button 
               variant="outline" 
               size="icon" 
               onClick={fetchVehicles} 
               disabled={isLoading} 
               className="h-9 w-9"
+              title="Actualizar datos"
             >
               {isLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             </Button>
-          </div>
 
-          {/* Botones de acción */}
-          <div className="flex items-center gap-2">
             <PrintExportButton
               vehicles={filteredVehicles}
               searchQuery={searchTerm}
