@@ -34,10 +34,10 @@ export function useAuth() {
 
         if (error) {
           console.warn("Error al obtener sesión:", error.message)
-          // Si hay error de parsing, intentar recuperar la sesión
+          // Si hay error de parsing, limpiar cookies corruptas
           if (error.message.includes("JSON") || error.message.includes("parse")) {
-            console.warn("Error de parsing detectado, intentando recuperar sesión...")
-            // No llamar a clearCorruptedSession() ya que está desactivada
+            console.warn("Error de parsing detectado, limpiando cookies corruptas...")
+            clearCorruptedSession()
           }
           if (mounted) {
             setAuthState({ user: null, loading: false, error: error.message, profile: null })
@@ -71,7 +71,8 @@ export function useAuth() {
         }
       } catch (err) {
         console.error("Error inesperado al obtener sesión:", err)
-        // No llamar a clearCorruptedSession() ya que está desactivada
+        // Limpiar cookies corruptas si hay error inesperado
+        clearCorruptedSession()
         if (mounted) {
           setAuthState({
             user: null,

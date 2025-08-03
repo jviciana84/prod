@@ -49,10 +49,51 @@ export function fixCorruptedCookies() {
 
 /**
  * Función para limpiar una sesión corrupta de Supabase
- * DESACTIVADO: NO ELIMINAR COOKIES DE AUTENTICACIÓN
+ * SOLO se ejecuta cuando hay errores de parsing de cookies
  */
 export function clearCorruptedSession() {
-  return
+  if (typeof window === "undefined") return
+
+  try {
+    // Solo limpiar cookies que empiecen con 'base64-' (corruptas)
+    const cookies = document.cookie.split(";")
+    let cleaned = false
+    
+    cookies.forEach((cookie) => {
+      const [name, value] = cookie.trim().split("=")
+      if (name && name.trim().startsWith("sb-") && value && value.startsWith("base64-")) {
+        // Eliminar solo cookies corruptas de Supabase
+        document.cookie = `${name.trim()}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
+        console.log("Cookie corrupta eliminada:", name.trim())
+        cleaned = true
+      }
+    })
+
+    // También limpiar localStorage corrupto
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith("sb-")) {
+        try {
+          const value = localStorage.getItem(key)
+          if (value && value.startsWith("base64-")) {
+            localStorage.removeItem(key)
+            console.log("LocalStorage corrupto eliminado:", key)
+            cleaned = true
+          }
+        } catch (error) {
+          // Si no se puede leer, eliminar
+          localStorage.removeItem(key)
+          console.log("LocalStorage corrupto eliminado:", key)
+          cleaned = true
+        }
+      }
+    })
+
+    if (cleaned) {
+      console.log("Sesión corrupta limpiada. Se requiere nuevo login.")
+    }
+  } catch (error) {
+    console.error("Error al limpiar sesión corrupta:", error)
+  }
 }
 
 // Función para simular usuario admin
