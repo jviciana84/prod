@@ -385,8 +385,8 @@ export default function TransportTable({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between bg-card rounded-lg p-2 shadow-sm mb-4">
+    <div className="space-y-2">
+      <div className="flex items-center justify-between bg-card rounded-lg p-2 shadow-sm mb-2">
         {/* Izquierda: Buscador y botones alineados */}
         <div className="flex items-center gap-2">
           {/* Buscador */}
@@ -666,15 +666,15 @@ export default function TransportTable({
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
-                <TableHead className="text-sm font-medium py-3 text-foreground">MATRÍCULA</TableHead>
-                <TableHead className="text-sm font-medium py-3 text-foreground">MODELO</TableHead>
-                <TableHead className="text-sm font-medium py-3 text-foreground">PRECIO DE COMPRA</TableHead>
-                <TableHead className="text-sm font-medium py-3 text-foreground">SEDE ORIGEN</TableHead>
-                <TableHead className="text-sm font-medium py-3 text-foreground">CARGO GASTOS</TableHead>
-                <TableHead className="text-sm font-medium py-3 text-foreground">DÍA COMPRA</TableHead>
-                <TableHead className="text-sm font-medium py-3 text-foreground">DÍAS ESPERA</TableHead>
-                <TableHead className="text-sm font-medium py-3 text-foreground">RECEPCIÓN</TableHead>
-                <TableHead className="text-sm font-medium text-right py-3 text-foreground">ACCIONES</TableHead>
+                <TableHead className="text-sm font-medium py-2 text-foreground">MATRÍCULA</TableHead>
+                <TableHead className="text-sm font-medium py-2 text-foreground">MODELO</TableHead>
+                <TableHead className="text-sm font-medium py-2 text-foreground">PRECIO DE COMPRA</TableHead>
+                <TableHead className="text-sm font-medium py-2 text-foreground">SEDE ORIGEN</TableHead>
+                <TableHead className="text-sm font-medium py-2 text-foreground">CARGO GASTOS</TableHead>
+                <TableHead className="text-sm font-medium py-2 text-foreground">DÍA COMPRA</TableHead>
+                <TableHead className="text-sm font-medium py-2 text-foreground">DÍAS ESPERA</TableHead>
+                <TableHead className="text-sm font-medium py-2 text-foreground">RECEPCIÓN</TableHead>
+                <TableHead className="text-sm font-medium text-right py-2 text-foreground">ACCIONES</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -698,33 +698,33 @@ export default function TransportTable({
                         "hover:bg-muted/30",
                       )}
                     >
-                      <TableCell className="py-3">
+                      <TableCell className="py-2">
                           <span className="font-medium text-foreground">{transport.license_plate}</span>
                       </TableCell>
-                      <TableCell className="py-3 text-foreground">{transport.model || "-"}</TableCell>
-                      <TableCell className="py-3 text-foreground">
+                      <TableCell className="py-2 text-foreground">{transport.model || "-"}</TableCell>
+                      <TableCell className="py-2 text-foreground">
                             {transport.purchase_price ? `${transport.purchase_price.toLocaleString("es-ES")} €` : <span className="text-muted-foreground">-</span>}
                       </TableCell>
-                      <TableCell className="py-3 text-foreground">
+                      <TableCell className="py-2 text-foreground">
                             {transport.origin_location?.name || <span className="text-muted-foreground">-</span>}
                       </TableCell>
-                      <TableCell className="py-3 text-foreground">
+                      <TableCell className="py-2 text-foreground">
                             {transport.expense_type?.name || <span className="text-muted-foreground">-</span>}
                       </TableCell>
-                      <TableCell className="py-3">
+                      <TableCell className="py-2">
                           <div className="flex items-center gap-1">
                             <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                           <span>{formatDate(transport.purchase_date)}</span>
                           </div>
                       </TableCell>
-                      <TableCell className="py-3">
+                      <TableCell className="py-2">
                         {waitingDays !== null && (
                           <Badge variant="outline" className={waitingBadgeClass}>
                             {waitingDays}
                           </Badge>
                         )}
                       </TableCell>
-                      <TableCell className="py-3">
+                      <TableCell className="py-2">
                         <Button
                           variant="outline"
                           size="sm"
@@ -749,7 +749,7 @@ export default function TransportTable({
                           )}
                         </Button>
                       </TableCell>
-                      <TableCell className="py-3 text-right">
+                      <TableCell className="py-2 text-right">
                         <div className="flex justify-end gap-1">
                           <Button
                             variant="ghost"
@@ -771,7 +771,7 @@ export default function TransportTable({
         </div>
       </div>
 
-      <div className="mt-2 rounded-lg border bg-card shadow-sm">
+      <div className="mt-1 rounded-lg border bg-card shadow-sm">
         <ReusablePagination
           currentPage={currentPage}
           totalPages={totalPages}

@@ -31,10 +31,10 @@ export function CheckRemovedVehiclesButton({
         variant={variant}
         size={size}
         onClick={() => setIsModalOpen(true)}
-        className={`flex items-center gap-2 ${className || ''}`}
+        className={`flex items-center justify-center ${className || ''}`}
+        title="Ver vehículos ausentes"
       >
         <AlertTriangle className="h-4 w-4" />
-                        <span>Ver Ausentes</span>
       </Button>
 
       <RemovedVehiclesModal

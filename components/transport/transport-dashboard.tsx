@@ -5,7 +5,7 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, Table, Terminal } from "lucide-react"
+import { Plus, Table, Terminal, Calendar, Clock, Hash, Truck } from "lucide-react"
 import TransportTable from "./transport-table"
 import TransportQuickForm from "./transport-quick-form"
 import ScraperConsole from "./scraper-console"
@@ -39,6 +39,7 @@ export default function TransportDashboard({
 }: TransportDashboardProps) {
   const [transports, setTransports] = useState<any[]>(initialTransports || [])
   const [isAddingTransport, setIsAddingTransport] = useState(false)
+  const [isFormSubmitting, setIsFormSubmitting] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
   const [lastScrapingDate, setLastScrapingDate] = useState<string>("")
   const [isConsoleOpen, setIsConsoleOpen] = useState(false)
@@ -137,32 +138,176 @@ export default function TransportDashboard({
   // Manejar el evento de transporte añadido
   const handleTransportAdded = (newTransport: any) => {
     setTransports((prev) => [newTransport, ...prev])
+    // Resetear el estado del formulario
+    setIsAddingTransport(false)
+    setIsFormSubmitting(false)
   }
 
   return (
     <div className="space-y-6">
       {/* Card de Registro Rápido */}
-      <Card>
-        <CardHeader className="pb-4">
+      {/* Cards de Estadísticas o Formulario */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {!isAddingTransport ? (
+          <>
+            {/* Total Entradas */}
+            <Card className="p-4 relative">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Entradas</p>
+                  <p className="text-2xl font-bold">{transports.length}</p>
+                </div>
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                  <Plus className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                </div>
+              </div>
+            </Card>
+
+            {/* Este Mes */}
+            <Card className="p-4 relative">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Este Mes</p>
+                  <p className="text-2xl font-bold text-green-500">
+                    {transports.filter(t => {
+                      const purchaseDate = new Date(t.purchase_date)
+                      const now = new Date()
+                      return purchaseDate.getMonth() === now.getMonth() && 
+                             purchaseDate.getFullYear() === now.getFullYear()
+                    }).length}
+                  </p>
+                </div>
+                <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-full">
+                  <Calendar className="h-4 w-4 text-green-600 dark:text-green-400" />
+                </div>
+              </div>
+            </Card>
+
+            {/* Última Semana */}
+            <Card className="p-4 relative">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Última Semana</p>
+                  <p className="text-2xl font-bold text-amber-500">
+                    {transports.filter(t => {
+                      const purchaseDate = new Date(t.purchase_date)
+                      const weekAgo = new Date()
+                      weekAgo.setDate(weekAgo.getDate() - 7)
+                      return purchaseDate >= weekAgo
+                    }).length}
+                  </p>
+                </div>
+                <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-full">
+                  <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                </div>
+              </div>
+            </Card>
+
+            {/* Promedio Precio */}
+            <Card className="p-4 relative">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Promedio Precio</p>
+                  <p className="text-2xl font-bold text-purple-500">
+                    {(() => {
+                      const prices = transports
+                        .filter(t => t.purchase_price)
+                        .map(t => t.purchase_price)
+                      if (prices.length === 0) return 0
+                      const avg = prices.reduce((a, b) => a + b, 0) / prices.length
+                      return Math.round(avg).toLocaleString()
+                    })()}€
+                  </p>
+                </div>
+                <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-full">
+                  <Hash className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                </div>
+              </div>
+            </Card>
+
+            {/* Media Días Llegada */}
+            <Card className="p-4 relative">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Media Días Llegada</p>
+                  <p className="text-2xl font-bold text-indigo-500">
+                    {(() => {
+                      const vehiclesWithDates = transports.filter(t => t.purchase_date && t.created_at)
+                      if (vehiclesWithDates.length === 0) return 0
+                      
+                      const daysArray = vehiclesWithDates.map(t => {
+                        const purchaseDate = new Date(t.purchase_date)
+                        const createdDate = new Date(t.created_at)
+                        const diffTime = Math.abs(purchaseDate.getTime() - createdDate.getTime())
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+                        return diffDays
+                      })
+                      
+                      const avgDays = daysArray.reduce((a, b) => a + b, 0) / daysArray.length
+                      return Math.round(avgDays)
+                    })()} días
+                  </p>
+                </div>
+                <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-full">
+                  <Clock className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                </div>
+              </div>
+            </Card>
+
+            {/* Card de Añadir Entrada */}
+            <Card className="p-4 relative border-2 border-blue-500/50 bg-blue-50/50 dark:bg-blue-950/20 dark:border-blue-400/50 shadow-[0_0_10px_rgba(59,130,246,0.3)] dark:shadow-[0_0_10px_rgba(96,165,250,0.3)]">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Añadir Entrada</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsAddingTransport(!isAddingTransport)}
+                    className="mt-1"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Añadir
+                  </Button>
+                </div>
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                  <Plus className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                </div>
+              </div>
+            </Card>
+          </>
+        ) : (
+          /* Card del Formulario (ocupa todo el ancho) */
+          <Card className="lg:col-span-6">
+            <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Plus className="h-5 w-5 text-blue-600" />
-                Registro de Nuevas Entradas
+                    Añadir Entrada Manual
               </CardTitle>
-              <CardDescription>Registra nuevas entradas de vehículos al sistema</CardDescription>
+                  <CardDescription>Registra una nueva entrada de vehículo</CardDescription>
             </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsAddingTransport(false)}
+                >
+                  <Plus className="h-4 w-4 mr-2 rotate-45" />
+                  Ocultar
+                </Button>
           </div>
         </CardHeader>
         <CardContent className="p-6">
           <TransportQuickForm
             locations={locations}
             onTransportAdded={handleTransportAdded}
-            isSubmitting={isAddingTransport}
-            setIsSubmitting={setIsAddingTransport}
+                 isSubmitting={isFormSubmitting}
+                 setIsSubmitting={setIsFormSubmitting}
           />
         </CardContent>
       </Card>
+        )}
+      </div>
 
       {/* Card de Lista de Vehículos */}
       <Card>
@@ -219,18 +364,12 @@ export default function TransportDashboard({
                     currentInterval={autoRefreshProps.interval || 10 * 60 * 1000}
                     onIntervalChange={autoRefreshProps.onIntervalChange}
                   />
-
                 </div>
               )}
             </div>
           </div>
         </CardHeader>
         <CardContent className="p-6">
-          {/* Botón para ver vehículos eliminados */}
-          <div className="mb-4 flex justify-end">
-            <CheckRemovedVehiclesButton />
-          </div>
-          
           <TransportTable
             initialTransports={transports}
             locations={locations}

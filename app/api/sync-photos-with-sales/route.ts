@@ -11,32 +11,50 @@ export async function POST(request: NextRequest) {
   try {
     console.log('🔄 Iniciando sincronización de fotos con ventas...')
     
+    // Configurar timeout más largo para operaciones pesadas
+    const timeout = setTimeout(() => {
+      console.error('⏰ Timeout en sincronización de fotos con ventas')
+    }, 25000) // 25 segundos
+    
     // Ejecutar la función de sincronización
     const { data: syncResult, error: syncError } = await supabase
       .rpc('sync_photos_with_sales')
+    
+    clearTimeout(timeout)
     
     if (syncError) {
       console.error('❌ Error en sincronización:', syncError)
       return NextResponse.json({
         success: false,
-        error: syncError.message
+        error: syncError.message || 'Error desconocido en la sincronización'
       }, { status: 500 })
     }
     
     console.log('✅ Sincronización completada:', syncResult)
     
+    // Verificar que el resultado sea válido
+    if (!syncResult || syncResult.length === 0) {
+      console.warn('⚠️ Resultado de sincronización vacío o inválido')
+      return NextResponse.json({
+        success: true,
+        message: 'Sincronización completada (sin cambios)',
+        processed_count: 0,
+        removed_count: 0
+      })
+    }
+    
     return NextResponse.json({
       success: true,
-      message: syncResult?.[0]?.message || 'Sincronización completada',
-      processed_count: syncResult?.[0]?.processed_count || 0,
-      removed_count: syncResult?.[0]?.removed_count || 0
+      message: syncResult[0]?.message || 'Sincronización completada',
+      processed_count: syncResult[0]?.processed_count || 0,
+      removed_count: syncResult[0]?.removed_count || 0
     })
     
   } catch (error: any) {
     console.error('❌ Error inesperado:', error)
     return NextResponse.json({
       success: false,
-      error: error.message
+      error: error.message || 'Error interno del servidor'
     }, { status: 500 })
   }
 }

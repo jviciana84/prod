@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Printer, FileSpreadsheet } from "lucide-react"
 import { toast } from "sonner"
+import { CheckRemovedVehiclesButton } from "@/components/ui/check-removed-vehicles-button"
 
 interface Transport {
   id: string
@@ -289,6 +290,7 @@ export function PrintExportButton({
       >
         <FileSpreadsheet className="h-4 w-4" />
       </Button>
+      <CheckRemovedVehiclesButton variant="outline" size="icon" className="h-9 w-9" />
     </div>
   )
 } 

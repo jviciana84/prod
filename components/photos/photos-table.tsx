@@ -1220,18 +1220,59 @@ export default function PhotosTable() {
   const handleSyncPhotosWithSales = async () => {
     setIsLoading(true)
     try {
-      console.log("🔄 Iniciando sincronización y actualización de datos...")
+      console.log("🔄 Verificando estado antes de sincronizar...")
       
-      // Primero sincronizar con ventas
-      const response = await fetch('/api/sync-photos-with-sales', {
-        method: 'POST',
+      // Primero verificar el estado actual
+      const checkResponse = await fetch('/api/check-photos-status', {
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
       })
 
+      if (!checkResponse.ok) {
+        throw new Error(`Error verificando estado: ${checkResponse.status}`)
+      }
+
+      const checkResult = await checkResponse.json()
+      
+      if (!checkResult.success) {
+        throw new Error(checkResult.error || 'Error verificando estado')
+      }
+
+      console.log("📊 Estado actual:", checkResult.statistics)
+      
+      // Si no hay vehículos vendidos en fotos, no necesitamos sincronizar
+      if (checkResult.statistics.sold_in_photos === 0) {
+        console.log("✅ No hay vehículos vendidos en fotos. No es necesaria la sincronización.")
+        toast({
+          title: "Estado verificado",
+          description: "No hay vehículos vendidos en la lista de fotos. Los datos están actualizados.",
+        })
+        return
+      }
+
+      console.log("🔄 Iniciando sincronización...")
+      
+      // Crear un AbortController para manejar timeouts
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 segundos de timeout
+      
+      // Sincronizar con ventas
+      const response = await fetch('/api/sync-photos-with-sales', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        signal: controller.signal,
+      })
+
+      clearTimeout(timeoutId)
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        const errorText = await response.text()
+        console.error("❌ Error HTTP:", response.status, errorText)
+        throw new Error(`Error del servidor: ${response.status} - ${errorText}`)
       }
 
       const result = await response.json()
@@ -1251,9 +1292,18 @@ export default function PhotosTable() {
       }
     } catch (error: any) {
       console.error("❌ Error al sincronizar y actualizar:", error)
+      
+      let errorMessage = "No se pudieron actualizar los datos. Por favor, inténtalo de nuevo."
+      
+      if (error.name === 'AbortError') {
+        errorMessage = "La operación tardó demasiado tiempo. Por favor, inténtalo de nuevo."
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+      
       toast({
         title: "Error de actualización",
-        description: error.message || "No se pudieron actualizar los datos. Por favor, inténtalo de nuevo.",
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {
@@ -1306,15 +1356,15 @@ export default function PhotosTable() {
           </div>
         </Card>
 
-        {/* Aptos */}
+        {/* No Aptos */}
         <Card className="p-4 relative">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-muted-foreground">Aptos</p>
-              <p className="text-2xl font-bold text-green-500">{aptoCount}</p>
+              <p className="text-sm text-muted-foreground">No Aptos</p>
+              <p className="text-2xl font-bold text-red-500">{noAptoCount}</p>
             </div>
-            <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-full">
-              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+            <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-full">
+              <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
             </div>
           </div>
         </Card>
