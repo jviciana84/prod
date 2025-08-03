@@ -31,6 +31,7 @@ import {
   FileSpreadsheet,
   ArrowUpDown,
   RotateCcw,
+  CheckCircle2,
 } from "lucide-react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { differenceInDays } from "date-fns"
@@ -61,6 +62,7 @@ export interface PhotoVehicle {
   photos_completed_date: string | null // Fecha en formato ISO
   error_count: number
   last_error_by: string | null // UUID del usuario que marcó el error
+  error_subsanated: boolean // Indica si el error ha sido subsanado
   original_assigned_to: string | null // UUID del fotógrafo original
   created_at: string // Fecha en formato ISO
   updated_at: string // Fecha en formato ISO
@@ -243,13 +245,14 @@ export default function PhotosTable() {
     }
   }
 
-  const pendingCount = vehicles.filter((v) => !v.photos_completed && v.estado_pintura !== "vendido").length
-  const completedCount = vehicles.filter((v) => v.photos_completed).length
-  const totalCount = vehicles.length
-  const aptoCount = vehicles.filter((v) => v.estado_pintura === "apto").length
-  const noAptoCount = vehicles.filter((v) => v.estado_pintura === "no_apto").length
-  const pendienteCount = vehicles.filter((v) => v.estado_pintura === "pendiente").length
-  const errorCount = vehicles.reduce((sum, v) => sum + (v.error_count || 0), 0)
+  // Estados para contadores
+  const [pendingCount, setPendingCount] = useState(0)
+  const [completedCount, setCompletedCount] = useState(0)
+  const [totalCount, setTotalCount] = useState(0)
+  const [aptoCount, setAptoCount] = useState(0)
+  const [noAptoCount, setNoAptoCount] = useState(0)
+  const [pendienteCount, setPendienteCount] = useState(0)
+  const [errorCount, setErrorCount] = useState(0)
 
   const [filteredVehicles, setFilteredVehicles] = useState<PhotoVehicle[]>([])
 
@@ -341,39 +344,56 @@ export default function PhotosTable() {
 
   // Estado para vehículos vendidos
   const [soldVehicles, setSoldVehicles] = useState<string[]>([])
+  const [soldVehiclesCount, setSoldVehiclesCount] = useState(0)
 
-  // Cargar vehículos vendidos cuando cambie la pestaña
+  // Cargar vehículos vendidos siempre (no solo cuando estés en la pestaña)
   useEffect(() => {
-    if (activePhotoTab === "sold_without_photos") {
-      const fetchSoldVehicles = async () => {
-        try {
-          console.log("🔍 Buscando vehículos vendidos sin fotos...")
-          const { data: soldVehiclesData, error } = await supabase
-            .from("sales_vehicles")
-            .select("license_plate, model, sale_date, advisor, advisor_name")
+    const fetchSoldVehicles = async () => {
+      try {
+        console.log("🔍 Buscando vehículos vendidos y reservados sin fotos...")
+        
+        // 1. Obtener vehículos vendidos de sales_vehicles
+        const { data: soldVehiclesData, error: soldError } = await supabase
+          .from("sales_vehicles")
+          .select("license_plate, model, sale_date, advisor, advisor_name")
 
-          if (error) {
-            console.error("❌ Error al obtener vehículos vendidos:", error)
-            return
-          }
-
-          console.log("📊 Vehículos vendidos encontrados:", soldVehiclesData?.length || 0)
-
-          if (soldVehiclesData && soldVehiclesData.length > 0) {
-            const soldLicensePlates = soldVehiclesData.map(v => v.license_plate)
-            setSoldVehicles(soldLicensePlates)
-            console.log("✅ Matrículas de vehículos vendidos cargadas:", soldLicensePlates.length)
-          }
-        } catch (error) {
-          console.error("❌ Error en fetchSoldVehicles:", error)
+        if (soldError) {
+          console.error("❌ Error al obtener vehículos vendidos:", soldError)
+          return
         }
-      }
 
-      fetchSoldVehicles()
-    } else {
-      setSoldVehicles([])
+        // 2. Obtener vehículos reservados de duc_scraper
+        const { data: reservedVehiclesData, error: reservedError } = await supabase
+          .from("duc_scraper")
+          .select("Matrícula, Modelo, Disponibilidad")
+          .ilike("Disponibilidad", "%reservado%")
+
+        if (reservedError) {
+          console.error("❌ Error al obtener vehículos reservados:", reservedError)
+          return
+        }
+
+        // 3. Combinar ambas listas
+        const soldLicensePlates = soldVehiclesData?.map(v => v.license_plate) || []
+        const reservedLicensePlates = reservedVehiclesData?.map(v => (v as any).Matrícula) || []
+        
+        // Combinar y eliminar duplicados
+        const allSoldOrReserved = [...new Set([...soldLicensePlates, ...reservedLicensePlates])]
+        
+        setSoldVehicles(allSoldOrReserved)
+        
+        console.log("✅ Matrículas cargadas:", {
+          vendidos: soldLicensePlates.length,
+          reservados: reservedLicensePlates.length,
+          total: allSoldOrReserved.length
+        })
+      } catch (error) {
+        console.error("❌ Error en fetchSoldVehicles:", error)
+      }
     }
-  }, [activePhotoTab])
+
+    fetchSoldVehicles()
+  }, [vehicles])
 
   // Calcular datos filtrados y paginados
   useEffect(() => {
@@ -381,12 +401,12 @@ export default function PhotosTable() {
 
     // Filtro por activePhotoTab (pestañas principales)
     if (activePhotoTab === "sold_without_photos") {
-      // Filtrar vehículos que están en fotos pero marcados como vendidos
+      // Filtrar vehículos vendidos o reservados que NO tienen fotos completadas
       filtered = vehicles.filter(vehicle => 
         soldVehicles.includes(vehicle.license_plate) && 
-        vehicle.estado_pintura === 'vendido'
+        !vehicle.photos_completed
       )
-      console.log("✅ Vehículos vendidos sin fotos filtrados:", filtered.length)
+      console.log("✅ Vehículos vendidos/reservados sin fotos filtrados:", filtered.length)
     } else {
       // Filtros normales para otras pestañas
       if (activePhotoTab === "pending") {
@@ -397,7 +417,7 @@ export default function PhotosTable() {
       } else if (activePhotoTab === "completed") {
         filtered = vehicles.filter((vehicle) => vehicle.photos_completed)
       } else if (activePhotoTab === "errors") {
-        filtered = vehicles.filter((vehicle) => vehicle.error_count > 0)
+        filtered = vehicles.filter((vehicle) => vehicle.error_count > 0 && !vehicle.error_subsanated)
       } else if (activePhotoTab === "paint_apto") {
         filtered = vehicles.filter((vehicle) => vehicle.estado_pintura === "apto")
       } else if (activePhotoTab === "paint_no_apto") {
@@ -472,6 +492,22 @@ export default function PhotosTable() {
     })
 
     setFilteredVehicles(filtered)
+
+    // Calcular contadores basados en los datos reales
+    setTotalCount(vehicles.length)
+    setPendingCount(vehicles.filter((v) => !v.photos_completed && v.estado_pintura !== "vendido").length)
+    setCompletedCount(vehicles.filter((v) => v.photos_completed).length)
+    setAptoCount(vehicles.filter((v) => v.estado_pintura === "apto").length)
+    setNoAptoCount(vehicles.filter((v) => v.estado_pintura === "no_apto").length)
+    setPendienteCount(vehicles.filter((v) => v.estado_pintura === "pendiente").length)
+    setErrorCount(vehicles.filter(v => v.error_count > 0 && !v.error_subsanated).length)
+    
+    // Calcular contador de vendidos basado en soldVehicles
+    const soldInPhotos = vehicles.filter(vehicle => 
+      soldVehicles.includes(vehicle.license_plate) && 
+      !vehicle.photos_completed
+    ).length
+    setSoldVehiclesCount(soldInPhotos)
 
     // Calcular paginación
     const total = filtered.length
@@ -1016,9 +1052,10 @@ export default function PhotosTable() {
 
       // 2. Preparar actualización (sin depender de auth.getUser())
       const updates = {
-        photos_completed: false,
+        photos_completed: false, // Vuelve a pendientes
         photos_completed_date: null,
         error_count: (vehicle.error_count || 0) + 1,
+        error_subsanated: false, // Marcar como no subsanado
         // No usar last_error_by por ahora para evitar problemas de autenticación
         original_assigned_to: vehicle.original_assigned_to || vehicle.assigned_to,
       }
@@ -1045,9 +1082,10 @@ export default function PhotosTable() {
           v.id === id
             ? {
                 ...v,
-                photos_completed: false,
+                photos_completed: false, // Vuelve a pendientes
                 photos_completed_date: null,
                 error_count: (v.error_count || 0) + 1,
+                error_subsanated: false, // Marcar como no subsanado
                 // No actualizar last_error_by en el estado local por ahora
                 original_assigned_to: v.original_assigned_to || v.assigned_to,
               }
@@ -1063,6 +1101,81 @@ export default function PhotosTable() {
       console.error("❌ [handleMarkAsError] Error completo:", error)
       
       let errorMessage = "No se pudo marcar el vehículo como erróneo. Por favor, inténtalo de nuevo."
+      
+      if (error instanceof Error) {
+        errorMessage = error.message
+      } else if (typeof error === 'object' && error !== null && 'message' in error) {
+        errorMessage = (error as any).message
+      }
+      
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleSubsanateError = async (id: string) => {
+    try {
+      console.log("🔍 [handleSubsanateError] Iniciando proceso para ID:", id)
+      
+      // 1. Obtener el vehículo
+      const { data: vehicle, error: fetchError } = await supabase.from("fotos").select("*").eq("id", id).single()
+
+      if (fetchError) {
+        console.error("❌ [handleSubsanateError] Error al obtener vehículo:", fetchError)
+        throw fetchError
+      }
+
+      console.log("✅ [handleSubsanateError] Vehículo obtenido:", vehicle?.license_plate)
+
+      // 2. Preparar actualización
+      const updates = {
+        error_subsanated: true, // Marcar como subsanado
+        photos_completed: true, // Marcar como completado
+        photos_completed_date: new Date().toISOString(), // Fecha actual
+        // No usar last_error_by por ahora para evitar problemas de autenticación
+      }
+
+      console.log("🔧 [handleSubsanateError] Actualización a aplicar:", updates)
+
+      // 3. Ejecutar actualización
+      const { data: updateResult, error: updateError } = await supabase
+        .from("fotos")
+        .update(updates)
+        .eq("id", id)
+        .select()
+
+      if (updateError) {
+        console.error("❌ [handleSubsanateError] Error al actualizar:", updateError)
+        throw updateError
+      }
+
+      console.log("✅ [handleSubsanateError] Actualización exitosa:", updateResult)
+
+      // 4. Actualizar estado local
+      setVehicles((prev) =>
+        prev.map((v) =>
+          v.id === id
+            ? {
+                ...v,
+                error_subsanated: true, // Marcar como subsanado
+                photos_completed: true, // Marcar como completado
+                photos_completed_date: new Date().toISOString(), // Fecha actual
+              }
+            : v,
+        ),
+      )
+
+      toast({
+        title: "Error subsanado",
+        description: "El error ha sido subsanado y el vehículo marcado como completado.",
+      })
+    } catch (error) {
+      console.error("❌ [handleSubsanateError] Error completo:", error)
+      
+      let errorMessage = "No se pudo subsanar el error. Por favor, inténtalo de nuevo."
       
       if (error instanceof Error) {
         errorMessage = error.message
@@ -1600,7 +1713,7 @@ export default function PhotosTable() {
                   <TabsTrigger value="sold_without_photos" className="flex items-center gap-1 text-xs px-3">
                     <span>Vendidos</span>
                     <Badge variant="outline" className="ml-1 text-xs border-muted-foreground/20">
-                      {soldVehicles.length}
+                      {soldVehiclesCount}
                     </Badge>
                   </TabsTrigger>
                 </TabsList>
@@ -1855,10 +1968,26 @@ export default function PhotosTable() {
                                 <AlertOctagon className="h-4 w-4" />
                               </Button>
                             )}
+                            {vehicle.error_count > 0 && !vehicle.error_subsanated && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-green-500 hover:text-green-600"
+                                onClick={() => handleSubsanateError(vehicle.id)}
+                                title="Subsanar error"
+                                data-interactive
+                              >
+                                <CheckCircle2 className="h-4 w-4" />
+                              </Button>
+                            )}
                             {vehicle.error_count > 0 && (
                               <Badge
                                 variant="outline"
-                                className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+                                className={`${
+                                  vehicle.error_subsanated 
+                                    ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                                    : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+                                }`}
                               >
                                 <AlertTriangle className="h-3 w-3 mr-1" />
                                 {vehicle.error_count}
