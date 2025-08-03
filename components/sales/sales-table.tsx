@@ -43,7 +43,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
-import { canUserEditClient } from "@/lib/auth/permissions-client"
+import { canUserEditClient, canUserEditPaymentMethods } from "@/lib/auth/permissions-client"
 
 // Importar la función de servidor para sincronizar vehículos validados
 import { syncValidatedVehicle } from "@/server-actions/validation-actions"
@@ -192,6 +192,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
   const [expenseTypes, setExpenseTypes] = useState<any[]>([])
   const [expensePopoverOpen, setExpensePopoverOpen] = useState(false)
   const [canEdit, setCanEdit] = useState(false)
+  const [canEditPaymentMethods, setCanEditPaymentMethods] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -428,10 +429,13 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
     const checkEditPermissions = async () => {
       try {
         const hasEditPermission = await canUserEditClient()
+        const hasPaymentMethodPermission = await canUserEditPaymentMethods()
         setCanEdit(hasEditPermission)
+        setCanEditPaymentMethods(hasPaymentMethodPermission)
       } catch (error) {
-        console.error("Error verificando permisos de edición:", error)
+        console.error("❌ [SalesTable] Error verificando permisos de edición:", error)
         setCanEdit(false)
+        setCanEditPaymentMethods(false)
       }
     }
     
@@ -1217,8 +1221,13 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
   }, [])
 
   const handleCellEdit = useCallback((id: string, field: string, currentValue: any) => {
-    // Temporarily disabled admin check
-    // if (!isAdmin) return // Solo administradores pueden editar todas las celdas
+    // Verificación específica para payment_method - solo Directores y Supervisores
+    if (field === "payment_method") {
+      if (!canEditPaymentMethods) {
+        toast.error("Solo Directores y Supervisores pueden editar métodos de pago")
+        return
+      }
+    }
 
     setSelectedRowId(id)
     setEditingCell({ id, field })
@@ -1231,7 +1240,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
         editCellInputRef.current.select()
       }
     }, 100)
-  }, [])
+  }, [canEditPaymentMethods])
 
   // Guardar el valor editado
   const handleCellSave = useCallback(async (id: string, field: string) => {
@@ -2010,12 +2019,17 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                           {/* FORMA DE PAGO - Solo visible si showHiddenColumns is true */}
                           {!hiddenColumns.paymentMethod && (
                             <TableCell className="py-1">
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className="truncate max-w-[60px]">{vehicle.payment_method}</div>
-                                </TooltipTrigger>
-                                <TooltipContent>{vehicle.payment_method}</TooltipContent>
-                              </Tooltip>
+                              {renderEditableCell(
+                                vehicle,
+                                "payment_method",
+                                vehicle.payment_method,
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div className="truncate max-w-[60px]">{vehicle.payment_method}</div>
+                                  </TooltipTrigger>
+                                  <TooltipContent>{vehicle.payment_method}</TooltipContent>
+                                </Tooltip>
+                              )}
                             </TableCell>
                           )}
 

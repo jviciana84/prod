@@ -104,19 +104,22 @@ export function SalesQuickForm({ onSaleRegistered }: { onSaleRegistered?: () => 
   const cargarAsesoresDeVentas = async () => {
     setLoadingAsesores(true)
     try {
-      // Primero obtenemos los IDs de usuarios con rol "Asesor ventas" (ID 8)
+      // Usar directamente el ID 4 para el rol "Asesor ventas"
+      const asesorVentasRoleId = 4
+
+      // Ahora obtenemos los IDs de usuarios con rol "Asesor ventas"
       const { data: userRolesData, error: userRolesError } = await supabase
         .from("user_roles")
         .select("user_id")
-        .eq("role_id", 8)
+        .eq("role_id", asesorVentasRoleId)
 
       if (userRolesError) {
-        console.error("Error al cargar roles de usuarios:", userRolesError)
+        console.error("❌ [SalesQuickForm] Error al cargar roles de usuarios:", userRolesError)
         return
       }
 
       if (!userRolesData || userRolesData.length === 0) {
-        console.log("No se encontraron usuarios con rol de asesor de ventas")
+        console.log("⚠️ [SalesQuickForm] No se encontraron usuarios con rol de asesor de ventas")
         setAsesores([])
         setLoadingAsesores(false)
         return
@@ -124,7 +127,6 @@ export function SalesQuickForm({ onSaleRegistered }: { onSaleRegistered?: () => 
 
       // Extraemos los IDs de usuario
       const userIds = userRolesData.map((role) => role.user_id)
-      console.log("IDs de usuarios con rol de asesor:", userIds)
 
       // Ahora obtenemos los perfiles de estos usuarios
       const { data: profilesData, error: profilesError } = await supabase
@@ -133,11 +135,9 @@ export function SalesQuickForm({ onSaleRegistered }: { onSaleRegistered?: () => 
         .in("id", userIds)
 
       if (profilesError) {
-        console.error("Error al cargar perfiles de asesores:", profilesError)
+        console.error("❌ [SalesQuickForm] Error al cargar perfiles de asesores:", profilesError)
         return
       }
-
-      console.log("Perfiles de asesores obtenidos:", profilesData)
 
       if (profilesData && profilesData.length > 0) {
         // Transformar los datos al formato requerido
@@ -148,14 +148,13 @@ export function SalesQuickForm({ onSaleRegistered }: { onSaleRegistered?: () => 
           id: profile.id.toString(), // ID del usuario para guardar en la BD
         }))
 
-        console.log("Asesores formateados:", asesoresFormateados)
         setAsesores(asesoresFormateados)
       } else {
-        console.log("No se encontraron perfiles para los asesores")
+        console.log("⚠️ [SalesQuickForm] No se encontraron perfiles para los asesores")
         setAsesores([])
       }
     } catch (err) {
-      console.error("Error al cargar asesores:", err)
+      console.error("❌ [SalesQuickForm] Error al cargar asesores:", err)
       setAsesores([])
     } finally {
       setLoadingAsesores(false)
@@ -453,7 +452,6 @@ export function SalesQuickForm({ onSaleRegistered }: { onSaleRegistered?: () => 
 
   // Cargar asesores al montar el componente
   useEffect(() => {
-    console.log("Iniciando carga de asesores...")
     cargarAsesoresDeVentas()
   }, [])
 
