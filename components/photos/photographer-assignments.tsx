@@ -201,7 +201,7 @@ export default function PhotographerAssignments() {
         const { data, error } = await supabase
           .from("duc_scraper")
           .select("Matrícula")
-          .eq("estado", "reservado")
+          .eq("Estado", "reservado")
         
         reservedVehicles = data
         reservedError = error
@@ -216,11 +216,11 @@ export default function PhotographerAssignments() {
         try {
           const { data: allDucData, error: allDucError } = await supabase
             .from("duc_scraper")
-            .select("Matrícula, estado")
+            .select("Matrícula, Estado")
             .limit(10)
           
           if (!allDucError && allDucData) {
-            console.log("Valores de estado disponibles:", [...new Set(allDucData.map(item => item.estado))])
+            console.log("Valores de Estado disponibles:", [...new Set(allDucData.map(item => item.Estado))])
           }
         } catch (debugError) {
           console.log("No se pudo obtener valores de debug:", debugError)
