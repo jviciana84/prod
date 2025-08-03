@@ -90,7 +90,7 @@
     "util": "latest",
     "vaul": "^0.9.6",
     "web-push": "latest",
-    "xlsx": "latest",
+    "xlsx": "^0.18.5",
     "zod": "latest"
   },
   "devDependencies": {
