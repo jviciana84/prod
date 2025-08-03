@@ -65,6 +65,8 @@
     "fs": "latest",
     "imap-simple": "latest",
     "input-otp": "1.4.1",
+    "jspdf": "^3.0.1",
+    "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.454.0",
     "mailparser": "latest",
     "nanoid": "latest",

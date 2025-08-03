@@ -1,27 +1,10 @@
 import { redirect } from "next/navigation"
 import PhotographerAssignments from "@/components/photos/photographer-assignments"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
-import { getUserRoles } from "@/lib/auth/permissions"
 import { Settings } from "lucide-react"
 
 export default async function PhotographerAssignmentsPage() {
   try {
-    // Verificar permisos de administrador
-    const userRoles = await getUserRoles()
-    const hasAdminRole = userRoles.some(
-      (role) => 
-        role === "admin" || 
-        role === "supervisor" || 
-        role === "director" ||
-        role.includes("admin") ||
-        role.includes("supervisor") ||
-        role.includes("director")
-    )
-
-    if (!hasAdminRole) {
-      redirect("/dashboard")
-    }
-
     return (
       <div className="p-4 md:p-5 space-y-4 pb-20">
         <div className="space-y-2">

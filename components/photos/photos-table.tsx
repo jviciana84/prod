@@ -163,8 +163,6 @@ export default function PhotosTable() {
 
   useEffect(() => {
     fetchData()
-    // También sincronizar automáticamente al cargar la página
-    handleSyncPhotosWithSales()
   }, [])
 
   const fetchData = async () => {
@@ -1218,15 +1216,6 @@ export default function PhotosTable() {
   }
 
   const handleSyncPhotosWithSales = async () => {
-    if (isLoading) {
-      toast({
-        title: "Error",
-        description: "Ya se está procesando. Por favor, espera.",
-        variant: "destructive",
-      })
-      return
-    }
-
     setIsLoading(true)
     try {
       console.log("🔄 Iniciando sincronización y actualización de datos...")
@@ -1363,17 +1352,15 @@ export default function PhotosTable() {
               <CardDescription>Filtra y gestiona el estado de las fotografías</CardDescription>
             </div>
           </div>
-          {profile?.role && ["admin", "Supervisor", "Director"].some(r => profile.role.split(",").map(x => x.trim()).includes(r)) && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleOpenAssignments}
-              className="h-10 px-3"
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Asignaciones
-            </Button>
-          )}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleOpenAssignments}
+            className="h-10 px-3"
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            Asignaciones
+          </Button>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Filtros mejorados y organizados */}
