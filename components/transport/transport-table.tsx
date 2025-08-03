@@ -390,51 +390,51 @@ export default function TransportTable({
         {/* Izquierda: Buscador y botones alineados */}
         <div className="flex items-center gap-2">
           {/* Buscador */}
-          <Card className="p-3">
-            <div className="flex items-center gap-2 relative">
-              <Search className="h-4 w-4 text-muted-foreground" />
-              <Input
-                ref={searchInputRef}
-                type="search"
-                placeholder="Buscar por matrícula, modelo, sede o cargo..."
-                className="w-80"
-                value={searchTerm}
-                onChange={handleSearchChange}
-              />
-              {searchTerm && (
-                <button
-                  onClick={clearSearch}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          </Card>
+           <Card className="p-3">
+             <div className="flex items-center gap-2 relative">
+               <Search className="h-4 w-4 text-muted-foreground" />
+               <Input
+                 ref={searchInputRef}
+                 type="search"
+                 placeholder="Buscar por matrícula, modelo, sede o cargo..."
+                 className="w-80"
+                 value={searchTerm}
+                 onChange={handleSearchChange}
+               />
+               {searchTerm && (
+                 <button
+                   onClick={clearSearch}
+                   className="text-muted-foreground hover:text-foreground"
+                 >
+                   <X className="h-4 w-4" />
+                 </button>
+               )}
+             </div>
+           </Card>
 
           {/* Botones con la misma altura */}
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={refreshData}
-            disabled={isLoading}
-            className="h-9 w-9"
-            title="Actualizar datos"
-          >
-            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-          </Button>
+           <Button
+             variant="outline"
+             size="icon"
+             onClick={refreshData}
+             disabled={isLoading}
+             className="h-9 w-9"
+             title="Actualizar datos"
+           >
+             {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+           </Button>
 
           {/* Popover de ordenamiento */}
           <Popover open={sortMenuOpen} onOpenChange={setSortMenuOpen}>
             <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-9 w-9"
-                title="Ordenar"
-              >
-                <ArrowUpDown className="h-4 w-4" />
-              </Button>
+           <Button
+             variant="outline"
+             size="icon"
+             className="h-9 w-9"
+             title="Ordenar"
+           >
+             <ArrowUpDown className="h-4 w-4" />
+           </Button>
             </PopoverTrigger>
             <PopoverContent className="w-56 p-2" align="start" side="bottom">
               <div className="space-y-2">
@@ -619,94 +619,94 @@ export default function TransportTable({
           </Popover>
 
           {/* Botón de filtro de fechas */}
-          <Popover open={isDateFilterOpen} onOpenChange={setIsDateFilterOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className={cn(
-                  "h-9 w-9",
-                  (dateRange.from || dateRange.to) && "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
-                )}
-                title="Filtrar por rango de fechas"
-              >
-                <CalendarIcon className="h-4 w-4" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
-              <CalendarComponent
-                initialFocus
-                mode="range"
-                defaultMonth={dateRange.from}
-                selected={dateRange}
-                onSelect={(range) => {
-                  setDateRange(range || { from: undefined, to: undefined })
-                  setIsDateFilterOpen(false)
-                }}
-                numberOfMonths={2}
-                locale={es}
-              />
-              {(dateRange.from || dateRange.to) && (
-                <div className="p-3 border-t">
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm text-muted-foreground">
-                      {dateRange.from && (
-                        <span>Desde: {format(dateRange.from, "dd/MM/yyyy", { locale: es })}</span>
-                      )}
-                      {dateRange.to && (
-                        <span className="ml-2">
-                          Hasta: {format(dateRange.to, "dd/MM/yyyy", { locale: es })}
-                        </span>
-                      )}
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={clearDateRangeFilter}
-                      className="h-6 text-xs"
-                    >
-                      Limpiar
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </PopoverContent>
-          </Popover>
+           <Popover open={isDateFilterOpen} onOpenChange={setIsDateFilterOpen}>
+             <PopoverTrigger asChild>
+               <Button
+                 variant="outline"
+                 size="icon"
+                 className={cn(
+                   "h-9 w-9",
+                   (dateRange.from || dateRange.to) && "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                 )}
+                 title="Filtrar por rango de fechas"
+               >
+                 <CalendarIcon className="h-4 w-4" />
+               </Button>
+             </PopoverTrigger>
+             <PopoverContent className="w-auto p-0" align="end">
+               <CalendarComponent
+                 initialFocus
+                 mode="range"
+                 defaultMonth={dateRange.from}
+                 selected={dateRange}
+                 onSelect={(range) => {
+                   setDateRange(range || { from: undefined, to: undefined })
+                   setIsDateFilterOpen(false)
+                 }}
+                 numberOfMonths={2}
+                 locale={es}
+               />
+               {(dateRange.from || dateRange.to) && (
+                 <div className="p-3 border-t">
+                   <div className="flex items-center justify-between">
+                     <div className="text-sm text-muted-foreground">
+                       {dateRange.from && (
+                         <span>Desde: {format(dateRange.from, "dd/MM/yyyy", { locale: es })}</span>
+                       )}
+                       {dateRange.to && (
+                         <span className="ml-2">
+                           Hasta: {format(dateRange.to, "dd/MM/yyyy", { locale: es })}
+                         </span>
+                       )}
+                     </div>
+                     <Button
+                       variant="ghost"
+                       size="sm"
+                       onClick={clearDateRangeFilter}
+                       className="h-6 text-xs"
+                     >
+                       Limpiar
+                     </Button>
+                   </div>
+                 </div>
+               )}
+             </PopoverContent>
+           </Popover>
 
-          <PrintExportButton
-            transports={transports}
-            searchQuery={searchTerm}
-            statusFilter={activeFilter}
-            locationFilter="all"
-            locations={locations}
-            currentDisplayData={paginatedData}
-          />
+           <PrintExportButton
+             transports={transports}
+             searchQuery={searchTerm}
+             statusFilter={activeFilter}
+             locationFilter="all"
+             locations={locations}
+             currentDisplayData={paginatedData}
+           />
         </div>
 
                  {/* Derecha: Pestañas en la misma línea */}
-         <Tabs value={activeFilter} onValueChange={handleFilterChange} className="w-auto">
+           <Tabs value={activeFilter} onValueChange={handleFilterChange} className="w-auto">
            <TabsList className="grid grid-cols-3 w-[400px]">
-             <TabsTrigger value="pending" className="flex items-center gap-1">
-               <span>Pendientes</span>
+               <TabsTrigger value="pending" className="flex items-center gap-1">
+                 <span>Pendientes</span>
                <Badge variant="outline" className="ml-1 text-xs border-muted-foreground/20">
                  {transports.filter(t => t && !t.is_received).length}
                </Badge>
-             </TabsTrigger>
-             <TabsTrigger value="received" className="flex items-center gap-1">
-               <span>Recibidos</span>
+               </TabsTrigger>
+               <TabsTrigger value="received" className="flex items-center gap-1">
+                 <span>Recibidos</span>
                <Badge variant="outline" className="ml-1 text-xs border-muted-foreground/20">
                  {transports.filter(t => t && t.is_received).length}
                </Badge>
-             </TabsTrigger>
-             <TabsTrigger value="all" className="flex items-center gap-1">
-               <span>Todos</span>
+               </TabsTrigger>
+               <TabsTrigger value="all" className="flex items-center gap-1">
+                 <span>Todos</span>
                <Badge variant="outline" className="ml-1 text-xs border-muted-foreground/20">
                  {transports.length}
                </Badge>
-             </TabsTrigger>
-           </TabsList>
-         </Tabs>
-      </div>
+               </TabsTrigger>
+             </TabsList>
+           </Tabs>
+       </div>
 
       <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
         <div className="relative w-full overflow-auto">
@@ -746,23 +746,23 @@ export default function TransportTable({
                       )}
                     >
                       <TableCell className="py-3">
-                        <span className="font-medium text-foreground">{transport.license_plate}</span>
+                          <span className="font-medium text-foreground">{transport.license_plate}</span>
                       </TableCell>
                       <TableCell className="py-3 text-foreground">{transport.model || "-"}</TableCell>
                       <TableCell className="py-3 text-foreground">
-                        {transport.purchase_price ? `${transport.purchase_price.toLocaleString("es-ES")} €` : <span className="text-muted-foreground">-</span>}
+                            {transport.purchase_price ? `${transport.purchase_price.toLocaleString("es-ES")} €` : <span className="text-muted-foreground">-</span>}
                       </TableCell>
                       <TableCell className="py-3 text-foreground">
-                        {transport.origin_location?.name || <span className="text-muted-foreground">-</span>}
+                            {transport.origin_location?.name || <span className="text-muted-foreground">-</span>}
                       </TableCell>
                       <TableCell className="py-3 text-foreground">
-                        {transport.expense_type?.name || <span className="text-muted-foreground">-</span>}
+                            {transport.expense_type?.name || <span className="text-muted-foreground">-</span>}
                       </TableCell>
                       <TableCell className="py-3">
-                        <div className="flex items-center gap-1">
-                          <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                          <div className="flex items-center gap-1">
+                            <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                           <span>{formatDate(transport.purchase_date)}</span>
-                        </div>
+                          </div>
                       </TableCell>
                       <TableCell className="py-3">
                         {waitingDays !== null && (
@@ -777,11 +777,11 @@ export default function TransportTable({
                           size="sm"
                           onClick={() => transport && toggleReception(transport.id, transport.is_received)}
                           disabled={isLoading}
-                          className={`h-8 text-xs transition-all duration-300 ${
-                            transport && transport.is_received
-                              ? "border-green-200 text-green-700 hover:text-white hover:border-green-500 hover:bg-green-500 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-700 dark:hover:text-white"
-                              : "border-amber-200 text-amber-700 hover:text-white hover:border-amber-500 hover:bg-amber-500 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-700 dark:hover:text-white"
-                          }`}
+                                                      className={`h-8 text-xs transition-all duration-300 ${
+                              transport && transport.is_received
+                                ? "border-green-200 text-green-700 hover:text-white hover:border-green-500 hover:bg-green-500 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-700 dark:hover:text-white"
+                                : "border-amber-200 text-amber-700 hover:text-white hover:border-amber-500 hover:bg-amber-500 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-700 dark:hover:text-white"
+                            }`}
                         >
                           {transport && transport.is_received ? (
                             <>

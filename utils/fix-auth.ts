@@ -55,44 +55,66 @@ export function clearCorruptedSession() {
   if (typeof window === "undefined") return
 
   try {
-    // Solo limpiar cookies que empiecen con 'base64-' (corruptas)
+    console.log("🔧 Iniciando limpieza de sesión corrupta...")
+    
+    // 1. Limpiar TODAS las cookies de Supabase (no solo las corruptas)
     const cookies = document.cookie.split(";")
-    let cleaned = false
+    let cleanedCookies = 0
     
     cookies.forEach((cookie) => {
       const [name, value] = cookie.trim().split("=")
-      if (name && name.trim().startsWith("sb-") && value && value.startsWith("base64-")) {
-        // Eliminar solo cookies corruptas de Supabase
+      if (name && name.trim().startsWith("sb-")) {
+        // Eliminar todas las cookies de Supabase
         document.cookie = `${name.trim()}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
-        console.log("Cookie corrupta eliminada:", name.trim())
-        cleaned = true
+        document.cookie = `${name.trim()}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=localhost;`
+        document.cookie = `${name.trim()}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.localhost;`
+        console.log("Cookie de Supabase eliminada:", name.trim())
+        cleanedCookies++
       }
     })
 
-    // También limpiar localStorage corrupto
+    // 2. Limpiar localStorage de Supabase
+    let cleanedStorage = 0
     Object.keys(localStorage).forEach((key) => {
       if (key.startsWith("sb-")) {
-        try {
-          const value = localStorage.getItem(key)
-          if (value && value.startsWith("base64-")) {
-            localStorage.removeItem(key)
-            console.log("LocalStorage corrupto eliminado:", key)
-            cleaned = true
-          }
-        } catch (error) {
-          // Si no se puede leer, eliminar
-          localStorage.removeItem(key)
-          console.log("LocalStorage corrupto eliminado:", key)
-          cleaned = true
-        }
+        localStorage.removeItem(key)
+        console.log("LocalStorage de Supabase eliminado:", key)
+        cleanedStorage++
       }
     })
 
-    if (cleaned) {
-      console.log("Sesión corrupta limpiada. Se requiere nuevo login.")
+    // 3. Limpiar sessionStorage de Supabase
+    Object.keys(sessionStorage).forEach((key) => {
+      if (key.startsWith("sb-")) {
+        sessionStorage.removeItem(key)
+        console.log("SessionStorage de Supabase eliminado:", key)
+        cleanedStorage++
+      }
+    })
+
+    // 4. Forzar recarga de caché del navegador
+    if ('caches' in window) {
+      caches.keys().then((cacheNames) => {
+        cacheNames.forEach((cacheName) => {
+          if (cacheName.includes('supabase') || cacheName.includes('auth')) {
+            caches.delete(cacheName)
+            console.log("Cache eliminado:", cacheName)
+          }
+        })
+      })
+    }
+
+    console.log(`✅ Limpieza completada: ${cleanedCookies} cookies, ${cleanedStorage} items de storage`)
+    
+    if (cleanedCookies > 0 || cleanedStorage > 0) {
+      console.log("🔄 Se requiere nuevo login después de la limpieza")
+      // Forzar recarga después de un breve delay
+      setTimeout(() => {
+        window.location.reload()
+      }, 100)
     }
   } catch (error) {
-    console.error("Error al limpiar sesión corrupta:", error)
+    console.error("❌ Error al limpiar sesión corrupta:", error)
   }
 }
 

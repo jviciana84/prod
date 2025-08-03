@@ -34,10 +34,12 @@ export function useAuth() {
 
         if (error) {
           console.warn("Error al obtener sesión:", error.message)
-          // Si hay error de parsing, limpiar cookies corruptas
-          if (error.message.includes("JSON") || error.message.includes("parse")) {
+          // Si hay error de parsing o cualquier error de autenticación, limpiar cookies
+          if (error.message.includes("JSON") || error.message.includes("parse") || error.message.includes("Failed to parse cookie")) {
             console.warn("Error de parsing detectado, limpiando cookies corruptas...")
             clearCorruptedSession()
+            // No establecer estado aquí, la recarga se encargará
+            return
           }
           if (mounted) {
             setAuthState({ user: null, loading: false, error: error.message, profile: null })

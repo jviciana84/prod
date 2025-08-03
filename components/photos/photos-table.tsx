@@ -87,6 +87,7 @@ export default function PhotosTable() {
   const [photographerFilter, setPhotographerFilter] = useState<string>("all")
   const [paintStatusFilter, setpaintStatusFilter] = useState<string>("all")
   const [isLoading, setIsLoading] = useState(true)
+  const [isDataReady, setIsDataReady] = useState(false)
   const [activePhotoTab, setActivePhotoTab] = useState<string>("pending")
   
   // Estados para la paginación
@@ -224,6 +225,7 @@ export default function PhotosTable() {
 
       setVehicles(vehiclesData || [])
       setPhotographers(formattedPhotographers || [])
+      setIsDataReady(true)
     } catch (error) {
       console.error("Error al cargar datos:", error)
       
@@ -346,19 +348,19 @@ export default function PhotosTable() {
 
   // Cargar vehículos vendidos siempre (no solo cuando estés en la pestaña)
   useEffect(() => {
-    const fetchSoldVehicles = async () => {
-      try {
+      const fetchSoldVehicles = async () => {
+        try {
         console.log("🔍 Buscando vehículos vendidos y reservados sin fotos...")
         
         // 1. Obtener vehículos vendidos de sales_vehicles
         const { data: soldVehiclesData, error: soldError } = await supabase
-          .from("sales_vehicles")
-          .select("license_plate, model, sale_date, advisor, advisor_name")
+            .from("sales_vehicles")
+            .select("license_plate, model, sale_date, advisor, advisor_name")
 
         if (soldError) {
           console.error("❌ Error al obtener vehículos vendidos:", soldError)
-          return
-        }
+            return
+          }
 
         // 2. Obtener vehículos reservados de duc_scraper
         const { data: reservedVehiclesData, error: reservedError } = await supabase
@@ -385,12 +387,12 @@ export default function PhotosTable() {
           reservados: reservedLicensePlates.length,
           total: allSoldOrReserved.length
         })
-      } catch (error) {
-        console.error("❌ Error en fetchSoldVehicles:", error)
+        } catch (error) {
+          console.error("❌ Error en fetchSoldVehicles:", error)
+        }
       }
-    }
 
-    fetchSoldVehicles()
+      fetchSoldVehicles()
   }, [vehicles])
 
   // Calcular datos filtrados y paginados
@@ -1259,6 +1261,8 @@ export default function PhotosTable() {
     }
   }
 
+
+
   return (
     <div key={componentId} className="space-y-4">
       {/* Estadísticas en cards individuales */}
@@ -1352,15 +1356,15 @@ export default function PhotosTable() {
               <CardDescription>Filtra y gestiona el estado de las fotografías</CardDescription>
             </div>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleOpenAssignments}
-            className="h-10 px-3"
-          >
-            <Settings className="h-4 w-4 mr-2" />
-            Asignaciones
-          </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleOpenAssignments}
+              className="h-10 px-3"
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Asignaciones
+            </Button>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Filtros mejorados y organizados */}
@@ -1375,13 +1379,13 @@ export default function PhotosTable() {
                 <Card className="p-2">
                   <div className="flex items-center gap-2 relative">
                     <Search className="h-4 w-4 text-muted-foreground" />
-                    <Input
+                      <Input
                       placeholder="Buscar matrícula o modelo..."
                       className="w-80"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                  </div>
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+              </div>
                 </Card>
 
                 {/* Botones con la misma altura */}
@@ -1393,8 +1397,8 @@ export default function PhotosTable() {
                   className="h-9 w-9"
                   title="Actualizar datos"
                 >
-                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                </Button>
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              </Button>
 
                 {/* Popover de ordenamiento */}
                 <Popover open={sortMenuOpen} onOpenChange={setSortMenuOpen}>
@@ -1625,50 +1629,50 @@ export default function PhotosTable() {
                   </PopoverContent>
                 </Popover>
 
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setShowDateFilter(true)}
-                  className={cn(
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setShowDateFilter(true)}
+                className={cn(
                     "h-9 w-9",
-                    (dateFilter.from || dateFilter.to) && "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-300"
-                  )}
-                  title="Filtrar por fecha"
-                >
-                  <Calendar className="h-4 w-4" />
-                </Button>
+                  (dateFilter.from || dateFilter.to) && "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-300"
+                )}
+                title="Filtrar por fecha"
+              >
+                <Calendar className="h-4 w-4" />
+              </Button>
 
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => handleExport('pdf')}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handleExport('pdf')}
                   className="h-9 w-9"
                   title="Exportar PDF"
-                >
-                  <Printer className="h-4 w-4" />
-                </Button>
+              >
+                <Printer className="h-4 w-4" />
+              </Button>
 
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => handleExport('excel')}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handleExport('excel')}
                   className="h-9 w-9"
-                  title="Exportar Excel"
-                >
-                  <FileSpreadsheet className="h-4 w-4" />
-                </Button>
+                title="Exportar Excel"
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+              </Button>
 
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={handleSyncPhotosWithSales}
-                  disabled={isLoading}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleSyncPhotosWithSales}
+                disabled={isLoading}
                   className="h-9 w-9"
                   title="Sincronizar y actualizar datos"
-                >
+              >
                   <RotateCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                </Button>
-              </div>
+              </Button>
+            </div>
 
               {/* Derecha: Pestañas con contadores */}
               <Tabs value={activePhotoTab} onValueChange={setActivePhotoTab} className="w-auto">
@@ -1714,36 +1718,36 @@ export default function PhotosTable() {
               
               {/* Filtros de estado alineados a la derecha */}
               <div className="flex flex-wrap gap-2">
-                <Select value={photographerFilter} onValueChange={setPhotographerFilter}>
+              <Select value={photographerFilter} onValueChange={setPhotographerFilter}>
                   <SelectTrigger className="w-48 h-9">
                     <SelectValue placeholder="Fotógrafo asignado" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos los fotógrafos</SelectItem>
-                    {photographers
-                      .filter((p, i, arr) => arr.findIndex(x => x.user_id === p.user_id) === i)
-                      .filter(p => p.is_active === true && p.is_hidden !== true)
-                      .filter(p => vehicles.some(v => v.assigned_to === p.user_id))
-                      .map((photographer, index) => (
-                        <SelectItem key={`photographer-${photographer.user_id}-${index}`} value={photographer.user_id}>
-                          {photographer.display_name || `Usuario ${photographer.user_id.substring(0, 8)}...`}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los fotógrafos</SelectItem>
+                  {photographers
+                    .filter((p, i, arr) => arr.findIndex(x => x.user_id === p.user_id) === i)
+                    .filter(p => p.is_active === true && p.is_hidden !== true)
+                    .filter(p => vehicles.some(v => v.assigned_to === p.user_id))
+                    .map((photographer, index) => (
+                      <SelectItem key={`photographer-${photographer.user_id}-${index}`} value={photographer.user_id}>
+                        {photographer.display_name || `Usuario ${photographer.user_id.substring(0, 8)}...`}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
 
-                <Select value={paintStatusFilter} onValueChange={setpaintStatusFilter}>
+              <Select value={paintStatusFilter} onValueChange={setpaintStatusFilter}>
                   <SelectTrigger className="w-48 h-9">
                     <SelectValue placeholder="Estado de pintura" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos los estados</SelectItem>
-                    <SelectItem value="pendiente">Pendiente</SelectItem>
-                    <SelectItem value="apto">Apto</SelectItem>
-                    <SelectItem value="no_apto">No apto</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los estados</SelectItem>
+                  <SelectItem value="pendiente">Pendiente</SelectItem>
+                  <SelectItem value="apto">Apto</SelectItem>
+                  <SelectItem value="no_apto">No apto</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             </div>
 
             {/* Indicador de filtros activos */}
@@ -2081,36 +2085,36 @@ export default function PhotosTable() {
 
             {/* Fechas personalizadas */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="from-date" className="text-sm font-medium">
-                  Desde
-                </Label>
-                <Input
-                  id="from-date"
-                  type="date"
-                  value={dateFilter.from?.toISOString().split("T")[0] || ""}
-                  onChange={(e) => {
-                    const date = e.target.value ? new Date(e.target.value) : undefined
-                    applyDateFilter(date, dateFilter.to)
-                  }}
+            <div className="space-y-2">
+              <Label htmlFor="from-date" className="text-sm font-medium">
+                Desde
+              </Label>
+              <Input
+                id="from-date"
+                type="date"
+                value={dateFilter.from?.toISOString().split("T")[0] || ""}
+                onChange={(e) => {
+                  const date = e.target.value ? new Date(e.target.value) : undefined
+                  applyDateFilter(date, dateFilter.to)
+                }}
                   className="h-10"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="to-date" className="text-sm font-medium">
-                  Hasta
-                </Label>
-                <Input
-                  id="to-date"
-                  type="date"
-                  value={dateFilter.to?.toISOString().split("T")[0] || ""}
-                  onChange={(e) => {
-                    const date = e.target.value ? new Date(e.target.value) : undefined
-                    applyDateFilter(dateFilter.from, date)
-                  }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="to-date" className="text-sm font-medium">
+                Hasta
+              </Label>
+              <Input
+                id="to-date"
+                type="date"
+                value={dateFilter.to?.toISOString().split("T")[0] || ""}
+                onChange={(e) => {
+                  const date = e.target.value ? new Date(e.target.value) : undefined
+                  applyDateFilter(dateFilter.from, date)
+                }}
                   className="h-10"
-                />
-              </div>
+              />
+            </div>
             </div>
 
             {/* Indicador de filtro activo */}

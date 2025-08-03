@@ -303,9 +303,9 @@ export default function PhotographerAssignments() {
       // Crear array de estadísticas
       const statsArray = photographers.map(p => {
         const stats = statsByPhotographer[p.user_id] || { completed: 0, pending: 0, total: 0 }
-        return {
-          id: p.id,
-          user_id: p.user_id,
+            return {
+              id: p.id,
+              user_id: p.user_id,
           avatar_url: p.avatar_url,
           name: p.full_name || p.email,
           percentage: p.percentage,
@@ -474,9 +474,9 @@ export default function PhotographerAssignments() {
           ? completionTimes.reduce((sum, time) => sum + time, 0) / completionTimes.length
           : 0
 
-        return {
+              return {
           name: p.full_name || p.email || p.user_id,
-          user_id: p.user_id,
+                user_id: p.user_id,
           configured_percentage: p.percentage,
           is_locked: p.is_locked,
           total_assigned: photographerPhotos.length,
@@ -484,8 +484,8 @@ export default function PhotographerAssignments() {
           pending: pendingPhotos.length,
           avg_completion_time: avgCompletionTime,
           completion_rate: photographerPhotos.length > 0 ? (completedPhotos.length / photographerPhotos.length) * 100 : 0
-        }
-      }) || []
+              }
+            }) || []
 
       // Generar PDF
       const doc = new jsPDF()
@@ -727,9 +727,9 @@ export default function PhotographerAssignments() {
       if (error) throw error
 
       // Actualizar estado local
-      const updatedPhotographers = [...photographers]
-      updatedPhotographers[index].is_locked = value
-      setPhotographers(updatedPhotographers)
+    const updatedPhotographers = [...photographers]
+    updatedPhotographers[index].is_locked = value
+    setPhotographers(updatedPhotographers)
 
       toast({
         title: value ? "Fotógrafo bloqueado" : "Fotógrafo desbloqueado",
@@ -1267,14 +1267,14 @@ export default function PhotographerAssignments() {
               <CardDescription>Gestiona el reparto de porcentaje entre los fotógrafos activos</CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={distributePercentages}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={distributePercentages}
                 disabled={photographers.filter((p) => p.is_active && !p.is_hidden).length === 0 || !canEdit()}
-              >
-                Distribuir Equitativamente
-              </Button>
+            >
+              Distribuir Equitativamente
+            </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -1416,49 +1416,49 @@ export default function PhotographerAssignments() {
                     return [
                       // Usuarios activos
                       ...activeUsers.map((user, index) => {
-                        const photographer = photographers.find((p) => p.user_id === user.id)
-                        const isActive = photographer?.is_active || false
-                        const percentage = photographer?.percentage ?? 0
-                        const isHidden = photographer?.is_hidden || false
-                        const isLocked = photographer?.is_locked || false
-                        return (
+                      const photographer = photographers.find((p) => p.user_id === user.id)
+                      const isActive = photographer?.is_active || false
+                      const percentage = photographer?.percentage ?? 0
+                      const isHidden = photographer?.is_hidden || false
+                      const isLocked = photographer?.is_locked || false
+                      return (
                           <TableRow key={`active-${user.id}-${index}`} className={isHidden ? "opacity-60" : ""}>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                {user.avatar_url && (
-                                  <img src={user.avatar_url} alt="avatar" className="w-8 h-8 rounded-full" />
-                                )}
-                                <div>
-                                  <div className="font-medium">{user.full_name || user.email}</div>
-                                  <div className="text-xs text-muted-foreground">{user.email}</div>
-                                </div>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              {user.avatar_url && (
+                                <img src={user.avatar_url} alt="avatar" className="w-8 h-8 rounded-full" />
+                              )}
+                              <div>
+                                <div className="font-medium">{user.full_name || user.email}</div>
+                                <div className="text-xs text-muted-foreground">{user.email}</div>
                               </div>
-                            </TableCell>
-                            <TableCell className="w-40" style={{ minWidth: 220, width: 260 }}>
-                              <div className="flex items-center gap-2">
-                                <Slider
-                                  value={[percentage]}
-                                  min={0}
-                                  max={100}
-                                  step={1}
-                                  onValueChange={(value) => {
-                                    if (photographer) {
-                                      handlePercentageChange(photographers.findIndex((p) => p.user_id === user.id), value)
-                                    }
-                                  }}
+                            </div>
+                          </TableCell>
+                          <TableCell className="w-40" style={{ minWidth: 220, width: 260 }}>
+                            <div className="flex items-center gap-2">
+                              <Slider
+                                value={[percentage]}
+                                min={0}
+                                max={100}
+                                step={1}
+                                onValueChange={(value) => {
+                                  if (photographer) {
+                                    handlePercentageChange(photographers.findIndex((p) => p.user_id === user.id), value)
+                                  }
+                                }}
                                   disabled={!isActive || isLocked || !canEdit()}
-                                  className="w-[160px] md:w-[200px] lg:w-[220px] xl:w-[240px]"
-                                />
-                                <div className="flex items-center gap-1">
-                                  <span className="text-sm font-mono">{percentage}%</span>
-                                  {isLocked && <Lock className="h-3 w-3 text-blue-500" title="Porcentaje bloqueado" />}
-                                </div>
+                                className="w-[160px] md:w-[200px] lg:w-[220px] xl:w-[240px]"
+                              />
+                              <div className="flex items-center gap-1">
+                                <span className="text-sm font-mono">{percentage}%</span>
+                                {isLocked && <Lock className="h-3 w-3 text-blue-500" title="Porcentaje bloqueado" />}
                               </div>
-                            </TableCell>
-                            <TableCell>
-                              <Switch
-                                checked={isActive}
-                                onCheckedChange={async (value) => {
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Switch
+                              checked={isActive}
+                              onCheckedChange={async (value) => {
                                   if (!canEdit()) {
                                     toast({
                                       title: "Acceso denegado",
@@ -1468,54 +1468,54 @@ export default function PhotographerAssignments() {
                                     return
                                   }
                                   
-                                  if (photographer) {
-                                    handleActiveChange(photographers.findIndex((p) => p.user_id === user.id), value)
-                                  } else if (value) {
-                                    // Si no existe, crear el registro en la base de datos y en el estado
-                                    setIsSaving(true)
-                                    try {
-                                      const { data, error } = await supabase
-                                        .from("fotos_asignadas")
-                                        .insert({
-                                          user_id: user.id,
-                                          percentage: 0,
-                                          is_active: true,
-                                          created_at: new Date().toISOString(),
-                                          updated_at: new Date().toISOString(),
-                                        })
-                                        .select()
-                                      if (error) throw error
-                                      fetchData()
-                                    } catch (e) {
-                                      toast({
-                                        title: "Error",
-                                        description: "No se pudo activar el usuario como fotógrafo.",
-                                        variant: "destructive",
+                                if (photographer) {
+                                  handleActiveChange(photographers.findIndex((p) => p.user_id === user.id), value)
+                                } else if (value) {
+                                  // Si no existe, crear el registro en la base de datos y en el estado
+                                  setIsSaving(true)
+                                  try {
+                                    const { data, error } = await supabase
+                                      .from("fotos_asignadas")
+                                      .insert({
+                                        user_id: user.id,
+                                        percentage: 0,
+                                        is_active: true,
+                                        created_at: new Date().toISOString(),
+                                        updated_at: new Date().toISOString(),
                                       })
-                                    } finally {
-                                      setIsSaving(false)
-                                    }
+                                      .select()
+                                    if (error) throw error
+                                    fetchData()
+                                  } catch (e) {
+                                    toast({
+                                      title: "Error",
+                                      description: "No se pudo activar el usuario como fotógrafo.",
+                                      variant: "destructive",
+                                    })
+                                  } finally {
+                                    setIsSaving(false)
                                   }
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell className="flex gap-2 pl-0" style={{ width: 100, paddingLeft: 0 }}>
-                              {photographer && (
-                                <>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    title={isLocked ? "Desbloquear porcentaje" : "Bloquear porcentaje"}
-                                    onClick={() => handleLockChange(photographers.findIndex((p) => p.user_id === user.id), !isLocked)}
+                                }
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell className="flex gap-2 pl-0" style={{ width: 100, paddingLeft: 0 }}>
+                            {photographer && (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  title={isLocked ? "Desbloquear porcentaje" : "Bloquear porcentaje"}
+                                  onClick={() => handleLockChange(photographers.findIndex((p) => p.user_id === user.id), !isLocked)}
                                     disabled={!isActive || !canEdit()}
-                                  >
-                                    {isLocked ? <Unlock className="h-4 w-4 text-blue-500" /> : <Lock className="h-4 w-4 text-muted-foreground" />}
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    title={isHidden ? "Mostrar usuario" : "Ocultar usuario"}
-                                    onClick={async () => {
+                                >
+                                  {isLocked ? <Unlock className="h-4 w-4 text-blue-500" /> : <Lock className="h-4 w-4 text-muted-foreground" />}
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  title={isHidden ? "Mostrar usuario" : "Ocultar usuario"}
+                                  onClick={async () => {
                                       if (!canEdit()) {
                                         toast({
                                           title: "Acceso denegado",
@@ -1525,40 +1525,40 @@ export default function PhotographerAssignments() {
                                         return
                                       }
                                       
-                                      setIsSaving(true)
-                                      try {
-                                        const { error } = await supabase
-                                          .from("fotos_asignadas")
-                                          .update({ is_hidden: !isHidden, updated_at: new Date().toISOString() })
-                                          .eq("id", photographer.id)
-                                        if (error) throw error
-                                        fetchData()
-                                      } catch (e) {
-                                        toast({
-                                          title: "Error",
-                                          description: "No se pudo cambiar la visibilidad del usuario.",
-                                          variant: "destructive",
-                                        })
-                                      } finally {
-                                        setIsSaving(false)
-                                      }
-                                    }}
-                                  >
-                                    {isHidden ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4" />}
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleDeletePhotographer(photographer.id, user.email || "")}
+                                    setIsSaving(true)
+                                    try {
+                                      const { error } = await supabase
+                                        .from("fotos_asignadas")
+                                        .update({ is_hidden: !isHidden, updated_at: new Date().toISOString() })
+                                        .eq("id", photographer.id)
+                                      if (error) throw error
+                                      fetchData()
+                                    } catch (e) {
+                                      toast({
+                                        title: "Error",
+                                        description: "No se pudo cambiar la visibilidad del usuario.",
+                                        variant: "destructive",
+                                      })
+                                    } finally {
+                                      setIsSaving(false)
+                                    }
+                                  }}
+                                >
+                                  {isHidden ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4" />}
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDeletePhotographer(photographer.id, user.email || "")}
                                     disabled={isSaving || !canEdit()}
-                                  >
-                                    <Trash2 className="h-4 w-4 text-red-500" />
-                                  </Button>
-                                </>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        )
+                                >
+                                  <Trash2 className="h-4 w-4 text-red-500" />
+                                </Button>
+                              </>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      )
                       }),
                       
                       // Separador si hay usuarios inactivos
@@ -1743,7 +1743,7 @@ export default function PhotographerAssignments() {
               <div className="flex gap-2">
                 <Button variant="outline" size="icon" onClick={() => loadRealStats(!canEdit())} disabled={isLoadingStats} title="Actualizar estadísticas">
                   <RefreshCw className={`h-4 w-4 ${isLoadingStats ? "animate-spin" : ""}`} />
-                </Button>
+              </Button>
                 <Button variant="outline" size="icon" onClick={() => generateDetailedReport(!canEdit())} title="Generar informe detallado">
                   <Printer className="h-4 w-4" />
                 </Button>
@@ -1782,14 +1782,14 @@ export default function PhotographerAssignments() {
                     ) : photographerStats.length > 0 ? (
                       photographerStats.map((stat, index) => (
                         <div key={`stat-${stat.id}-${index}`} className="flex items-center justify-between p-2 bg-muted/20 rounded-lg">
-                          <div className="flex items-center gap-2">
-                            {stat.avatar_url && (
+                        <div className="flex items-center gap-2">
+                          {stat.avatar_url && (
                               <img src={stat.avatar_url} alt="avatar" className="w-6 h-6 rounded-full" />
-                            )}
+                          )}
                             <div>
                               <div className="text-sm font-medium">{stat.name}</div>
                               <div className="text-xs text-muted-foreground">{stat.percentage}% configurado</div>
-                            </div>
+                        </div>
                             {stat.is_locked && <Lock className="h-3 w-3 text-blue-500" title="Bloqueado" />}
                           </div>
                           <div className="text-right">

@@ -28,6 +28,7 @@ import { Input } from "@/components/ui/input"
 import { toast } from "@/hooks/use-toast"
 import { getUserPreferences } from "@/lib/user-preferences"
 import type { PageInfo } from "@/types/user-preferences"
+import { clearCorruptedSession } from "@/utils/fix-auth"
 
 interface DashboardHeaderProps {
   user: User
@@ -75,6 +76,8 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
 
   // Obtener el nombre para mostrar (nombre completo de los metadatos o email si no hay nombre)
   const displayName = user.user_metadata.full_name || user.email
+
+
 
   // DESACTIVADO: No limpiar cookies automáticamente
   // useEffect(() => {
@@ -522,7 +525,7 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
             >
               <div className="avatar-eclipse">
                 <Avatar className="h-[48px] w-[48px]">
-                  <AvatarImage src={userProfile?.avatar_url || user.user_metadata.avatar_url || "/placeholder.svg"} alt={displayName} />
+                  <AvatarImage src={userProfile?.avatar_url || "/placeholder.svg"} alt={displayName} />
                   <AvatarFallback>{getInitials(displayName)}</AvatarFallback>
                 </Avatar>
               </div>
@@ -545,7 +548,7 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
                       >
                         <div className="avatar-eclipse">
                           <Avatar className="h-20 w-20 group-hover:ring-2 group-hover:ring-primary/50 transition-all duration-200">
-                            <AvatarImage src={userProfile?.avatar_url || user.user_metadata.avatar_url || "/placeholder.svg"} alt={displayName} />
+                            <AvatarImage src={userProfile?.avatar_url || "/placeholder.svg"} alt={displayName} />
                             <AvatarFallback className="text-xl">{getInitials(displayName)}</AvatarFallback>
                           </Avatar>
                         </div>
@@ -757,7 +760,7 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
             <div className="avatar-eclipse">
               <Avatar className="h-80 w-80 shadow-xl">
                 <AvatarImage
-                  src={userProfile?.avatar_url || user.user_metadata.avatar_url || "/placeholder.svg"}
+                  src={userProfile?.avatar_url || "/placeholder.svg"}
                   alt={displayName}
                   className="object-cover"
                 />
