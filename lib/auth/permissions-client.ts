@@ -5,10 +5,17 @@ export async function getUserRolesClient(): Promise<string[]> {
   const supabase = createClientComponentClient()
 
   try {
+    // Agregar timeout para evitar que se cuelgue
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error("Timeout")), 5000)
+    })
+
+    const userPromise = supabase.auth.getUser()
+    
     const {
       data: { user },
       error: userError,
-    } = await supabase.auth.getUser()
+    } = await Promise.race([userPromise, timeoutPromise]) as any
 
     if (userError || !user) {
       console.log("⚠️ [getUserRolesClient] No hay usuario autenticado en el cliente.")
@@ -17,8 +24,8 @@ export async function getUserRolesClient(): Promise<string[]> {
 
     console.log("✅ [getUserRolesClient] Usuario autenticado ID:", user.id)
 
-    // Intentar obtener roles desde user_roles
-    const { data: userRoles, error: userRolesError } = await supabase
+    // Intentar obtener roles desde user_roles con timeout
+    const userRolesPromise = supabase
       .from("user_roles")
       .select(`
         roles (
@@ -27,18 +34,22 @@ export async function getUserRolesClient(): Promise<string[]> {
       `)
       .eq("user_id", user.id)
 
+    const { data: userRoles, error: userRolesError } = await Promise.race([userRolesPromise, timeoutPromise]) as any
+
     if (!userRolesError && userRoles && userRoles.length > 0) {
       const roles = userRoles.map((ur: any) => ur.roles?.name).filter(Boolean)
       console.log("✅ [getUserRolesClient] Roles obtenidos desde user_roles:", roles)
       return roles.map((role: string) => role.toLowerCase())
     }
 
-    // Fallback: intentar obtener desde profiles
-    const { data: profileData, error: profileError } = await supabase
+    // Fallback: intentar obtener desde profiles con timeout
+    const profilePromise = supabase
       .from("profiles")
       .select("role")
       .eq("id", user.id)
       .single()
+
+    const { data: profileData, error: profileError } = await Promise.race([profilePromise, timeoutPromise]) as any
 
     if (!profileError && profileData?.role) {
       const roles = profileData.role.split(", ").map((role: string) => role.toLowerCase().trim())
@@ -58,7 +69,15 @@ export async function getUserRolesClient(): Promise<string[]> {
 export async function isUserAdminClient(): Promise<boolean> {
   try {
     console.log("⚙️ [isUserAdminClient] Verificando si el usuario es administrador...")
-    const roles = await getUserRolesClient()
+    
+    // Agregar timeout para evitar que se cuelgue
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error("Timeout")), 3000)
+    })
+    
+    const rolesPromise = getUserRolesClient()
+    const roles = await Promise.race([rolesPromise, timeoutPromise]) as string[]
+    
     console.log("✅ [isUserAdminClient] Roles obtenidos para verificación de admin:", roles)
     
     // Verificar cualquier rol de administrador (considerando mayúsculas/minúsculas)
@@ -105,8 +124,18 @@ export async function isUserSupervisorOrDirectorClient(): Promise<boolean> {
 // Función para verificar si el usuario puede editar (lado del cliente)
 export async function canUserEditClient(): Promise<boolean> {
   try {
-    const isAdmin = await isUserAdminClient()
-    const isSupervisorOrDirector = await isUserSupervisorOrDirectorClient()
+    // Agregar timeout para evitar que se cuelgue
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error("Timeout")), 4000)
+    })
+    
+    const isAdminPromise = isUserAdminClient()
+    const isSupervisorOrDirectorPromise = isUserSupervisorOrDirectorClient()
+    
+    const [isAdmin, isSupervisorOrDirector] = await Promise.race([
+      Promise.all([isAdminPromise, isSupervisorOrDirectorPromise]),
+      timeoutPromise
+    ]) as [boolean, boolean]
     
     return isAdmin || isSupervisorOrDirector
   } catch (error) {
