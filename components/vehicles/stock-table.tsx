@@ -40,6 +40,7 @@ import { type StockItem, STATUS_OPTIONS, WORK_CENTER_OPTIONS } from "@/lib/types
 import { formatDateForDisplay } from "@/lib/date-utils"
 import { addDays, format } from "date-fns"
 import ReusablePagination from "@/components/ui/reusable-pagination"
+import { DateFilter } from "@/components/ui/date-filter"
 
 // Definición de prioridades
 enum Priority {
@@ -126,8 +127,13 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
   const [editingOR, setEditingOR] = useState<string | null>(null)
   const [orValues, setOrValues] = useState<Record<string, string>>({})
   const [paintStatus, setPaintStatus] = useState<Record<string, string>>({})
-  const [showDateFilter, setShowDateFilter] = useState(false)
-  const [dateFilter, setDateFilter] = useState<{ startDate: Date | null; endDate: Date | null }>({ startDate: null, endDate: null })
+  const [dateFilter, setDateFilter] = useState<{
+    from: Date | undefined
+    to: Date | undefined
+  }>({
+    from: undefined,
+    to: undefined,
+  })
   const [expenseTypes, setExpenseTypes] = useState<Array<{ value: string; label: string }>>([])
 
   const supabase = getSupabaseClient()
@@ -135,14 +141,6 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
   const { toast } = useToast()
   const externalProviderInputRef = useRef<HTMLInputElement>(null)
   const orInputRef = useRef<HTMLInputElement>(null)
-
-  // Filtros rápidos para fechas
-  const quickFilters = [
-    { label: "Últimos 7 días", days: 7 },
-    { label: "Últimos 30 días", days: 30 },
-    { label: "Últimos 90 días", days: 90 },
-    { label: "Último año", days: 365 },
-  ]
 
   // Añade este useEffect después de la declaración de las variables de estado
   useEffect(() => {
@@ -231,13 +229,13 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
     }
 
     // Aplicar filtro de fechas
-    if (dateFilter.startDate || dateFilter.endDate) {
+    if (dateFilter.from || dateFilter.to) {
       filtered = filtered.filter((item) => {
         if (!item.reception_date) return false
         const receptionDate = new Date(item.reception_date)
         
-        if (dateFilter.startDate && receptionDate < dateFilter.startDate) return false
-        if (dateFilter.endDate && receptionDate > dateFilter.endDate) return false
+        if (dateFilter.from && receptionDate < dateFilter.from) return false
+        if (dateFilter.to && receptionDate > dateFilter.to) return false
         
         return true
       })
@@ -1440,17 +1438,12 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
               />
             </div>
             <div className="flex items-center gap-2">
-              <Button
-                variant={dateFilter.startDate || dateFilter.endDate ? "outline" : "outline"}
-                size="icon"
-                onClick={() => setShowDateFilter(true)}
-                className={dateFilter.startDate || dateFilter.endDate
-                  ? "h-9 w-9 border border-blue-500 text-blue-300 bg-transparent shadow-[0_0_0_2px_rgba(59,130,246,0.2)]"
-                  : "h-9 w-9"}
-                title="Filtrar por fecha"
-              >
-                <Calendar className="h-4 w-4" />
-              </Button>
+              <DateFilter
+                onDateFilterChange={(from, to) => setDateFilter({ from, to })}
+                dateFilter={dateFilter}
+                title="Filtrar por fecha de recepción"
+                description="Selecciona un rango de fechas para filtrar por fecha de recepción"
+              />
               <Button
                 variant="outline"
                 size="icon"
@@ -3725,70 +3718,7 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
         </TabsContent>
       </Tabs>
 
-      {/* Modal de filtro de fechas */}
-      <Dialog open={showDateFilter} onOpenChange={setShowDateFilter}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Filtro de Fechas</DialogTitle>
-            <DialogDescription>Selecciona un rango de fechas para filtrar por fecha de recepción</DialogDescription>
-          </DialogHeader>
-          <div className="mb-4">
-            <div className="font-semibold mb-2">Filtros rápidos</div>
-            <div className="flex flex-wrap gap-2 mb-4">
-              {quickFilters.map((f) => (
-                <Button
-                  key={f.label}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const end = new Date()
-                    const start = addDays(end, -f.days + 1)
-                    setDateFilter({ startDate: start, endDate: end })
-                  }}
-                >
-                  {f.label}
-                </Button>
-              ))}
-            </div>
-            <div className="font-semibold mb-2">Rango personalizado</div>
-            <div className="flex gap-2 mb-2">
-              <div className="flex-1">
-                <label className="block text-xs mb-1">Fecha inicio</label>
-                <Input
-                  type="date"
-                  value={dateFilter.startDate ? format(dateFilter.startDate, "yyyy-MM-dd") : ""}
-                  onChange={e => setDateFilter(df => ({ ...df, startDate: e.target.value ? new Date(e.target.value) : null }))}
-                />
-              </div>
-              <div className="flex-1">
-                <label className="block text-xs mb-1">Fecha fin</label>
-                <Input
-                  type="date"
-                  value={dateFilter.endDate ? format(dateFilter.endDate, "yyyy-MM-dd") : ""}
-                  onChange={e => setDateFilter(df => ({ ...df, endDate: e.target.value ? new Date(e.target.value) : null }))}
-                />
-              </div>
-            </div>
-            <div className="flex justify-between items-center mt-4">
-              <Button variant="ghost" size="sm" onClick={() => setDateFilter({ startDate: null, endDate: null })}>
-                Limpiar
-              </Button>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => setShowDateFilter(false)}>
-                  Cancelar
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => setShowDateFilter(false)}
-                  disabled={!dateFilter.startDate && !dateFilter.endDate}
-                >
-                  Aplicar
-                </Button>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+
     </div>
   )
 }

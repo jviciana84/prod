@@ -13,7 +13,8 @@
     "generate-favicon": "npx tsx scripts/generate-favicon.ts",
     "clear-cache": "node scripts/clear-cache.js",
     "clean": "npm run clear-cache && npm run build",
-    "optimize": "node scripts/optimize-build.js"
+    "optimize": "node scripts/optimize-build.js",
+    "update-manual": "node scripts/manual-helper.js"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",
@@ -63,6 +64,7 @@
     "exceljs": "latest",
     "framer-motion": "latest",
     "fs": "latest",
+    "html2canvas": "^1.4.1",
     "imap-simple": "latest",
     "input-otp": "1.4.1",
     "jspdf": "^3.0.1",

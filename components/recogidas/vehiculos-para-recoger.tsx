@@ -17,6 +17,7 @@ import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { useAuth } from "@/hooks/use-auth"
 import { Label } from "@/components/ui/label"
+import { DateFilter } from "@/components/ui/date-filter"
 
 interface VehiculoParaRecoger {
   id: string
@@ -46,8 +47,13 @@ export function VehiculosParaRecoger({ onSolicitarRecogida }: VehiculosParaRecog
   const [refreshing, setRefreshing] = useState(false)
   const [initialLoad, setInitialLoad] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
-  const [showDateFilter, setShowDateFilter] = useState(false)
-  const [dateFilter, setDateFilter] = useState<{ startDate: Date | null; endDate: Date | null }>({ startDate: null, endDate: null })
+  const [dateFilter, setDateFilter] = useState<{
+    from: Date | undefined
+    to: Date | undefined
+  }>({
+    from: undefined,
+    to: undefined,
+  })
   const [selectedMatricula, setSelectedMatricula] = useState<string | null>(null)
   const [showWhatsAppDialog, setShowWhatsAppDialog] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
@@ -238,15 +244,15 @@ export function VehiculosParaRecoger({ onSolicitarRecogida }: VehiculosParaRecog
     }
 
     // Filtro de fechas
-    if (dateFilter.startDate || dateFilter.endDate) {
+    if (dateFilter.from || dateFilter.to) {
       filtered = filtered.filter((vehiculo) => {
         const fechaEntrega = new Date(vehiculo.fecha_entrega)
         
-        if (dateFilter.startDate && fechaEntrega < dateFilter.startDate) {
+        if (dateFilter.from && fechaEntrega < dateFilter.from) {
           return false
         }
         
-        if (dateFilter.endDate && fechaEntrega > dateFilter.endDate) {
+        if (dateFilter.to && fechaEntrega > dateFilter.to) {
           return false
         }
         
@@ -826,7 +832,7 @@ export function VehiculosParaRecoger({ onSolicitarRecogida }: VehiculosParaRecog
 
   // Función para limpiar filtro de fechas
   const clearDateFilter = () => {
-    setDateFilter({ startDate: null, endDate: null })
+    setDateFilter({ from: undefined, to: undefined })
   }
 
   // Función para obtener números de página (igual que en sales-table)
@@ -885,17 +891,12 @@ export function VehiculosParaRecoger({ onSolicitarRecogida }: VehiculosParaRecog
                   <RefreshCw className="h-4 w-4" />
                 )}
               </Button>
-              <Button
-                variant={dateFilter.startDate || dateFilter.endDate ? "outline" : "outline"}
-                size="icon"
-                onClick={() => setShowDateFilter(true)}
-                className={dateFilter.startDate || dateFilter.endDate
-                  ? "h-9 w-9 border border-blue-500 text-blue-300 bg-transparent shadow-[0_0_0_2px_rgba(59,130,246,0.2)]"
-                  : "h-9 w-9"}
-                title="Filtrar por fecha"
-              >
-                <Calendar className="h-4 w-4" />
-              </Button>
+              <DateFilter
+                onDateFilterChange={(from, to) => setDateFilter({ from, to })}
+                dateFilter={dateFilter}
+                title="Filtrar por fecha de entrega"
+                description="Selecciona un rango de fechas para filtrar por fecha de entrega"
+              />
             </div>
             
             <div className="flex items-center gap-2">
@@ -948,7 +949,7 @@ export function VehiculosParaRecoger({ onSolicitarRecogida }: VehiculosParaRecog
                   ) : paginatedVehiculos.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                        {searchQuery || dateFilter.startDate || dateFilter.endDate 
+                        {searchQuery || dateFilter.from || dateFilter.to 
                           ? "No se encontraron vehículos con los filtros aplicados"
                           : "No hay vehículos con fecha de entrega"
                         }
@@ -1240,71 +1241,7 @@ export function VehiculosParaRecoger({ onSolicitarRecogida }: VehiculosParaRecog
         </div>
       )}
 
-      {/* Modal de filtro de fechas */}
-      <Dialog open={showDateFilter} onOpenChange={setShowDateFilter}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Filtro de Fechas</DialogTitle>
-            <DialogDescription>Selecciona un rango de fechas para filtrar por fecha de entrega</DialogDescription>
-          </DialogHeader>
-          <div className="mb-4">
-            <div className="font-semibold mb-2">Filtros rápidos</div>
-            <div className="flex flex-wrap gap-2 mb-4">
-              {quickFilters.map((f) => (
-                <Button
-                  key={f.label}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const end = new Date()
-                    const start = new Date()
-                    start.setDate(end.getDate() - f.days + 1)
-                    setDateFilter({ startDate: start, endDate: end })
-                  }}
-                >
-                  {f.label}
-                </Button>
-              ))}
-            </div>
-            <div className="font-semibold mb-2">Rango personalizado</div>
-            <div className="flex gap-2 mb-2">
-              <div className="flex-1">
-                <label className="block text-xs mb-1">Fecha inicio</label>
-                <Input
-                  type="date"
-                  value={dateFilter.startDate ? dateFilter.startDate.toISOString().slice(0, 10) : ""}
-                  onChange={e => setDateFilter(df => ({ ...df, startDate: e.target.value ? new Date(e.target.value) : null }))}
-                />
-              </div>
-              <div className="flex-1">
-                <label className="block text-xs mb-1">Fecha fin</label>
-                <Input
-                  type="date"
-                  value={dateFilter.endDate ? dateFilter.endDate.toISOString().slice(0, 10) : ""}
-                  onChange={e => setDateFilter(df => ({ ...df, endDate: e.target.value ? new Date(e.target.value) : null }))}
-                />
-              </div>
-            </div>
-            <div className="flex justify-between items-center mt-4">
-              <Button variant="ghost" size="sm" onClick={clearDateFilter}>
-                Limpiar
-              </Button>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => setShowDateFilter(false)}>
-                  Cancelar
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => setShowDateFilter(false)}
-                  disabled={!dateFilter.startDate && !dateFilter.endDate}
-                >
-                  Aplicar
-                </Button>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+
 
       {/* Modal de Recogida Compacto */}
       <Dialog open={showRecogidaModal} onOpenChange={setShowRecogidaModal}>

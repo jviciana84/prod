@@ -32,6 +32,7 @@ import { ReusablePagination } from "@/components/ui/reusable-pagination"
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { Card } from "@/components/ui/card"
 import { PrintExportButton } from "./print-export-button"
+import { DateFilter } from "@/components/ui/date-filter"
 
 interface TransportTableProps {
   initialTransports: any[]
@@ -68,7 +69,6 @@ export default function TransportTable({
     from: undefined,
     to: undefined,
   })
-  const [isDateFilterOpen, setIsDateFilterOpen] = useState(false)
 
   // Estados para el ordenamiento
   const [sortMenuOpen, setSortMenuOpen] = useState(false)
@@ -619,59 +619,12 @@ export default function TransportTable({
           </Popover>
 
           {/* Botón de filtro de fechas */}
-           <Popover open={isDateFilterOpen} onOpenChange={setIsDateFilterOpen}>
-             <PopoverTrigger asChild>
-               <Button
-                 variant="outline"
-                 size="icon"
-                 className={cn(
-                   "h-9 w-9",
-                   (dateRange.from || dateRange.to) && "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
-                 )}
-                 title="Filtrar por rango de fechas"
-               >
-                 <CalendarIcon className="h-4 w-4" />
-               </Button>
-             </PopoverTrigger>
-             <PopoverContent className="w-auto p-0" align="end">
-               <CalendarComponent
-                 initialFocus
-                 mode="range"
-                 defaultMonth={dateRange.from}
-                 selected={dateRange}
-                 onSelect={(range) => {
-                   setDateRange(range || { from: undefined, to: undefined })
-                   setIsDateFilterOpen(false)
-                 }}
-                 numberOfMonths={2}
-                 locale={es}
-               />
-               {(dateRange.from || dateRange.to) && (
-                 <div className="p-3 border-t">
-                   <div className="flex items-center justify-between">
-                     <div className="text-sm text-muted-foreground">
-                       {dateRange.from && (
-                         <span>Desde: {format(dateRange.from, "dd/MM/yyyy", { locale: es })}</span>
-                       )}
-                       {dateRange.to && (
-                         <span className="ml-2">
-                           Hasta: {format(dateRange.to, "dd/MM/yyyy", { locale: es })}
-                         </span>
-                       )}
-                     </div>
-                     <Button
-                       variant="ghost"
-                       size="sm"
-                       onClick={clearDateRangeFilter}
-                       className="h-6 text-xs"
-                     >
-                       Limpiar
-                     </Button>
-                   </div>
-                 </div>
-               )}
-             </PopoverContent>
-           </Popover>
+          <DateFilter
+            onDateFilterChange={(from, to) => setDateRange({ from, to })}
+            dateFilter={dateRange}
+            title="Filtrar por fecha de compra"
+            description="Selecciona un rango de fechas para filtrar por fecha de compra"
+          />
 
            <PrintExportButton
              transports={transports}
