@@ -484,9 +484,18 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
   }
 
   const handleTrophyClick = async (entrega: Entrega) => {
+    console.log("🎯 handleTrophyClick llamado con entrega:", entrega)
     setEnviandoIncentivo(entrega.id)
 
     try {
+      console.log("📤 Enviando a incentivos:", {
+        matricula: entrega.matricula,
+        modelo: entrega.modelo,
+        asesor: entrega.asesor,
+        fechaEntrega: entrega.fecha_entrega,
+        or: entrega.or,
+      })
+
       const result = await enviarEntregaAIncentivos(
         entrega.matricula,
         entrega.modelo,
@@ -494,6 +503,8 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
         entrega.fecha_entrega,
         entrega.or, // Asegúrate de que este campo se llama 'or' en tu tabla 'entregas'
       )
+
+      console.log("📥 Resultado de enviarEntregaAIncentivos:", result)
 
       if (result.success) {
         toast.success(result.message)
@@ -503,6 +514,7 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
         toast.error(result.message) // Cambiado de result.error a result.message para consistencia
       }
     } catch (error: any) {
+      console.error("❌ Error en handleTrophyClick:", error)
       toast.error("Error al enviar a incentivos: " + error.message)
     } finally {
       setEnviandoIncentivo(null)
@@ -878,7 +890,12 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
                                       : "text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50",
                                   )}
                                   title={entrega.enviado_a_incentivos ? "Reenviar a incentivos" : "Enviar a incentivos"}
-                                  onClick={() => handleTrophyClick(entrega)} // Llama a la nueva función
+                                  onClick={(e) => {
+                                    console.log("🎯 Botón trofeo clickeado para entrega:", entrega.id)
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    handleTrophyClick(entrega)
+                                  }}
                                   disabled={enviandoIncentivo === entrega.id} // Solo deshabilitado mientras se envía
                                 >
                                   {enviandoIncentivo === entrega.id ? (

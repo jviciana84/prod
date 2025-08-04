@@ -91,24 +91,32 @@ const PROCESS_STATUSES = [
   { value: "completado", label: "Completado", color: "border-green-300 dark:border-green-700 text-green-600" },
 ]
 
-// Función para obtener el color de la prioridad
-function getPriorityColor(priorityValue: number): string {
-  if (priorityValue >= 1200) return "bg-red-600 dark:bg-red-500" // Validados con alta prioridad
-  if (priorityValue >= 1100) return "bg-red-500 dark:bg-red-400" // Validados con prioridad alta
-  if (priorityValue >= 1000) return "bg-orange-500 dark:bg-orange-400" // Validados base
-  if (priorityValue >= 200) return "bg-amber-500 dark:bg-amber-400" // No validados muy antiguos
-  if (priorityValue >= 100) return "bg-yellow-500 dark:bg-yellow-400" // No validados antiguos
-  if (priorityValue >= 50) return "bg-yellow-400 dark:bg-yellow-300" // No validados medianos
-  return "bg-gray-300 dark:bg-gray-600" // No validados recientes
+// Función para obtener el color del ping combinando días y prioridad
+function getPriorityColor(vehicle: SoldVehicle): string {
+  // Calcular días desde la venta
+  const daysSinceSale = vehicle.sale_date ? 
+    Math.floor((new Date().getTime() - new Date(vehicle.sale_date).getTime()) / (1000 * 60 * 60 * 24)) : 0
+  
+  // PRIORIDAD POR DÍAS (factor principal)
+  if (daysSinceSale >= 15) return "bg-red-800 dark:bg-red-700" // Infierno (15+ días)
+  if (daysSinceSale >= 10) return "bg-red-600 dark:bg-red-500" // Rojo (10-15 días)
+  if (daysSinceSale >= 6) return "bg-amber-500 dark:bg-amber-400" // Ámbar (6-10 días)
+  if (daysSinceSale <= 6) return "bg-green-500 dark:bg-green-400" // Verde (0-6 días)
+  
+  return "bg-gray-300 dark:bg-gray-600" // Fallback
 }
 
-// Función para calcular el tamaño del ping según la prioridad
-function getPrioritySize(priorityValue: number): string {
-  if (priorityValue >= 1000) return "h-4 w-4" // Validados (más grande)
-  if (priorityValue >= 200) return "h-3.5 w-3.5" // No validados muy antiguos
-  if (priorityValue >= 100) return "h-3 w-3" // No validados antiguos
-  if (priorityValue >= 50) return "h-2.5 w-2.5" // No validados medianos
-  return "h-2 w-2" // No validados recientes (más pequeño)
+// Función para calcular el tamaño del ping combinando días y prioridad
+function getPrioritySize(vehicle: SoldVehicle): string {
+  // Calcular días desde la venta
+  const daysSinceSale = vehicle.sale_date ? 
+    Math.floor((new Date().getTime() - new Date(vehicle.sale_date).getTime()) / (1000 * 60 * 60 * 24)) : 0
+  
+  // TAMAÑO POR DÍAS (factor principal)
+  if (daysSinceSale >= 15) return "h-4 w-4" // Infierno (más grande)
+  if (daysSinceSale >= 10) return "h-3.5 w-3.5" // Rojo
+  if (daysSinceSale >= 6) return "h-3 w-3" // Ámbar
+  return "h-2.5 w-2.5" // Verde (más pequeño)
 }
 
 // Tipo para los vehículos vendidos

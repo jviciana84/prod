@@ -11,8 +11,9 @@ export async function enviarEntregaAIncentivos(
   fechaEntrega: string | null,
   or: string,
 ) {
+  console.log("🚀 enviarEntregaAIncentivos iniciado con:", { matricula, modelo, asesor, fechaEntrega, or })
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // Verificar si ya existe un incentivo para esta matrícula
     const { data: existingIncentive, error: checkError } = await supabase
@@ -48,6 +49,8 @@ export async function enviarEntregaAIncentivos(
       }
     }
 
+    console.log("🚗 Datos del vehículo obtenidos:", vehicleData)
+
     // Obtener configuración de incentivos
     const { data: configData, error: configError } = await supabase.from("incentivos_config").select("*").single()
 
@@ -58,6 +61,8 @@ export async function enviarEntregaAIncentivos(
         message: `Error al obtener configuración de incentivos: ${configError.message}`,
       }
     }
+
+    console.log("📋 Configuración de incentivos obtenida:", configData)
 
     // Determinar si es financiado basado en payment_method
     const financiado = vehicleData.payment_method?.toLowerCase() === "financiado"
@@ -108,12 +113,15 @@ export async function enviarEntregaAIncentivos(
     revalidatePath("/dashboard/incentivos")
     revalidatePath("/dashboard/entregas")
 
-    return {
+    const result = {
       success: true,
       message: `Incentivo creado exitosamente para ${matricula}${calculatedWarranty === 0 ? " (Garantía de fabricante detectada)" : ""}`,
     }
+    
+    console.log("✅ enviarEntregaAIncentivos completado exitosamente:", result)
+    return result
   } catch (error: any) {
-    console.error("Error inesperado:", error)
+    console.error("❌ Error inesperado en enviarEntregaAIncentivos:", error)
     return {
       success: false,
       message: `Error inesperado: ${error.message}`,
