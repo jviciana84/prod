@@ -165,7 +165,7 @@ export type SoldVehicle = {
 }
 
 // Tipo para las pestañas de tipo de vehículo
-type VehicleTab = "car" | "motorcycle" | "not_validated" | "all" | "finished" | "failed"
+type VehicleTab = "car" | "motorcycle" | "not_validated" | "all" | "finished"
 
 type SalesTableProps = {
   onRefreshRequest?: () => void
@@ -1610,49 +1610,32 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
               <TabsTrigger value="car" className="px-3 py-1 h-7 data-[state=active]:bg-background">
                 <Car className="h-3.5 w-3.5 mr-1" />
                 <span>Coches</span>
-                <Badge variant="secondary" className="ml-1 text-xs px-1 py-0">
-                  {counts.car}
-                </Badge>
+                <Badge variant="outline" className="ml-1 text-xs px-1 py-0">{counts.car}</Badge>
               </TabsTrigger>
               <TabsTrigger value="motorcycle" className="px-3 py-1 h-7 data-[state=active]:bg-background">
                 <Bike className="h-3.5 w-3.5 mr-1" />
                 <span>Motos</span>
-                <Badge variant="secondary" className="ml-1 text-xs px-1 py-0">
-                  {counts.motorcycle}
-                </Badge>
+                <Badge variant="outline" className="ml-1 text-xs px-1 py-0">{counts.motorcycle}</Badge>
               </TabsTrigger>
               <TabsTrigger value="not_validated" className="px-3 py-1 h-7 data-[state=active]:bg-background">
                 <FileCheck className="h-3.5 w-3.5 mr-1" />
                 <span>No validados</span>
-                <Badge variant="secondary" className="ml-1 text-xs px-1 py-0">
-                  {counts.not_validated || 0}
-                </Badge>
+                <Badge variant="outline" className="ml-1 text-xs px-1 py-0">{counts.not_validated || 0}</Badge>
               </TabsTrigger>
               <TabsTrigger value="finished" className="px-3 py-1 h-7 data-[state=active]:bg-background">
                 <Check className="h-3.5 w-3.5 mr-1" />
                 <span>Finalizados</span>
-                <Badge variant="secondary" className="ml-1 text-xs px-1 py-0">
-                  {counts.finished || 0}
-                </Badge>
+                <Badge variant="outline" className="ml-1 text-xs px-1 py-0">{counts.finished || 0}</Badge>
               </TabsTrigger>
               <TabsTrigger value="all" className="px-3 py-1 h-7 data-[state=active]:bg-background">
                 <span>Todos</span>
-                <Badge variant="secondary" className="ml-1 text-xs px-1 py-0">
-                  {counts.all}
-                </Badge>
-              </TabsTrigger>
-              <TabsTrigger value="failed" className="px-3 py-1 h-7 data-[state=active]:bg-background">
-                <AlertTriangle className="h-3.5 w-3.5 mr-1" />
-                <span>Ventas Caídas</span>
-                <Badge variant="secondary" className="ml-1 text-xs px-1 py-0">
-                  {counts.failed}
-                </Badge>
+                <Badge variant="outline" className="ml-1 text-xs px-1 py-0">{counts.all}</Badge>
               </TabsTrigger>
             </TabsList>
           </div>
 
           {/* Contenido de las pestañas - Usando el mismo contenido para todas */}
-          {["all", "car", "motorcycle", "not_validated", "finished", "failed"].map((tab) => (
+          {["all", "car", "motorcycle", "not_validated", "finished"].map((tab) => (
             <TabsContent key={tab} value={tab} className="mt-0">
               <div className="rounded-lg border shadow-sm overflow-hidden">
                 <div className="relative w-full overflow-auto">
