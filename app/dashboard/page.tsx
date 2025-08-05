@@ -12,7 +12,7 @@ import { RealActivityFeed } from "@/components/dashboard/real-activity-feed"
 import { FinancingRanking } from "@/components/dashboard/financing-ranking"
 import { SalesRanking } from "@/components/dashboard/sales-ranking"
 import { WorkshopDaysCard } from "@/components/dashboard/workshop-days-card"
-import { BMWLogo, MINILogo } from "@/components/ui/brand-logos"
+import { BMWLogo, MINILogo, BMWMotorradLogo } from "@/components/ui/brand-logos"
 import { differenceInDays, parseISO } from "date-fns"
 import { 
   getFirstDayOfCurrentMonth, 
@@ -594,8 +594,15 @@ export default async function Dashboard() {
   const bmwSalesCount =
     salesData?.filter((item) => {
       const isBMW = item.brand && item.brand.toLowerCase().includes("bmw")
-      console.log(`⚙️ DEBUG: Checking BMW: ID=${item.id}, Brand='${item.brand}', IsBMW=${isBMW}`)
-      return isBMW
+      // Excluir motos BMW Motorrad del conteo de BMW
+      const isMotorcycle = item.vehicle_type && (
+        item.vehicle_type.toLowerCase().includes("moto") ||
+        item.vehicle_type.toLowerCase().includes("motorcycle") ||
+        item.vehicle_type.toLowerCase().includes("motorrad")
+      )
+      const isBMWCar = isBMW && !isMotorcycle
+      console.log(`⚙️ DEBUG: Checking BMW: ID=${item.id}, Brand='${item.brand}', Type='${item.vehicle_type}', IsBMW=${isBMW}, IsMoto=${isMotorcycle}, IsBMWCar=${isBMWCar}`)
+      return isBMWCar
     }).length || 0
 
   const miniSalesCount =
@@ -644,7 +651,16 @@ export default async function Dashboard() {
 
   const revenueBMW =
     salesData
-      ?.filter((item) => item.brand && item.brand.toLowerCase().includes("bmw"))
+      ?.filter((item) => {
+        const isBMW = item.brand && item.brand.toLowerCase().includes("bmw")
+        // Excluir motos BMW Motorrad del ingreso de BMW
+        const isMotorcycle = item.vehicle_type && (
+          item.vehicle_type.toLowerCase().includes("moto") ||
+          item.vehicle_type.toLowerCase().includes("motorcycle") ||
+          item.vehicle_type.toLowerCase().includes("motorrad")
+        )
+        return isBMW && !isMotorcycle
+      })
       .reduce((total, sale) => total + (sale.price || 0), 0) || 0
 
   const revenueMINI =
@@ -691,13 +707,17 @@ export default async function Dashboard() {
     }).length || 0
 
   const bmwFinancedCount =
-    salesData?.filter(
-      (item) =>
-        item.brand &&
-        item.brand.toLowerCase().includes("bmw") &&
-        item.payment_method &&
-        item.payment_method.toLowerCase().includes("financiad"),
-    ).length || 0
+    salesData?.filter((item) => {
+      const isBMW = item.brand && item.brand.toLowerCase().includes("bmw")
+      const isFinanced = item.payment_method && item.payment_method.toLowerCase().includes("financiad")
+      // Excluir motos BMW Motorrad del conteo de BMW financiados
+      const isMotorcycle = item.vehicle_type && (
+        item.vehicle_type.toLowerCase().includes("moto") ||
+        item.vehicle_type.toLowerCase().includes("motorcycle") ||
+        item.vehicle_type.toLowerCase().includes("motorrad")
+      )
+      return isBMW && isFinanced && !isMotorcycle
+    }).length || 0
 
   const miniFinancedCount =
     salesData?.filter(
@@ -845,6 +865,10 @@ export default async function Dashboard() {
                 <MINILogo className="h-4 w-4 text-gray-800" />
                 <span className="text-xs font-medium">{stats.miniStockCount}</span>
               </div>
+              <div className="flex items-center gap-1">
+                <BMWMotorradLogo className="h-8 w-8 text-red-600" />
+                <span className="text-xs font-medium">{stats.motorcyclesInStock}</span>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -895,6 +919,10 @@ export default async function Dashboard() {
               <div className="flex items-center gap-1">
                 <MINILogo className="h-4 w-4 text-gray-800" />
                 <span className="text-xs font-medium">{stats.miniSalesCount}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <BMWMotorradLogo className="h-8 w-8 text-red-600" />
+                <span className="text-xs font-medium">{stats.salesMotorcyclesCount}</span>
               </div>
             </div>
           </CardContent>
@@ -947,6 +975,10 @@ export default async function Dashboard() {
                 <MINILogo className="h-4 w-4 text-gray-800" />
                 <span className="text-xs font-medium">{stats.revenueMINI.toLocaleString()}</span>
               </div>
+              <div className="flex items-center gap-1">
+                <BMWMotorradLogo className="h-8 w-8 text-red-600" />
+                <span className="text-xs font-medium">{stats.revenueMotorcycles.toLocaleString()}</span>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -997,6 +1029,10 @@ export default async function Dashboard() {
               <div className="flex items-center gap-1">
                 <MINILogo className="h-4 w-4 text-gray-800" />
                 <span className="text-xs font-medium">{stats.miniFinancedCount}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <BMWMotorradLogo className="h-8 w-8 text-red-600" />
+                <span className="text-xs font-medium">{stats.financedMotorcycles}</span>
               </div>
             </div>
           </CardContent>
