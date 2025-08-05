@@ -194,15 +194,15 @@ export function WorkshopDaysCard({
           {/* Subcard 2 - Gráfico */}
           <Card className="border">
             <CardContent className="p-2 h-full flex flex-col">
-              <div className="flex-1">
+              <div className="flex-1 w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <LineChart data={chartData} margin={{ top: 2, right: 5, left: -36, bottom: -23 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground) / 0.7)" />
                     <XAxis dataKey="unit" axisLine={false} tickLine={false} tick={false} />
                     <YAxis
                       axisLine={false}
                       tickLine={false}
-                      tick={{ fontSize: 12, fill: "#666" }}
+                      tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
                       domain={[0, (dataMax: number) => Math.max(dataMax + 5, 20)]}
                     />
                     <Tooltip content={<CustomTooltip />} />

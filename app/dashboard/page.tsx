@@ -544,8 +544,8 @@ export default async function Dashboard() {
   // Obtener ventas del mes actual - INCLUIR TODAS LAS VENTAS (coches y motos)
   const { data: salesData } = await supabase
     .from("sales_vehicles")
-    .select("id, price, brand, payment_method, vehicle_type, license_plate, model, order_date") // Added order_date
-    .gte("order_date", firstDayOfMonth)
+    .select("id, price, brand, payment_method, vehicle_type, license_plate, model, sale_date") // Changed to sale_date
+    .gte("sale_date", firstDayOfMonth)
 
   console.log("🚗 DEBUG: Raw sales data del mes actual:", salesData) // Debug para ver las ventas
 
@@ -711,9 +711,9 @@ export default async function Dashboard() {
   // Obtener ventas del mes anterior
   const { data: previousMonthSalesData } = await supabase
     .from("sales_vehicles")
-    .select("id, price, payment_method, vehicle_type, order_date") // Added order_date
-    .gte("order_date", firstDayOfPreviousMonth)
-    .lt("order_date", firstDayOfMonth) // Ensure it's only previous month
+    .select("id, price, payment_method, vehicle_type, sale_date") // Changed to sale_date
+    .gte("sale_date", firstDayOfPreviousMonth)
+    .lt("sale_date", firstDayOfMonth) // Ensure it's only previous month
 
   const previousSalesThisMonth = previousMonthSalesData?.length || 0
   const previousRevenue = previousMonthSalesData?.reduce((total, sale) => total + (sale.price || 0), 0) || 0
