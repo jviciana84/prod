@@ -112,10 +112,24 @@ export async function isUserSupervisorOrDirectorClient(): Promise<boolean> {
 // Función para verificar si el usuario puede editar (lado del cliente)
 export async function canUserEditClient(): Promise<boolean> {
   try {
-    const isSupervisorOrDirector = await isUserSupervisorOrDirectorClient()
+    console.log("⚙️ [canUserEditClient] Verificando permisos para editar...")
     
-    // Solo permitir supervisores y directores, NO administradores
-    return isSupervisorOrDirector
+    const roles = await getUserRolesClient()
+    console.log("✅ [canUserEditClient] Roles obtenidos:", roles)
+    
+    // Verificar roles específicos (admin, supervisor, director)
+    const canEdit = roles.some((role) => {
+      const lowerRole = role.toLowerCase()
+      return lowerRole === "admin" || 
+             lowerRole === "supervisor" || 
+             lowerRole === "director" ||
+             lowerRole.includes("admin") ||
+             lowerRole.includes("supervisor") ||
+             lowerRole.includes("director")
+    })
+    
+    console.log("🛡️ [canUserEditClient] Resultado:", canEdit)
+    return canEdit
   } catch (error) {
     console.error("❌ [canUserEditClient] Error inesperado:", error)
     return false

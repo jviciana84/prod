@@ -1592,6 +1592,9 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
                             <div className="flex items-center">
                               <Input
                                 ref={orInputRef}
+                                type="tel"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
                                 value={orValues[item.id] || "ORT"}
                                 onChange={(e) => handleORChange(item.id, e.target.value)}
                                 onBlur={() => handleORSave(item.id)}

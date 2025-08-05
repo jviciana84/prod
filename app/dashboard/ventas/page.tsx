@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from "react"
 import { SalesQuickForm } from "@/components/sales/sales-quick-form"
 import SalesTable from "@/components/sales/sales-table"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Car, Wrench, TableIcon, FileText, Plus, Calendar, Clock, Hash, ShoppingCart, TrendingUp, Upload } from "lucide-react"
+import { Car, Wrench, TableIcon, FileText, Plus, Calendar, Clock, Hash, ShoppingCart, TrendingUp, Upload, Percent } from "lucide-react"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { Button } from "@/components/ui/button"
 import { AutoRefreshIndicator } from "@/components/ui/auto-refresh-indicator"
@@ -20,7 +20,9 @@ interface SalesStats {
   esteMes: number
   ultimaSemana: number
   promedioPrecio: number
-  financiadas: number
+  promedioDiasPreparacion: number
+  enCola: number
+  promedioDescuentos: number
 }
 
 export default function VentasPage() {
@@ -33,7 +35,9 @@ export default function VentasPage() {
     esteMes: 0,
     ultimaSemana: 0,
     promedioPrecio: 0,
-    financiadas: 0
+    promedioDiasPreparacion: 0,
+    enCola: 0,
+    promedioDescuentos: 0
   })
   const [loadingStats, setLoadingStats] = useState(true)
   
@@ -42,11 +46,16 @@ export default function VentasPage() {
 
   const fetchSalesStats = useCallback(async () => {
     try {
+      console.log('🔄 Llamando a /api/sales/stats...')
       setLoadingStats(true)
       const response = await fetch('/api/sales/stats')
+      console.log('📡 Respuesta del API:', response.status)
       if (response.ok) {
         const data = await response.json()
+        console.log('📊 Datos recibidos:', data)
         setStats(data)
+      } else {
+        console.error('❌ Error en la respuesta del API:', response.status)
       }
     } catch (error) {
       console.error('Error cargando estadísticas de ventas:', error)
@@ -106,32 +115,38 @@ export default function VentasPage() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {!isAddingSale ? (
           <>
-            {/* Total Ventas */}
+            {/* Días Promedio Preparación */}
             <Card className="p-4 relative">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Ventas</p>
-                  <p className="text-2xl font-bold">
-                    {loadingStats ? "..." : stats.totalVentas}
+                  <p className="text-sm text-muted-foreground">Días Prep. Prom.</p>
+                  <p className="text-2xl font-bold text-orange-500">
+                    {loadingStats ? "..." : `${stats.promedioDiasPreparacion} días`}
                   </p>
+                  {/* Debug temporal */}
+                  {!loadingStats && (
+                    <p className="text-xs text-muted-foreground">
+                      Debug: {JSON.stringify(stats)}
+                    </p>
+                  )}
                 </div>
-                <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-full">
-                  <ShoppingCart className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-full">
+                  <Clock className="h-4 w-4 text-orange-600 dark:text-orange-400" />
                 </div>
               </div>
             </Card>
 
-            {/* Este Mes */}
+            {/* En Cola */}
             <Card className="p-4 relative">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Este Mes</p>
-                  <p className="text-2xl font-bold text-blue-500">
-                    {loadingStats ? "..." : stats.esteMes}
+                  <p className="text-sm text-muted-foreground">En Cola</p>
+                  <p className="text-2xl font-bold text-red-500">
+                    {loadingStats ? "..." : stats.enCola}
                   </p>
                 </div>
-                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-full">
-                  <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-full">
+                  <Car className="h-4 w-4 text-red-600 dark:text-red-400" />
                 </div>
               </div>
             </Card>
@@ -140,13 +155,13 @@ export default function VentasPage() {
             <Card className="p-4 relative">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Última Semana</p>
+                  <p className="text-sm text-muted-foreground">Ventas Última Semana</p>
                   <p className="text-2xl font-bold text-amber-500">
                     {loadingStats ? "..." : stats.ultimaSemana}
                   </p>
                 </div>
                 <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-full">
-                  <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  <Calendar className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                 </div>
               </div>
             </Card>
@@ -161,22 +176,22 @@ export default function VentasPage() {
                   </p>
                 </div>
                 <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-full">
-                  <Hash className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                  <TrendingUp className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                 </div>
               </div>
             </Card>
 
-            {/* Financiadas */}
+            {/* Promedio Descuentos */}
             <Card className="p-4 relative">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Financiadas</p>
+                  <p className="text-sm text-muted-foreground">Prom. Descuentos</p>
                   <p className="text-2xl font-bold text-indigo-500">
-                    {loadingStats ? "..." : stats.financiadas}
+                    {loadingStats ? "..." : `${stats.promedioDescuentos.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')}€`}
                   </p>
                 </div>
                 <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-full">
-                  <TrendingUp className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                  <Percent className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                 </div>
               </div>
             </Card>

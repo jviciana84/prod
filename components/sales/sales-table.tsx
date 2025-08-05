@@ -93,31 +93,138 @@ const PROCESS_STATUSES = [
 
 // Función para obtener el color del ping combinando días y prioridad
 function getPriorityColor(vehicle: SoldVehicle): string {
+  // Si no está validado, siempre gris
+  if (!vehicle.validated) {
+    return "bg-gray-400 dark:bg-gray-500"
+  }
+  
   // Calcular días desde la venta
   const daysSinceSale = vehicle.sale_date ? 
     Math.floor((new Date().getTime() - new Date(vehicle.sale_date).getTime()) / (1000 * 60 * 60 * 24)) : 0
   
-  // PRIORIDAD POR DÍAS (factor principal)
+  // PRIORIDAD POR DÍAS (solo para validados)
   if (daysSinceSale >= 15) return "bg-red-800 dark:bg-red-700" // Infierno (15+ días)
   if (daysSinceSale >= 10) return "bg-red-600 dark:bg-red-500" // Rojo (10-15 días)
   if (daysSinceSale >= 6) return "bg-amber-500 dark:bg-amber-400" // Ámbar (6-10 días)
-  if (daysSinceSale <= 6) return "bg-green-500 dark:bg-green-400" // Verde (0-6 días)
-  
-  return "bg-gray-300 dark:bg-gray-600" // Fallback
+  return "bg-green-500 dark:bg-green-400" // Verde (0-6 días)
 }
 
 // Función para calcular el tamaño del ping combinando días y prioridad
 function getPrioritySize(vehicle: SoldVehicle): string {
+  // Si no está validado, tamaño pequeño
+  if (!vehicle.validated) {
+    return "h-2 w-2"
+  }
+  
   // Calcular días desde la venta
   const daysSinceSale = vehicle.sale_date ? 
     Math.floor((new Date().getTime() - new Date(vehicle.sale_date).getTime()) / (1000 * 60 * 60 * 24)) : 0
   
-  // TAMAÑO POR DÍAS (factor principal)
+  // TAMAÑO POR DÍAS (solo para validados)
   if (daysSinceSale >= 15) return "h-4 w-4" // Infierno (más grande)
   if (daysSinceSale >= 10) return "h-3.5 w-3.5" // Rojo
   if (daysSinceSale >= 6) return "h-3 w-3" // Ámbar
   return "h-2.5 w-2.5" // Verde (más pequeño)
 }
+
+// Función para calcular la intensidad del ping según días
+function getPriorityIntensity(vehicle: SoldVehicle): number {
+  // Si no está validado, intensidad baja
+  if (!vehicle.validated) {
+    return 0.3
+  }
+  
+  // Calcular días desde la venta
+  const daysSinceSale = vehicle.sale_date ? 
+    Math.floor((new Date().getTime() - new Date(vehicle.sale_date).getTime()) / (1000 * 60 * 60 * 24)) : 0
+  
+  // INTENSIDAD POR DÍAS (solo para validados)
+  if (daysSinceSale >= 15) return 0.8 // Infierno (muy intenso)
+  if (daysSinceSale >= 10) return 0.7 // Rojo (intenso)
+  if (daysSinceSale >= 6) return 0.6 // Ámbar (medio)
+  return 0.5 // Verde (normal)
+}
+
+// Función para calcular la duración de la animación según días
+function getPriorityAnimationDuration(vehicle: SoldVehicle): string {
+  // Si no está validado, animación lenta
+  if (!vehicle.validated) {
+    return "4s"
+  }
+  
+  // Calcular días desde la venta
+  const daysSinceSale = vehicle.sale_date ? 
+    Math.floor((new Date().getTime() - new Date(vehicle.sale_date).getTime()) / (1000 * 60 * 60 * 24)) : 0
+  
+  // DURACIÓN POR DÍAS (solo para validados)
+  if (daysSinceSale >= 15) return "1.5s" // Infierno (muy rápido)
+  if (daysSinceSale >= 10) return "2s" // Rojo (rápido)
+  if (daysSinceSale >= 6) return "2.5s" // Ámbar (medio)
+  return "3s" // Verde (normal)
+}
+
+// Función para obtener el tamaño del punto sólido central según urgencia
+function getSolidDotSize(vehicle: SoldVehicle): string {
+  // Si no está validado, tamaño pequeño
+  if (!vehicle.validated) {
+    return "h-1.5 w-1.5"
+  }
+  
+  // Calcular días desde la venta
+  const daysSinceSale = vehicle.sale_date ? 
+    Math.floor((new Date().getTime() - new Date(vehicle.sale_date).getTime()) / (1000 * 60 * 60 * 24)) : 0
+  
+  // TAMAÑO DEL PUNTO SÓLIDO CENTRAL POR DÍAS
+  if (daysSinceSale >= 15) return "h-3 w-3" // Infierno (más grande)
+  if (daysSinceSale >= 10) return "h-2.5 w-2.5" // Rojo
+  if (daysSinceSale >= 6) return "h-2 w-2" // Ámbar
+  return "h-1.5 w-1.5" // Verde (más pequeño)
+}
+
+// Estilos para las animaciones de prioridad de ventas (exactamente como stock)
+const salesPriorityStyles = {
+  container: "relative flex items-center justify-center",
+  infierno: {
+    dot: "w-3 h-3 rounded-full bg-red-600 animate-[priorityPulseInfierno_1s_ease-in-out_infinite] relative z-10",
+    wave: "absolute top-0 left-0 w-3 h-3 rounded-full bg-red-700 animate-[ping_1s_ease-in-out_infinite] opacity-75",
+  },
+  rojo: {
+    dot: "w-3 h-3 rounded-full bg-red-500 animate-[priorityPulseRojo_1.5s_ease-in-out_infinite] relative z-10",
+    wave: "absolute top-0 left-0 w-3 h-3 rounded-full bg-red-600 animate-[ping_1.5s_ease-in-out_infinite] opacity-75",
+  },
+  amber: {
+    dot: "w-3 h-3 rounded-full bg-amber-500 animate-[priorityPulseAmber_2s_ease-in-out_infinite] relative z-10",
+    wave: "absolute top-0 left-0 w-3 h-3 rounded-full bg-amber-600 animate-[ping_2s_ease-in-out_infinite] opacity-75",
+  },
+  verde: {
+    dot: "w-3 h-3 rounded-full bg-green-500 animate-[priorityPulseVerde_2.5s_ease-in-out_infinite] relative z-10",
+    wave: "absolute top-0 left-0 w-3 h-3 rounded-full bg-green-600 animate-[ping_2.5s_ease-in-out_infinite] opacity-75",
+  },
+  gris: {
+    dot: "w-3 h-3 rounded-full bg-gray-400",
+    wave: "", // Sin animación para no validados
+  },
+}
+
+// Función para obtener el estilo de prioridad basado en días
+function getSalesPriorityStyle(vehicle: SoldVehicle) {
+  // Si no está validado, estilo gris
+  if (!vehicle.validated) {
+    return salesPriorityStyles.gris
+  }
+  
+  // Calcular días desde la venta
+  const daysSinceSale = vehicle.sale_date ? 
+    Math.floor((new Date().getTime() - new Date(vehicle.sale_date).getTime()) / (1000 * 60 * 60 * 24)) : 0
+  
+  // ESTILO POR DÍAS (solo para validados)
+  if (daysSinceSale >= 15) return salesPriorityStyles.infierno // Infierno (15+ días)
+  if (daysSinceSale >= 10) return salesPriorityStyles.rojo // Rojo (10-15 días)
+  if (daysSinceSale >= 6) return salesPriorityStyles.amber // Ámbar (6-10 días)
+  return salesPriorityStyles.verde // Verde (0-6 días)
+}
+
+
 
 // Tipo para los vehículos vendidos
 export type SoldVehicle = {
@@ -1404,6 +1511,15 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
       )
     }
 
+    // Si no tiene permisos de edición, mostrar solo el valor sin interactividad
+    if (!canEdit) {
+      return (
+        <div className="px-2 py-1 w-full">
+          {displayValue}
+        </div>
+      )
+    }
+
     return (
       <div
         className={cn(
@@ -1416,7 +1532,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
         {displayValue}
       </div>
     )
-  }, [editingCell, editingValue, handleCellEdit, handleCellSave, handleCellKeyDown])
+  }, [editingCell, editingValue, handleCellEdit, handleCellSave, handleCellKeyDown, canEdit])
 
   const toggleHiddenColumns = () => {
     setHiddenColumns((prev) => ({
@@ -1718,45 +1834,13 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                               {updatingId === vehicle.id ? (
                                 <Loader2 className="h-3 w-3 animate-spin" />
                               ) : (
-                                <div className="relative flex items-center justify-center">
+                                <div className={salesPriorityStyles.container}>
                                   <div
-                                    className={cn(
-                                      "rounded-full relative z-10",
-                                      vehicle.priority >= 1100
-                                        ? "animate-[priorityPulseHigh_2s_ease-in-out_infinite]"
-                                        : vehicle.priority >= 1000
-                                          ? "animate-[priorityPulseMedium_3s_ease-in-out_infinite]"
-                                          : vehicle.priority >= 200
-                                            ? "animate-[priorityPulseLow_5s_ease-in-out_infinite]"
-                                            : "",
-                                      getPriorityColor(vehicle.priority || 0),
-                                    )}
-                                    style={{
-                                      width: getPrioritySize(vehicle.priority || 0).includes('h-4') ? "16px" : 
-                                             getPrioritySize(vehicle.priority || 0).includes('h-3.5') ? "14px" :
-                                             getPrioritySize(vehicle.priority || 0).includes('h-3') ? "12px" : "8px",
-                                      height: getPrioritySize(vehicle.priority || 0).includes('h-4') ? "16px" : 
-                                              getPrioritySize(vehicle.priority || 0).includes('h-3.5') ? "14px" :
-                                              getPrioritySize(vehicle.priority || 0).includes('h-3') ? "12px" : "8px",
-                                    }}
+                                    className={getSalesPriorityStyle(vehicle).dot}
                                     title={`Prioridad: ${vehicle.priority || 0} puntos`}
                                   />
-                                  {vehicle.priority > 0 && (
-                                    <div
-                                      className={cn(
-                                        "absolute top-0 left-0 rounded-full animate-ping opacity-50",
-                                        getPriorityColor(vehicle.priority || 0),
-                                      )}
-                                      style={{
-                                        width: getPrioritySize(vehicle.priority || 0).includes('h-4') ? "16px" : 
-                                               getPrioritySize(vehicle.priority || 0).includes('h-3.5') ? "14px" :
-                                               getPrioritySize(vehicle.priority || 0).includes('h-3') ? "12px" : "8px",
-                                        height: getPrioritySize(vehicle.priority || 0).includes('h-4') ? "16px" : 
-                                                getPrioritySize(vehicle.priority || 0).includes('h-3.5') ? "14px" :
-                                                getPrioritySize(vehicle.priority || 0).includes('h-3') ? "12px" : "8px",
-                                        animationDuration: vehicle.priority >= 1100 ? "2s" : vehicle.priority >= 1000 ? "3s" : "4s",
-                                      }}
-                                    />
+                                  {vehicle.priority > 0 && getSalesPriorityStyle(vehicle).wave && (
+                                    <div className={getSalesPriorityStyle(vehicle).wave} />
                                   )}
                                 </div>
                               )}
@@ -1796,6 +1880,10 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                           {/* CLIENTE - Solo visible cuando las columnas están visibles */}
                           {!Object.values(hiddenColumns).some(hidden => hidden) && (
                             <TableCell className="py-1 w-20">
+                              {renderEditableCell(
+                                vehicle,
+                                "client_name",
+                                vehicle.client_name,
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <div className="truncate max-w-[80px] text-sm">
@@ -1805,7 +1893,8 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                                 <TooltipContent>
                                   {vehicle.client_name || "No disponible"}
                                 </TooltipContent>
-                              </Tooltip>
+                                </Tooltip>,
+                              )}
                             </TableCell>
                           )}
 
@@ -1917,6 +2006,9 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                               <div className="flex items-center">
                                 <Input
                                   ref={orInputRef}
+                                  type="tel"
+                                  inputMode="numeric"
+                                  pattern="[0-9]*"
                                   value={orValues[vehicle.id] || "ORT"}
                                   onChange={(e) => handleORChange(vehicle.id, e.target.value)}
                                   onBlur={() => handleORSave(vehicle.id)}

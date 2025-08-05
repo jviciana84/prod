@@ -385,6 +385,9 @@ export function RecogidaForm({ onSuccess, preselectedMatricula }: RecogidaFormPr
                 </Label>
                 <Input
                   id="telefono"
+                  type="tel"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={formData.telefono}
                   onChange={(e) => setFormData(prev => ({ ...prev, telefono: e.target.value }))}
                   placeholder="677233678"

@@ -571,6 +571,8 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
                         <Input
                           ref={phoneInputRef}
                           type="tel"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
                           value={phoneNumber}
                           onChange={(e) => setPhoneNumber(e.target.value)}
                           onKeyDown={handlePhoneKeyDown}

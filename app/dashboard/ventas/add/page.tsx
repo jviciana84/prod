@@ -271,7 +271,15 @@ export default function AddSalePage() {
 
                 <div>
                   <Label htmlFor="client_phone">Teléfono</Label>
-                  <Input id="client_phone" name="client_phone" value={formData.client_phone} onChange={handleChange} />
+                  <Input 
+                    id="client_phone" 
+                    name="client_phone" 
+                    type="tel"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={formData.client_phone} 
+                    onChange={handleChange} 
+                  />
                 </div>
 
                 <div>

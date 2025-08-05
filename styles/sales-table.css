@@ -34,6 +34,55 @@
   }
 }
 
+/* Animaciones para ventas - basadas en stock */
+@keyframes priorityPulseInfierno {
+  0%,
+  100% {
+    transform: scale(0.7);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes priorityPulseRojo {
+  0%,
+  100% {
+    transform: scale(0.7);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes priorityPulseAmber {
+  0%,
+  100% {
+    transform: scale(0.7);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes priorityPulseVerde {
+  0%,
+  100% {
+    transform: scale(0.7);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 /* Estilos para filas seleccionadas */
 tr[data-selected="true"] {
   position: relative;

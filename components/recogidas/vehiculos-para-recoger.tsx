@@ -1375,6 +1375,9 @@ export function VehiculosParaRecoger({ onSolicitarRecogida }: VehiculosParaRecog
                   <div>
                     <Label className="text-xs">Teléfono</Label>
                     <Input
+                      type="tel"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       defaultValue={selectedVehiculo.client_phone || ""}
                       className="h-6 text-xs"
                       placeholder="677233678"

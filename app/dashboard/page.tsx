@@ -206,32 +206,49 @@ export default async function Dashboard() {
     return null
   }
 
-  const workshopDaysData = completedVehicles
-    .slice(0, 15) // Limitar a los últimos 15 vehículos
+  // Procesar TODOS los vehículos completados para cálculos correctos
+  const allWorkshopDaysData = completedVehicles
     .map((v, index) => {
       const days = calculateDays(v.sale_date!, v.cyp_date, v.photo_360_date)
+      
+      console.log(`Dashboard - Vehículo ${v.license_plate}: venta=${v.sale_date}, cyp=${v.cyp_date}, 360=${v.photo_360_date}, días=${days}`)
 
       return {
-        unit: `${index + 1}`, // Número secuencial para el eje X
+        unit: `${index + 1}`,
         days: days,
-        saturation: 0, // Ya no usamos saturación pero mantenemos por compatibilidad
-        matricula: v.license_plate || v.id, // Incluir matrícula (license_plate)
+        saturation: 0,
+        matricula: v.license_plate || v.id,
       }
     })
     .filter((item) => item.days !== null) as { unit: string; days: number; saturation: number; matricula: string }[]
 
-  const totalDays = workshopDaysData.reduce((sum, item) => sum + item.days, 0)
-  const totalAverage = workshopDaysData.length > 0 ? Math.round(totalDays / workshopDaysData.length) : 0
+  // Calcular promedios correctos
+  const totalDays = allWorkshopDaysData.reduce((sum, item) => sum + item.days, 0)
+  const totalAverage = allWorkshopDaysData.length > 0 ? Math.round(totalDays / allWorkshopDaysData.length) : 0
 
-  const last15Units = workshopDaysData.slice(0, 15)
+  const last15Units = allWorkshopDaysData.slice(0, 15)
   const last15Average =
     last15Units.length > 0 ? Math.round(last15Units.reduce((sum, item) => sum + item.days, 0) / last15Units.length) : 0
 
-  const last20Units = workshopDaysData.slice(0, 20)
+  const last20Units = allWorkshopDaysData.slice(0, 20)
   const last20Average =
     last20Units.length > 0 ? Math.round(last20Units.reduce((sum, item) => sum + item.days, 0) / last20Units.length) : 0
 
-  const currentAverage = last15Average // Using last 15 as current for a more dynamic view
+  const currentAverage = last15Average // Usar últimos 15 como promedio actual
+
+  // Datos para el gráfico (solo últimos 15 para visualización)
+  const workshopDaysData = allWorkshopDaysData.slice(0, 15)
+
+  console.log('=== DEBUG DASHBOARD DÍAS PREPARACIÓN ===')
+  console.log('Total vehículos completados procesados:', completedVehicles.length)
+  console.log('Todos los días de preparación:', allWorkshopDaysData.map(item => item.days))
+  console.log('Últimos 15 días:', last15Units.map(item => item.days))
+  console.log('Últimos 20 días:', last20Units.map(item => item.days))
+  console.log('Promedio total (todos):', totalAverage)
+  console.log('Promedio últimos 15:', last15Average)
+  console.log('Promedio últimos 20:', last20Average)
+  console.log('Promedio actual (círculo):', currentAverage)
+  console.log('==============================')
 
   // Calculate trend (less days is better, so a decrease is positive trend)
   const trendDirection = last15Average < last20Average ? "down" : "up"
@@ -305,45 +322,87 @@ export default async function Dashboard() {
     totalDeliveriesCount > 0 ? ((deliveriesWithIncidentsCount / totalDeliveriesCount) * 100).toFixed(1) : "0.0"
 
   // Obtener estadísticas reales de la base de datos con mejor filtrado
-  // const { data: stockData, error: stockError } = await supabase
-  //   .from("stock")
-  //   .select("id, vehicle_type, brand, model, license_plate")
+  console.log("🔍 Intentando obtener datos de stock...")
+  
+  let stockData = null
+  let stockError = null
+  
+  try {
+    // Obtener solo vehículos disponibles (no vendidos)
+    const result = await supabase
+      .from("stock")
+      .select("*")
+      .eq("is_sold", false) // Solo vehículos no vendidos
+    
+    stockData = result.data
+    stockError = result.error
+    
+    if (stockError) {
+      console.error("❌ Error fetching stock data:", stockError)
+      console.error("❌ Error details:", JSON.stringify(stockError, null, 2))
+    } else {
+      console.log("✅ Stock data obtenida correctamente")
+    }
+  } catch (error) {
+    console.error("❌ Exception fetching stock data:", error)
+    stockError = error as any
+  }
 
-  // if (stockError) {
-  //   console.error("Error fetching stock data:", stockError)
-  // }
+  console.log("Raw stock data:", stockData) // Añadido para depuración
+  console.log("Number of items in stockData:", stockData?.length) // Añadido para depuración
 
-  // console.log("Raw stock data:", stockData) // Añadido para depuración
-  // console.log("Number of items in stockData:", stockData?.length) // Añadido para depuración
+  // Si hay error, usar valores por defecto
+  const stockCount = stockError ? 0 : (stockData?.length || 0)
+  const carsCount = stockError ? 0 : 
+    stockData?.filter((item) => {
+      const type = item.vehicle_type?.trim().toLowerCase() // Añadido .trim()
+      console.log(`Processing stock item: ID=${item.id}, vehicle_type='${item.vehicle_type}', trimmed_lower='${type}'`) // Debugging individual items
+      return type === "coche" || type === "car" || type === "turismo"
+    }).length || 0
 
-  // const stockCount = stockData?.length || 0
-  // const carsCount =
-  //   stockData?.filter((item) => {
-  //     const type = item.vehicle_type?.trim().toLowerCase() // Añadido .trim()
-  //     console.log(`Processing stock item: ID=${item.id}, vehicle_type='${item.vehicle_type}', trimmed_lower='${type}'`) // Debugging individual items
-  //     return type === "coche" || type === "car" || type === "turismo"
-  //   }).length || 0
+  const motorcyclesCount = stockError ? 0 :
+    stockData?.filter((item) => {
+      const type = item.vehicle_type?.trim().toLowerCase() // Añadido .trim()
+      return type === "moto" || type === "motorcycle"
+    }).length || 0
 
-  // const motorcyclesCount =
-  //   stockData?.filter((item) => {
-  //     const type = item.vehicle_type?.trim().toLowerCase() // Añadido .trim()
-  //     return type === "moto" || type === "motorcycle"
-  //   }).length || 0
-
-  // console.log("Calculated stockCount:", stockCount) // Añadido para depuración
-  // console.log("Calculated carsCount:", carsCount) // Añadido para depuración
-  // console.log("Calculated motorcyclesCount:", motorcyclesCount) // Añadido para depuración
+  console.log("Calculated stockCount:", stockCount) // Añadido para depuración
+  console.log("Calculated carsCount:", carsCount) // Añadido para depuración
+  console.log("Calculated motorcyclesCount:", motorcyclesCount) // Añadido para depuración
+  
+  // Calcular contadores de marca para stock disponible (usando el campo model)
+  const bmwStockCount = stockError ? 0 : 
+    stockData?.filter((item) => {
+      const model = item.model?.toLowerCase() || ""
+      console.log(`🔍 Checking BMW: "${item.model}" -> includes("bmw"): ${model.includes("bmw")}, includes("motorrad"): ${model.includes("motorrad")}`)
+      return model.includes("bmw") && !model.includes("motorrad") // Excluir motos BMW
+    }).length || 0
+  const miniStockCount = stockError ? 0 :
+    stockData?.filter((item) => {
+      const model = item.model?.toLowerCase() || ""
+      console.log(`🔍 Checking MINI: "${item.model}" -> includes("mini"): ${model.includes("mini")}`)
+      return model.includes("mini")
+    }).length || 0
+  
+  console.log("BMW stock count:", bmwStockCount)
+  console.log("MINI stock count:", miniStockCount)
+  
+  // Debug: mostrar algunos modelos para verificar
+  if (stockData && stockData.length > 0) {
+    console.log("🔍 Primeros 5 modelos en stock:", stockData.slice(0, 5).map(item => item.model))
+    
+    // Mostrar todos los modelos únicos que contengan "bmw" o "mini"
+    const bmwModels = stockData.filter(item => item.model?.toLowerCase().includes("bmw")).map(item => item.model)
+    const miniModels = stockData.filter(item => item.model?.toLowerCase().includes("mini")).map(item => item.model)
+    
+    console.log("🔍 Modelos BMW encontrados:", [...new Set(bmwModels)])
+    console.log("🔍 Modelos MINI encontrados:", [...new Set(miniModels)])
+  }
 
   // const bmwStockCount = stockData?.filter((item) => item.brand && item.brand.toLowerCase().includes("bmw")).length || 0
 
   // const miniStockCount =
   //   stockData?.filter((item) => item.brand && item.brand.toLowerCase().includes("mini")).length || 0
-
-  const stockCount = 0
-  const carsCount = 0
-  const motorcyclesCount = 0
-  const bmwStockCount = 0
-  const miniStockCount = 0
 
   // Fechas para el mes actual - USANDO FUNCIONES UTILITARIAS
   const dateDebugInfo = getDateDebugInfo()
@@ -541,11 +600,11 @@ export default async function Dashboard() {
 
   // Estadísticas reales o valores de respaldo si no se pueden obtener
   const stats = {
-    vehiclesInStock: 0,
-    carsInStock: 0,
-    motorcyclesInStock: 0,
-    bmwStockCount: 0,
-    miniStockCount: 0,
+    vehiclesInStock: stockCount,
+    carsInStock: carsCount,
+    motorcyclesInStock: motorcyclesCount,
+    bmwStockCount: bmwStockCount,
+    miniStockCount: miniStockCount,
     salesThisMonth: salesThisMonth,
     salesCarsCount: salesCarsCount,
     salesMotorcyclesCount: salesMotorcyclesCount,
