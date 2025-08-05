@@ -63,14 +63,15 @@ export async function GET(request: NextRequest) {
       ? precios.reduce((sum, venta) => sum + (venta.price || 0), 0) / precios.length
       : 0
 
-    // Días promedio de preparación (TODOS los vehículos completados)
+    // Días promedio de preparación (usando la misma lógica del dashboard)
     const { data: preparacionData, error: prepError } = await supabase
       .from('sales_vehicles')
-      .select('sale_date, cyp_date, photo_360_date')
+      .select('sale_date, cyp_date, photo_360_date, cyp_status, photo_360_status, license_plate, updated_at')
       .not('sale_date', 'is', null)
-      .eq('vehicle_type', 'Coche') // Solo coches
       .eq('cyp_status', 'completado')
       .eq('photo_360_status', 'completado')
+      .not('cyp_date', 'is', null)
+      .not('photo_360_date', 'is', null)
 
     if (prepError) {
       console.error('Error obteniendo datos de preparación:', prepError)
@@ -79,37 +80,55 @@ export async function GET(request: NextRequest) {
 
     let promedioDiasPreparacion = 0
     if (preparacionData && preparacionData.length > 0) {
-      const diasPreparacion = preparacionData.map(venta => {
-        const saleDate = new Date(venta.sale_date)
-        const cypDate = new Date(venta.cyp_date)
-        const photo360Date = new Date(venta.photo_360_date)
-        
-        // Tomar la fecha más reciente entre CYP y 360 como fecha de completado
-        const completionDate = new Date(Math.max(cypDate.getTime(), photo360Date.getTime()))
-        const diffTime = completionDate.getTime() - saleDate.getTime()
-        const dias = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-        
-        console.log(`Vehículo ${venta.sale_date}: venta=${venta.sale_date}, cyp=${venta.cyp_date}, 360=${venta.photo_360_date}, días=${dias}`)
-        console.log(`  - Sale date: ${saleDate.toISOString()}`)
-        console.log(`  - CYP date: ${cypDate.toISOString()}`)
-        console.log(`  - 360 date: ${photo360Date.toISOString()}`)
-        console.log(`  - Completion date: ${completionDate.toISOString()}`)
-        console.log(`  - Diff time (ms): ${diffTime}`)
-        console.log(`  - Days calculated: ${dias}`)
-        return dias
-      }).filter(dias => dias > 0 && dias <= 30) // Solo días válidos y razonables (máximo 30 días)
-      
-      if (diasPreparacion.length > 0) {
-        promedioDiasPreparacion = Math.round(diasPreparacion.reduce((sum, dias) => sum + dias, 0) / diasPreparacion.length)
-        console.log('=== DEBUG DÍAS PREPARACIÓN ===')
-        console.log('Total vehículos completados procesados:', preparacionData.length)
-        console.log('Días de preparación encontrados:', diasPreparacion)
-        console.log('Días ordenados:', diasPreparacion.sort((a, b) => a - b))
-        console.log('Promedio calculado:', promedioDiasPreparacion)
-        console.log('Mínimo:', Math.min(...diasPreparacion))
-        console.log('Máximo:', Math.max(...diasPreparacion))
-        console.log('==============================')
+      // Ordenar por updated_at (más reciente primero) - misma lógica del dashboard
+      const sortedCompletedVehicles = preparacionData.sort((a, b) => {
+        const aUpdatedAt = new Date(a.updated_at).getTime()
+        const bUpdatedAt = new Date(b.updated_at).getTime()
+        return bUpdatedAt - aUpdatedAt
+      })
+
+      const calculateDays = (saleDate: string, cypDate: string | null, photo360Date: string | null) => {
+        const sale = new Date(saleDate)
+        let completionDate: Date | null = null
+
+        if (cypDate && photo360Date) {
+          const cyp = new Date(cypDate)
+          const photo = new Date(photo360Date)
+          completionDate = cyp > photo ? cyp : photo
+        } else if (cypDate) {
+          completionDate = new Date(cypDate)
+        } else if (photo360Date) {
+          completionDate = new Date(photo360Date)
+        }
+
+        if (completionDate) {
+          const diffTime = completionDate.getTime() - sale.getTime()
+          return Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+        }
+        return null
       }
+
+      // Procesar todos los vehículos completados
+      const allWorkshopDaysData = sortedCompletedVehicles
+        .map((v) => {
+          const days = calculateDays(v.sale_date, v.cyp_date, v.photo_360_date)
+          return {
+            days: days,
+            matricula: v.license_plate || v.id,
+          }
+        })
+        .filter((item) => item.days !== null) as { days: number; matricula: string }[]
+
+      // Calcular promedio total (misma lógica del dashboard)
+      const totalDays = allWorkshopDaysData.reduce((sum, item) => sum + item.days, 0)
+      promedioDiasPreparacion = allWorkshopDaysData.length > 0 ? Math.round(totalDays / allWorkshopDaysData.length) : 0
+
+      console.log('=== DEBUG DÍAS PREPARACIÓN VENTAS ===')
+      console.log('Total vehículos completados procesados:', sortedCompletedVehicles.length)
+      console.log('Vehículos con días válidos:', allWorkshopDaysData.length)
+      console.log('Promedio calculado:', promedioDiasPreparacion)
+      console.log('Primeros 5 vehículos:', allWorkshopDaysData.slice(0, 5).map(v => ({ matricula: v.matricula, days: v.days })))
+      console.log('==============================')
     }
 
     // Total en cola (coches que NO tienen AMBOS procesos completados)

@@ -168,23 +168,42 @@ export default async function Dashboard() {
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single()
   const displayName = profile?.full_name || session.user.user_metadata.full_name || session.user.email
 
-  // Fetch sales vehicles data for workshop days calculations
+  // Fetch sales vehicles data for workshop days calculations - CONSULTA CORREGIDA
   const { data: salesVehiclesData, error: salesVehiclesError } = await supabase
     .from("sales_vehicles")
-    .select("id, sale_date, cyp_date, photo_360_date, cyp_status, photo_360_status, license_plate")
+    .select("id, sale_date, cyp_date, photo_360_date, cyp_status, photo_360_status, license_plate, updated_at")
     .not("sale_date", "is", null) // Only consider vehicles with a sale date
-    .order("sale_date", { ascending: false }) // Order by sale date for "last N units"
+    .eq("cyp_status", "completado") // Solo vehículos con CYP completado
+    .eq("photo_360_status", "completado") // Solo vehículos con Photo360 completado
+    .not("cyp_date", "is", null) // CYP date no puede ser null
+    .not("photo_360_date", "is", null) // Photo360 date no puede ser null
 
   if (salesVehiclesError) {
     console.error("Error fetching sales vehicles data:", salesVehiclesError)
     // Handle error appropriately, e.g., return default values or throw
   }
 
+  // Fetch ALL sales vehicles for workshop saturation calculation
+  const { data: allSalesVehiclesData, error: allSalesVehiclesError } = await supabase
+    .from("sales_vehicles")
+    .select("id, sale_date, cyp_date, photo_360_date, cyp_status, photo_360_status, license_plate, updated_at")
+    .not("sale_date", "is", null) // Only consider vehicles with a sale date
+
+  if (allSalesVehiclesError) {
+    console.error("Error fetching all sales vehicles data:", allSalesVehiclesError)
+  }
+
   // --- Workshop Days Calculations ---
-  const completedVehicles =
-    salesVehiclesData?.filter(
-      (v) => v.cyp_status === "completado" && v.photo_360_status === "completado" && v.sale_date,
-    ) || []
+  const completedVehicles = salesVehiclesData || []
+
+  // Ordenar por updated_at (fecha real de finalización) - ORDENAMIENTO CORRECTO
+  const sortedCompletedVehicles = completedVehicles.sort((a, b) => {
+    const aUpdatedAt = new Date(a.updated_at).getTime()
+    const bUpdatedAt = new Date(b.updated_at).getTime()
+    
+    // Ordenar por updated_at (más reciente primero)
+    return bUpdatedAt - aUpdatedAt
+  })
 
   const calculateDays = (saleDate: string, cypDate: string | null, photo360Date: string | null) => {
     const sale = parseISO(saleDate)
@@ -207,14 +226,25 @@ export default async function Dashboard() {
   }
 
   // Procesar TODOS los vehículos completados para cálculos correctos
-  const allWorkshopDaysData = completedVehicles
+  const allWorkshopDaysData = sortedCompletedVehicles
     .map((v, index) => {
       const days = calculateDays(v.sale_date!, v.cyp_date, v.photo_360_date)
+      
+      // Log detallado para el 1092LLC
+      if (v.license_plate === '1092LLC') {
+        console.log('=== DEBUG 1092LLC ===')
+        console.log('Venta:', v.sale_date)
+        console.log('CYP:', v.cyp_date)
+        console.log('Photo360:', v.photo_360_date)
+        console.log('Días calculados:', days)
+        console.log('Índice en array:', index)
+        console.log('=====================')
+      }
       
       console.log(`Dashboard - Vehículo ${v.license_plate}: venta=${v.sale_date}, cyp=${v.cyp_date}, 360=${v.photo_360_date}, días=${days}`)
 
       return {
-        unit: `${index + 1}`,
+        unit: `${index + 1}`, // Numeración secuencial (1, 2, 3...)
         days: days,
         saturation: 0,
         matricula: v.license_plate || v.id,
@@ -226,45 +256,74 @@ export default async function Dashboard() {
   const totalDays = allWorkshopDaysData.reduce((sum, item) => sum + item.days, 0)
   const totalAverage = allWorkshopDaysData.length > 0 ? Math.round(totalDays / allWorkshopDaysData.length) : 0
 
-  const last15Units = allWorkshopDaysData.slice(0, 15)
+  const last15Units = allWorkshopDaysData.slice(0, 15) // Tomar los PRIMEROS 15 (que son los más recientes)
   const last15Average =
     last15Units.length > 0 ? Math.round(last15Units.reduce((sum, item) => sum + item.days, 0) / last15Units.length) : 0
 
-  const last20Units = allWorkshopDaysData.slice(0, 20)
-  const last20Average =
-    last20Units.length > 0 ? Math.round(last20Units.reduce((sum, item) => sum + item.days, 0) / last20Units.length) : 0
+  const previous15Units = allWorkshopDaysData.slice(15, 30) // Tomar los vehículos 16-30 (anteriores a los últimos 15)
+  const previous15Average =
+    previous15Units.length > 0 ? Math.round(previous15Units.reduce((sum, item) => sum + item.days, 0) / previous15Units.length) : 0
 
   const currentAverage = last15Average // Usar últimos 15 como promedio actual
 
-  // Datos para el gráfico (solo últimos 15 para visualización)
-  const workshopDaysData = allWorkshopDaysData.slice(0, 15)
+  // Datos para el gráfico (últimos 15 para visualización, ordenados del más reciente a la izquierda)
+  const workshopDaysData = last15Units.reverse().map((item, index) => ({
+    ...item,
+    unit: `${index + 1}`, // Renumerar correctamente para los últimos 15
+    matricula: item.matricula
+  })) // Invertir orden: más reciente a la izquierda, más antiguo a la derecha
 
   console.log('=== DEBUG DASHBOARD DÍAS PREPARACIÓN ===')
   console.log('Total vehículos completados procesados:', completedVehicles.length)
+  console.log('Orden de vehículos (más reciente primero):', sortedCompletedVehicles.map(v => v.license_plate))
+  console.log('Últimos 15 vehículos (matrículas):', sortedCompletedVehicles.slice(0, 15).map(v => v.license_plate))
+  console.log('Primeros 5 vehículos con updated_at:', sortedCompletedVehicles.slice(0, 5).map(v => ({ 
+    license_plate: v.license_plate, 
+    updated_at: v.updated_at 
+  })))
   console.log('Todos los días de preparación:', allWorkshopDaysData.map(item => item.days))
   console.log('Últimos 15 días:', last15Units.map(item => item.days))
-  console.log('Últimos 20 días:', last20Units.map(item => item.days))
+  console.log('Anteriores 15 días:', previous15Units.map(item => item.days))
   console.log('Promedio total (todos):', totalAverage)
   console.log('Promedio últimos 15:', last15Average)
-  console.log('Promedio últimos 20:', last20Average)
+  console.log('Promedio anteriores 15:', previous15Average)
   console.log('Promedio actual (círculo):', currentAverage)
+  console.log('Datos finales de la gráfica:', workshopDaysData.map(item => ({ unit: item.unit, matricula: item.matricula, days: item.days })))
+  console.log('Orden de vehículos en la gráfica (izquierda a derecha):', workshopDaysData.map(item => item.matricula))
+  console.log('Primer vehículo (izquierda):', workshopDaysData[0]?.matricula)
+  console.log('Último vehículo (derecha):', workshopDaysData[workshopDaysData.length - 1]?.matricula)
   console.log('==============================')
 
   // Calculate trend (less days is better, so a decrease is positive trend)
-  const trendDirection = last15Average < last20Average ? "down" : "up"
-  const trendValue = Math.abs(last15Average - last20Average)
-  const trendPercentage = last20Average > 0 ? ((trendValue / last20Average) * 100).toFixed(1) : "0.0"
+  const trendDirection = last15Average < previous15Average ? "down" : "up"
+  const trendValue = Math.abs(last15Average - previous15Average)
+  const trendPercentage = previous15Average > 0 ? ((trendValue / previous15Average) * 100).toFixed(1) : "0.0"
 
   // Sold Pending (vehicles in sales_vehicles not yet completed)
   const soldPendingCount =
-    salesVehiclesData?.filter((v) => v.cyp_status !== "completado" || v.photo_360_status !== "completado").length || 0
+    allSalesVehiclesData?.filter((v) => v.cyp_status !== "completado" || v.photo_360_status !== "completado").length || 0
 
   // Cars in Workshop (vehicles in sales_vehicles that are not yet CYP or Photo 360 completed)
   const carsInWorkshop =
-    salesVehiclesData?.filter((v) => v.cyp_status !== "completado" || v.photo_360_status !== "completado").length || 0
+    allSalesVehiclesData?.filter((v) => v.cyp_status !== "completado" || v.photo_360_status !== "completado").length || 0
 
   const maxCapacity = 30 // Define your max workshop capacity
   const saturationPercentage = maxCapacity > 0 ? Math.round((carsInWorkshop / maxCapacity) * 100) : 0
+
+  console.log('=== VALORES QUE QUIERES VER ===')
+  console.log('Últimas 15 unidades:', last15Average)
+  console.log('Últimas 20 unidades:', last15Average) // Es el mismo que los últimos 15
+  console.log('Promedio total:', totalAverage)
+  console.log('==============================')
+
+
+
+  console.log('=== VALORES QUE QUIERES VER ===')
+  console.log('Últimas 15 unidades:', last15Average)
+  console.log('Últimas 20 unidades:', last15Average) // Es el mismo que los últimos 15
+  console.log('Promedio total:', totalAverage)
+  console.log('==============================')
+
 
   // Average Paint Days (using photo_360_date as proxy for paint completion)
   const paintCompletedVehicles =
@@ -723,7 +782,7 @@ export default async function Dashboard() {
       <WorkshopDaysCard
         currentAverage={currentAverage}
         last15Average={last15Average}
-        last20Average={last20Average}
+        previous15Average={previous15Average}
         totalAverage={totalAverage}
         trendDirection={trendDirection}
         trendPercentage={trendPercentage}
@@ -756,8 +815,8 @@ export default async function Dashboard() {
                   </div>
                 </div>
               </div>
-              <div className="p-2 bg-white/10 rounded-full border border-white/50">
-                <Car className="h-5 w-5 text-white" />
+              <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-full border border-blue-200 dark:border-blue-800">
+                <Car className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
             </div>
             <div className="mt-4 flex items-center text-xs text-muted-foreground">
@@ -807,8 +866,8 @@ export default async function Dashboard() {
                   </div>
                 </div>
               </div>
-              <div className="p-2 bg-white/10 rounded-full border border-white/50">
-                <ShoppingCart className="h-5 w-5 text-white" />
+              <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-full border border-green-200 dark:border-green-800">
+                <ShoppingCart className="h-5 w-5 text-green-600 dark:text-green-400" />
               </div>
             </div>
             <div className="mt-4 flex items-center text-xs text-muted-foreground">
@@ -858,8 +917,8 @@ export default async function Dashboard() {
                   </div>
                 </div>
               </div>
-              <div className="p-2 bg-white/10 rounded-full border border-white/50">
-                <BarChart3 className="h-5 w-5 text-white" />
+              <div className="p-2 bg-purple-100 dark:bg-purple-900/20 rounded-full border border-purple-200 dark:border-purple-800">
+                <BarChart3 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
               </div>
             </div>
             <div className="mt-4 flex items-center text-xs text-muted-foreground">
@@ -909,8 +968,8 @@ export default async function Dashboard() {
                   </div>
                 </div>
               </div>
-              <div className="p-2 bg-white/10 rounded-full border border-white/50">
-                <Building2 className="h-5 w-5 text-white" /> {/* Changed icon to Building2 */}
+              <div className="p-2 bg-orange-100 dark:bg-orange-900/20 rounded-full border border-orange-200 dark:border-orange-800">
+                <Building2 className="h-5 w-5 text-orange-600 dark:text-orange-400" />
               </div>
             </div>
             <div className="mt-4 flex items-center text-xs text-muted-foreground">

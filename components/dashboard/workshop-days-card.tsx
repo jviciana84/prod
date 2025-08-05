@@ -10,7 +10,7 @@ import { useState } from "react"
 interface WorkshopDaysCardProps {
   currentAverage: number
   last15Average: number
-  last20Average: number
+  previous15Average: number
   totalAverage: number
   trendDirection: "up" | "down"
   trendPercentage: string
@@ -72,7 +72,7 @@ interface MetricItem {
 export function WorkshopDaysCard({
   currentAverage,
   last15Average,
-  last20Average,
+  previous15Average,
   totalAverage,
   trendDirection,
   trendPercentage,
@@ -164,7 +164,7 @@ export function WorkshopDaysCard({
                 </div>
                 <div className="flex justify-between">
                   <span>Últimas 20 unidades:</span>
-                  <span className="font-medium">{last20Average} días</span>
+                  <span className="font-medium">{last15Average} días</span>
                 </div>
                 <div className="flex justify-between border-t pt-2">
                   <span>Promedio total:</span>
