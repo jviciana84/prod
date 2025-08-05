@@ -1,11 +1,25 @@
 /* Estilos para el layout del dashboard con scroll controlado */
 
+/* Prevenir scroll durante la hidratación */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+  /* Prevenir scroll vertical momentáneo */
+  overflow-y: auto;
+  height: 100%;
+}
+
 /* Contenedor principal */
 .dashboard-layout {
   display: flex;
   flex-direction: column;
   height: 100vh;
   overflow: hidden; /* Evitar scroll en el contenedor principal */
+  max-width: 100vw;
+  width: 100%;
+  /* Prevenir layout shift durante la hidratación */
+  min-height: 100vh;
+  position: relative;
 }
 
 /* Área de contenido principal */
@@ -14,6 +28,8 @@
   flex: 1;
   overflow: hidden;
   height: calc(100vh - 56px - 33px); /* 100vh - header - footer */
+  max-width: 100vw;
+  width: 100%;
 }
 
 /* Contenido principal con scroll */
@@ -26,6 +42,9 @@
   height: 100%;
   scrollbar-width: thin;
   scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+  width: calc(100vw - 64px); /* Ancho exacto considerando el sidebar */
+  box-sizing: border-box;
+  min-width: 0; /* Permitir que el contenido se contraiga */
 }
 
 /* Estilos para la barra de scroll del contenido principal */
@@ -114,6 +133,7 @@
   .dashboard-main-content {
     margin-left: 0;
     padding: 0.5rem;
+    width: 100vw; /* En móvil ocupa todo el ancho */
   }
   
   .dashboard-sidebar {
@@ -138,7 +158,7 @@
   }
   
   .dashboard-main-content {
-    width: 100%;
+    width: 100vw;
     margin-left: 0;
   }
 } 
