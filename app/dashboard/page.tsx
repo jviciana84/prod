@@ -321,6 +321,14 @@ export default async function Dashboard() {
   const incidentPercentage =
     totalDeliveriesCount > 0 ? ((deliveriesWithIncidentsCount / totalDeliveriesCount) * 100).toFixed(1) : "0.0"
 
+  // Fechas para el mes actual - USANDO FUNCIONES UTILITARIAS (mover al principio)
+  const dateDebugInfo = getDateDebugInfo()
+  const firstDayOfMonth = getFirstDayOfCurrentMonth()
+  const firstDayOfPreviousMonth = getFirstDayOfPreviousMonth()
+  const lastDayOfPreviousMonth = getLastDayOfPreviousMonth()
+
+  console.log("🔍 DEBUG: Información de fechas:", dateDebugInfo)
+
   // Obtener estadísticas reales de la base de datos con mejor filtrado
   console.log("🔍 Intentando obtener datos de stock...")
   
@@ -366,6 +374,32 @@ export default async function Dashboard() {
       return type === "moto" || type === "motorcycle"
     }).length || 0
 
+  // Obtener datos de stock del mes anterior para comparación
+  console.log("🔍 Obteniendo datos de stock del mes anterior...")
+  let previousStockData = null
+  let previousStockError = null
+  
+  try {
+    const previousResult = await supabase
+      .from("stock")
+      .select("*")
+      .eq("is_sold", false)
+      .gte("created_at", firstDayOfPreviousMonth)
+      .lt("created_at", firstDayOfMonth)
+    
+    previousStockData = previousResult.data
+    previousStockError = previousResult.error
+    
+    if (previousStockError) {
+      console.error("❌ Error fetching previous stock data:", previousStockError)
+    } else {
+      console.log("✅ Previous stock data obtenida correctamente")
+    }
+  } catch (error) {
+    console.error("❌ Exception fetching previous stock data:", error)
+    previousStockError = error as any
+  }
+
   console.log("Calculated stockCount:", stockCount) // Añadido para depuración
   console.log("Calculated carsCount:", carsCount) // Añadido para depuración
   console.log("Calculated motorcyclesCount:", motorcyclesCount) // Añadido para depuración
@@ -374,8 +408,18 @@ export default async function Dashboard() {
   const bmwStockCount = stockError ? 0 : 
     stockData?.filter((item) => {
       const model = item.model?.toLowerCase() || ""
-      console.log(`🔍 Checking BMW: "${item.model}" -> includes("bmw"): ${model.includes("bmw")}, includes("motorrad"): ${model.includes("motorrad")}`)
-      return model.includes("bmw") && !model.includes("motorrad") // Excluir motos BMW
+      // Identificar BMW por prefijos comunes: i, X, M, Serie, etc.
+      const isBMW = model.startsWith("i") || 
+                    model.startsWith("x") || 
+                    model.startsWith("m") ||
+                    model.includes("serie") ||
+                    model.includes("series") ||
+                    model.includes("xdrive") ||
+                    model.includes("edrive") ||
+                    (model.includes("bmw") && !model.includes("motorrad"))
+      
+      console.log(`🔍 Checking BMW: "${item.model}" -> isBMW: ${isBMW}`)
+      return isBMW && !model.includes("motorrad") // Excluir motos BMW
     }).length || 0
   const miniStockCount = stockError ? 0 :
     stockData?.filter((item) => {
@@ -384,12 +428,46 @@ export default async function Dashboard() {
       return model.includes("mini")
     }).length || 0
   
+  // Calcular contadores del mes anterior
+  const previousBmwStockCount = previousStockError ? 0 : 
+    previousStockData?.filter((item) => {
+      const model = item.model?.toLowerCase() || ""
+      const isBMW = model.startsWith("i") || 
+                    model.startsWith("x") || 
+                    model.startsWith("m") ||
+                    model.includes("serie") ||
+                    model.includes("series") ||
+                    model.includes("xdrive") ||
+                    model.includes("edrive") ||
+                    (model.includes("bmw") && !model.includes("motorrad"))
+      return isBMW && !model.includes("motorrad")
+    }).length || 0
+
+  const previousMiniStockCount = previousStockError ? 0 :
+    previousStockData?.filter((item) => {
+      const model = item.model?.toLowerCase() || ""
+      return model.includes("mini")
+    }).length || 0
+
+  // Calcular total correcto (solo BMW + MINI disponibles)
+  // Los datos ya están filtrados por is_sold = false, así que son los disponibles
+  const totalStockCount = bmwStockCount + miniStockCount
+  const previousTotalStockCount = previousBmwStockCount + previousMiniStockCount
+
   console.log("BMW stock count:", bmwStockCount)
   console.log("MINI stock count:", miniStockCount)
+  console.log("Total stock count (BMW + MINI):", totalStockCount)
+  console.log("Previous BMW stock count:", previousBmwStockCount)
+  console.log("Previous MINI stock count:", previousMiniStockCount)
+  console.log("Previous total stock count:", previousTotalStockCount)
   
   // Debug: mostrar algunos modelos para verificar
   if (stockData && stockData.length > 0) {
-    console.log("🔍 Primeros 5 modelos en stock:", stockData.slice(0, 5).map(item => item.model))
+    console.log("🔍 Primeros 10 modelos en stock:", stockData.slice(0, 10).map(item => item.model))
+    
+    // Mostrar todos los modelos únicos
+    const allModels = stockData.map(item => item.model).filter(Boolean)
+    console.log("🔍 Todos los modelos únicos:", [...new Set(allModels)])
     
     // Mostrar todos los modelos únicos que contengan "bmw" o "mini"
     const bmwModels = stockData.filter(item => item.model?.toLowerCase().includes("bmw")).map(item => item.model)
@@ -403,14 +481,6 @@ export default async function Dashboard() {
 
   // const miniStockCount =
   //   stockData?.filter((item) => item.brand && item.brand.toLowerCase().includes("mini")).length || 0
-
-  // Fechas para el mes actual - USANDO FUNCIONES UTILITARIAS
-  const dateDebugInfo = getDateDebugInfo()
-  const firstDayOfMonth = getFirstDayOfCurrentMonth()
-  const firstDayOfPreviousMonth = getFirstDayOfPreviousMonth()
-  const lastDayOfPreviousMonth = getLastDayOfPreviousMonth()
-
-  console.log("🔍 DEBUG: Información de fechas:", dateDebugInfo)
 
   // Obtener ventas del mes actual - INCLUIR TODAS LAS VENTAS (coches y motos)
   const { data: salesData } = await supabase
@@ -598,13 +668,16 @@ export default async function Dashboard() {
   const revenueChange = calculatePercentageChange(revenue, previousRevenue)
   const financedVehiclesChange = calculatePercentageChange(financedVehicles, previousFinancedVehicles)
 
+  // Calcular cambio de stock
+  const stockChange = calculatePercentageChange(totalStockCount, previousTotalStockCount)
+
   // Estadísticas reales o valores de respaldo si no se pueden obtener
   const stats = {
-    vehiclesInStock: stockCount,
+    vehiclesInStock: totalStockCount, // Usar el total real (BMW + MINI disponibles)
     carsInStock: carsCount,
     motorcyclesInStock: motorcyclesCount,
-    bmwStockCount: bmwStockCount,
-    miniStockCount: miniStockCount,
+    bmwStockCount: bmwStockCount, // Usar el valor real
+    miniStockCount: miniStockCount, // Usar el valor real
     salesThisMonth: salesThisMonth,
     salesCarsCount: salesCarsCount,
     salesMotorcyclesCount: salesMotorcyclesCount,
@@ -624,8 +697,7 @@ export default async function Dashboard() {
     salesChange: salesChange,
     revenueChange: revenueChange,
     financedVehiclesChange: financedVehiclesChange,
-    // Para stock, como no tenemos historial directo, lo marcamos como N/A o un valor fijo si no hay otra fuente
-    stockChange: "N/A", // O podrías poner "0%" si siempre es el mismo stock, pero "N/A" es más preciso
+    stockChange: stockChange, // Ahora calculado correctamente
   }
 
   console.log("DEBUG: Final stats object before rendering:", stats)

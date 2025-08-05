@@ -125,4 +125,20 @@
     width: 256px;
     transform: translateX(0);
   }
+}
+
+/* Estilos específicos para el sidebar móvil */
+@media (max-width: 768px) {
+  /* El sidebar móvil se maneja a través del componente Sheet de shadcn/ui */
+  /* Los estilos se aplican automáticamente por el componente Sidebar */
+  
+  /* Asegurar que el contenido principal ocupe todo el ancho en móvil */
+  .dashboard-content-area {
+    flex-direction: column;
+  }
+  
+  .dashboard-main-content {
+    width: 100%;
+    margin-left: 0;
+  }
 } 

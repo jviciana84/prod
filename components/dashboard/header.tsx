@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { SidebarMenuButton, useSidebar } from "@/components/ui/sidebar"
 import {
   LogOut,
   ZoomIn,
@@ -19,6 +20,7 @@ import {
   Settings,
   Heart,
   Bell,
+  Menu,
 } from "lucide-react"
 import { createClientComponentClient } from "@/lib/supabase/client"
 import { Badge } from "@/components/ui/badge"
@@ -56,6 +58,7 @@ interface Notification {
 export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
   const router = useRouter()
   const supabase = createClientComponentClient()
+  const { toggleSidebar } = useSidebar()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isAvatarZoomed, setIsAvatarZoomed] = useState(false)
   const [isEditingPhone, setIsEditingPhone] = useState(false)
@@ -430,6 +433,16 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
 
       <div className="container flex h-14 max-w-full px-4 md:px-6 lg:px-8 xl:px-10 items-center justify-between">
         <div className="flex items-center space-x-4">
+          {/* Botón del sidebar móvil - solo visible en móvil */}
+          <Button 
+            className="md:hidden" 
+            variant="ghost" 
+            size="icon"
+            onClick={() => toggleSidebar()}
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+          
           <Logo size="header" linkTo="/dashboard" />
           <div className="hidden md:flex space-x-1">
             {roles.map((role, index) => (

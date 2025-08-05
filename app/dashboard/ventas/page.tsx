@@ -46,13 +46,10 @@ export default function VentasPage() {
 
   const fetchSalesStats = useCallback(async () => {
     try {
-      console.log('🔄 Llamando a /api/sales/stats...')
       setLoadingStats(true)
       const response = await fetch('/api/sales/stats')
-      console.log('📡 Respuesta del API:', response.status)
       if (response.ok) {
         const data = await response.json()
-        console.log('📊 Datos recibidos:', data)
         setStats(data)
       } else {
         console.error('❌ Error en la respuesta del API:', response.status)
@@ -123,12 +120,7 @@ export default function VentasPage() {
                   <p className="text-2xl font-bold text-orange-500">
                     {loadingStats ? "..." : `${stats.promedioDiasPreparacion} días`}
                   </p>
-                  {/* Debug temporal */}
-                  {!loadingStats && (
-                    <p className="text-xs text-muted-foreground">
-                      Debug: {JSON.stringify(stats)}
-                    </p>
-                  )}
+
                 </div>
                 <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-full">
                   <Clock className="h-4 w-4 text-orange-600 dark:text-orange-400" />
