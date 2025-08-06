@@ -1,92 +1,86 @@
 import { type NextRequest, NextResponse } from "next/server"
 import webpush from "web-push"
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import { createClient } from "@supabase/supabase-js"
 
 export async function POST(request: NextRequest) {
   try {
-    console.log("🔔 Iniciando envío de notificación de prueba...")
-
-    // Verificar claves VAPID
+    // Verificar que las claves VAPID estén configuradas
     const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
     const privateKey = process.env.VAPID_PRIVATE_KEY
 
-    console.log("🔑 VAPID Public Key:", publicKey ? "✅ Configurada" : "❌ No configurada")
-    console.log("🔑 VAPID Private Key:", privateKey ? "✅ Configurada" : "❌ No configurada")
-
     if (!publicKey || !privateKey) {
-      return NextResponse.json({
-        success: false,
-        error: "Claves VAPID no configuradas",
-        debug: {
-          publicKey: !!publicKey,
-          privateKey: !!privateKey,
+      return NextResponse.json(
+        {
+          error: "Claves VAPID no configuradas",
         },
-      })
+        { status: 500 },
+      )
     }
 
-    // Configurar web-push con más detalles
+    // Configurar web-push
     try {
       webpush.setVapidDetails("mailto:admin@controlvo.ovh", publicKey, privateKey)
-      console.log("✅ VAPID configurado correctamente")
     } catch (vapidError) {
-      console.error("❌ Error configurando VAPID:", vapidError)
-      return NextResponse.json({
-        success: false,
-        error: "Error en configuración VAPID",
-        details: vapidError.message,
-      })
+      console.error("Error configurando VAPID:", vapidError)
+      return NextResponse.json(
+        {
+          error: "Error en configuración VAPID",
+        },
+        { status: 500 },
+      )
     }
 
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+    const body = await request.json()
 
-    // Obtener suscripciones activas
+    const { title, body: message, data = {} } = body
+
+    if (!title || !message) {
+      return NextResponse.json(
+        {
+          error: "title y body son requeridos",
+        },
+        { status: 400 },
+      )
+    }
+
+    // Obtener todas las suscripciones activas (incluyendo las de prueba)
     const { data: subscriptions, error: subsError } = await supabase
       .from("user_push_subscriptions")
       .select("*")
       .eq("is_active", true)
 
-    console.log(`📊 Suscripciones encontradas: ${subscriptions?.length || 0}`)
-
     if (subsError) {
-      console.error("❌ Error obteniendo suscripciones:", subsError)
-      return NextResponse.json({
-        success: false,
-        error: "Error obteniendo suscripciones",
-        details: subsError.message,
-      })
+      console.error("Error obteniendo suscripciones:", subsError)
+      return NextResponse.json({ error: "Error obteniendo suscripciones" }, { status: 500 })
     }
 
     if (!subscriptions || subscriptions.length === 0) {
       return NextResponse.json({
-        success: false,
         message: "No hay suscripciones activas",
-        subscriptions: 0,
+        sent: 0,
       })
     }
 
-    // Preparar notificación de prueba
+    // Preparar payload de notificación
     const notificationPayload = {
-      title: "🧪 Notificación de Prueba",
-      body: "Esta es una notificación de prueba desde el servidor",
+      title,
+      body: message,
       icon: "/favicon.ico",
       badge: "/favicon.ico",
       data: {
-        url: "/dashboard",
-        timestamp: Date.now(),
+        ...data,
+        category: "test",
+        url: data.url || "/dashboard",
       },
       tag: "test-notification",
+      requireInteraction: false,
     }
 
-    console.log("📤 Enviando notificaciones...")
-
-    // Enviar a cada suscripción con diagnóstico detallado
+    // Enviar notificaciones
     const results = await Promise.allSettled(
-      subscriptions.map(async (subscription, index) => {
+      subscriptions.map(async (subscription) => {
         try {
-          console.log(`📨 Enviando a suscripción ${index + 1}/${subscriptions.length}`)
-          console.log(`🔗 Endpoint: ${subscription.endpoint.substring(0, 50)}...`)
-
           const pushSubscription = {
             endpoint: subscription.endpoint,
             keys: {
@@ -95,79 +89,40 @@ export async function POST(request: NextRequest) {
             },
           }
 
-          // Validar que las claves existan
-          if (!pushSubscription.keys.p256dh || !pushSubscription.keys.auth) {
-            throw new Error("Claves de suscripción faltantes")
-          }
+          await webpush.sendNotification(pushSubscription, JSON.stringify(notificationPayload))
 
-          const result = await webpush.sendNotification(pushSubscription, JSON.stringify(notificationPayload))
-
-          console.log(`✅ Notificación enviada exitosamente a ${subscription.user_id}`)
-          console.log(`📊 Status Code: ${result.statusCode}`)
-
-          return {
-            success: true,
-            userId: subscription.user_id,
-            statusCode: result.statusCode,
-            endpoint: subscription.endpoint.substring(0, 50) + "...",
-          }
+          return { success: true, userId: subscription.user_id }
         } catch (error) {
-          console.error(`❌ Error enviando a ${subscription.user_id}:`, error)
+          console.error(`Error enviando notificación a ${subscription.user_id}:`, error)
 
-          // Información detallada del error
-          const errorInfo = {
-            success: false,
-            userId: subscription.user_id,
-            error: error.message,
-            statusCode: error.statusCode || null,
-            endpoint: subscription.endpoint.substring(0, 50) + "...",
-            details: {
-              name: error.name,
-              code: error.code,
-              errno: error.errno,
-            },
-          }
-
-          // Si la suscripción es inválida (410), marcarla como inactiva
+          // Si la suscripción es inválida, desactivarla
           if (error.statusCode === 410) {
-            console.log(`🗑️ Marcando suscripción como inactiva: ${subscription.id}`)
             await supabase.from("user_push_subscriptions").update({ is_active: false }).eq("id", subscription.id)
-            errorInfo.action = "subscription_deactivated"
           }
 
-          return errorInfo
+          return { success: false, userId: subscription.user_id, error: error.message }
         }
       }),
     )
 
-    // Analizar resultados
-    const successful = results.filter((r) => r.status === "fulfilled" && r.value.success)
-    const failed = results.filter((r) => r.status === "rejected" || !r.value.success)
-
-    console.log(`📊 Resultados: ${successful.length} exitosas, ${failed.length} fallidas`)
+    // Contar resultados
+    const successful = results.filter((r) => r.status === "fulfilled" && r.value.success).length
+    const failed = results.filter((r) => r.status === "rejected" || !r.value.success).length
 
     return NextResponse.json({
-      success: true,
-      message: `Notificación enviada a ${successful.length} dispositivos (${failed.length} fallidos)`,
-      results: results.map((r) => ({
-        status: r.status,
-        value: r.status === "fulfilled" ? r.value : null,
-        reason: r.status === "rejected" ? r.reason?.message || r.reason : null,
-      })),
-      debug: {
-        totalSubscriptions: subscriptions.length,
-        successful: successful.length,
-        failed: failed.length,
-        vapidConfigured: true,
-      },
+      message: "Notificaciones de prueba enviadas",
+      sent: successful,
+      failed,
+      total: subscriptions.length,
     })
   } catch (error) {
-    console.error("💥 Error general:", error)
-    return NextResponse.json({
-      success: false,
-      error: "Error interno del servidor",
-      details: error.message,
-      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
-    })
+    console.error("Error enviando notificaciones de prueba:", error)
+    return NextResponse.json(
+      {
+        error: "Error interno del servidor",
+        details: error.message,
+      },
+      { status: 500 },
+    )
   }
 }

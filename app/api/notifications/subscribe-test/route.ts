@@ -1,9 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import { createClient } from "@supabase/supabase-js"
 
 export async function POST(request: NextRequest) {
-  console.log("🚀 Iniciando proceso de suscripción...")
+  console.log("🚀 Iniciando proceso de suscripción de prueba...")
 
   try {
     const body = await request.json()
@@ -18,26 +17,12 @@ export async function POST(request: NextRequest) {
 
     console.log("🔗 Endpoint válido recibido")
 
-    // Obtener el usuario autenticado
-    let userId = body.userId // Intentar obtener del body primero
-    
-    if (!userId) {
-      const supabase = createRouteHandlerClient({ cookies })
-      const { data: { user }, error: authError } = await supabase.auth.getUser()
+    // Usar service_role para bypass RLS
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
-      if (authError || !user) {
-        console.log("❌ Usuario no autenticado")
-        return NextResponse.json({ error: "Usuario no autenticado" }, { status: 401 })
-      }
-
-      userId = user.id
-    }
-
-    console.log("👤 Usuario autenticado:", userId)
-
-    // Insertar suscripción con el usuario real
+    // Insertar con usuario de prueba (null para permitir suscripciones sin usuario)
     const { error } = await supabase.from("user_push_subscriptions").insert({
-      user_id: userId,
+      user_id: null, // Usuario de prueba
       endpoint: subscription.endpoint,
       p256dh: subscription.keys?.p256dh || "",
       auth: subscription.keys?.auth || "",
@@ -59,11 +44,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log("✅ Suscripción guardada para usuario:", userId)
+    console.log("✅ Suscripción de prueba guardada")
     return NextResponse.json({
       success: true,
-      message: "Suscripción guardada correctamente",
-      user_id: userId,
+      message: "Suscripción de prueba guardada correctamente",
     })
   } catch (error) {
     console.error("💥 Error general:", error)
@@ -76,4 +60,4 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     )
   }
-}
+} 

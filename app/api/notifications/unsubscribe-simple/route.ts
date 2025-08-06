@@ -3,33 +3,30 @@ import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
 import { cookies } from "next/headers"
 
 export async function POST(request: NextRequest) {
-  console.log("🚀 Iniciando proceso de desuscripción...")
+  console.log("🚀 Iniciando proceso de desuscripción simple...")
 
   try {
     const body = await request.json()
-    const { subscription } = body
+    const { subscription, userId } = body
 
     if (!subscription?.endpoint) {
       console.log("❌ Datos de suscripción inválidos")
       return NextResponse.json({ error: "Datos inválidos" }, { status: 400 })
     }
 
-    // Obtener el usuario autenticado
-    const supabase = createRouteHandlerClient({ cookies })
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      console.log("❌ Usuario no autenticado")
-      return NextResponse.json({ error: "Usuario no autenticado" }, { status: 401 })
+    if (!userId) {
+      console.log("❌ userId no proporcionado")
+      return NextResponse.json({ error: "userId requerido" }, { status: 400 })
     }
 
-    console.log("👤 Usuario autenticado:", user.id)
+    console.log("🔗 Endpoint válido recibido para usuario:", userId)
 
     // Desactivar suscripción en la base de datos
+    const supabase = createRouteHandlerClient({ cookies })
     const { error } = await supabase
       .from("user_push_subscriptions")
-      .update({ is_active: false, updated_at: new Date().toISOString() })
-      .eq("user_id", user.id)
+      .update({ is_active: false })
+      .eq("user_id", userId)
       .eq("endpoint", subscription.endpoint)
 
     if (error) {
@@ -43,11 +40,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log("✅ Suscripción desactivada para usuario:", user.id)
+    console.log("✅ Suscripción desactivada para usuario:", userId)
     return NextResponse.json({
       success: true,
       message: "Suscripción desactivada correctamente",
-      user_id: user.id,
+      user_id: userId,
     })
   } catch (error) {
     console.error("💥 Error general:", error)
@@ -60,4 +57,4 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     )
   }
-}
+} 

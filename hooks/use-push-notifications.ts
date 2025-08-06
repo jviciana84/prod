@@ -8,6 +8,20 @@ export function usePushNotifications() {
   const [isLoading, setIsLoading] = useState(false)
   const [permission, setPermission] = useState<NotificationPermission>("default")
   const [subscription, setSubscription] = useState<PushSubscription | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  // Función para obtener el userId del cliente
+  const getUserId = async () => {
+    try {
+      const { createClientComponentClient } = await import("@/lib/supabase/client")
+      const supabaseClient = createClientComponentClient()
+      const { data: { user } } = await supabaseClient.auth.getUser()
+      return user?.id
+    } catch (error) {
+      console.error("Error obteniendo userId:", error)
+      return null
+    }
+  }
 
   useEffect(() => {
     // Only run on client side
@@ -20,6 +34,22 @@ export function usePushNotifications() {
 
     if (supported) {
       setPermission(Notification.permission)
+      checkExistingSubscription()
+    }
+  }, [])
+
+  const checkExistingSubscription = useCallback(async () => {
+    try {
+      const registration = await navigator.serviceWorker.getRegistration()
+      if (registration) {
+        const existingSubscription = await registration.pushManager.getSubscription()
+        if (existingSubscription) {
+          setSubscription(existingSubscription)
+          setIsSubscribed(true)
+        }
+      }
+    } catch (error) {
+      console.error("Error checking existing subscription:", error)
     }
   }, [])
 
@@ -33,6 +63,8 @@ export function usePushNotifications() {
     }
 
     setIsLoading(true)
+    setError(null)
+    
     try {
       // Request permission
       const permission = await Notification.requestPermission()
@@ -59,7 +91,7 @@ export function usePushNotifications() {
       })
 
       // Save to server
-      const response = await fetch("/api/notifications/subscribe", {
+      const response = await fetch("/api/notifications/subscribe-simple", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -74,12 +106,17 @@ export function usePushNotifications() {
                 : null,
             },
           },
+          userId: await getUserId(), // Enviar userId del cliente
         }),
       })
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || "Error guardando suscripción")
+        const errorData = await response.json()
+        if (response.status === 401) {
+          throw new Error("Debes iniciar sesión para activar las notificaciones push")
+        } else {
+          throw new Error(errorData.error || "Error guardando suscripción")
+        }
       }
 
       setSubscription(newSubscription)
@@ -88,6 +125,7 @@ export function usePushNotifications() {
       return { success: true, message: "Notificaciones activadas correctamente" }
     } catch (error) {
       console.error("Error activando notificaciones:", error)
+      setError(error.message)
       throw error
     } finally {
       setIsLoading(false)
@@ -98,13 +136,18 @@ export function usePushNotifications() {
     if (typeof window === "undefined") return
 
     setIsLoading(true)
+    setError(null)
+    
     try {
       if (subscription) {
         await subscription.unsubscribe()
-        await fetch("/api/notifications/unsubscribe", {
+        await fetch("/api/notifications/unsubscribe-simple", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ subscription }),
+          body: JSON.stringify({ 
+            subscription,
+            userId: await getUserId()
+          }),
         })
       }
 
@@ -112,6 +155,7 @@ export function usePushNotifications() {
       setIsSubscribed(false)
     } catch (error) {
       console.error("Error desactivando notificaciones:", error)
+      setError(error.message)
     } finally {
       setIsLoading(false)
     }
@@ -128,14 +172,22 @@ export function usePushNotifications() {
         if (existingSubscription) {
           setSubscription(existingSubscription)
           setIsSubscribed(true)
+        } else {
+          setSubscription(null)
+          setIsSubscribed(false)
         }
       }
     } catch (error) {
       console.error("Error refreshing state:", error)
+      setError(error.message)
     } finally {
       setIsLoading(false)
     }
   }, [isSupported])
+
+  const clearError = useCallback(() => {
+    setError(null)
+  }, [])
 
   return {
     isSupported,
@@ -143,8 +195,10 @@ export function usePushNotifications() {
     isLoading,
     permission,
     subscription,
+    error,
     subscribe,
     unsubscribe,
     refreshState,
+    clearError,
   }
 }

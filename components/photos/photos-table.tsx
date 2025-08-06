@@ -981,6 +981,9 @@ export default function PhotosTable() {
 
   const handlePhotographerChange = async (id: string, photographerId: string | null) => {
     try {
+      // Obtener información del vehículo antes de actualizar
+      const vehicle = vehicles.find(v => v.id === id)
+      
       const { error } = await supabase.from("fotos").update({ assigned_to: photographerId }).eq("id", id)
 
       if (error) throw error
@@ -997,6 +1000,31 @@ export default function PhotosTable() {
         title: "Fotógrafo actualizado",
         description: `Se ha asignado ${photographerName} al vehículo.`,
       })
+
+      // Enviar notificación si se asignó un fotógrafo
+      if (photographerId && vehicle) {
+        try {
+          const response = await fetch("/api/notifications/send-photo-assignment-simple", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              photographerId,
+              vehicleId: id,
+              licensePlate: vehicle.license_plate,
+              model: vehicle.model
+            })
+          })
+
+          if (response.ok) {
+            console.log("✅ Notificación enviada al fotógrafo")
+          } else {
+            console.error("❌ Error enviando notificación:", await response.text())
+          }
+        } catch (notificationError) {
+          console.error("❌ Error enviando notificación:", notificationError)
+          // No fallar si la notificación falla
+        }
+      }
     } catch (error) {
       console.error("Error al cambiar fotógrafo asignado:", error)
       toast({

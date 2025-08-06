@@ -21,6 +21,7 @@ import {
   Heart,
   Bell,
   Menu,
+  Trash2,
 } from "lucide-react"
 import { createClientComponentClient } from "@/lib/supabase/client"
 import { Badge } from "@/components/ui/badge"
@@ -380,6 +381,46 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
     }
   }
 
+  const deleteNotification = async (notificationId: string, event: React.MouseEvent) => {
+    event.stopPropagation() // Prevenir que se ejecute handleNotificationClick
+    
+    try {
+      const { error } = await supabase
+        .from("notification_history")
+        .delete()
+        .eq("id", notificationId)
+
+      if (error) {
+        console.error("Error eliminando notificación:", error)
+        toast({
+          title: "Error",
+          description: "Error eliminando notificación",
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Actualizar estado local
+      setNotifications(prev => prev.filter(notif => notif.id !== notificationId))
+      
+      // Recalcular notificaciones sin leer
+      const newUnreadCount = notifications.filter(notif => notif.id !== notificationId && !notif.read_at).length
+      setUnreadNotifications(newUnreadCount)
+
+      toast({
+        title: "Notificación eliminada",
+        description: "La notificación se ha eliminado correctamente",
+      })
+    } catch (error) {
+      console.error("Error:", error)
+      toast({
+        title: "Error",
+        description: "Error eliminando notificación",
+        variant: "destructive",
+      })
+    }
+  }
+
   const handleNotificationClick = (notification: Notification) => {
     // Aquí puedes agregar lógica específica para cada notificación
     console.log("Notificación clickeada:", notification)
@@ -495,14 +536,14 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
                       notifications.map((notif) => (
                         <div
                           key={notif.id}
-                          className="py-2 px-1 border-b border-border/50 hover:bg-accent/50 rounded-sm cursor-pointer"
+                          className="group relative py-2 px-1 border-b border-border/50 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-sm cursor-pointer transition-colors duration-200"
                           onClick={() => handleNotificationClick(notif)}
                         >
                           <div className="flex items-start gap-2">
                             <div
                               className={`h-2 w-2 rounded-full mt-1.5 flex-shrink-0 ${!notif.read_at ? "bg-blue-500" : "bg-transparent"}`}
                             />
-                            <div>
+                            <div className="flex-1">
                               <p className="text-xs font-medium">{notif.title}</p>
                               <p className="text-xs text-muted-foreground">{notif.body}</p>
                               <p className="text-[10px] text-muted-foreground mt-1">
@@ -515,12 +556,27 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
                               </p>
                             </div>
                           </div>
+                          
+                          {/* Icono de basura translúcido que aparece en hover */}
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                            <div 
+                              className="bg-red-500/20 backdrop-blur-sm rounded p-1 cursor-pointer hover:bg-red-500/30 transition-colors"
+                              onClick={(e) => deleteNotification(notif.id, e)}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-600" />
+                            </div>
+                          </div>
                         </div>
                       ))
                     )}
                   </div>
                   <div className="h-px bg-border my-1" />
-                  <Button variant="outline" size="sm" className="w-full text-xs mt-1">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full text-xs mt-1"
+                    onClick={() => router.push("/dashboard/notifications")}
+                  >
                     Ver todas las notificaciones
                   </Button>
                 </div>

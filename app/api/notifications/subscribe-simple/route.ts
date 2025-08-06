@@ -3,39 +3,28 @@ import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
 import { cookies } from "next/headers"
 
 export async function POST(request: NextRequest) {
-  console.log("🚀 Iniciando proceso de suscripción...")
+  console.log("🚀 Iniciando proceso de suscripción simple...")
 
   try {
     const body = await request.json()
-    console.log("📦 Body recibido:", { hasSubscription: !!body.subscription })
+    console.log("📦 Body recibido:", { hasSubscription: !!body.subscription, hasUserId: !!body.userId })
 
-    const { subscription } = body
+    const { subscription, userId } = body
 
     if (!subscription?.endpoint) {
       console.log("❌ Datos de suscripción inválidos")
       return NextResponse.json({ error: "Datos inválidos" }, { status: 400 })
     }
 
-    console.log("🔗 Endpoint válido recibido")
-
-    // Obtener el usuario autenticado
-    let userId = body.userId // Intentar obtener del body primero
-    
     if (!userId) {
-      const supabase = createRouteHandlerClient({ cookies })
-      const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-      if (authError || !user) {
-        console.log("❌ Usuario no autenticado")
-        return NextResponse.json({ error: "Usuario no autenticado" }, { status: 401 })
-      }
-
-      userId = user.id
+      console.log("❌ userId no proporcionado")
+      return NextResponse.json({ error: "userId requerido" }, { status: 400 })
     }
 
-    console.log("👤 Usuario autenticado:", userId)
+    console.log("🔗 Endpoint válido recibido para usuario:", userId)
 
-    // Insertar suscripción con el usuario real
+    // Insertar suscripción con el userId proporcionado
+    const supabase = createRouteHandlerClient({ cookies })
     const { error } = await supabase.from("user_push_subscriptions").insert({
       user_id: userId,
       endpoint: subscription.endpoint,
@@ -76,4 +65,4 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     )
   }
-}
+} 
