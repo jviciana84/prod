@@ -1,4 +1,4 @@
--- Trigger para enviar notificaciones cuando se asigna un fotógrafo
+-- Actualizar el trigger para usar el icono correcto y evitar duplicados
 -- Ejecutar en Supabase SQL Editor
 
 -- Función para enviar notificación de asignación de fotógrafo
@@ -58,14 +58,14 @@ BEGIN
 END;
 $func$ LANGUAGE plpgsql;
 
--- Crear el trigger
+-- Recrear el trigger
 DROP TRIGGER IF EXISTS photo_assignment_notification_trigger ON fotos;
 CREATE TRIGGER photo_assignment_notification_trigger
 AFTER UPDATE OF assigned_to ON fotos
 FOR EACH ROW
 EXECUTE FUNCTION send_photo_assignment_notification();
 
--- También crear trigger para nuevas asignaciones en INSERT
+-- También recrear trigger para nuevas asignaciones en INSERT
 DROP TRIGGER IF EXISTS photo_assignment_notification_insert_trigger ON fotos;
 CREATE TRIGGER photo_assignment_notification_insert_trigger
 AFTER INSERT ON fotos

@@ -30,7 +30,7 @@ BEGIN
       created_at
     ) VALUES (
       jordi_user_id,
-      '📸 Nuevas fotografías asignadas',
+      '📷 Nuevas fotografías asignadas',
       'Se te han asignado nuevas fotografías para tomar: ABC1234 BMW X5',
       jsonb_build_object(
         'type', 'photo_assignment',

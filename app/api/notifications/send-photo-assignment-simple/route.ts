@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     // Crear notificación en la base de datos
     const notificationData = {
       user_id: photographerId,
-      title: "📸 Nuevas fotografías asignadas",
+      title: "📷 Nuevas fotografías asignadas",
       body: `Se te han asignado nuevas fotografías para tomar: ${licensePlate} ${model || ""}`,
       data: {
         type: "photo_assignment",
@@ -51,6 +51,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "Error creando notificación" }, { status: 500 })
     }
 
+    console.log(`✅ Notificación creada para ${photographer.full_name || photographer.email}`)
+
     // Enviar notificación push si está habilitada
     try {
       // Obtener suscripciones push del fotógrafo
@@ -60,9 +62,15 @@ export async function POST(request: NextRequest) {
         .eq("user_id", photographerId)
         .eq("is_active", true)
 
-      if (!subsError && subscriptions && subscriptions.length > 0) {
+      if (subsError) {
+        console.error("Error obteniendo suscripciones:", subsError)
+      } else if (!subscriptions || subscriptions.length === 0) {
+        console.log("ℹ️ No hay suscripciones push activas para este usuario")
+      } else {
+        console.log(`📱 Enviando push notifications a ${subscriptions.length} suscripción(es)`)
+        
         const pushPayload = {
-          title: "📸 Nuevas fotografías asignadas",
+          title: "📷 Nuevas fotografías asignadas",
           body: `Se te han asignado nuevas fotografías para tomar: ${licensePlate} ${model || ""}`,
           icon: "/android-chrome-192x192.png",
           badge: "/android-chrome-192x192.png",
@@ -75,14 +83,17 @@ export async function POST(request: NextRequest) {
         }
 
         // Enviar a todas las suscripciones del fotógrafo
+        let successCount = 0
         for (const sub of subscriptions) {
           try {
             await webpush.sendNotification(
               sub.subscription,
               JSON.stringify(pushPayload)
             )
+            successCount++
+            console.log("✅ Push notification enviada correctamente")
           } catch (pushError) {
-            console.error("Error enviando push notification:", pushError)
+            console.error("❌ Error enviando push notification:", pushError)
             // Marcar suscripción como inactiva si falla
             await supabase
               .from("user_push_subscriptions")
@@ -91,9 +102,11 @@ export async function POST(request: NextRequest) {
               .eq("subscription", sub.subscription)
           }
         }
+        
+        console.log(`📱 Push notifications: ${successCount}/${subscriptions.length} enviadas correctamente`)
       }
     } catch (pushError) {
-      console.error("Error en notificaciones push:", pushError)
+      console.error("❌ Error en notificaciones push:", pushError)
       // No fallar si las push notifications fallan
     }
 

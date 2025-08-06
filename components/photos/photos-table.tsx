@@ -1002,6 +1002,9 @@ export default function PhotosTable() {
       })
 
       // Enviar notificación si se asignó un fotógrafo
+      // TEMPORALMENTE DESACTIVADO - El trigger SQL ya envía la notificación automáticamente
+      // Esto evita duplicados de notificaciones
+      /*
       if (photographerId && vehicle) {
         try {
           const response = await fetch("/api/notifications/send-photo-assignment-simple", {
@@ -1025,6 +1028,7 @@ export default function PhotosTable() {
           // No fallar si la notificación falla
         }
       }
+      */
     } catch (error) {
       console.error("Error al cambiar fotógrafo asignado:", error)
       toast({

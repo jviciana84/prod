@@ -196,10 +196,10 @@ export default function TestPhotoAssignmentPage() {
             <div className="space-y-2">
               <h4 className="font-medium">Tipos de notificación:</h4>
               <ul className="text-sm space-y-1">
-                <li className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  📸 Nuevas fotografías asignadas
-                </li>
+                                 <li className="flex items-center gap-2">
+                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                   📷 Nuevas fotografías asignadas
+                 </li>
                 <li className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                   Notificación push (si está habilitada)
