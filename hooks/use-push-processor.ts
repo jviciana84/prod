@@ -4,7 +4,7 @@ export function usePushProcessor() {
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
-    // Procesar push notifications cada 30 segundos
+    // Procesar push notifications cada 10 segundos (más frecuente)
     const processPushNotifications = async () => {
       try {
         const response = await fetch("/api/notifications/process-pending-push", {
@@ -26,8 +26,8 @@ export function usePushProcessor() {
     // Procesar inmediatamente al cargar
     processPushNotifications()
 
-    // Configurar intervalo para procesar cada 30 segundos
-    intervalRef.current = setInterval(processPushNotifications, 30000)
+    // Configurar intervalo para procesar cada 10 segundos
+    intervalRef.current = setInterval(processPushNotifications, 10000)
 
     return () => {
       if (intervalRef.current) {
