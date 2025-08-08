@@ -72,3 +72,6 @@ background-paths/
 
 # Vehicle incidents portal (local only)
 vehicle-incidents-portal/
+
+# SVG files (local only)
+svg/
