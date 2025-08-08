@@ -35,6 +35,7 @@ import {
   Database,
   Tag,
 } from "lucide-react"
+import { AddCarIcon, CarFrontDoubleIcon } from "@/components/ui/icons"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 
@@ -267,7 +268,7 @@ export default function DashboardSidebar({ roles }: DashboardSidebarProps) {
 
         <SidebarItem
           href="/dashboard/vehicles"
-          icon={<Car className="h-5 w-5" />}
+          icon={<CarFrontDoubleIcon className="h-5 w-5" />}
           title="Vehículos"
           isActive={pathname === "/dashboard/vehicles"}
           isExpanded={isExpanded}
@@ -283,7 +284,7 @@ export default function DashboardSidebar({ roles }: DashboardSidebarProps) {
 
         <SidebarItem
           href="/dashboard/nuevas-entradas"
-          icon={<CarFrontIcon className="h-5 w-5" />} // Icono actualizado
+          icon={<AddCarIcon className="h-5 w-5" />}
           title="Nuevas Entradas"
           isActive={pathname.startsWith("/dashboard/nuevas-entradas")}
           isExpanded={isExpanded}

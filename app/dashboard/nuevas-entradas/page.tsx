@@ -5,13 +5,13 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import TransportDashboard from "@/components/transport/transport-dashboard"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { getUserRolesClient } from "@/lib/auth/permissions-client"
-import { Truck } from "lucide-react"
 import { AutoRefreshIndicator } from "@/components/ui/auto-refresh-indicator"
 import { AutoRefreshSettings } from "@/components/ui/auto-refresh-settings"
 import { AutoRefreshNotification } from "@/components/ui/auto-refresh-notification"
 import { useAutoRefresh } from "@/hooks/use-auto-refresh"
 import { useAutoRefreshPreferences } from "@/hooks/use-auto-refresh-preferences"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { AddCarIcon } from "@/components/ui/icons"
 
 export default function TransportPage() {
   const [refreshKey, setRefreshKey] = useState(0)
@@ -130,7 +130,7 @@ export default function TransportPage() {
       <div className="space-y-2">
         <Breadcrumbs className="mt-4" />
         <div className="flex items-center gap-3">
-          <Truck className="h-8 w-8 text-green-600" />
+          <AddCarIcon className="h-8 w-8 text-green-600" />
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Gestión de Nuevas Entradas</h1>
             <p className="text-muted-foreground">Control y seguimiento de vehículos recién adquiridos</p>

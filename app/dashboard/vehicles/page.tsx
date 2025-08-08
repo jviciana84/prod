@@ -5,7 +5,6 @@ import { supabaseAdmin } from "@/lib/supabaseClient"
 import StockTable from "@/components/vehicles/stock-table"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Car } from "lucide-react"
 import { AutoRefreshIndicator } from "@/components/ui/auto-refresh-indicator"
 import { AutoRefreshSettings } from "@/components/ui/auto-refresh-settings"
 import { AutoRefreshNotification } from "@/components/ui/auto-refresh-notification"
@@ -13,6 +12,7 @@ import { CheckRemovedVehiclesButton } from "@/components/ui/check-removed-vehicl
 import { useAutoRefresh } from "@/hooks/use-auto-refresh"
 import { useAutoRefreshPreferences } from "@/hooks/use-auto-refresh-preferences"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { CarFrontDoubleIcon } from "@/components/ui/icons"
 
 export default function VehiclesPage() {
   const [refreshKey, setRefreshKey] = useState(0)
@@ -55,7 +55,7 @@ export default function VehiclesPage() {
           ]}
         />
         <div className="flex items-center gap-3">
-          <Car className="h-8 w-8 text-muted-foreground" />
+          <CarFrontDoubleIcon className="h-8 w-8 text-muted-foreground" />
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Inventario de Vehículos</h1>
             <p className="text-muted-foreground">Gestión y seguimiento del inventario de vehículos en stock</p>
@@ -68,7 +68,7 @@ export default function VehiclesPage() {
           <div className="flex justify-between items-center">
             <div>
               <CardTitle className="flex items-center text-lg">
-                <Car className="mr-2 h-4 w-4 text-blue-500" />
+                <CarFrontDoubleIcon className="mr-2 h-4 w-4 text-blue-500" />
                 Stock de Vehículos
               </CardTitle>
               <CardDescription>
@@ -100,7 +100,7 @@ export default function VehiclesPage() {
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="inventory" asChild>
                   <a href="/dashboard/vehicles" className="flex items-center gap-2">
-                    <Car className="h-4 w-4" />
+                    <CarFrontDoubleIcon className="h-4 w-4" />
                     <span>Inventario</span>
                   </a>
                 </TabsTrigger>

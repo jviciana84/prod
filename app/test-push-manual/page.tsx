@@ -2,90 +2,105 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Bell, BellOff, TestTube } from "lucide-react"
 import { toast } from "sonner"
 
-export default function TestPushManual() {
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [result, setResult] = useState<any>(null)
+export default function TestPushManualPage() {
+  const [isLoading, setIsLoading] = useState(false)
 
-  const forceProcessPush = async () => {
-    setIsProcessing(true)
+  const forceProcessBell = async () => {
+    setIsLoading(true)
     try {
-      const response = await fetch("/api/notifications/process-pending-push", {
+      console.log("🔔 Procesando notificaciones de campana...")
+      
+      const response = await fetch("/api/notifications/bell", {
         method: "POST",
-        headers: { "Content-Type": "application/json" }
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "🧪 Prueba Manual",
+          body: "Esta es una notificación de prueba manual",
+          data: { url: "/dashboard" }
+        })
       })
 
       const data = await response.json()
-      setResult(data)
-
+      console.log("📦 Resultado:", data)
+      
       if (response.ok) {
-        toast.success(`Procesadas ${data.processed} notificaciones, ${data.pushSent} push enviadas`)
+        toast.success("Notificación de campana procesada correctamente")
       } else {
-        toast.error(`Error: ${data.message}`)
+        toast.error("Error procesando notificación")
       }
     } catch (error) {
       console.error("Error:", error)
-      toast.error("Error procesando push")
+      toast.error("Error de conexión")
     } finally {
-      setIsProcessing(false)
-    }
-  }
-
-  const checkPending = async () => {
-    try {
-      const response = await fetch("/api/notifications/check-pending", {
-        method: "GET"
-      })
-
-      const data = await response.json()
-      setResult(data)
-      toast.info(`Encontradas ${data.count} notificaciones pendientes`)
-    } catch (error) {
-      console.error("Error:", error)
-      toast.error("Error verificando")
+      setIsLoading(false)
     }
   }
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center gap-2 mb-6">
-        <h1 className="text-2xl font-bold">Test Push Manual</h1>
+      <div className="text-center">
+        <h1 className="text-3xl font-bold mb-2">Test Manual</h1>
+        <p className="text-gray-600">Página de prueba manual para notificaciones</p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Forzar Procesamiento de Push</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-2">
-            <Button 
-              onClick={checkPending}
-              variant="outline"
-            >
-              Verificar Pendientes
-            </Button>
-            
-            <Button 
-              onClick={forceProcessPush} 
-              disabled={isProcessing}
-              variant="default"
-            >
-              {isProcessing ? "Procesando..." : "Forzar Procesamiento"}
-            </Button>
-          </div>
-
-          {result && (
-            <div className="mt-4 p-4 bg-muted rounded-lg">
-              <h3 className="font-semibold mb-2">Resultado:</h3>
-              <pre className="text-sm overflow-auto">
-                {JSON.stringify(result, null, 2)}
-              </pre>
+      <div className="grid gap-6">
+        {/* Estado del Sistema */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5" />
+              Estado del Sistema
+            </CardTitle>
+            <CardDescription>Configuración actual de notificaciones</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span>Push Notifications:</span>
+              <Badge className="bg-gray-400 text-white">
+                <BellOff className="h-3 w-3 mr-1" />
+                Anulado
+              </Badge>
             </div>
-          )}
-        </CardContent>
-      </Card>
+            <div className="flex items-center justify-between">
+              <span>Campana:</span>
+              <Badge className="bg-green-600 text-white">
+                <Bell className="h-3 w-3 mr-1" />
+                Activa
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Procesamiento Manual */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TestTube className="h-5 w-5" />
+              Procesamiento Manual
+            </CardTitle>
+            <CardDescription>Envía notificaciones de prueba manualmente</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button 
+              onClick={forceProcessBell}
+              disabled={isLoading}
+              className="w-full"
+            >
+              {isLoading ? "Procesando..." : (
+                <>
+                  <Bell className="h-4 w-4 mr-2" />
+                  Procesar Notificación Manual
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
-} 
+}

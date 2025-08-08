@@ -1,8 +1,13 @@
 "use client"
 
-import { usePushProcessor } from "@/hooks/use-push-processor"
+import { useEffect } from "react"
 
+// PUSH PROCESSOR ANULADO - Solo campana activa
 export function PushProcessor() {
-  usePushProcessor()
+  useEffect(() => {
+    // PUSH NOTIFICATIONS ANULADO - No procesar push
+    console.log("Push processor anulado - solo campana activa")
+  }, [])
+
   return null
-} 
+}

@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from "@/components/auth/auth-provider"
 import { PushProcessor } from "@/components/push-processor"
+
 // import ThemeHtmlSync from "@/components/theme-html-sync"
 // import { RoundFavicon } from "@/components/ui/round-favicon"
 // import { ThemeScript } from "@/components/theme-script"

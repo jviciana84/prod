@@ -1,49 +1,23 @@
-// Service Worker simple para notificaciones push
-console.log("Service Worker cargado")
+// Service Worker - PUSH NOTIFICATIONS ANULADO
+// Solo campana activa
 
 self.addEventListener("install", (event) => {
-  console.log("Service Worker instalado")
+  console.log("Service Worker instalado (push anulado)")
   self.skipWaiting()
 })
 
 self.addEventListener("activate", (event) => {
-  console.log("Service Worker activado")
+  console.log("Service Worker activado (push anulado)")
   event.waitUntil(self.clients.claim())
 })
 
+// PUSH EVENT ANULADO - No procesar push notifications
 self.addEventListener("push", (event) => {
-  console.log("Push recibido:", event)
-
-  let title = "Nueva notificación"
-  let options = {
-    body: "Tienes una nueva notificación",
-    icon: "/favicon.ico",
-    badge: "/favicon.ico",
-  }
-
-  try {
-    if (event.data) {
-      const data = event.data.json()
-      title = data.title || title
-      options = { ...options, ...data }
-    }
-  } catch (e) {
-    console.error("Error parseando datos:", e)
-  }
-
-  event.waitUntil(self.registration.showNotification(title, options))
+  console.log("Push event recibido pero anulado - solo campana activa")
+  // No hacer nada - push anulado
 })
 
 self.addEventListener("notificationclick", (event) => {
-  console.log("Notificación clickeada")
-  event.notification.close()
-
-  event.waitUntil(
-    clients.matchAll({ type: "window" }).then((clientList) => {
-      if (clientList.length > 0) {
-        return clientList[0].focus()
-      }
-      return clients.openWindow("/")
-    }),
-  )
+  console.log("Notification click recibido pero anulado")
+  // No hacer nada - push anulado
 })

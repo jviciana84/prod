@@ -1,171 +1,106 @@
 "use client"
 
 import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Bell, BellOff, TestTube } from "lucide-react"
+import { toast } from "sonner"
 
 export default function TestSimplePage() {
-  const [result, setResult] = useState<string>("")
+  const [isLoading, setIsLoading] = useState(false)
 
-  const testAPI = async () => {
+  const testBellNotification = async () => {
+    setIsLoading(true)
     try {
-      console.log("🔍 Iniciando prueba...")
+      console.log("🔔 Enviando notificación de campana...")
       
-      const response = await fetch("/api/test-notification-simple", {
+      const response = await fetch("/api/notifications/bell", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: "🧪 Prueba simple",
-          body: "Esta es una prueba del sistema"
+          title: "🧪 Prueba Campana",
+          body: "Esta es una notificación de campana de prueba",
+          data: { url: "/dashboard" }
         })
       })
 
-      console.log("📡 Respuesta recibida:", response.status)
-      
       const data = await response.json()
-      console.log("📦 Datos:", data)
+      console.log("📦 Resultado campana:", data)
       
-      setResult(JSON.stringify({ status: response.status, data }, null, 2))
-    } catch (error) {
-      console.error("💥 Error:", error)
-      setResult(`Error: ${error.message}`)
-    }
-  }
-
-  const refreshSession = async () => {
-    try {
-      console.log("🔄 Refrescando sesión...")
-      
-      const response = await fetch("/api/refresh-session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" }
-      })
-
-      const data = await response.json()
-      console.log("📦 Resultado refresh:", data)
-      
-      setResult(JSON.stringify({ status: response.status, data }, null, 2))
-    } catch (error) {
-      console.error("💥 Error:", error)
-      setResult(`Error: ${error.message}`)
-    }
-  }
-
-  const forceLogout = async () => {
-    try {
-      console.log("🚪 Forzando logout...")
-      
-      const response = await fetch("/api/force-logout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" }
-      })
-
-      const data = await response.json()
-      console.log("📦 Resultado logout:", data)
-      
-      setResult(JSON.stringify({ status: response.status, data }, null, 2))
-      
-      // Si fue exitoso, redirigir a login después de 2 segundos
-      if (data.success) {
-        setTimeout(() => {
-          window.location.href = "/auth/login"
-        }, 2000)
+      if (response.ok) {
+        toast.success("Notificación de campana enviada correctamente")
+      } else {
+        toast.error("Error enviando notificación de campana")
       }
     } catch (error) {
-      console.error("💥 Error:", error)
-      setResult(`Error: ${error.message}`)
-    }
-  }
-
-  const testPushNotification = async () => {
-    try {
-      console.log("🔔 Enviando notificación push...")
-      
-      const response = await fetch("/api/notifications/send-test-push", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: "🧪 Prueba Push",
-          body: "Esta es una notificación push de prueba",
-          userId: "d8949618-e8a3-4e45-a373-1ad51532534e" // Tu userId
-        })
-      })
-
-      const data = await response.json()
-      console.log("📦 Resultado push:", data)
-      
-      setResult(JSON.stringify({ status: response.status, data }, null, 2))
-    } catch (error) {
-      console.error("💥 Error:", error)
-      setResult(`Error: ${error.message}`)
-    }
-  }
-
-  const cleanupSubscriptions = async () => {
-    try {
-      console.log("🧹 Limpiando suscripciones...")
-      
-      const response = await fetch("/api/notifications/cleanup-subscriptions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: "d8949618-e8a3-4e45-a373-1ad51532534e" // Tu userId
-        })
-      })
-
-      const data = await response.json()
-      console.log("📦 Resultado cleanup:", data)
-      
-      setResult(JSON.stringify({ status: response.status, data }, null, 2))
-    } catch (error) {
-      console.error("💥 Error:", error)
-      setResult(`Error: ${error.message}`)
+      console.error("Error:", error)
+      toast.error("Error de conexión")
+    } finally {
+      setIsLoading(false)
     }
   }
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">🧪 Prueba Simple</h1>
-      
-      <div className="space-x-4 mb-4">
-        <button 
-          onClick={testAPI}
-          className="bg-blue-500 text-white px-4 py-2 rounded"
-        >
-          Probar API
-        </button>
-        <button 
-          onClick={refreshSession}
-          className="bg-green-500 text-white px-4 py-2 rounded"
-        >
-          Refrescar Sesión
-        </button>
-        <button 
-          onClick={forceLogout}
-          className="bg-red-500 text-white px-4 py-2 rounded"
-        >
-          Forzar Logout
-        </button>
-        <button 
-          onClick={testPushNotification}
-          className="bg-purple-500 text-white px-4 py-2 rounded"
-        >
-          Probar Push
-        </button>
-        <button 
-          onClick={cleanupSubscriptions}
-          className="bg-orange-500 text-white px-4 py-2 rounded"
-        >
-          Limpiar Suscripciones
-        </button>
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="text-center">
+        <h1 className="text-3xl font-bold mb-2">Test Simple</h1>
+        <p className="text-gray-600">Página de prueba para notificaciones</p>
       </div>
-      
-      {result && (
-        <div className="mt-4">
-          <h2 className="font-bold mb-2">Resultado:</h2>
-          <pre className="bg-gray-100 p-4 rounded text-sm overflow-auto">
-            {result}
-          </pre>
-        </div>
-      )}
+
+      <div className="grid gap-6">
+        {/* Estado del Sistema */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5" />
+              Estado del Sistema
+            </CardTitle>
+            <CardDescription>Configuración actual de notificaciones</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span>Push Notifications:</span>
+              <Badge className="bg-gray-400 text-white">
+                <BellOff className="h-3 w-3 mr-1" />
+                Anulado
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Campana:</span>
+              <Badge className="bg-green-600 text-white">
+                <Bell className="h-3 w-3 mr-1" />
+                Activa
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Pruebas */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TestTube className="h-5 w-5" />
+              Pruebas de Notificación
+            </CardTitle>
+            <CardDescription>Envía notificaciones de prueba</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button 
+              onClick={testBellNotification}
+              disabled={isLoading}
+              className="w-full"
+            >
+              {isLoading ? "Enviando..." : (
+                <>
+                  <Bell className="h-4 w-4 mr-2" />
+                  Probar Campana
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
-} 
+}

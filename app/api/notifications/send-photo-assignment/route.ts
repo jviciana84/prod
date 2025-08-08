@@ -1,7 +1,6 @@
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
 import { cookies } from "next/headers"
 import { NextRequest, NextResponse } from "next/server"
-import webpush from "web-push"
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,7 +35,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "Fotógrafo no encontrado" }, { status: 404 })
     }
 
-    // Crear notificación en la base de datos
+    // Crear notificación en la base de datos (solo campana)
     const notificationData = {
       user_id: photographerId,
       title: "📸 Nuevas fotografías asignadas",
@@ -60,62 +59,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "Error creando notificación" }, { status: 500 })
     }
 
-    // Enviar notificación push si está habilitada
-    try {
-      // Obtener suscripciones push del fotógrafo
-      const { data: subscriptions, error: subsError } = await supabase
-        .from("user_push_subscriptions")
-        .select("subscription")
-        .eq("user_id", photographerId)
-        .eq("is_active", true)
+    console.log(`✅ Notificación creada para ${photographer.full_name || photographer.email}`)
 
-      if (!subsError && subscriptions && subscriptions.length > 0) {
-        const pushPayload = {
-          title: "📸 Nuevas fotografías asignadas",
-          body: `Se te han asignado nuevas fotografías para tomar: ${licensePlate} ${model || ""}`,
-          icon: "/android-chrome-192x192.png",
-          badge: "/android-chrome-192x192.png",
-          data: {
-            url: "/dashboard/photos",
-            type: "photo_assignment",
-            vehicleId,
-            licensePlate
-          }
-        }
-
-        // Enviar a todas las suscripciones del fotógrafo
-        for (const sub of subscriptions) {
-          try {
-            await webpush.sendNotification(
-              sub.subscription,
-              JSON.stringify(pushPayload)
-            )
-          } catch (pushError) {
-            console.error("Error enviando push notification:", pushError)
-            // Marcar suscripción como inactiva si falla
-            await supabase
-              .from("user_push_subscriptions")
-              .update({ is_active: false })
-              .eq("user_id", photographerId)
-              .eq("subscription", sub.subscription)
-          }
-        }
-      }
-    } catch (pushError) {
-      console.error("Error en notificaciones push:", pushError)
-      // No fallar si las push notifications fallan
-    }
-
-    return NextResponse.json({ 
-      success: true, 
-      message: "Notificación enviada correctamente",
-      photographer: photographer.full_name || photographer.email
+    return NextResponse.json({
+      message: "Notificación enviada (solo campana - push anulado)",
+      success: true
     })
 
-  } catch (error: any) {
-    console.error("Error enviando notificación de asignación:", error)
-    return NextResponse.json({ 
-      message: "Error interno del servidor" 
-    }, { status: 500 })
+  } catch (error) {
+    console.error("Error:", error)
+    return NextResponse.json({ message: "Error interno del servidor" }, { status: 500 })
   }
-} 
+}
