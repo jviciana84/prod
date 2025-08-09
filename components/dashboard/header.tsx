@@ -326,16 +326,12 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
   }, [isEditingPhone])
 
   const getInitials = (name: string) => {
-    // Si es un nombre completo, obtener las iniciales de las dos primeras palabras
-    if (user.user_metadata.full_name) {
-      const nameParts = user.user_metadata.full_name.split(" ")
-      if (nameParts.length > 1) {
-        return (nameParts[0][0] + nameParts[1][0]).toUpperCase()
-      }
-      return user.user_metadata.full_name.substring(0, 2).toUpperCase()
-    }
-    // Si no hay nombre, usar las dos primeras letras del email
-    return name.substring(0, 2).toUpperCase()
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2)
   }
 
   const getRoleBadgeColor = (role: string) => {
@@ -594,7 +590,10 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
             >
               <div className="avatar-eclipse">
                 <Avatar className="h-[48px] w-[48px]">
-                  <AvatarImage src={userProfile?.avatar_url || "/placeholder.svg"} alt={displayName} />
+                  <AvatarImage 
+                    src={userProfile?.avatar_url || "/placeholder.svg"} 
+                    alt={displayName}
+                  />
                   <AvatarFallback>{getInitials(displayName)}</AvatarFallback>
                 </Avatar>
               </div>
@@ -617,7 +616,10 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
                       >
                         <div className="avatar-eclipse">
                           <Avatar className="h-20 w-20 group-hover:ring-2 group-hover:ring-primary/50 transition-all duration-200">
-                            <AvatarImage src={userProfile?.avatar_url || "/placeholder.svg"} alt={displayName} />
+                            <AvatarImage 
+                              src={userProfile?.avatar_url || "/placeholder.svg"} 
+                              alt={displayName}
+                            />
                             <AvatarFallback className="text-xl">{getInitials(displayName)}</AvatarFallback>
                           </Avatar>
                         </div>

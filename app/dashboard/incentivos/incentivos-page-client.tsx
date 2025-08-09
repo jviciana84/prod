@@ -1,7 +1,7 @@
 "use client"
 
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
-import { Trophy, Settings, RefreshCw, Loader2, CheckCircle, Car, Tag, Euro, Calculator } from "lucide-react"
+import { Trophy, Settings, RefreshCw, Loader2, CheckCircle, Car, Tag, Euro, Calculator, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table"
@@ -32,6 +32,25 @@ export default function IncentivosPageClient({
   const [selectedYear, setSelectedYear] = useState<string | null>(null)
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null)
   const [selectedAdvisor, setSelectedAdvisor] = useState<string | null>(null)
+
+  // Estado para selección de filas
+  const [selectedRowId, setSelectedRowId] = useState<string | null>(null)
+
+  const handleRowClick = (incentivoId: string, event: React.MouseEvent) => {
+    // No deseleccionar si se hace clic en elementos interactivos
+    const target = event.target as Element
+    if (target.closest('button') || 
+        target.closest('input') || 
+        target.closest('[role="combobox"]') || 
+        target.closest('span[onClick]') ||
+        target.closest('a') ||
+        target.closest('[data-interactive]') ||
+        target.closest('label')) {
+      return
+    }
+    
+    setSelectedRowId(selectedRowId === incentivoId ? null : incentivoId)
+  }
 
   const fetchIncentivesData = useCallback(async () => {
     setLoadingMainTable(true)
@@ -194,35 +213,53 @@ export default function IncentivosPageClient({
           <CardContent className="px-8 pb-8">
             <div className="rounded-lg border bg-background shadow-sm">
               <Table>
-                <TableHeader className="bg-muted/30">
-                  <TableRow className="hover:bg-transparent border-b border-border">
-                    <TableHead className="py-4 px-4 text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                      <div className="flex items-center gap-2">
-                        <Car className="h-4 w-4" />
+                <TableHeader className="bg-gradient-to-r from-muted/50 to-muted/30">
+                  <TableRow className="hover:bg-transparent border-b border-border/50">
+                    <TableHead className="py-4 px-4 text-sm font-semibold text-muted-foreground uppercase tracking-wide text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="p-1 rounded-md bg-orange-500/10">
+                          <Calendar className="h-3 w-3 text-orange-500" />
+                        </div>
+                        ENTREGA
+                      </div>
+                    </TableHead>
+                    <TableHead className="py-4 px-4 text-sm font-semibold text-muted-foreground uppercase tracking-wide text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="p-1.5 rounded-md bg-primary/10">
+                          <Car className="h-3.5 w-3.5 text-primary" />
+                        </div>
                         MATRÍCULA
                       </div>
                     </TableHead>
-                    <TableHead className="py-4 px-4 text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                      <div className="flex items-center gap-2">
-                        <Tag className="h-4 w-4" />
+                    <TableHead className="py-4 px-4 text-sm font-semibold text-muted-foreground uppercase tracking-wide text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="p-1 rounded-md bg-blue-500/10">
+                          <Tag className="h-3 w-3 text-blue-500" />
+                        </div>
                         OR
                       </div>
                     </TableHead>
-                    <TableHead className="py-4 px-4 text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                      <div className="flex items-center gap-2">
-                        <Tag className="h-4 w-4" />
+                    <TableHead className="py-4 px-4 text-sm font-semibold text-muted-foreground uppercase tracking-wide text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="p-1 rounded-md bg-green-500/10">
+                          <Tag className="h-3 w-3 text-green-500" />
+                        </div>
                         ASESOR
                       </div>
                     </TableHead>
-                    <TableHead className="py-4 px-4 text-sm font-medium text-muted-foreground uppercase tracking-wide text-center">
+                    <TableHead className="py-4 px-4 text-sm font-semibold text-muted-foreground uppercase tracking-wide text-center">
                       <div className="flex items-center justify-center gap-2">
-                        <Euro className="h-4 w-4" />
+                        <div className="p-1 rounded-md bg-yellow-500/10">
+                          <Euro className="h-3 w-3 text-yellow-500" />
+                        </div>
                         GARANTÍA
                       </div>
                     </TableHead>
-                    <TableHead className="py-4 px-4 text-sm font-medium text-muted-foreground uppercase tracking-wide text-center">
+                    <TableHead className="py-4 px-4 text-sm font-semibold text-muted-foreground uppercase tracking-wide text-center">
                       <div className="flex items-center justify-center gap-2">
-                        <Euro className="h-4 w-4" />
+                        <div className="p-1 rounded-md bg-purple-500/10">
+                          <Euro className="h-3 w-3 text-purple-500" />
+                        </div>
                         GASTOS 360º
                       </div>
                     </TableHead>
@@ -231,7 +268,7 @@ export default function IncentivosPageClient({
                 <TableBody>
                   {loadingPendingCard ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-12">
+                      <TableCell colSpan={6} className="text-center py-12">
                         <div className="flex justify-center items-center text-muted-foreground">
                           <Loader2 className="h-6 w-6 animate-spin mr-2" />
                           <span>Cargando incentivos pendientes...</span>
@@ -240,7 +277,7 @@ export default function IncentivosPageClient({
                     </TableRow>
                   ) : pendingIncentivesForCard.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-12">
+                      <TableCell colSpan={6} className="text-center py-12">
                         <div className="flex flex-col items-center justify-center text-muted-foreground">
                           <CheckCircle className="h-12 w-12 mb-3 text-green-500" />
                           <p className="text-base font-medium">No hay incentivos pendientes de costes.</p>
@@ -258,6 +295,8 @@ export default function IncentivosPageClient({
                         onUpdate={handleRefreshPendingCard}
                         index={index}
                         isAdmin={isAdminOrManagerOrSupervisor}
+                        selectedRowId={selectedRowId}
+                        onRowClick={handleRowClick}
                       />
                     ))
                   )}

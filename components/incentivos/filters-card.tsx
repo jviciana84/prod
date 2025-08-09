@@ -94,6 +94,24 @@ export function FiltersCard({
     return date.toLocaleDateString("es-ES")
   }
 
+  const getMonthName = (monthNumber: string) => {
+    const months = {
+      "1": "Enero",
+      "2": "Febrero", 
+      "3": "Marzo",
+      "4": "Abril",
+      "5": "Mayo",
+      "6": "Junio",
+      "7": "Julio",
+      "8": "Agosto",
+      "9": "Septiembre",
+      "10": "Octubre",
+      "11": "Noviembre",
+      "12": "Diciembre"
+    }
+    return months[monthNumber as keyof typeof months] || monthNumber
+  }
+
   const handleCopyData = () => {
     if (displayIncentives.length === 0) {
       toast.error("No hay datos para copiar.")
@@ -235,7 +253,7 @@ export function FiltersCard({
               </Select>
             </div>
 
-            {currentFilterMode === "historical" && (
+            {(currentFilterMode === "historical" || currentFilterMode === "pending") && (
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <label
@@ -274,7 +292,7 @@ export function FiltersCard({
                       <SelectItem value="all">Todos</SelectItem>
                       {months.map((month) => (
                         <SelectItem key={month} value={month}>
-                          {month}
+                          {getMonthName(month)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -288,11 +306,36 @@ export function FiltersCard({
             {isCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             Copiar Datos
           </Button>
+
+          {/* Contador visual de filas */}
+          <div className="mt-4 p-4 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-950/50 dark:to-indigo-950/50 rounded-lg border border-blue-200 dark:border-blue-800">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-500 rounded-full">
+                  <Check className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                    Incentivos {currentFilterMode === "pending" ? "Pendientes" : "Históricos"}
+                  </p>
+                  <p className="text-xs text-blue-700 dark:text-blue-300">
+                    Filtros aplicados
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                  {displayIncentives.length}
+                </div>
+                <div className="text-xs text-blue-700 dark:text-blue-300">
+                  {displayIncentives.length === 1 ? "registro" : "registros"}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div className="text-muted-foreground mt-6 pt-4 border-t">
-          <p className="font-mono text-xs">Datos mostrados: {displayIncentives.length} incentivos.</p>
-        </div>
+        {/* Removido el contador simple anterior */}
       </CardContent>
     </Card>
   )

@@ -34,7 +34,7 @@ function isQuestionAboutInternalData(question: string): boolean {
 
 async function getVehicleStats() {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     
     // Estadísticas básicas de vehículos
     const { data: salesVehicles, error: salesError } = await supabase
@@ -80,7 +80,7 @@ async function getVehicleStats() {
 
 async function getColorStats() {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     
     const { data: salesVehicles, error } = await supabase
       .from('sales_vehicles')
@@ -111,7 +111,7 @@ async function getColorStats() {
 
 async function getBrandStats() {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     
     const { data: salesVehicles, error } = await supabase
       .from('sales_vehicles')

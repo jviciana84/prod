@@ -69,6 +69,9 @@ export function IncentivosTable({
   const [exporting, setExporting] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
 
+  // Estado para selección de filas
+  const [selectedRowId, setSelectedRowId] = useState<string | null>(null)
+
   // Filtros adicionales
   const [selectedAdvisor, setSelectedAdvisor] = useState<string>("all")
   const [selectedMonth, setSelectedMonth] = useState<string>(new Date().getMonth() + 1 + "")
@@ -530,6 +533,22 @@ export function IncentivosTable({
     { value: "12", label: "Diciembre" },
   ]
 
+  const handleRowClick = (incentivoId: string, event: React.MouseEvent) => {
+    // No deseleccionar si se hace clic en elementos interactivos
+    const target = event.target as Element
+    if (target.closest('button') || 
+        target.closest('input') || 
+        target.closest('[role="combobox"]') || 
+        target.closest('span[onClick]') ||
+        target.closest('a') ||
+        target.closest('[data-interactive]') ||
+        target.closest('label')) {
+      return
+    }
+    
+    setSelectedRowId(selectedRowId === incentivoId ? null : incentivoId)
+  }
+
   return (
     <TooltipProvider>
       <div className="space-y-4 p-4">
@@ -759,7 +778,15 @@ export function IncentivosTable({
                       return (
                         <TableRow
                           key={incentivo.id}
-                          className={cn("h-12 hover:bg-muted/30", index % 2 === 0 ? "bg-black/5 dark:bg-black/20" : "")}
+                          className={cn(
+                            "transition-all duration-300 ease-in-out cursor-pointer border-b relative",
+                            index % 2 === 0 ? "bg-background" : "bg-[hsl(240_4.8%_95.9%_/_0.1)] dark:bg-[hsl(240_6%_22%_/_0.1)]",
+                            selectedRowId === incentivo.id.toString()
+                              ? "border-2 border-primary shadow-md bg-primary/5"
+                              : "hover:bg-[hsl(240_4.8%_95.9%_/_0.3)] dark:hover:bg-[hsl(240_6%_22%_/_0.3)]",
+                          )}
+                          data-selected={selectedRowId === incentivo.id.toString()}
+                          onClick={(event) => handleRowClick(incentivo.id.toString(), event)}
                         >
                           <TableCell className="py-3 px-3 text-center">
                             <Tooltip>
@@ -960,13 +987,29 @@ export function IncentivosTable({
                             {formatCurrency(importe)}
                           </TableCell>
 
-                          <TableCell className="py-3 px-3">
+                          <TableCell className="py-3 px-3 relative">
                             <Checkbox
                               checked={incentivo.tramitado || false}
                               onCheckedChange={(checked) =>
                                 handleUpdateIncentivoField(incentivo.id, "tramitado", checked === true)
                               }
                             />
+                            
+                            {/* Indicador de selección - punto en la esquina superior derecha */}
+                            {selectedRowId === incentivo.id.toString() && (
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  top: '0px',
+                                  right: '0px',
+                                  width: '8px',
+                                  height: '8px',
+                                  backgroundColor: 'hsl(var(--primary))',
+                                  borderRadius: '50%',
+                                  zIndex: 10,
+                                }}
+                              />
+                            )}
                           </TableCell>
                         </TableRow>
                       )

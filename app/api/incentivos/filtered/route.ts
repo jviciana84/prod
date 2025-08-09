@@ -13,6 +13,9 @@ export async function POST(request: NextRequest) {
     // Filtro por modo
     if (mode === "pending") {
       query = query.or("garantia.is.null,gastos_360.is.null")
+    } else if (mode === "historical") {
+      // Para modo histórico, excluir los incentivos pendientes (que tienen garantia IS NULL o gastos_360 IS NULL)
+      query = query.not("garantia", "is", null).not("gastos_360", "is", null)
     }
 
     // Filtros de fecha (solo para modo histórico)

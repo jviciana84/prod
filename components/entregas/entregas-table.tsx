@@ -485,6 +485,13 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
 
   const handleTrophyClick = async (entrega: Entrega) => {
     console.log("🎯 handleTrophyClick llamado con entrega:", entrega)
+    
+    // Validar que tenga fecha de entrega
+    if (!entrega.fecha_entrega) {
+      toast.error("La entrega debe tener fecha de entrega para enviar a incentivos")
+      return
+    }
+    
     setEnviandoIncentivo(entrega.id)
 
     try {
@@ -889,14 +896,20 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
                                       ? "text-green-600 hover:text-green-700 hover:bg-green-50"
                                       : "text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50",
                                   )}
-                                  title={entrega.enviado_a_incentivos ? "Reenviar a incentivos" : "Enviar a incentivos"}
+                                  title={
+                                    !entrega.fecha_entrega 
+                                      ? "Se requiere fecha de entrega para enviar a incentivos"
+                                      : entrega.enviado_a_incentivos 
+                                        ? "Reenviar a incentivos" 
+                                        : "Enviar a incentivos"
+                                  }
                                   onClick={(e) => {
                                     console.log("🎯 Botón trofeo clickeado para entrega:", entrega.id)
                                     e.preventDefault()
                                     e.stopPropagation()
                                     handleTrophyClick(entrega)
                                   }}
-                                  disabled={enviandoIncentivo === entrega.id} // Solo deshabilitado mientras se envía
+                                  disabled={enviandoIncentivo === entrega.id || !entrega.fecha_entrega} // Deshabilitado mientras se envía o si no hay fecha de entrega
                                 >
                                   {enviandoIncentivo === entrega.id ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />

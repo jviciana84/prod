@@ -41,10 +41,14 @@ export function ExcelWarrantyUploader({ onUploadComplete }: ExcelWarrantyUploade
     const fetchPendingWarranties = async () => {
       try {
         const response = await fetch("/api/incentivos/pending-warranties")
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
         const data = await response.json()
-        setPendingWarranties(data)
+        setPendingWarranties(Array.isArray(data) ? data : [])
       } catch (error) {
         console.error("Error fetching pending warranties:", error)
+        setPendingWarranties([])
       }
     }
 
@@ -70,10 +74,26 @@ export function ExcelWarrantyUploader({ onUploadComplete }: ExcelWarrantyUploade
       const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" }) as any[][]
 
       setExcelData(jsonData)
-      processExcelData(jsonData, 2, 21, 20)
+      
+      // Usar índices por defecto pero con validación
+      const startRow = 2
+      const matriculaCol = 21
+      const primaCol = 20
+
+      // Validar que las columnas existen
+      if (jsonData.length === 0) {
+        throw new Error("El archivo Excel está vacío")
+      }
+
+      const maxCol = Math.max(...jsonData.map(row => row.length))
+      if (matriculaCol >= maxCol || primaCol >= maxCol) {
+        throw new Error(`El archivo Excel no tiene suficientes columnas. Se esperaban al menos ${Math.max(matriculaCol, primaCol) + 1} columnas, pero solo tiene ${maxCol}`)
+      }
+
+      processExcelData(jsonData, startRow, matriculaCol, primaCol)
     } catch (error) {
       console.error("❌ Error procesando Excel:", error)
-      toast.error("Error al procesar el archivo Excel: " + error.message)
+      toast.error("Error al procesar el archivo Excel: " + (error as Error).message)
     } finally {
       setIsProcessing(false)
     }
@@ -114,7 +134,9 @@ export function ExcelWarrantyUploader({ onUploadComplete }: ExcelWarrantyUploade
         const primaTotal = Number.parseFloat(primaValue)
 
         if (matricula && matricula !== "" && !isNaN(primaTotal) && primaTotal >= 0) {
-          const currentIncentive = pendingWarranties.find(
+          // Asegurar que pendingWarranties sea un array
+          const warrantiesArray = Array.isArray(pendingWarranties) ? pendingWarranties : []
+          const currentIncentive = warrantiesArray.find(
             (inc: any) => inc.matricula?.toLowerCase() === matricula.toLowerCase(),
           )
 
@@ -135,8 +157,9 @@ export function ExcelWarrantyUploader({ onUploadComplete }: ExcelWarrantyUploade
       }
 
       // Añadir las matrículas pendientes que no se encontraron en el Excel
+      const warrantiesArray = Array.isArray(pendingWarranties) ? pendingWarranties : []
       const foundInExcel = processed.map((p) => p.matricula.toLowerCase())
-      const missingInExcel = pendingWarranties.filter((w) => !foundInExcel.includes(w.matricula?.toLowerCase()))
+      const missingInExcel = warrantiesArray.filter((w) => !foundInExcel.includes(w.matricula?.toLowerCase()))
 
       for (const missing of missingInExcel) {
         processed.push({
@@ -154,7 +177,7 @@ export function ExcelWarrantyUploader({ onUploadComplete }: ExcelWarrantyUploade
       toast.success(`Procesados ${processed.length} registros`)
     } catch (error) {
       console.error("❌ Error procesando datos:", error)
-      toast.error("Error al procesar los datos: " + error.message)
+      toast.error("Error al procesar los datos: " + (error as Error).message)
     }
   }
 
@@ -166,7 +189,19 @@ export function ExcelWarrantyUploader({ onUploadComplete }: ExcelWarrantyUploade
         (record) => record.found && record.isValidUpdate && record.primaTotal > 0,
       )
 
-      const response = await fetch("/api/incentivos/update-warranties-bulk", {
+      if (validRecords.length === 0) {
+        toast.error("No hay registros válidos para guardar")
+        return
+      }
+
+      console.log(`🔄 Guardando ${validRecords.length} registros...`)
+
+      // Crear un timeout de 15 segundos
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Timeout: La operación tardó demasiado")), 15000)
+      })
+
+      const savePromise = fetch("/api/incentivos/update-warranties-bulk", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -179,21 +214,34 @@ export function ExcelWarrantyUploader({ onUploadComplete }: ExcelWarrantyUploade
         }),
       })
 
-      if (response.ok) {
-        const result = await response.json()
-        toast.success(`Actualizadas ${result.updated} garantías correctamente`)
+      const response = await Promise.race([savePromise, timeoutPromise]) as Response
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || `Error ${response.status}: ${response.statusText}`)
+      }
+
+      if (result.success) {
+        toast.success(`✅ Actualizadas ${result.updated} garantías correctamente`)
         setShowResults(false)
         setProcessedData([])
+        setExcelData([])
         onUploadComplete()
       } else {
-        throw new Error("Error en la respuesta del servidor")
+        throw new Error(result.error || "Error al procesar la respuesta del servidor")
       }
     } catch (error) {
-      console.error("Error guardando datos:", error)
-      toast.error("Error al guardar los datos")
+      console.error("❌ Error guardando datos:", error)
+      toast.error(`Error al guardar los datos: ${error instanceof Error ? error.message : 'Error desconocido'}`)
     } finally {
       setIsSaving(false)
     }
+  }
+
+  const handleCloseModal = () => {
+    setShowResults(false)
+    setProcessedData([])
+    setExcelData([])
   }
 
   const handleDirectUpload = () => {
@@ -407,10 +455,7 @@ export function ExcelWarrantyUploader({ onUploadComplete }: ExcelWarrantyUploade
             <div className="flex gap-2">
               <Button
                 variant="outline"
-                onClick={() => {
-                  setShowResults(false)
-                  setProcessedData([])
-                }}
+                onClick={handleCloseModal}
               >
                 Cerrar
               </Button>

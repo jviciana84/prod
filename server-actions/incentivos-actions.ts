@@ -15,6 +15,14 @@ export async function enviarEntregaAIncentivos(
   try {
     const supabase = await createClient()
 
+    // Validar que tenga fecha de entrega
+    if (!fechaEntrega) {
+      return {
+        success: false,
+        message: "La entrega debe tener fecha de entrega para enviar a incentivos",
+      }
+    }
+
     // Verificar si ya existe un incentivo para esta matrícula
     const { data: existingIncentive, error: checkError } = await supabase
       .from("incentivos")
@@ -185,7 +193,7 @@ function calculateWarrantyType(
 
 export async function updateIncentiveDetails(id: number, field: string, value: any) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const { error } = await supabase
       .from("incentivos")
@@ -198,7 +206,7 @@ export async function updateIncentiveDetails(id: number, field: string, value: a
     }
 
     revalidatePath("/dashboard/incentivos")
-    return { success: true }
+    return { success: true, message: "Incentivo actualizado correctamente" }
   } catch (error) {
     console.error("Error in updateIncentiveDetails:", error)
     return { success: false, message: "Error interno del servidor" }
@@ -309,13 +317,16 @@ export async function getIncentivesFiltered({
   userAdvisorName?: string | null
 }) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     let query = supabase.from("incentivos").select("*").order("fecha_entrega", { ascending: false })
 
     // Filtro por modo
     if (mode === "pending") {
       query = query.or("garantia.is.null,gastos_360.is.null")
+    } else if (mode === "historical") {
+      // Para modo histórico, excluir los incentivos pendientes (que tienen garantia IS NULL o gastos_360 IS NULL)
+      query = query.not("garantia", "is", null).not("gastos_360", "is", null)
     }
 
     // Filtros de fecha (solo para modo histórico)
@@ -364,7 +375,7 @@ export async function getIncentivesFiltered({
 
 export async function getUniqueYearsAndMonths() {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const { data, error } = await supabase
       .from("incentivos")
@@ -400,7 +411,7 @@ export async function getUniqueYearsAndMonths() {
 
 export async function getUniqueAdvisors() {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const { data, error } = await supabase.from("incentivos").select("asesor").not("asesor", "is", null).order("asesor")
 

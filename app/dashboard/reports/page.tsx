@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { FileBarChart, FileText, AlertTriangle, Clock } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import TerminalRetro from "@/components/dashboard/terminal-retro"
 
 export const metadata: Metadata = {
   title: "Informes | Dashboard",
@@ -34,15 +33,6 @@ export default function ReportsPage() {
             <p className="text-muted-foreground">Informes y reportes del sistema</p>
           </div>
         </div>
-      </div>
-
-      {/* Terminal retro IA */}
-      <div>
-        <h2 className="text-xl font-mono text-[#39ff14] mb-1 flex items-center gap-2">
-          <span>🖳</span> Terminal Retro IA
-        </h2>
-        <p className="text-sm text-[#39ff14] mb-2 font-mono">¡SIN LÍMITES! Pregunta lo que quieras. ¡Diviértete!</p>
-        <TerminalRetro />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

@@ -1,0 +1,36 @@
+<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#e0e0e0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#c0c0c0;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="face" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f0f0f0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d0d0d0;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Fondo -->
+  <rect width="200" height="200" fill="url(#bg)" rx="100" ry="100"/>
+  
+  <!-- Cabeza -->
+  <circle cx="100" cy="70" r="40" fill="url(#face)" stroke="#a0a0a0" stroke-width="2"/>
+  
+  <!-- Ojos -->
+  <circle cx="85" cy="60" r="4" fill="#333"/>
+  <circle cx="115" cy="60" r="4" fill="#333"/>
+  
+  <!-- Nariz -->
+  <circle cx="100" cy="75" r="3" fill="#666"/>
+  
+  <!-- Boca -->
+  <ellipse cx="100" cy="85" rx="8" ry="3" fill="#666"/>
+  
+  <!-- Cuerpo -->
+  <rect x="60" y="120" width="80" height="60" rx="15" fill="url(#face)" stroke="#a0a0a0" stroke-width="2"/>
+  
+  <!-- Brazos -->
+  <rect x="40" y="130" width="25" height="8" rx="4" fill="url(#face)" stroke="#a0a0a0" stroke-width="1"/>
+  <rect x="135" y="130" width="25" height="8" rx="4" fill="url(#face)" stroke="#a0a0a0" stroke-width="1"/>
+</svg>
+
