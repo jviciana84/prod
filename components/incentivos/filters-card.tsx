@@ -118,68 +118,25 @@ export function FiltersCard({
       return
     }
 
+    // Solo las columnas específicas que aparecen en la tabla de pendientes de gastos
     const headers = [
-      "FECHA",
-      "MATRÍCULA",
+      "ENTREGA",
+      "MATRÍCULA", 
       "OR",
-      "MODELO",
       "ASESOR",
-      "FORMA PAGO",
-      "PRECIO VENTA",
-      "PRECIO COMPRA",
-      "DÍAS STOCK",
-      "GASTOS ESTRUCTURA",
       "GARANTÍA",
-      "GASTOS 360",
-      "ANTIGÜEDAD",
-      "FINANCIADO",
-      "OTROS",
-      "OBSERVACIONES",
-      "MARGEN",
-      "IMPORTE",
-      "TRAMITADO",
+      "GASTOS 360º"
     ].join("\t")
 
     const dataToCopy = displayIncentives
       .map((incentivo) => {
-        const margen = (incentivo.precio_venta || 0) - (incentivo.precio_compra || 0)
-
-        const importeMinimo = incentivo.importe_minimo || 150
-        let importe = 0
-        if (margen >= 1500) {
-          const porcentajeMargen = incentivo.porcentaje_margen_config_usado || 10
-          importe = importeMinimo + (margen - 1500) * (porcentajeMargen / 100)
-        } else {
-          importe = importeMinimo
-        }
-        if (incentivo.antiguedad) importe += 50
-        if (incentivo.financiado) importe += 50
-        importe -= incentivo.gastos_estructura || 0
-        importe -= incentivo.garantia || 0
-        importe -= incentivo.gastos_360 || 0
-        importe += incentivo.otros || 0
-        importe = Math.max(0, importe)
-
         return [
           formatDate(incentivo.fecha_entrega) || "",
           incentivo.matricula || "",
           incentivo.or || "",
-          incentivo.modelo || "",
           incentivo.asesor || "",
-          incentivo.forma_pago || "",
-          incentivo.precio_venta?.toString() || "",
-          incentivo.precio_compra?.toString() || "",
-          incentivo.dias_stock?.toString() || "",
-          incentivo.gastos_estructura?.toString() || "",
           incentivo.garantia === 0 ? "Fabricante" : incentivo.garantia?.toString() || "",
           incentivo.gastos_360?.toString() || "",
-          incentivo.antiguedad ? "Sí" : "No",
-          incentivo.financiado ? "Sí" : "No",
-          incentivo.otros?.toString() || "",
-          incentivo.otros_observaciones || "",
-          margen.toString(),
-          importe.toString(),
-          incentivo.tramitado ? "Sí" : "No",
         ].join("\t")
       })
       .join("\n")

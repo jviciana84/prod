@@ -76,7 +76,7 @@ export async function enviarEntregaAIncentivos(
     const financiado = vehicleData.payment_method?.toLowerCase() === "financiado"
 
     // Calcular garantía automáticamente
-    const calculatedWarranty = calculateWarrantyType(fechaEntrega, vehicleData.registration_date, modelo)
+    const calculatedWarranty = calculateWarrantyType(fechaEntrega, vehicleData.registration_date, modelo, matricula)
 
     const incentiveData = {
       matricula,
@@ -142,12 +142,14 @@ export async function enviarEntregaAIncentivos(
  * @param fechaEntrega - Fecha de entrega del vehículo
  * @param registrationDate - Fecha de matriculación del vehículo
  * @param modelo - Modelo del vehículo para determinar si es coche o moto
+ * @param matricula - Matrícula del vehículo para detectar motos por formato
  * @returns 0 si es garantía de fabricante, null si no lo es o no se puede calcular
  */
 function calculateWarrantyType(
   fechaEntrega: string | null,
   registrationDate: string | null,
   modelo: string,
+  matricula?: string,
 ): number | null {
   if (!fechaEntrega || !registrationDate) {
     return null // No se puede calcular sin las fechas
@@ -157,10 +159,19 @@ function calculateWarrantyType(
     const entregaDate = new Date(fechaEntrega)
     const regDate = new Date(registrationDate)
 
-    // Determinar el tipo de vehículo
-    const vehicleType = detectVehicleType(modelo)
+    // Determinar el tipo de vehículo (mejorado para detectar motos por matrícula)
+    let vehicleType = detectVehicleType(modelo)
+    
+    // Detectar motos por formato de matrícula si no se detectó por modelo
+    if (vehicleType === "Coche" && matricula) {
+      const platePattern = /^\d{4}[A-Z]{3}$/ // Formato 0298MSS
+      if (platePattern.test(matricula.replace(/\s/g, ""))) {
+        console.log(`🏍️ Moto detectada por formato de matrícula: ${matricula}`)
+        vehicleType = "Moto"
+      }
+    }
 
-    if (vehicleType === "moto") {
+    if (vehicleType === "Moto") {
       // Para motos: fecha_entrega + 12 meses <= registration_date + 36 meses
       const entregaPlus12 = new Date(entregaDate)
       entregaPlus12.setMonth(entregaPlus12.getMonth() + 12)
@@ -169,6 +180,7 @@ function calculateWarrantyType(
       regPlus36.setMonth(regPlus36.getMonth() + 36)
 
       if (entregaPlus12 <= regPlus36) {
+        console.log(`🏍️ Garantía de fabricante detectada para moto: ${matricula}`)
         return 0 // Garantía de fabricante (valor 0, se mostrará como "Fabricante" en UI)
       }
     } else {
@@ -180,10 +192,12 @@ function calculateWarrantyType(
       regPlus36.setMonth(regPlus36.getMonth() + 36)
 
       if (entregaPlus24 <= regPlus36) {
+        console.log(`🚗 Garantía de fabricante detectada para coche: ${matricula}`)
         return 0 // Garantía de fabricante (valor 0, se mostrará como "Fabricante" en UI)
       }
     }
 
+    console.log(`❌ No es garantía de fabricante: ${matricula} (${vehicleType})`)
     return null // No es garantía de fabricante, se completará posteriormente
   } catch (error) {
     console.error("Error calculando tipo de garantía:", error)
