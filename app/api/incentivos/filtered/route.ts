@@ -18,23 +18,20 @@ export async function POST(request: NextRequest) {
       query = query.not("garantia", "is", null).not("gastos_360", "is", null)
     }
 
-    // Filtros de fecha (solo para modo histórico)
-    if (mode === "historical") {
-      if (year && year !== "all") {
-        const startDate = `${year}-01-01`
-        const endDate = `${year}-12-31`
-        query = query.gte("fecha_entrega", startDate).lte("fecha_entrega", endDate)
-      }
+    // Filtros de fecha (aplicar tanto para pending como historical)
+    if (year && year !== "all") {
+      const startDate = `${year}-01-01`
+      const endDate = `${year}-12-31`
+      query = query.gte("fecha_entrega", startDate).lte("fecha_entrega", endDate)
+    }
 
-      if (month && month !== "all") {
-        const [monthName] = month.split(" ")
-        const monthNumber = getMonthNumber(monthName)
-        if (monthNumber) {
-          const currentYear = year && year !== "all" ? year : new Date().getFullYear()
-          const startDate = `${currentYear}-${monthNumber.toString().padStart(2, "0")}-01`
-          const endDate = `${currentYear}-${monthNumber.toString().padStart(2, "0")}-31`
-          query = query.gte("fecha_entrega", startDate).lte("fecha_entrega", endDate)
-        }
+    if (month && month !== "all") {
+      const monthNumber = getMonthNumber(month)
+      if (monthNumber) {
+        const currentYear = year && year !== "all" ? year : new Date().getFullYear().toString()
+        const startDate = `${currentYear}-${monthNumber.toString().padStart(2, "0")}-01`
+        const endDate = `${currentYear}-${monthNumber.toString().padStart(2, "0")}-31`
+        query = query.gte("fecha_entrega", startDate).lte("fecha_entrega", endDate)
       }
     }
 
@@ -52,31 +49,44 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error("Error fetching filtered incentives:", error)
-      return NextResponse.json({ data: [], error: error.message }, { status: 500 })
+      return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
     return NextResponse.json({ data: data || [], error: null })
   } catch (error: any) {
-    console.error("Unexpected error in getIncentivesFiltered:", error)
-    return NextResponse.json({ data: [], error: error.message }, { status: 500 })
+    console.error("Unexpected error in filtered incentives API:", error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
 
 function getMonthNumber(monthName: string): number | null {
-  const months: { [key: string]: number } = {
-    enero: 1,
-    febrero: 2,
-    marzo: 3,
-    abril: 4,
-    mayo: 5,
-    junio: 6,
-    julio: 7,
-    agosto: 8,
-    septiembre: 9,
-    octubre: 10,
-    noviembre: 11,
-    diciembre: 12,
+  const monthMap: { [key: string]: number } = {
+    "enero": 1,
+    "febrero": 2,
+    "marzo": 3,
+    "abril": 4,
+    "mayo": 5,
+    "junio": 6,
+    "julio": 7,
+    "agosto": 8,
+    "septiembre": 9,
+    "octubre": 10,
+    "noviembre": 11,
+    "diciembre": 12,
+    "1": 1,
+    "2": 2,
+    "3": 3,
+    "4": 4,
+    "5": 5,
+    "6": 6,
+    "7": 7,
+    "8": 8,
+    "9": 9,
+    "10": 10,
+    "11": 11,
+    "12": 12,
   }
 
-  return months[monthName.toLowerCase()] || null
+  const normalizedMonth = monthName.toLowerCase().trim()
+  return monthMap[normalizedMonth] || null
 } 
