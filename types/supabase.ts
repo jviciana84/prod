@@ -663,6 +663,308 @@ export interface Database {
         }
         Relationships: []
       }
+      // NUEVA TABLA: garantias_brutas_MM (SEGUNDA FILA DEL EXCEL - Concesionario MM)
+      garantias_brutas_MM: {
+        Row: {
+          id: string
+          login: string | null                    // "Login 			"
+          concesionario: string | null            // Concesionario
+          f_baja_conces: string | null            // F. Baja Conces.
+          provincia_conces: string | null         // Provincia Conces.
+          producto: string | null                 // Producto
+          estado: string | null                   // Estado
+          f_baja: string | null                   // F.Baja 				
+          motivo_baja: string | null              // Motivo Baja		
+          n_poliza: string | null                 // Nº Póliza	
+          f_venta: string | null                  // F.Venta
+          f_grabacion: string | null              // F.Grabación
+          residuo: number | null                  // Residuo
+          duracion: number | null                 // Duración 	
+          f_inicio: string | null                 // F. Inicio
+          f_fin: string | null                    // F. Fin
+          f_fab_ini: string | null                // F. Fab. Ini
+          f_fab_fin: string | null                // F. Fab. Fin
+          anos_gf: number | null                  // Años G.F.
+          pn: number | null                       // PN
+          ips: number | null                      // IPS
+          prima_total: number | null              // Prima Total
+          matricula: string | null                // Matrícula				
+          chasis: string | null                   // Chasis		
+          f_matricula: string | null              // F. Matrícula
+          meses_antiguedad: number | null         // Meses Antigüedad 	
+          marca: string | null                    // Marca
+          modelo: string | null                   // Modelo	
+          combustible: string | null              // Combustible				
+          cilindrada: number | null               // Cilindrada
+          cilindros: number | null                // Cilindros
+          pot: number | null                      // Pot.			
+          kms: number | null                      // Kms.			
+          precio_venta: number | null             // Precio Venta
+          uso: string | null                      // Uso			
+          ve: string | null                       // VE 		
+          delegado: string | null                 // Delegado
+          dias_contratados: number | null         // Días Contratados
+          tramo_antiguedad: string | null         // Tramo Antigüedad
+          tramo_cilindrada: string | null         // Tramo Cilindrada
+          fuente: string | null                   // Fuente de datos (CMS_MM)
+          fecha_descarga: string | null           // Fecha de descarga
+          procesado: boolean | null               // Procesado
+          fecha_procesado: string | null          // Fecha de procesamiento
+          observaciones: string | null            // Observaciones
+          created_at: string
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          login?: string | null
+          concesionario?: string | null
+          f_baja_conces?: string | null
+          provincia_conces?: string | null
+          producto?: string | null
+          estado?: string | null
+          f_baja?: string | null
+          motivo_baja?: string | null
+          n_poliza?: string | null
+          f_venta?: string | null
+          f_grabacion?: string | null
+          residuo?: number | null
+          duracion?: number | null
+          f_inicio?: string | null
+          f_fin?: string | null
+          f_fab_ini?: string | null
+          f_fab_fin?: string | null
+          anos_gf?: number | null
+          pn?: number | null
+          ips?: number | null
+          prima_total?: number | null
+          matricula?: string | null
+          chasis?: string | null
+          f_matricula?: string | null
+          meses_antiguedad?: number | null
+          marca?: string | null
+          modelo?: string | null
+          combustible?: string | null
+          cilindrada?: number | null
+          cilindros?: number | null
+          pot?: number | null
+          kms?: number | null
+          precio_venta?: number | null
+          uso?: string | null
+          ve?: string | null
+          delegado?: string | null
+          dias_contratados?: number | null
+          tramo_antiguedad?: string | null
+          tramo_cilindrada?: string | null
+          fuente?: string | null
+          fecha_descarga?: string | null
+          procesado?: boolean | null
+          fecha_procesado?: string | null
+          observaciones?: string | null
+          created_at?: string
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          login?: string | null
+          concesionario?: string | null
+          f_baja_conces?: string | null
+          provincia_conces?: string | null
+          producto?: string | null
+          estado?: string | null
+          f_baja?: string | null
+          motivo_baja?: string | null
+          n_poliza?: string | null
+          f_venta?: string | null
+          f_grabacion?: string | null
+          residuo?: number | null
+          duracion?: number | null
+          f_inicio?: string | null
+          f_fin?: string | null
+          f_fab_ini?: string | null
+          f_fab_fin?: string | null
+          anos_gf?: number | null
+          pn?: number | null
+          ips?: number | null
+          prima_total?: number | null
+          matricula?: string | null
+          chasis?: string | null
+          f_matricula?: string | null
+          meses_antiguedad?: number | null
+          marca?: string | null
+          modelo?: string | null
+          combustible?: string | null
+          cilindrada?: number | null
+          cilindros?: number | null
+          pot?: number | null
+          kms?: number | null
+          precio_venta?: number | null
+          uso?: string | null
+          ve?: string | null
+          delegado?: string | null
+          dias_contratados?: number | null
+          tramo_antiguedad?: string | null
+          tramo_cilindrada?: string | null
+          fuente?: string | null
+          fecha_descarga?: string | null
+          procesado?: boolean | null
+          fecha_procesado?: string | null
+          observaciones?: string | null
+          created_at?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      // NUEVA TABLA: garantias_brutas_MMC (SEGUNDA FILA DEL EXCEL - Concesionario MMC)
+      garantias_brutas_MMC: {
+        Row: {
+          id: string
+          login: string | null                    // "Login 			"
+          concesionario: string | null            // Concesionario
+          f_baja_conces: string | null            // F. Baja Conces.
+          provincia_conces: string | null         // Provincia Conces.
+          producto: string | null                 // Producto
+          estado: string | null                   // Estado
+          f_baja: string | null                   // F.Baja 				
+          motivo_baja: string | null              // Motivo Baja		
+          n_poliza: string | null                 // Nº Póliza	
+          f_venta: string | null                  // F.Venta
+          f_grabacion: string | null              // F.Grabación
+          residuo: number | null                  // Residuo
+          duracion: number | null                 // Duración 	
+          f_inicio: string | null                 // F. Inicio
+          f_fin: string | null                    // F. Fin
+          f_fab_ini: string | null                // F. Fab. Ini
+          f_fab_fin: string | null                // F. Fab. Fin
+          anos_gf: number | null                  // Años G.F.
+          pn: number | null                       // PN
+          ips: number | null                      // IPS
+          prima_total: number | null              // Prima Total
+          matricula: string | null                // Matrícula				
+          chasis: string | null                   // Chasis		
+          f_matricula: string | null              // F. Matrícula
+          meses_antiguedad: number | null         // Meses Antigüedad 	
+          marca: string | null                    // Marca
+          modelo: string | null                   // Modelo	
+          combustible: string | null              // Combustible				
+          cilindrada: number | null               // Cilindrada
+          cilindros: number | null                // Cilindros
+          pot: number | null                      // Pot.			
+          kms: number | null                      // Kms.			
+          precio_venta: number | null             // Precio Venta
+          uso: string | null                      // Uso			
+          ve: string | null                       // VE 		
+          delegado: string | null                 // Delegado
+          dias_contratados: number | null         // Días Contratados
+          tramo_antiguedad: string | null         // Tramo Antigüedad
+          tramo_cilindrada: string | null         // Tramo Cilindrada
+          fuente: string | null                   // Fuente de datos (CMS_MMC)
+          fecha_descarga: string | null           // Fecha de descarga
+          procesado: boolean | null               // Procesado
+          fecha_procesado: string | null          // Fecha de procesamiento
+          observaciones: string | null            // Observaciones
+          created_at: string
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          login?: string | null
+          concesionario?: string | null
+          f_baja_conces?: string | null
+          provincia_conces?: string | null
+          producto?: string | null
+          estado?: string | null
+          f_baja?: string | null
+          motivo_baja?: string | null
+          n_poliza?: string | null
+          f_venta?: string | null
+          f_grabacion?: string | null
+          residuo?: number | null
+          duracion?: number | null
+          f_inicio?: string | null
+          f_fin?: string | null
+          f_fab_ini?: string | null
+          f_fab_fin?: string | null
+          anos_gf?: number | null
+          pn?: number | null
+          ips?: number | null
+          prima_total?: number | null
+          matricula?: string | null
+          chasis?: string | null
+          f_matricula?: string | null
+          meses_antiguedad?: number | null
+          marca?: string | null
+          modelo?: string | null
+          combustible?: string | null
+          cilindrada?: number | null
+          cilindros?: number | null
+          pot?: number | null
+          kms?: number | null
+          precio_venta?: number | null
+          uso?: string | null
+          ve?: string | null
+          delegado?: string | null
+          dias_contratados?: number | null
+          tramo_antiguedad?: string | null
+          tramo_cilindrada?: string | null
+          fuente?: string | null
+          fecha_descarga?: string | null
+          procesado?: boolean | null
+          fecha_procesado?: string | null
+          observaciones?: string | null
+          created_at?: string
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          login?: string | null
+          concesionario?: string | null
+          f_baja_conces?: string | null
+          provincia_conces?: string | null
+          producto?: string | null
+          estado?: string | null
+          f_baja?: string | null
+          motivo_baja?: string | null
+          n_poliza?: string | null
+          f_venta?: string | null
+          f_grabacion?: string | null
+          residuo?: number | null
+          duracion?: number | null
+          f_inicio?: string | null
+          f_fin?: string | null
+          f_fab_ini?: string | null
+          f_fab_fin?: string | null
+          anos_gf?: number | null
+          pn?: number | null
+          ips?: number | null
+          prima_total?: number | null
+          matricula?: string | null
+          chasis?: string | null
+          f_matricula?: string | null
+          meses_antiguedad?: number | null
+          marca?: string | null
+          modelo?: string | null
+          combustible?: string | null
+          cilindrada?: number | null
+          cilindros?: number | null
+          pot?: number | null
+          kms?: number | null
+          precio_venta?: number | null
+          uso?: string | null
+          ve?: string | null
+          delegado?: string | null
+          dias_contratados?: number | null
+          tramo_antiguedad?: string | null
+          tramo_cilindrada?: string | null
+          fuente?: string | null
+          fecha_descarga?: string | null
+          procesado?: boolean | null
+          fecha_procesado?: string | null
+          observaciones?: string | null
+          created_at?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       // NUEVA TABLA: column_mappings
       column_mappings: {
         Row: {

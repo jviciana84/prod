@@ -1,77 +1,133 @@
-# Scraper files (moved to separate project)
-scripts/cvo_scraper_gui*
-scripts/build_*_scraper*
-scripts/build_exe.py
-scripts/convert_icon.py
-scripts/excel_analyzer_gui.py
-scripts/descarga_excel_bmw.py
-scripts/explorar_*
-scripts/extraer_stock_bmw.py
-scripts/test_bmw_simple.py
-scripts/import_csv_*
-scripts/analyze_excel_columns.py
-scripts/*.spec
-scripts/CVO_Scraper*
-scripts/BMW_Scraper*
-scripts/chromedriver*
-scripts/cvo-logo.ico
-scripts/requirements*
-scripts/INSTRUCCIONES_EJECUTABLE.md
-scripts/README_ExcelAnalyzer.md
-scripts/descargas/
-scripts/dist/
-scripts/build/
+# Archivos de configuración y credenciales
+credentials.dat
+app_config.json
+schedule_config.json
+*.dat
+*.json
 
-# Scraper project (local only)
-scraper/
+# Archivos de descarga
+downloads/
+*.xlsx
+*.xls
+*.csv
 
-# Build files
-.next/
-out/
-dist/
-build/
-
-# Node modules (se reinstalan)
-node_modules/
+# Screenshots de debug
+debug_*.png
+screenshots/
 
 # Logs
 *.log
+logs/
+
+# Archivos temporales
+temp/
+tmp/
 *.tmp
 
-# Python
+# Archivos de Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+*.so
 .Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# Environment
-.env.local
-.env.production
-.env.development
+# Entornos virtuales
+venv/
+env/
+ENV/
 
-# IDE
+# IDEs
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# OS
+# Sistema operativo
 .DS_Store
 Thumbs.db
 
-# CSV files
-*.csv
+# Chrome WebDriver
+chromedriver.exe
+chromedriver
+*.exe
 
-# Backup files
-backup_*
-*.backup
+# Archivos de garantías
+garantias/
+MM/
+MMC/
 
-# Background paths project (local only)
+# Node.js y Next.js
+node_modules/
+.next/
+out/
+build/
+
+# Archivos de scrapers y scripts temporales
+scraper/
+cms-scraper/
+cvo-scraper-v1/
 background-paths/
-
-# Vehicle incidents portal (local only)
 vehicle-incidents-portal/
+*.py
+*.spec
+*.bat
+*.sh
+requirements.txt
+config_example.env
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-# SVG files (local only)
-svg/
+# Archivos de configuración de scrapers
+schedule_config.pkl
+*.pkl
+
+# Archivos de test y debug
+test_*.py
+check_*.py
+verify_*.py
+simple_*.py
+temp_*.py
+edit_*.py
+fix_*.py
+insert_*.py
+clean_*.py
+analyze_*.py
+build_*.py
+convert_*.py
+monitor_*.py
+explorar_*.py
+extraer_*.py
+descarga_*.py
+import_*.py
+
+# Archivos de iconos y recursos
+*.ico
+*.png
+*.jpg
+*.jpeg
+*.svg
+
+# Archivos SQL de configuración
+*.sql
+
+# Archivos de configuración de proyectos
+pnpm-lock.yaml
+package-lock.json
