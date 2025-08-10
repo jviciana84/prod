@@ -62,6 +62,7 @@ export function detectVehicleType(model: string | null): "Moto" | "Coche" {
     "moto",
     "motocicleta",
     "scooter",
+    "motorrad", // Añadido para detectar BMW Motorrad
     "gs ",
     "rt ",
     "gtl",
