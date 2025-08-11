@@ -27,10 +27,17 @@ import {
   Loader2,
   Receipt,
   File,
+  Calendar,
 } from "lucide-react"
 import React from "react"
 import { CarFrontIcon } from "@/components/ui/car-front-icon"
 import { CarModelSedanIcon } from "@/components/ui/car-model-sedan-icon"
+import { WarrantyIcon } from "@/components/ui/warranty-icon"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Plus, Upload, X, Image as ImageIcon } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,6 +54,16 @@ export default function Dashboard() {
   const [dashboardData, setDashboardData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showIncidentModal, setShowIncidentModal] = useState(false)
+  const [newIncident, setNewIncident] = useState({
+    tipo: "",
+    descripcion: "",
+    prioridad: "Media"
+  })
+  const [submittingIncident, setSubmittingIncident] = useState(false)
+  const [attachedImages, setAttachedImages] = useState<File[]>([])
+  const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([])
+  const [incidentFilter, setIncidentFilter] = useState<"open" | "all">("open")
 
   // Obtener datos del login al cargar el componente
   React.useEffect(() => {
@@ -83,6 +100,7 @@ export default function Dashboard() {
 
         const data = await response.json()
         console.log('✅ Datos recibidos:', data)
+        console.log('📋 Incidencias recibidas:', data.incidents)
         
         if (data.success) {
           setDashboardData(data)
@@ -117,8 +135,10 @@ export default function Dashboard() {
      tipoCertificacion: dashboardData?.vehicleData?.tipoCertificacion,
      valoracion: dashboardData?.vehicleData?.valoracion,
      diasDesdeVenta: dashboardData?.vehicleData?.diasDesdeVenta,
+     garantiaInfo: dashboardData?.vehicleData?.garantiaInfo,
      precio: dashboardData?.vehicleData?.precio,
      precioOriginal: dashboardData?.vehicleData?.precioOriginal,
+     descuento: dashboardData?.vehicleData?.descuento,
    }
 
   const ownerData = {
@@ -131,15 +151,45 @@ export default function Dashboard() {
 
   const saleData = {
     asesorComercial: dashboardData?.saleData?.asesorComercial,
+    asesorPosition: dashboardData?.saleData?.asesorPosition,
     concesionario: dashboardData?.saleData?.concesionario,
     telefonoAsesor: dashboardData?.saleData?.telefonoAsesor,
     emailAsesor: dashboardData?.saleData?.emailAsesor,
   }
 
   const incidents = dashboardData?.incidents || []
+  console.log('📋 Incidencias en el frontend:', incidents)
+  
+  // Filtrar incidencias según el filtro seleccionado
+  const filteredIncidents = incidentFilter === "open" 
+    ? incidents.filter((i) => i.estado === "Abierta")
+    : incidents
+  console.log('📋 Incidencias filtradas:', filteredIncidents)
 
   const toggleCard = (cardId: string) => {
-    setExpandedCards((prev) => (prev.includes(cardId) ? prev.filter((id) => id !== cardId) : [...prev, cardId]))
+    setExpandedCards((prev) => {
+      const isCurrentlyExpanded = prev.includes(cardId)
+      
+      // Si se está expandiendo "owner-info", también expandir "incidents-summary"
+      if (cardId === "owner-info" && !isCurrentlyExpanded) {
+        return [...prev.filter(id => id !== "owner-info" && id !== "incidents-summary"), "owner-info", "incidents-summary"]
+      }
+      
+      // Si se está expandiendo "incidents-summary", también expandir "owner-info"
+      if (cardId === "incidents-summary" && !isCurrentlyExpanded) {
+        return [...prev.filter(id => id !== "owner-info" && id !== "incidents-summary"), "owner-info", "incidents-summary"]
+      }
+      
+      // Si se está cerrando cualquiera de las dos, cerrar ambas
+      if ((cardId === "owner-info" || cardId === "incidents-summary") && isCurrentlyExpanded) {
+        return prev.filter(id => id !== "owner-info" && id !== "incidents-summary")
+      }
+      
+      // Para otras tarjetas, comportamiento normal
+      return isCurrentlyExpanded 
+        ? prev.filter((id) => id !== cardId) 
+        : [...prev, cardId]
+    })
   }
 
   const getIncidentIcon = (tipo: string) => {
@@ -188,6 +238,115 @@ export default function Dashboard() {
   const handleLogout = () => {
     localStorage.removeItem('loginData')
     window.location.href = "/soporte"
+  }
+
+  // Función para verificar si la garantía ha expirado
+  const isWarrantyExpired = () => {
+    if (!vehicleData.garantiaInfo?.fechaFinal) return false
+    
+    try {
+      const warrantyDate = new Date(vehicleData.garantiaInfo.fechaFinal.split('/').reverse().join('-'))
+      const currentDate = new Date()
+      
+      // Comparar solo fecha (sin hora)
+      warrantyDate.setHours(0, 0, 0, 0)
+      currentDate.setHours(0, 0, 0, 0)
+      
+      return currentDate > warrantyDate
+    } catch (error) {
+      console.error('Error verificando expiración de garantía:', error)
+      return false
+    }
+  }
+
+  // Tipos de incidencias disponibles
+  const incidentTypes = [
+    { value: "Carrocería", label: "Carrocería" },
+    { value: "Mecánica", label: "Mecánica" },
+    { value: "Limpieza", label: "Limpieza" },
+    { value: "2ª llave", label: "2ª Llave" },
+    { value: "CardKey", label: "CardKey" },
+    { value: "Ficha técnica", label: "Ficha Técnica" },
+    { value: "Permiso circulación", label: "Permiso de Circulación" },
+  ]
+
+  // Función para manejar el envío de incidencia
+  const handleSubmitIncident = async () => {
+    if (!newIncident.tipo || !newIncident.descripcion) {
+      alert("Por favor completa todos los campos obligatorios")
+      return
+    }
+
+    setSubmittingIncident(true)
+    try {
+      // Aquí iría la llamada a la API para registrar la incidencia
+      // Por ahora simulamos el envío
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      // Limpiar formulario
+      setNewIncident({
+        tipo: "",
+        descripcion: "",
+        prioridad: "Media"
+      })
+      setAttachedImages([])
+      setImagePreviewUrls([])
+      setShowIncidentModal(false)
+      
+      // Recargar datos para mostrar la nueva incidencia
+      window.location.reload()
+    } catch (error) {
+      console.error('Error al enviar incidencia:', error)
+      alert('Error al enviar la incidencia. Por favor intenta de nuevo.')
+    } finally {
+      setSubmittingIncident(false)
+    }
+  }
+
+  // Función para manejar la selección de imágenes
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files
+    if (!files) return
+
+    const newFiles = Array.from(files)
+    const validFiles = newFiles.filter(file => {
+      const isValidType = file.type.startsWith('image/')
+      const isValidSize = file.size <= 5 * 1024 * 1024 // 5MB máximo
+      
+      if (!isValidType) {
+        alert(`El archivo ${file.name} no es una imagen válida`)
+        return false
+      }
+      
+      if (!isValidSize) {
+        alert(`El archivo ${file.name} es demasiado grande. Máximo 5MB`)
+        return false
+      }
+      
+      return true
+    })
+
+    if (attachedImages.length + validFiles.length > 5) {
+      alert('Máximo 5 imágenes permitidas')
+      return
+    }
+
+    setAttachedImages(prev => [...prev, ...validFiles])
+
+    // Crear URLs de preview
+    validFiles.forEach(file => {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setImagePreviewUrls(prev => [...prev, e.target?.result as string])
+      }
+      reader.readAsDataURL(file)
+    })
+  }
+
+  // Función para eliminar una imagen
+  const removeImage = (index: number) => {
+    setAttachedImages(prev => prev.filter((_, i) => i !== index))
+    setImagePreviewUrls(prev => prev.filter((_, i) => i !== index))
   }
 
   // Mostrar loading mientras se cargan los datos
@@ -292,9 +451,24 @@ export default function Dashboard() {
                </div>
              </div>
                          <div className="flex items-center space-x-4">
-               <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                 <CheckCircle className="h-3 w-3 mr-1" />
-                 Activo
+               <Badge 
+                 variant="outline" 
+                 className={isWarrantyExpired() 
+                   ? "bg-red-50 text-red-700 border-red-200" 
+                   : "bg-green-50 text-green-700 border-green-200"
+                 }
+               >
+                 {isWarrantyExpired() ? (
+                   <>
+                     <AlertCircle className="h-3 w-3 mr-1" />
+                     Expirado
+                   </>
+                 ) : (
+                   <>
+                     <CheckCircle className="h-3 w-3 mr-1" />
+                     Activo
+                   </>
+                 )}
                </Badge>
                                <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -469,7 +643,7 @@ export default function Dashboard() {
               </CardHeader>
               {expandedCards.includes("sale-info") && (
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-4">
                       <h4 className="font-semibold text-gray-900 border-b pb-2">Datos de Venta</h4>
                       <div className="space-y-3">
@@ -490,7 +664,7 @@ export default function Dashboard() {
                         <div className="flex justify-between">
                           <span className="text-gray-600">Descuento:</span>
                           <span className="font-medium text-red-600">
-                            {vehicleData.precio && vehicleData.precioOriginal ? `€${(vehicleData.precioOriginal - vehicleData.precio).toLocaleString()}` : "Cargando..."}
+                            {vehicleData.descuento ? `€${vehicleData.descuento.toLocaleString()}` : "Cargando..."}
                           </span>
                         </div>
                       </div>
@@ -504,94 +678,122 @@ export default function Dashboard() {
                             <User className="h-4 w-4 text-white" />
                           </div>
                           <div>
-                                                     <p className="font-medium text-blue-900">{saleData.asesorComercial || "Cargando..."}</p>
-                         <p className="text-sm text-blue-600">{saleData.concesionario || "Cargando..."}</p>
+                            <p className="font-medium text-blue-900">{saleData.asesorComercial}</p>
+                            {saleData.asesorPosition && (
+                              <p className="text-xs text-blue-500">{saleData.asesorPosition}</p>
+                            )}
+                            <p className="text-sm text-blue-600">{saleData.concesionario}</p>
+                          </div>
+                        </div>
+                        <div className="space-y-2 text-sm">
+                          {saleData.telefonoAsesor && (
+                            <div className="flex items-center space-x-2">
+                              <Phone className="h-3 w-3 text-blue-600" />
+                              <span>{saleData.telefonoAsesor}</span>
+                            </div>
+                          )}
+                          {saleData.emailAsesor && (
+                            <div className="flex items-center space-x-2">
+                              <Mail className="h-3 w-3 text-blue-600" />
+                              <span>{saleData.emailAsesor}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <h4 className="font-semibold text-gray-900 border-b pb-2">Garantía</h4>
+                      <div className="bg-orange-50 p-4 rounded-lg">
+                        <div className="flex items-center space-x-3 mb-3">
+                          <div className="bg-orange-600 p-2 rounded-full">
+                            <WarrantyIcon className="h-4 w-4 text-white" size={16} />
+                          </div>
+                          <div>
+                            <p className="font-medium text-orange-900">{vehicleData.tipoCertificacion}</p>
+                            <p className="text-xs text-orange-500">Hasta {vehicleData.garantiaInfo?.fechaFinal}</p>
                           </div>
                         </div>
                         <div className="space-y-2 text-sm">
                           <div className="flex items-center space-x-2">
-                            <Phone className="h-3 w-3 text-blue-600" />
-                            <span>{saleData.telefonoAsesor || "No disponible"}</span>
+                            <Calendar className="h-3 w-3 text-orange-600" />
+                            <span className="text-xs leading-tight">{vehicleData.garantiaInfo?.descripcion}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+
+                </CardContent>
+              )}
+            </Card>
+
+            {/* Owner Information and Incidents Summary Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Owner Information Card */}
+              <Card
+                className={`transition-all duration-300 ${expandedCards.includes("owner-info") ? "ring-2 ring-purple-200" : ""}`}
+              >
+                <CardHeader className="cursor-pointer" onClick={() => toggleCard("owner-info")}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="bg-purple-100 p-2 rounded-lg">
+                        <User className="h-5 w-5 text-purple-600" />
+                      </div>
+                      <div>
+                        <CardTitle>Información del Propietario</CardTitle>
+                        <CardDescription>Datos de contacto y personales</CardDescription>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                      Verificado
+                    </Badge>
+                  </div>
+                </CardHeader>
+                {expandedCards.includes("owner-info") && (
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <h4 className="font-semibold text-gray-900 border-b pb-2">Datos Personales</h4>
+                        <div className="space-y-3">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Nombre Completo:</span>
+                            <span className="font-medium">{ownerData.nombre || "Cargando..."}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">DNI:</span>
+                            <span className="font-medium font-mono">{ownerData.dni || "Cargando..."}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <h4 className="font-semibold text-gray-900 border-b pb-2">Contacto</h4>
+                        <div className="space-y-3">
+                          <div className="flex items-center space-x-2">
+                            <Phone className="h-4 w-4 text-gray-500" />
+                            <span className="text-sm">{ownerData.telefono || "Cargando..."}</span>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <Mail className="h-3 w-3 text-blue-600" />
-                            <span>{saleData.emailAsesor || "No disponible"}</span>
+                            <Mail className="h-4 w-4 text-gray-500" />
+                            <span className="text-sm">{ownerData.email || "Cargando..."}</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <MapPin className="h-4 w-4 text-gray-500" />
+                            <span className="text-sm">{ownerData.direccion || "Cargando..."}</span>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </CardContent>
+                )}
+              </Card>
 
-
-                </CardContent>
-              )}
-            </Card>
-
-            {/* Owner Information Card */}
-            <Card
-              className={`transition-all duration-300 ${expandedCards.includes("owner-info") ? "ring-2 ring-purple-200" : ""}`}
-            >
-              <CardHeader className="cursor-pointer" onClick={() => toggleCard("owner-info")}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="bg-purple-100 p-2 rounded-lg">
-                      <User className="h-5 w-5 text-purple-600" />
-                    </div>
-                    <div>
-                      <CardTitle>Información del Propietario</CardTitle>
-                      <CardDescription>Datos de contacto y personales</CardDescription>
-                    </div>
-                  </div>
-                  <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
-                    Verificado
-                  </Badge>
-                </div>
-              </CardHeader>
-              {expandedCards.includes("owner-info") && (
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <h4 className="font-semibold text-gray-900 border-b pb-2">Datos Personales</h4>
-                      <div className="space-y-3">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Nombre Completo:</span>
-                          <span className="font-medium">{ownerData.nombre || "No disponible"}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">DNI:</span>
-                          <span className="font-medium font-mono">{ownerData.dni || "No disponible"}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <h4 className="font-semibold text-gray-900 border-b pb-2">Contacto</h4>
-                      <div className="space-y-3">
-                        <div className="flex items-center space-x-2">
-                          <Phone className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm">{ownerData.telefono || "No disponible"}</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Mail className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm">{ownerData.email || "No disponible"}</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <MapPin className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm">{ownerData.direccion || "No disponible"}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              )}
-            </Card>
-
-            
-
-             {/* Incidents Summary Card */}
-             <Card
-               className={`transition-all duration-300 ${expandedCards.includes("incidents-summary") ? "ring-2 ring-red-200" : ""}`}
-             >
+              {/* Incidents Summary Card */}
+              <Card
+                className={`transition-all duration-300 ${expandedCards.includes("incidents-summary") ? "ring-2 ring-red-200" : ""}`}
+              >
               <CardHeader className="cursor-pointer" onClick={() => toggleCard("incidents-summary")}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
@@ -638,18 +840,75 @@ export default function Dashboard() {
                 </CardContent>
               )}
             </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="incidents">
             <Card>
               <CardHeader>
-                <CardTitle>Gestión de Incidencias</CardTitle>
-                <CardDescription>Administración y seguimiento de incidencias reportadas</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Gestión de Incidencias</CardTitle>
+                    <CardDescription>Administración y seguimiento de incidencias reportadas</CardDescription>
+                  </div>
+                  <Button 
+                    onClick={() => setShowIncidentModal(true)}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Abrir Nueva Incidencia
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8 text-gray-500">
-                  <AlertCircle className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                  <p>Gestor de incidencias en desarrollo</p>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex space-x-2">
+                      <Button
+                        variant={incidentFilter === "open" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setIncidentFilter("open")}
+                      >
+                        Abiertas ({incidents.filter((i) => i.estado === "Abierta").length})
+                      </Button>
+                      <Button
+                        variant={incidentFilter === "all" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setIncidentFilter("all")}
+                      >
+                        Todas ({incidents.length})
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {filteredIncidents.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <AlertCircle className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                      <p>{incidentFilter === "open" ? "No hay incidencias abiertas" : "No hay incidencias reportadas"}</p>
+                      <p className="text-sm mt-2">Haz clic en "Abrir Nueva Incidencia" para reportar un problema</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {filteredIncidents.map((incident) => (
+                        <div key={incident.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center space-x-3">
+                              <div className="bg-gray-100 p-2 rounded-lg">{getIncidentIcon(incident.tipo)}</div>
+                              <div>
+                                <h5 className="font-medium">{incident.tipo}</h5>
+                                <p className="text-sm text-gray-600">{incident.fecha}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <div className={`w-2 h-2 rounded-full ${getPriorityColor(incident.prioridad)}`}></div>
+                              <Badge className={getStatusColor(incident.estado)}>{incident.estado}</Badge>
+                            </div>
+                          </div>
+                          <p className="text-sm text-gray-700 ml-11">{incident.descripcion}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -686,6 +945,148 @@ export default function Dashboard() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Modal para nueva incidencia */}
+      <Dialog open={showIncidentModal} onOpenChange={setShowIncidentModal}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Nueva Incidencia</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="tipo">Tipo de Incidencia *</Label>
+              <Select
+                value={newIncident.tipo}
+                onValueChange={(value) => setNewIncident({ ...newIncident, tipo: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar tipo de incidencia" />
+                </SelectTrigger>
+                <SelectContent>
+                  {incidentTypes.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="prioridad">Prioridad</Label>
+              <Select
+                value={newIncident.prioridad}
+                onValueChange={(value) => setNewIncident({ ...newIncident, prioridad: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Baja">Baja</SelectItem>
+                  <SelectItem value="Media">Media</SelectItem>
+                  <SelectItem value="Alta">Alta</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="descripcion">Descripción *</Label>
+              <Textarea
+                id="descripcion"
+                placeholder="Describe detalladamente el problema o incidencia..."
+                value={newIncident.descripcion}
+                onChange={(e) => setNewIncident({ ...newIncident, descripcion: e.target.value })}
+                rows={4}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Adjuntar Imágenes</Label>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors">
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                  id="image-upload"
+                  disabled={attachedImages.length >= 5}
+                />
+                <label 
+                  htmlFor="image-upload" 
+                  className={`cursor-pointer flex flex-col items-center space-y-2 ${
+                    attachedImages.length >= 5 ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                >
+                  <Upload className="h-8 w-8 text-gray-400" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">
+                      {attachedImages.length >= 5 
+                        ? 'Máximo de imágenes alcanzado' 
+                        : 'Haz clic para seleccionar imágenes'
+                      }
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Máximo 5 imágenes, 5MB cada una
+                    </p>
+                  </div>
+                </label>
+              </div>
+              
+              {/* Preview de imágenes */}
+              {imagePreviewUrls.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Imágenes adjuntadas ({attachedImages.length}/5)</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {imagePreviewUrls.map((url, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={url}
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-24 object-cover rounded-lg border"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                        <div className="absolute bottom-1 left-1 bg-black bg-opacity-50 text-white text-xs px-1 rounded">
+                          {attachedImages[index]?.name}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowIncidentModal(false)}
+              disabled={submittingIncident}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleSubmitIncident}
+              disabled={submittingIncident || !newIncident.tipo || !newIncident.descripcion}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {submittingIncident ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Enviando...
+                </>
+              ) : (
+                'Crear Incidencia'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 } 

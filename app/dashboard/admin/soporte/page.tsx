@@ -30,6 +30,7 @@ import { useToast } from "@/hooks/use-toast"
 
 interface Ticket {
   id: string
+  source: "soporte" | "entregas" | "historial"
   ticket_number: string
   license_plate: string
   client_dni: string
@@ -52,6 +53,7 @@ interface Incidencia {
   created_at: string
   imagenes: string[]
   archivos_admin: string[]
+  source?: "soporte" | "entregas" | "historial"
 }
 
 export default function SoporteAdminPage() {
@@ -67,17 +69,26 @@ export default function SoporteAdminPage() {
   const [sendingResponse, setSendingResponse] = useState(false)
 
   useEffect(() => {
+    console.log("🚀 Página cargada, ejecutando loadTickets automáticamente...")
     loadTickets()
   }, [])
 
   const loadTickets = async () => {
+    console.log("🔄 Iniciando carga de tickets...")
     setLoading(true)
     try {
+      console.log("📡 Haciendo fetch a /api/admin/soporte/tickets...")
       const response = await fetch("/api/admin/soporte/tickets")
+      console.log("📡 Respuesta recibida:", response.status, response.statusText)
+      
       if (response.ok) {
         const data = await response.json()
+        console.log("✅ Datos recibidos:", data)
         setTickets(data.tickets)
       } else {
+        console.error("❌ Error en la respuesta:", response.status, response.statusText)
+        const errorData = await response.json().catch(() => ({}))
+        console.error("❌ Detalles del error:", errorData)
         toast({
           title: "Error",
           description: "Error cargando tickets",
@@ -85,6 +96,7 @@ export default function SoporteAdminPage() {
         })
       }
     } catch (error) {
+      console.error("💥 Error de conexión:", error)
       toast({
         title: "Error",
         description: "Error de conexión",
@@ -92,6 +104,7 @@ export default function SoporteAdminPage() {
       })
     } finally {
       setLoading(false)
+      console.log("🏁 Carga de tickets finalizada")
     }
   }
 
@@ -131,6 +144,32 @@ export default function SoporteAdminPage() {
         return "bg-green-100 text-green-800"
       default:
         return "bg-gray-100 text-gray-800"
+    }
+  }
+
+  const getSourceColor = (source: string) => {
+    switch (source) {
+      case "soporte":
+        return "bg-blue-100 text-blue-800"
+      case "entregas":
+        return "bg-purple-100 text-purple-800"
+      case "historial":
+        return "bg-orange-100 text-orange-800"
+      default:
+        return "bg-gray-100 text-gray-800"
+    }
+  }
+
+  const getSourceText = (source: string) => {
+    switch (source) {
+      case "soporte":
+        return "Soporte"
+      case "entregas":
+        return "Entregas"
+      case "historial":
+        return "Portal Cliente"
+      default:
+        return "Desconocido"
     }
   }
 
@@ -216,16 +255,106 @@ export default function SoporteAdminPage() {
           <h1 className="text-3xl font-bold">Gestión de Soporte</h1>
           <p className="text-gray-600">Administración de tickets de soporte</p>
         </div>
-        <Button onClick={loadTickets} disabled={loading}>
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Cargando...
-            </>
-          ) : (
-            "Actualizar"
-          )}
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => {
+              console.log("🖱️ Botón Actualizar clickeado")
+              loadTickets()
+            }} 
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Cargando...
+              </>
+            ) : (
+              "Actualizar"
+            )}
+          </Button>
+          
+          <Button 
+            variant="outline"
+            onClick={async () => {
+              console.log("🧪 Probando endpoint de test...")
+              try {
+                const response = await fetch("/api/admin/soporte/test")
+                const data = await response.json()
+                console.log("🧪 Respuesta del test:", data)
+                toast({
+                  title: "Test exitoso",
+                  description: "Endpoint de prueba funcionando",
+                })
+              } catch (error) {
+                console.error("🧪 Error en test:", error)
+                toast({
+                  title: "Error en test",
+                  description: "No se pudo conectar al endpoint de prueba",
+                  variant: "destructive",
+                })
+              }
+            }}
+          >
+            Test API
+          </Button>
+        </div>
+      </div>
+
+      {/* Estadísticas */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Total Tickets</p>
+                <p className="text-2xl font-bold">{tickets.length}</p>
+              </div>
+              <Ticket className="h-8 w-8 text-blue-600" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Soporte</p>
+                <p className="text-2xl font-bold">{tickets.filter(t => t.source === "soporte").length}</p>
+              </div>
+              <Badge className={getSourceColor("soporte")}>
+                {getSourceText("soporte")}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Entregas</p>
+                <p className="text-2xl font-bold">{tickets.filter(t => t.source === "entregas").length}</p>
+              </div>
+              <Badge className={getSourceColor("entregas")}>
+                {getSourceText("entregas")}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Portal Cliente</p>
+                <p className="text-2xl font-bold">{tickets.filter(t => t.source === "historial").length}</p>
+              </div>
+              <Badge className={getSourceColor("historial")}>
+                {getSourceText("historial")}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -275,7 +404,12 @@ export default function SoporteAdminPage() {
                     onClick={() => handleTicketSelect(ticket)}
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-mono text-sm">{ticket.ticket_number}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-sm">{ticket.ticket_number}</span>
+                        <Badge className={getSourceColor(ticket.source)}>
+                          {getSourceText(ticket.source)}
+                        </Badge>
+                      </div>
                       <Badge className={getStatusColor(ticket.status)}>
                         {getStatusText(ticket.status)}
                       </Badge>
@@ -320,6 +454,11 @@ export default function SoporteAdminPage() {
                 <CardDescription>
                   Detalles del ticket y respuestas
                 </CardDescription>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge className={getSourceColor(selectedTicket.source)}>
+                    {getSourceText(selectedTicket.source)}
+                  </Badge>
+                </div>
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Información del ticket */}
