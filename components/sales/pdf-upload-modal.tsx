@@ -287,12 +287,26 @@ export default function PdfUploadModal({ isOpen, onClose }: PdfUploadModalProps)
 
     setLoading(true)
     try {
-      const saveData = {
-        extractedFields: editedFields,
-        dealership: selectedDealership,
-        originalText: result.text,
-        pdfFilename: file?.name,
+      // Combinar campos originales con campos editados
+      const finalFields = { ...result.extractedFields, ...editedFields }
+      
+      // Si no hay BANCO o TIPO FINANCIACIÓN, establecer "Contado" por defecto
+      if (!finalFields["BANCO"] || finalFields["BANCO"].trim() === "") {
+        finalFields["BANCO"] = "Contado"
       }
+      if (!finalFields["TIPO FINANCIACIÓN"] || finalFields["TIPO FINANCIACIÓN"].trim() === "") {
+        finalFields["TIPO FINANCIACIÓN"] = "Contado"
+      }
+
+      const saveData = {
+        extractedFields: finalFields,
+        originalText: result.text,
+        fileName: file?.name,
+        method: result.method,
+        selectedDealership: selectedDealership,
+      }
+
+      console.log("📤 Enviando datos al servidor:", saveData)
 
       const response = await fetch("/api/save-pdf-extraction", {
         method: "POST",
@@ -328,34 +342,39 @@ export default function PdfUploadModal({ isOpen, onClose }: PdfUploadModalProps)
     }
   }
 
-  const renderField = (field: { key: string; label: string; icon: React.ElementType; value: string }) => (
-    <div key={field.key} className="mb-1.5">
-      <Label htmlFor={field.key} className="flex items-center text-[11px] font-medium text-muted-foreground mb-0.5">
-        <field.icon className="mr-1.5 h-3 w-3 text-muted-foreground" />
-        {field.label}
-      </Label>
-      {editMode ? (
-        <Input
-          id={field.key}
-          value={field.value}
-          onChange={(e) => handleFieldChange(field.key, e.target.value)}
-          className="h-8 bg-background border-border text-foreground placeholder-muted-foreground text-xs px-2"
-          disabled={loading}
-        />
-      ) : (
-        <p
-          className={cn(
-            "text-xs p-1.5 rounded-md border min-h-[32px] flex items-center break-all",
-            field.value && field.value.trim() !== ""
-              ? "text-foreground bg-background border-border"
-              : "text-red-400 bg-red-950/20 border-red-800 font-semibold italic",
-          )}
-        >
-          {field.value && field.value.trim() !== "" ? field.value : "⚠️ N/A - Campo vacío"}
-        </p>
-      )}
-    </div>
-  )
+  const renderField = (field: { key: string; label: string; icon: React.ElementType; value: string }) => {
+    // Usar el valor editado si existe, sino el valor original
+    const displayValue = editMode ? (editedFields[field.key] ?? field.value) : field.value
+    
+    return (
+      <div key={field.key} className="mb-1.5">
+        <Label htmlFor={field.key} className="flex items-center text-[11px] font-medium text-muted-foreground mb-0.5">
+          <field.icon className="mr-1.5 h-3 w-3 text-muted-foreground" />
+          {field.label}
+        </Label>
+        {editMode ? (
+          <Input
+            id={field.key}
+            value={displayValue}
+            onChange={(e) => handleFieldChange(field.key, e.target.value)}
+            className="h-8 bg-background border-border text-foreground placeholder-muted-foreground text-xs px-2"
+            disabled={loading}
+          />
+        ) : (
+          <p
+            className={cn(
+              "text-xs p-1.5 rounded-md border min-h-[32px] flex items-center break-all",
+              displayValue && displayValue.trim() !== ""
+                ? "text-foreground bg-background border-border"
+                : "text-red-400 bg-red-950/20 border-red-800 font-semibold italic",
+            )}
+          >
+            {displayValue && displayValue.trim() !== "" ? displayValue : "⚠️ N/A - Campo vacío"}
+          </p>
+        )}
+      </div>
+    )
+  }
 
   const categoryTitles: Record<string, string> = {
     cliente: "Cliente",
