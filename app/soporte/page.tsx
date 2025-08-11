@@ -238,6 +238,12 @@ export default function SoportePage() {
 
     // Simular validación con datos de prueba
     setTimeout(() => {
+      // Guardar datos del login en localStorage
+      localStorage.setItem('loginData', JSON.stringify({
+        licensePlate: licensePlate.trim().toUpperCase(),
+        dni: dni.trim().toUpperCase()
+      }))
+      
       // Redirección normal como un login corriente
       window.location.href = "/dashboard-cliente"
     }, 1500)

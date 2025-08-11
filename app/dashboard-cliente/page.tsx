@@ -23,76 +23,120 @@ import {
   TrendingUp,
   DollarSign,
   Award,
+  LogOut,
+  Loader2,
+  Receipt,
+  File,
 } from "lucide-react"
 import React from "react"
+import { CarFrontIcon } from "@/components/ui/car-front-icon"
+import { CarModelSedanIcon } from "@/components/ui/car-model-sedan-icon"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 export default function Dashboard() {
   const [activeStep, setActiveStep] = useState(1)
   const [expandedCards, setExpandedCards] = useState<string[]>(["vehicle-info"])
+  const [loginData, setLoginData] = useState<{licensePlate: string, dni: string} | null>(null)
+  const [dashboardData, setDashboardData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
+  // Obtener datos del login al cargar el componente
+  React.useEffect(() => {
+    const storedLoginData = localStorage.getItem('loginData')
+    if (storedLoginData) {
+      try {
+        const parsedData = JSON.parse(storedLoginData)
+        setLoginData(parsedData)
+      } catch (error) {
+        console.error('Error parsing login data:', error)
+      }
+    }
+  }, [])
 
+  // Obtener datos reales del vehículo cuando se tenga la matrícula
+  React.useEffect(() => {
+    const fetchVehicleData = async () => {
+      if (!loginData?.licensePlate) {
+        setLoading(false)
+        return
+      }
 
-  const vehicleData = {
-    matricula: "2025JVS",
-    marca: "BMW",
-    modelo: "Serie 3 320d",
-    año: 2022,
-    color: "Azul Metalizado",
-    combustible: "Diésel",
-    kilometraje: 45678,
-    vin: "WBABA91060AL12345",
-    fechaMatriculacion: "15/03/2022",
-    fechaVenta: "28/11/2024",
-    fechaCertificacion: "25/11/2024",
-    diasDesdeVenta: 45,
-    precio: 28500,
-    precioOriginal: 45000,
-  }
+      try {
+        setLoading(true)
+        console.log(`🔍 Solicitando datos para matrícula: ${loginData.licensePlate}`)
+        
+        const response = await fetch(`/api/vehicle-dashboard-data?licensePlate=${loginData.licensePlate}&dni=${loginData.dni}`)
+        
+        if (!response.ok) {
+          const errorData = await response.json()
+          console.error('❌ Error en la respuesta de la API:', errorData)
+          throw new Error(errorData.error || 'Error al obtener datos del vehículo')
+        }
+
+        const data = await response.json()
+        console.log('✅ Datos recibidos:', data)
+        
+        if (data.success) {
+          setDashboardData(data)
+          setError(null)
+        } else {
+          throw new Error(data.error || 'Error en los datos recibidos')
+        }
+      } catch (err) {
+        console.error('💥 Error fetching vehicle data:', err)
+        setError(err.message || 'Error al cargar los datos del vehículo')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchVehicleData()
+  }, [loginData])
+
+     // Datos del vehículo - usar datos reales si están disponibles
+   const vehicleData = {
+     matricula: loginData?.licensePlate || "",
+     marca: dashboardData?.vehicleData?.marca,
+     modelo: dashboardData?.vehicleData?.modelo,
+     año: dashboardData?.vehicleData?.año,
+     color: dashboardData?.vehicleData?.color,
+     kilometraje: dashboardData?.vehicleData?.kilometraje,
+     vin: dashboardData?.vehicleData?.vin,
+     fechaMatriculacion: dashboardData?.vehicleData?.fechaMatriculacion,
+     fechaEntrega: dashboardData?.vehicleData?.fechaEntrega,
+     fechaVenta: dashboardData?.vehicleData?.fechaVenta,
+     fechaCertificacion: dashboardData?.vehicleData?.fechaCertificacion,
+     tipoCertificacion: dashboardData?.vehicleData?.tipoCertificacion,
+     valoracion: dashboardData?.vehicleData?.valoracion,
+     diasDesdeVenta: dashboardData?.vehicleData?.diasDesdeVenta,
+     precio: dashboardData?.vehicleData?.precio,
+     precioOriginal: dashboardData?.vehicleData?.precioOriginal,
+   }
 
   const ownerData = {
-    nombre: "Carlos Rodríguez Martín",
-    dni: "45641484P",
-    telefono: "+34 666 123 456",
-    email: "carlos.rodriguez@email.com",
-    direccion: "Calle Mayor 123, 28001 Madrid",
+    nombre: dashboardData?.ownerData?.nombre,
+    dni: loginData?.dni || dashboardData?.ownerData?.dni,
+    telefono: dashboardData?.ownerData?.telefono,
+    email: dashboardData?.ownerData?.email,
+    direccion: dashboardData?.ownerData?.direccion,
   }
 
   const saleData = {
-    asesorComercial: "Ana García López",
-    concesionario: "AutoMadrid Premium",
-    telefonoAsesor: "+34 911 234 567",
-    emailAsesor: "ana.garcia@automadrid.com",
-    garantia: "24 meses",
-    financiacion: "Financiado 60 meses",
-    seguro: "Mapfre Comprehensive",
+    asesorComercial: dashboardData?.saleData?.asesorComercial,
+    concesionario: dashboardData?.saleData?.concesionario,
+    telefonoAsesor: dashboardData?.saleData?.telefonoAsesor,
+    emailAsesor: dashboardData?.saleData?.emailAsesor,
   }
 
-  const incidents = [
-    {
-      id: 1,
-      tipo: "Llaves",
-      estado: "Abierta",
-      fecha: "2024-12-15",
-      descripcion: "Llave de repuesto no funciona correctamente",
-      prioridad: "Media",
-    },
-    {
-      id: 2,
-      tipo: "Documentación",
-      estado: "Cerrada",
-      fecha: "2024-12-10",
-      descripcion: "Falta manual de usuario",
-      prioridad: "Baja",
-    },
-    {
-      id: 3,
-      tipo: "Mecánica",
-      estado: "En Proceso",
-      fecha: "2024-12-12",
-      descripcion: "Ruido extraño en el motor al arrancar",
-      prioridad: "Alta",
-    },
-  ]
+  const incidents = dashboardData?.incidents || []
 
   const toggleCard = (cardId: string) => {
     setExpandedCards((prev) => (prev.includes(cardId) ? prev.filter((id) => id !== cardId) : [...prev, cardId]))
@@ -141,6 +185,63 @@ export default function Dashboard() {
     }
   }
 
+  const handleLogout = () => {
+    localStorage.removeItem('loginData')
+    window.location.href = "/soporte"
+  }
+
+  // Mostrar loading mientras se cargan los datos
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Cargando datos del vehículo...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Mostrar error si hay algún problema
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-6">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Error al cargar datos</h3>
+          <p className="text-red-600 mb-4 text-sm">{error}</p>
+          <div className="space-y-2">
+            <Button onClick={() => window.location.reload()} className="w-full">
+              Reintentar
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={async () => {
+                try {
+                  const response = await fetch('/api/test-connection')
+                  const data = await response.json()
+                  alert(`Prueba de conexión: ${data.success ? '✅ Exitoso' : '❌ Fallido'}\n${data.error || data.message}`)
+                } catch (err) {
+                  alert('Error al probar conexión: ' + err.message)
+                }
+              }}
+              className="w-full"
+            >
+              Probar Conexión
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => window.location.href = "/soporte"}
+              className="w-full"
+            >
+              Volver al inicio
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       <style jsx>{`
@@ -179,25 +280,50 @@ export default function Dashboard() {
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-4">
-              <div className="bg-blue-600 p-2 rounded-lg">
-                <Car className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Dashboard Vehicular</h1>
-                <p className="text-sm text-gray-600">Matrícula: {vehicleData.matricula}</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                <CheckCircle className="h-3 w-3 mr-1" />
-                Activo
-              </Badge>
-              <Button variant="outline" size="sm">
-                <User className="h-4 w-4 mr-2" />
-                {ownerData.nombre}
-              </Button>
-            </div>
+                         <div className="flex items-center space-x-4">
+               <div className="bg-blue-600 p-2 rounded-lg">
+                 <CarFrontIcon className="h-6 w-6 text-white" size={24} />
+               </div>
+               <div>
+                 <h1 className="text-2xl font-bold text-gray-900">Dashboard Cliente</h1>
+                                   <div className="flex items-center space-x-2">
+                    <p className="text-sm text-gray-600">Matrícula: {vehicleData.matricula}</p>
+                  </div>
+               </div>
+             </div>
+                         <div className="flex items-center space-x-4">
+               <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                 <CheckCircle className="h-3 w-3 mr-1" />
+                 Activo
+               </Badge>
+                               <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                                         <Button variant="outline" size="sm">
+                       <User className="h-4 w-4 mr-2" />
+                       {ownerData.nombre || "Usuario"}
+                     </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-64" align="end">
+                                         <DropdownMenuLabel className="font-bold text-base">
+                       {ownerData.nombre || "Usuario"}
+                     </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem disabled className="text-sm">
+                      <Phone className="h-4 w-4 mr-2 flex-shrink-0" />
+                      <span className="truncate">{ownerData.telefono}</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem disabled className="text-sm">
+                      <Mail className="h-4 w-4 mr-2 flex-shrink-0" />
+                      <span className="truncate">{ownerData.email}</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600">
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Cerrar Sesión
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+             </div>
           </div>
         </div>
       </div>
@@ -205,11 +331,11 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Progress Steps */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Progreso del Dashboard</h2>
-            <span className="text-sm text-gray-600">{expandedCards.length} de 6 secciones expandidas</span>
-          </div>
-          <Progress value={(expandedCards.length / 6) * 100} className="h-2" />
+                     <div className="flex items-center justify-between mb-4">
+             <h2 className="text-lg font-semibold text-gray-900">Progreso del Dashboard</h2>
+             <span className="text-sm text-gray-600">{expandedCards.length} de 4 secciones expandidas</span>
+           </div>
+           <Progress value={(expandedCards.length / 4) * 100} className="h-2" />
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
@@ -229,12 +355,14 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className="bg-blue-100 p-2 rounded-lg">
-                      <Car className="h-5 w-5 text-blue-600" />
+                      <CarModelSedanIcon className="h-5 w-5 text-blue-600" />
                     </div>
-                    <div>
-                      <CardTitle>Información del Vehículo</CardTitle>
-                      <CardDescription>Datos técnicos y características</CardDescription>
-                    </div>
+                                         <div>
+                       <CardTitle>Información del Vehículo</CardTitle>
+                                               <CardDescription>
+                          Datos técnicos y características
+                        </CardDescription>
+                     </div>
                   </div>
                   <Badge variant="secondary">
                     {expandedCards.includes("vehicle-info") ? "Expandido" : "Contraído"}
@@ -247,66 +375,71 @@ export default function Dashboard() {
                     <div className="space-y-4">
                       <h4 className="font-semibold text-gray-900 border-b pb-2">Datos Básicos</h4>
                       <div className="space-y-3">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Marca:</span>
-                          <span className="font-medium">{vehicleData.marca}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Modelo:</span>
-                          <span className="font-medium">{vehicleData.modelo}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Año:</span>
-                          <span className="font-medium">{vehicleData.año}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Color:</span>
-                          <span className="font-medium">{vehicleData.color}</span>
-                        </div>
+                                                 <div className="flex justify-between">
+                           <span className="text-gray-600">Marca:</span>
+                           <span className="font-medium">{vehicleData.marca || "Cargando..."}</span>
+                         </div>
+                         <div className="flex justify-between">
+                           <span className="text-gray-600">Modelo:</span>
+                           <span className="font-medium">{vehicleData.modelo || "Cargando..."}</span>
+                         </div>
+                         <div className="flex justify-between">
+                           <span className="text-gray-600">Año:</span>
+                           <span className="font-medium">{vehicleData.año || "Cargando..."}</span>
+                         </div>
+                         <div className="flex justify-between">
+                           <span className="text-gray-600">Color:</span>
+                           <span className="font-medium">{vehicleData.color || "Cargando..."}</span>
+                         </div>
                       </div>
                     </div>
 
-                    <div className="space-y-4">
-                      <h4 className="font-semibold text-gray-900 border-b pb-2">Especificaciones</h4>
-                      <div className="space-y-3">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Combustible:</span>
-                          <span className="font-medium">{vehicleData.combustible}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Kilometraje:</span>
-                          <span className="font-medium">{vehicleData.kilometraje.toLocaleString()} km</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">VIN:</span>
-                          <span className="font-medium font-mono text-xs">{vehicleData.vin}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Matriculación:</span>
-                          <span className="font-medium">{vehicleData.fechaMatriculacion}</span>
-                        </div>
-                      </div>
-                    </div>
+                                         <div className="space-y-4">
+                       <h4 className="font-semibold text-gray-900 border-b pb-2">Especificaciones</h4>
+                       <div className="space-y-3">
+                         <div className="flex justify-between">
+                           <span className="text-gray-600">Kilometraje:</span>
+                           <span className="font-medium">{vehicleData.kilometraje ? `${vehicleData.kilometraje.toLocaleString()} km` : "Cargando..."}</span>
+                         </div>
+                                                   <div className="flex justify-between">
+                            <span className="text-gray-600">Bastidor:</span>
+                            <span className="font-medium">{vehicleData.vin || "Cargando..."}</span>
+                          </div>
+                                                   <div className="flex justify-between">
+                            <span className="text-gray-600">Matriculación:</span>
+                            <span className="font-medium">{vehicleData.fechaMatriculacion || "Cargando..."}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Entrega:</span>
+                            <span className="font-medium">{vehicleData.fechaEntrega || "Cargando..."}</span>
+                          </div>
+                       </div>
+                     </div>
 
                     <div className="space-y-4">
                       <h4 className="font-semibold text-gray-900 border-b pb-2">Estado</h4>
                       <div className="space-y-3">
-                        <div className="bg-green-50 p-3 rounded-lg">
-                          <div className="flex items-center space-x-2">
-                            <CheckCircle className="h-4 w-4 text-green-600" />
-                            <span className="text-sm font-medium text-green-800">Certificado</span>
+                                                 <div className="bg-green-50 p-3 rounded-lg">
+                           <div className="flex items-center space-x-2">
+                             <CheckCircle className="h-4 w-4 text-green-600" />
+                             <span className="text-sm font-medium text-green-800">{vehicleData.tipoCertificacion || "Cargando..."}</span>
+                           </div>
+                           <p className="text-xs text-green-600 mt-1">
+                             Certificado el: {vehicleData.fechaCertificacion || "Cargando..."}
+                           </p>
+                         </div>
+                         
+                                                   {/* Valoración */}
+                          <div className="bg-blue-50 p-3 rounded-lg">
+                            <div className="flex items-center space-x-2">
+                              <TrendingUp className="h-4 w-4 text-blue-600" />
+                              <span className="text-sm font-medium text-blue-800">Valoración</span>
+                            </div>
+                                                         <p className="text-xs text-blue-600 mt-1 leading-tight">
+                               {vehicleData.valoracion || "Cargando..."}
+                             </p>
                           </div>
-                          <p className="text-xs text-green-600 mt-1">
-                            Última revisión: {vehicleData.fechaCertificacion}
-                          </p>
-                        </div>
-                        <div className="bg-blue-50 p-3 rounded-lg">
-                          <div className="flex items-center space-x-2">
-                            <TrendingUp className="h-4 w-4 text-blue-600" />
-                            <span className="text-sm font-medium text-blue-800">Valoración</span>
-                          </div>
-                          <p className="text-xs text-blue-600 mt-1">Excelente estado general</p>
-                        </div>
+
                       </div>
                     </div>
                   </div>
@@ -320,18 +453,18 @@ export default function Dashboard() {
             >
               <CardHeader className="cursor-pointer" onClick={() => toggleCard("sale-info")}>
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="bg-green-100 p-2 rounded-lg">
-                      <DollarSign className="h-5 w-5 text-green-600" />
-                    </div>
+                                     <div className="flex items-center space-x-3">
+                     <div className="bg-green-100 p-2 rounded-lg">
+                       <File className="h-5 w-5 text-green-600" />
+                     </div>
                     <div>
                       <CardTitle>Información de Venta</CardTitle>
                       <CardDescription>Detalles de la transacción y asesor comercial</CardDescription>
                     </div>
                   </div>
-                  <Badge variant="secondary" className="bg-green-50 text-green-700">
-                    {vehicleData.diasDesdeVenta} días desde venta
-                  </Badge>
+                                     <Badge variant="secondary" className="bg-green-50 text-green-700">
+                     {vehicleData.diasDesdeVenta || "Cargando..."} desde entrega
+                   </Badge>
                 </div>
               </CardHeader>
               {expandedCards.includes("sale-info") && (
@@ -342,22 +475,22 @@ export default function Dashboard() {
                       <div className="space-y-3">
                         <div className="flex justify-between">
                           <span className="text-gray-600">Fecha de Venta:</span>
-                          <span className="font-medium">{vehicleData.fechaVenta}</span>
+                          <span className="font-medium">{vehicleData.fechaVenta || "Cargando..."}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Precio de Venta:</span>
-                          <span className="font-medium text-green-600">€{vehicleData.precio.toLocaleString()}</span>
+                                                     <span className="font-medium text-green-600">{vehicleData.precio ? `€${vehicleData.precio.toLocaleString()}` : "Cargando..."}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Precio Original:</span>
                           <span className="font-medium text-gray-500 line-through">
-                            €{vehicleData.precioOriginal.toLocaleString()}
+                            {vehicleData.precioOriginal ? `€${vehicleData.precioOriginal.toLocaleString()}` : "Cargando..."}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Descuento:</span>
                           <span className="font-medium text-red-600">
-                            €{(vehicleData.precioOriginal - vehicleData.precio).toLocaleString()}
+                            {vehicleData.precio && vehicleData.precioOriginal ? `€${(vehicleData.precioOriginal - vehicleData.precio).toLocaleString()}` : "Cargando..."}
                           </span>
                         </div>
                       </div>
@@ -371,47 +504,25 @@ export default function Dashboard() {
                             <User className="h-4 w-4 text-white" />
                           </div>
                           <div>
-                            <p className="font-medium text-blue-900">{saleData.asesorComercial}</p>
-                            <p className="text-sm text-blue-600">{saleData.concesionario}</p>
+                                                     <p className="font-medium text-blue-900">{saleData.asesorComercial || "Cargando..."}</p>
+                         <p className="text-sm text-blue-600">{saleData.concesionario || "Cargando..."}</p>
                           </div>
                         </div>
                         <div className="space-y-2 text-sm">
                           <div className="flex items-center space-x-2">
                             <Phone className="h-3 w-3 text-blue-600" />
-                            <span>{saleData.telefonoAsesor}</span>
+                            <span>{saleData.telefonoAsesor || "No disponible"}</span>
                           </div>
                           <div className="flex items-center space-x-2">
                             <Mail className="h-3 w-3 text-blue-600" />
-                            <span>{saleData.emailAsesor}</span>
+                            <span>{saleData.emailAsesor || "No disponible"}</span>
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-                    <div className="bg-purple-50 p-4 rounded-lg">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <Award className="h-4 w-4 text-purple-600" />
-                        <span className="font-medium text-purple-900">Garantía</span>
-                      </div>
-                      <p className="text-sm text-purple-700">{saleData.garantia}</p>
-                    </div>
-                    <div className="bg-orange-50 p-4 rounded-lg">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <DollarSign className="h-4 w-4 text-orange-600" />
-                        <span className="font-medium text-orange-900">Financiación</span>
-                      </div>
-                      <p className="text-sm text-orange-700">{saleData.financiacion}</p>
-                    </div>
-                    <div className="bg-teal-50 p-4 rounded-lg">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <Shield className="h-4 w-4 text-teal-600" />
-                        <span className="font-medium text-teal-900">Seguro</span>
-                      </div>
-                      <p className="text-sm text-teal-700">{saleData.seguro}</p>
-                    </div>
-                  </div>
+
                 </CardContent>
               )}
             </Card>
@@ -444,11 +555,11 @@ export default function Dashboard() {
                       <div className="space-y-3">
                         <div className="flex justify-between">
                           <span className="text-gray-600">Nombre Completo:</span>
-                          <span className="font-medium">{ownerData.nombre}</span>
+                          <span className="font-medium">{ownerData.nombre || "No disponible"}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">DNI:</span>
-                          <span className="font-medium font-mono">{ownerData.dni}</span>
+                          <span className="font-medium font-mono">{ownerData.dni || "No disponible"}</span>
                         </div>
                       </div>
                     </div>
@@ -458,15 +569,15 @@ export default function Dashboard() {
                       <div className="space-y-3">
                         <div className="flex items-center space-x-2">
                           <Phone className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm">{ownerData.telefono}</span>
+                          <span className="text-sm">{ownerData.telefono || "No disponible"}</span>
                         </div>
                         <div className="flex items-center space-x-2">
                           <Mail className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm">{ownerData.email}</span>
+                          <span className="text-sm">{ownerData.email || "No disponible"}</span>
                         </div>
                         <div className="flex items-center space-x-2">
                           <MapPin className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm">{ownerData.direccion}</span>
+                          <span className="text-sm">{ownerData.direccion || "No disponible"}</span>
                         </div>
                       </div>
                     </div>
@@ -475,10 +586,12 @@ export default function Dashboard() {
               )}
             </Card>
 
-            {/* Incidents Summary Card */}
-            <Card
-              className={`transition-all duration-300 ${expandedCards.includes("incidents-summary") ? "ring-2 ring-red-200" : ""}`}
-            >
+            
+
+             {/* Incidents Summary Card */}
+             <Card
+               className={`transition-all duration-300 ${expandedCards.includes("incidents-summary") ? "ring-2 ring-red-200" : ""}`}
+             >
               <CardHeader className="cursor-pointer" onClick={() => toggleCard("incidents-summary")}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">

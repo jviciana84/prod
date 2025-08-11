@@ -18,11 +18,25 @@ function getDealershipCodeFromTomo(extractedFields: any): string | null {
 
   const tomoStr = tomo.toString().toUpperCase()
 
-  // Lógica de detección por TOMO
-  if (tomoStr.includes("TERRASSA") || tomoStr.includes("MOTOR MUNICH") || tomoStr === "MM") {
+  // Lógica de detección por TOMO - incluyendo números específicos como en el frontend
+  if (
+    tomoStr.includes("TERRASSA") || 
+    tomoStr.includes("MOTOR MUNICH") || 
+    tomoStr === "MM" ||
+    tomoStr.includes("10038") ||
+    tomoStr.includes("TOMO 10038") ||
+    tomoStr.includes("TOMO10038")
+  ) {
     console.log("✅ Detectado Motor Munich (MM) por TOMO")
     return "MM"
-  } else if (tomoStr.includes("CORNELLÀ") || tomoStr.includes("CORNELLA") || tomoStr === "MMC") {
+  } else if (
+    tomoStr.includes("CORNELLÀ") || 
+    tomoStr.includes("CORNELLA") || 
+    tomoStr === "MMC" ||
+    tomoStr.includes("46544") ||
+    tomoStr.includes("TOMO 46544") ||
+    tomoStr.includes("TOMO46544")
+  ) {
     console.log("✅ Detectado Motor Munich Cornellà (MMC) por TOMO")
     return "MMC"
   }
@@ -35,11 +49,17 @@ function getDealershipCodeFromTomo(extractedFields: any): string | null {
 function getDealershipCodeFromSelection(selectedDealership: string | null): string | null {
   if (!selectedDealership) return null
 
+  console.log("🏢 Usando selección manual para concesionario:", selectedDealership)
+
   if (selectedDealership.includes("Motor Munich (MM)") || selectedDealership.includes("MM")) {
+    console.log("✅ Detectado Motor Munich (MM) por selección manual")
     return "MM"
   } else if (selectedDealership.includes("Motor Munich Cornellà (MMC)") || selectedDealership.includes("MMC")) {
+    console.log("✅ Detectado Motor Munich Cornellà (MMC) por selección manual")
     return "MMC"
   }
+
+  console.log("⚠️ Selección manual no reconocida:", selectedDealership)
   return null
 }
 
@@ -359,10 +379,19 @@ export async function POST(request: NextRequest) {
     const cifCliente = extractedFields["D.N.I. Ó N.I.F."] || null
 
     // Primero intentar detectar por TOMO, luego por selección manual
+    console.log("🔍 === DETECTANDO CONCESIONARIO ===")
     let dealershipCode = getDealershipCodeFromTomo(extractedFields)
+    
     if (!dealershipCode) {
+      console.log("⚠️ No se detectó concesionario por TOMO, intentando selección manual...")
       dealershipCode = getDealershipCodeFromSelection(selectedDealership)
-      console.log("🏢 Usando selección manual para dealership:", dealershipCode)
+    }
+    
+    if (dealershipCode) {
+      console.log("✅ Concesionario detectado:", dealershipCode)
+    } else {
+      console.log("⚠️ No se pudo detectar concesionario, usando MM por defecto")
+      dealershipCode = "MM" // Fallback por defecto
     }
 
     let marca = extractedFields["MARCA"]
