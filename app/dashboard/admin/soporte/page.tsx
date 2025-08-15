@@ -28,6 +28,25 @@ import {
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
+interface VehicleData {
+  marca: string
+  modelo: string
+  año: string
+  kilometraje: string
+  combustible: string
+  bastidor: string
+  fecha_matriculacion: string
+  fecha_entrega: string
+  precio_venta: string
+  descuento: string
+  asesor: string
+  garantia_info?: {
+    tipo: string
+    fecha_fin: string
+    descripcion: string
+  }
+}
+
 interface Ticket {
   id: string
   source: "soporte" | "entregas" | "historial"
@@ -40,6 +59,7 @@ interface Ticket {
   time_since_sale: string
   status: string
   created_at: string
+  vehicle_data?: VehicleData
   incidencias: Incidencia[]
 }
 
@@ -77,8 +97,14 @@ export default function SoporteAdminPage() {
     console.log("🔄 Iniciando carga de tickets...")
     setLoading(true)
     try {
-      console.log("📡 Haciendo fetch a /api/admin/soporte/tickets...")
-      const response = await fetch("/api/admin/soporte/tickets")
+          console.log("📡 Haciendo fetch a /api/admin/soporte/tickets...")
+    const response = await fetch("/api/admin/soporte/tickets", {
+      method: 'GET',
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    })
       console.log("📡 Respuesta recibida:", response.status, response.statusText)
       
       if (response.ok) {
@@ -297,6 +323,137 @@ export default function SoporteAdminPage() {
           >
             Test API
           </Button>
+          
+          <Button 
+            variant="outline"
+            onClick={async () => {
+              console.log("🔍 Probando debug simple...")
+              try {
+                const response = await fetch("/api/admin/soporte/debug-simple")
+                const data = await response.json()
+                console.log("🔍 Respuesta del debug simple:", data)
+                console.log("🔍 Datos completos del debug:", JSON.stringify(data, null, 2))
+                
+                // Verificar errores específicos
+                if (data.soporte_tickets?.error) {
+                  console.error("❌ Error en soporte_tickets:", data.soporte_tickets.error)
+                }
+                if (data.entregas?.error) {
+                  console.error("❌ Error en entregas:", data.entregas.error)
+                }
+                if (data.incidencias_historial?.error) {
+                  console.error("❌ Error en incidencias_historial:", data.incidencias_historial.error)
+                }
+                
+                // Verificar si las tablas existen
+                console.log("📊 Estado de las tablas:")
+                console.log("  - soporte_tickets existe:", data.soporte_tickets?.exists)
+                console.log("  - entregas existe:", data.entregas?.exists)
+                console.log("  - incidencias_historial existe:", data.incidencias_historial?.exists)
+                
+                toast({
+                  title: "Debug completado",
+                  description: `Soporte: ${data.soporte_tickets?.count || 0}, Entregas: ${data.entregas?.count || 0}, Historial: ${data.incidencias_historial?.count || 0}`,
+                })
+              } catch (error) {
+                console.error("🔍 Error en debug simple:", error)
+                toast({
+                  title: "Error en debug",
+                  description: "No se pudo ejecutar el debug",
+                  variant: "destructive",
+                })
+              }
+            }}
+          >
+            Debug Simple
+          </Button>
+          
+          <Button 
+            variant="outline"
+            onClick={async () => {
+              console.log("🧪 Probando test simple...")
+              try {
+                const response = await fetch("/api/admin/soporte/test-simple")
+                const data = await response.json()
+                console.log("🧪 Respuesta del test simple:", data)
+                toast({
+                  title: "Test simple exitoso",
+                  description: `Mensaje: ${data.message}, Random: ${data.random}`,
+                })
+              } catch (error) {
+                console.error("🧪 Error en test simple:", error)
+                toast({
+                  title: "Error en test simple",
+                  description: "No se pudo conectar al endpoint de prueba simple",
+                  variant: "destructive",
+                })
+              }
+            }}
+          >
+            Test Simple
+          </Button>
+          
+          <Button 
+            variant="outline"
+            onClick={async () => {
+              console.log("🚀 Probando force execute...")
+              try {
+                const response = await fetch("/api/admin/soporte/force-execute", {
+                  method: 'GET',
+                  headers: {
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
+                  }
+                })
+                const data = await response.json()
+                console.log("🚀 Respuesta del force execute:", data)
+                toast({
+                  title: "Force execute completado",
+                  description: `Count: ${data.count}, Success: ${data.success}`,
+                })
+              } catch (error) {
+                console.error("🚀 Error en force execute:", error)
+                toast({
+                  title: "Error en force execute",
+                  description: "No se pudo ejecutar force execute",
+                  variant: "destructive",
+                })
+              }
+            }}
+          >
+            Force Execute
+          </Button>
+          
+          <Button 
+            variant="outline"
+            onClick={async () => {
+              console.log("📋 Probando tickets simple...")
+              try {
+                const response = await fetch("/api/admin/soporte/tickets-simple", {
+                  method: 'GET',
+                  headers: {
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
+                  }
+                })
+                const data = await response.json()
+                console.log("📋 Respuesta del tickets simple:", data)
+                toast({
+                  title: "Tickets simple completado",
+                  description: `Tickets: ${data.stats.total}, Debug: ${data.debug.message}`,
+                })
+              } catch (error) {
+                console.error("📋 Error en tickets simple:", error)
+                toast({
+                  title: "Error en tickets simple",
+                  description: "No se pudo ejecutar tickets simple",
+                  variant: "destructive",
+                })
+              }
+            }}
+          >
+            Tickets Simple
+          </Button>
         </div>
       </div>
 
@@ -461,58 +618,171 @@ export default function SoporteAdminPage() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Información del ticket */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex items-center gap-2">
-                    <Car className="h-4 w-4 text-gray-500" />
-                    <div>
-                      <p className="text-sm text-gray-600">Matrícula</p>
-                      <p className="font-medium">{selectedTicket.license_plate}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-gray-500" />
-                    <div>
-                      <p className="text-sm text-gray-600">DNI</p>
-                      <p className="font-medium">{selectedTicket.client_dni}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-gray-500" />
-                    <div>
-                      <p className="text-sm text-gray-600">Email</p>
-                      <p className="font-medium">{selectedTicket.client_email}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-gray-500" />
-                    <div>
-                      <p className="text-sm text-gray-600">Teléfono</p>
-                      <p className="font-medium">{selectedTicket.client_phone}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-gray-500" />
-                    <div>
-                      <p className="text-sm text-gray-600">Fecha de creación</p>
-                      <p className="font-medium">
-                        {new Date(selectedTicket.created_at).toLocaleDateString('es-ES')}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-gray-500" />
-                    <div>
-                      <p className="text-sm text-gray-600">Tiempo desde la venta</p>
-                      <p className="font-medium">{selectedTicket.time_since_sale}</p>
-                    </div>
-                  </div>
-                </div>
+                                 {/* Información del ticket */}
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   <div className="flex items-center gap-2">
+                     <Car className="h-4 w-4 text-gray-500" />
+                     <div>
+                       <p className="text-sm text-gray-600">Matrícula</p>
+                       <p className="font-medium">{selectedTicket.license_plate}</p>
+                     </div>
+                   </div>
+                   
+                   <div className="flex items-center gap-2">
+                     <User className="h-4 w-4 text-gray-500" />
+                     <div>
+                       <p className="text-sm text-gray-600">DNI</p>
+                       <p className="font-medium">{selectedTicket.client_dni || "No disponible"}</p>
+                     </div>
+                   </div>
+                   
+                   <div className="flex items-center gap-2">
+                     <Mail className="h-4 w-4 text-gray-500" />
+                     <div>
+                       <p className="text-sm text-gray-600">Email</p>
+                       <p className="font-medium">{selectedTicket.client_email || "No disponible"}</p>
+                     </div>
+                   </div>
+                   
+                   <div className="flex items-center gap-2">
+                     <Phone className="h-4 w-4 text-gray-500" />
+                     <div>
+                       <p className="text-sm text-gray-600">Teléfono</p>
+                       <p className="font-medium">{selectedTicket.client_phone || "No disponible"}</p>
+                     </div>
+                   </div>
+                   
+                   <div className="flex items-center gap-2">
+                     <Calendar className="h-4 w-4 text-gray-500" />
+                     <div>
+                       <p className="text-sm text-gray-600">Fecha de creación</p>
+                       <p className="font-medium">
+                         {new Date(selectedTicket.created_at).toLocaleDateString('es-ES')}
+                       </p>
+                     </div>
+                   </div>
+                   
+                   <div className="flex items-center gap-2">
+                     <Clock className="h-4 w-4 text-gray-500" />
+                     <div>
+                       <p className="text-sm text-gray-600">Tiempo desde la venta</p>
+                       <p className="font-medium">{selectedTicket.time_since_sale || "No disponible"}</p>
+                     </div>
+                   </div>
+                 </div>
+
+                 {/* Información del vehículo - Compacta */}
+                 {selectedTicket.vehicle_data && (
+                   <>
+                     <Separator />
+                     
+                     <div className="space-y-4">
+                       <h3 className="text-lg font-medium flex items-center gap-2">
+                         <Car className="h-5 w-5" />
+                         Información del Vehículo
+                       </h3>
+                       
+                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                         {/* Datos básicos */}
+                         <div className="space-y-3">
+                           <h4 className="font-medium text-sm text-gray-700">Datos Básicos</h4>
+                           <div className="space-y-2 text-sm">
+                             <div className="flex justify-between">
+                               <span className="text-gray-600">Marca/Modelo:</span>
+                               <span className="font-medium">
+                                 {selectedTicket.vehicle_data.marca} {selectedTicket.vehicle_data.modelo}
+                               </span>
+                             </div>
+                             <div className="flex justify-between">
+                               <span className="text-gray-600">Año:</span>
+                               <span className="font-medium">{selectedTicket.vehicle_data.año || "N/A"}</span>
+                             </div>
+                             <div className="flex justify-between">
+                               <span className="text-gray-600">Combustible:</span>
+                               <span className="font-medium">{selectedTicket.vehicle_data.combustible || "N/A"}</span>
+                             </div>
+                             <div className="flex justify-between">
+                               <span className="text-gray-600">Kilometraje:</span>
+                               <span className="font-medium">
+                                 {selectedTicket.vehicle_data.kilometraje ? 
+                                   `${Number(selectedTicket.vehicle_data.kilometraje).toLocaleString()} km` : 
+                                   "N/A"}
+                               </span>
+                             </div>
+                           </div>
+                         </div>
+
+                         {/* Especificaciones */}
+                         <div className="space-y-3">
+                           <h4 className="font-medium text-sm text-gray-700">Especificaciones</h4>
+                           <div className="space-y-2 text-sm">
+                             <div className="flex justify-between">
+                               <span className="text-gray-600">Bastidor:</span>
+                               <span className="font-medium font-mono text-xs">
+                                 {selectedTicket.vehicle_data.bastidor || "N/A"}
+                               </span>
+                             </div>
+                             <div className="flex justify-between">
+                               <span className="text-gray-600">Matriculación:</span>
+                               <span className="font-medium">
+                                 {selectedTicket.vehicle_data.fecha_matriculacion ? 
+                                   new Date(selectedTicket.vehicle_data.fecha_matriculacion).toLocaleDateString('es-ES') : 
+                                   "N/A"}
+                               </span>
+                             </div>
+                             <div className="flex justify-between">
+                               <span className="text-gray-600">Entrega:</span>
+                               <span className="font-medium">
+                                 {selectedTicket.vehicle_data.fecha_entrega ? 
+                                   new Date(selectedTicket.vehicle_data.fecha_entrega).toLocaleDateString('es-ES') : 
+                                   "N/A"}
+                               </span>
+                             </div>
+                           </div>
+                         </div>
+
+                         {/* Información de venta y garantía */}
+                         <div className="space-y-3">
+                           <h4 className="font-medium text-sm text-gray-700">Venta & Garantía</h4>
+                           <div className="space-y-2 text-sm">
+                             <div className="flex justify-between">
+                               <span className="text-gray-600">Precio venta:</span>
+                               <span className="font-medium">
+                                 {selectedTicket.vehicle_data.precio_venta ? 
+                                   `€${Number(selectedTicket.vehicle_data.precio_venta).toLocaleString()}` : 
+                                   "N/A"}
+                               </span>
+                             </div>
+                             <div className="flex justify-between">
+                               <span className="text-gray-600">Descuento:</span>
+                               <span className="font-medium">
+                                 {selectedTicket.vehicle_data.descuento ? 
+                                   `€${Number(selectedTicket.vehicle_data.descuento).toLocaleString()}` : 
+                                   "N/A"}
+                               </span>
+                             </div>
+                             <div className="flex justify-between">
+                               <span className="text-gray-600">Asesor:</span>
+                               <span className="font-medium">
+                                 {selectedTicket.vehicle_data.asesor || "N/A"}
+                               </span>
+                             </div>
+                             {selectedTicket.vehicle_data.garantia_info && (
+                               <div className="mt-2 p-2 bg-blue-50 rounded text-xs">
+                                 <div className="font-medium text-blue-800">
+                                   {selectedTicket.vehicle_data.garantia_info.tipo}
+                                 </div>
+                                 <div className="text-blue-600">
+                                   {selectedTicket.vehicle_data.garantia_info.descripcion}
+                                 </div>
+                               </div>
+                             )}
+                           </div>
+                         </div>
+                       </div>
+                     </div>
+                   </>
+                 )}
 
                 <Separator />
 

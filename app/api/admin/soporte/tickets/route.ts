@@ -6,18 +6,13 @@ export async function GET(request: NextRequest) {
     const supabase = await createServerClient()
 
     // Verificar autenticación
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
     if (userError || !user) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
     // 1. Obtener tickets del sistema actual (soporte_tickets)
-    console.log("🔍 Consultando tabla soporte_tickets...")
-    const { data: soporteTickets, error: soporteTicketsError } = await supabase
+    const { data: soporteTickets } = await supabase
       .from("soporte_tickets")
       .select(`
         id,
@@ -33,15 +28,8 @@ export async function GET(request: NextRequest) {
       `)
       .order("created_at", { ascending: false })
 
-    if (soporteTicketsError) {
-      console.error("❌ Error obteniendo tickets de soporte:", soporteTicketsError)
-    } else {
-      console.log("✅ Tickets de soporte encontrados:", soporteTickets?.length || 0)
-    }
-
     // 2. Obtener incidencias del portal cliente (entregas)
-    console.log("🔍 Consultando tabla entregas...")
-    const { data: entregasIncidencias, error: entregasError } = await supabase
+    const { data: entregasIncidencias } = await supabase
       .from("entregas")
       .select(`
         id,
@@ -53,15 +41,8 @@ export async function GET(request: NextRequest) {
       .not("incidencias", "eq", "[]")
       .not("incidencias", "eq", "")
 
-    if (entregasError) {
-      console.error("❌ Error obteniendo incidencias de entregas:", entregasError)
-    } else {
-      console.log("✅ Entregas con incidencias encontradas:", entregasIncidencias?.length || 0)
-    }
-
     // 3. Obtener incidencias del historial (incidencias_historial)
-    console.log("🔍 Consultando tabla incidencias_historial...")
-    const { data: historialIncidencias, error: historialError } = await supabase
+    const { data: historialIncidencias } = await supabase
       .from("incidencias_historial")
       .select(`
         id,
@@ -71,20 +52,10 @@ export async function GET(request: NextRequest) {
         comentario,
         resuelta,
         fecha,
-        created_at,
         usuario_id
       `)
-      .order("created_at", { ascending: false })
-      .limit(100) // Agregar límite para asegurar que se obtengan datos
-
-    if (historialError) {
-      console.error("❌ Error obteniendo incidencias del historial:", historialError)
-    } else {
-      console.log("✅ Incidencias del historial encontradas:", historialIncidencias?.length || 0)
-      if (historialIncidencias && historialIncidencias.length > 0) {
-        console.log("📋 Primeras 3 incidencias del historial:", historialIncidencias.slice(0, 3))
-      }
-    }
+      .order("fecha", { ascending: false })
+      .limit(100)
 
     // 4. Procesar tickets del sistema actual
     const ticketsFromSoporte = await Promise.all(
@@ -162,63 +133,113 @@ export async function GET(request: NextRequest) {
       return null
     }).filter(Boolean)
 
-    // 6. Procesar incidencias del historial
-    console.log("🔧 Procesando incidencias del historial...")
-    const ticketsFromHistorial = (historialIncidencias || []).map((incidencia) => {
-      console.log("📋 Procesando incidencia:", incidencia.id, incidencia.matricula, incidencia.tipo_incidencia)
-      return {
-        id: `historial_${incidencia.id}`,
-        source: "historial",
-        ticket_number: `HIST-${incidencia.matricula}`,
-        license_plate: incidencia.matricula,
-        client_dni: "",
-        client_email: "",
-        client_phone: "",
-        sale_date: "",
-        time_since_sale: "",
-        status: incidencia.resuelta ? "cerrado" : "abierto",
-        created_at: incidencia.created_at,
-        incidencias: [{
-          id: incidencia.id,
-          tipo_incidencia: incidencia.tipo_incidencia,
-          descripcion: incidencia.comentario || "Sin descripción",
-          estado: incidencia.resuelta ? "Cerrada" : "Abierta",
-          respuesta_admin: "",
-          respondido_at: null,
-          created_at: incidencia.fecha || incidencia.created_at,
-          imagenes: [],
-          archivos_admin: [],
-          source: "historial"
-        }]
+    // Función para obtener datos del vehículo por matrícula
+    const getVehicleData = async (matricula: string) => {
+      try {
+        const { data: salesRecord } = await supabase
+          .from("sales_vehicles")
+          .select("*")
+          .eq("license_plate", matricula)
+          .single()
+
+        const { data: stockRecord } = await supabase
+          .from("stock")
+          .select("*")
+          .eq("license_plate", matricula)
+          .single()
+
+        const { data: garantiasRecord } = await supabase
+          .from("garantias_brutas_MM")
+          .select("*")
+          .eq("matricula", matricula)
+          .single()
+
+        const { data: garantiasMmcRecord } = await supabase
+          .from("garantias_brutas_MMC")
+          .select("*")
+          .eq("matricula", matricula)
+          .single()
+
+        const { data: entregasRecord } = await supabase
+          .from("entregas")
+          .select("*")
+          .eq("matricula", matricula)
+          .single()
+
+        return {
+          sales: salesRecord,
+          stock: stockRecord,
+          garantias: garantiasRecord || garantiasMmcRecord,
+          entrega: entregasRecord
+        }
+      } catch (error) {
+        return null
       }
-    })
-    console.log("✅ Tickets procesados del historial:", ticketsFromHistorial.length)
+    }
+
+    // 6. Procesar incidencias del historial
+    const ticketsFromHistorial = await Promise.all(
+      (historialIncidencias || []).map(async (incidencia) => {
+        const vehicleData = await getVehicleData(incidencia.matricula)
+        
+        const ticket = {
+          id: `historial_${incidencia.id}`,
+          source: "historial",
+          ticket_number: `HIST-${incidencia.matricula}`,
+          license_plate: incidencia.matricula,
+          client_dni: vehicleData?.sales?.client_dni || vehicleData?.stock?.client_dni || "",
+          client_email: vehicleData?.sales?.client_email || vehicleData?.stock?.client_email || "",
+          client_phone: vehicleData?.sales?.client_phone || vehicleData?.stock?.client_phone || "",
+          sale_date: vehicleData?.sales?.sale_date || vehicleData?.stock?.sale_date || "",
+          time_since_sale: vehicleData?.sales?.time_since_sale || "",
+          status: incidencia.resuelta ? "cerrado" : "abierto",
+          created_at: incidencia.fecha,
+          vehicle_data: {
+            marca: vehicleData?.sales?.brand || vehicleData?.stock?.brand || vehicleData?.garantias?.marca || "",
+            modelo: vehicleData?.sales?.model || vehicleData?.stock?.model || vehicleData?.garantias?.modelo || "",
+            año: vehicleData?.sales?.year || vehicleData?.stock?.year || "",
+            kilometraje: vehicleData?.sales?.mileage || vehicleData?.stock?.mileage || vehicleData?.garantias?.kms || "",
+            combustible: vehicleData?.sales?.fuel_type || vehicleData?.stock?.fuel_type || vehicleData?.garantias?.combustible || "",
+            bastidor: vehicleData?.sales?.vin || vehicleData?.stock?.vin || vehicleData?.garantias?.chasis || "",
+            fecha_matriculacion: vehicleData?.sales?.registration_date || vehicleData?.garantias?.["f_matricula"] || "",
+            fecha_entrega: vehicleData?.entrega?.fecha_entrega || vehicleData?.entrega?.fecha || "",
+            precio_venta: vehicleData?.sales?.sale_price || vehicleData?.garantias?.precio_venta || "",
+            descuento: vehicleData?.sales?.discount || "",
+            asesor: vehicleData?.sales?.sales_advisor || "",
+            garantia_info: vehicleData?.garantias ? {
+              tipo: vehicleData.garantias["f_fin"] ? "Extendida" : "Fábrica",
+              fecha_fin: vehicleData.garantias["f_fin"] || "",
+              descripcion: vehicleData.garantias["f_fin"] ? 
+                `Garantía extendida hasta ${vehicleData.garantias["f_fin"]}` : 
+                "Garantía de fábrica (36 meses)"
+            } : null
+          },
+          incidencias: [{
+            id: incidencia.id,
+            tipo_incidencia: incidencia.tipo_incidencia,
+            descripcion: incidencia.comentario || "Sin descripción",
+            estado: incidencia.resuelta ? "Cerrada" : "Abierta",
+            respuesta_admin: "",
+            respondido_at: null,
+            created_at: incidencia.fecha || incidencia.created_at,
+            imagenes: [],
+            archivos_admin: [],
+            source: "historial"
+          }]
+        }
+        
+        return ticket
+      })
+    )
 
     // 7. Combinar todos los tickets
     const allTickets = [
       ...ticketsFromSoporte,
       ...ticketsFromEntregas,
       ...ticketsFromHistorial
-    ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    ].sort((a, b) => new Date(b.created_at || b.fecha).getTime() - new Date(a.created_at || a.fecha).getTime())
 
-    console.log("📊 Tickets encontrados:")
-    console.log(`  - Soporte: ${ticketsFromSoporte.length}`)
-    console.log(`  - Entregas: ${ticketsFromEntregas.length}`)
-    console.log(`  - Historial: ${ticketsFromHistorial.length}`)
-    console.log(`  - Total: ${allTickets.length}`)
-    
-    // Logs detallados para debugging
-    if (soporteTickets && soporteTickets.length > 0) {
-      console.log("📋 Ejemplo de ticket de soporte:", soporteTickets[0])
-    }
-    if (entregasIncidencias && entregasIncidencias.length > 0) {
-      console.log("📋 Ejemplo de entrega con incidencias:", entregasIncidencias[0])
-    }
-    if (historialIncidencias && historialIncidencias.length > 0) {
-      console.log("📋 Ejemplo de incidencia del historial:", historialIncidencias[0])
-    }
-
-    return NextResponse.json({ 
+    const response = NextResponse.json({ 
       tickets: allTickets,
       stats: {
         soporte: ticketsFromSoporte.length,
@@ -227,11 +248,17 @@ export async function GET(request: NextRequest) {
         total: allTickets.length
       }
     })
+    
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
+    response.headers.set('Pragma', 'no-cache')
+    response.headers.set('Expires', '0')
+    
+    return response
 
   } catch (error) {
     console.error("Error en GET /api/admin/soporte/tickets:", error)
     return NextResponse.json(
-      { error: "Error interno del servidor" },
+      { error: "Error interno del servidor", details: error.message },
       { status: 500 }
     )
   }

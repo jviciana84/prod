@@ -23,6 +23,7 @@ import {
   TrendingUp,
   DollarSign,
   Award,
+
   LogOut,
   Loader2,
   Receipt,
@@ -30,6 +31,7 @@ import {
   Calendar,
 } from "lucide-react"
 import React from "react"
+
 import { CarFrontIcon } from "@/components/ui/car-front-icon"
 import { CarModelSedanIcon } from "@/components/ui/car-model-sedan-icon"
 import { WarrantyIcon } from "@/components/ui/warranty-icon"
@@ -50,6 +52,7 @@ import {
 export default function Dashboard() {
   const [activeStep, setActiveStep] = useState(1)
   const [expandedCards, setExpandedCards] = useState<string[]>(["vehicle-info"])
+
   const [loginData, setLoginData] = useState<{licensePlate: string, dni: string} | null>(null)
   const [dashboardData, setDashboardData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -120,7 +123,8 @@ export default function Dashboard() {
   }, [loginData])
 
      // Datos del vehículo - usar datos reales si están disponibles
-   const vehicleData = {
+  const vehicleData = {
+
      matricula: loginData?.licensePlate || "",
      marca: dashboardData?.vehicleData?.marca,
      modelo: dashboardData?.vehicleData?.modelo,
@@ -139,9 +143,10 @@ export default function Dashboard() {
      precio: dashboardData?.vehicleData?.precio,
      precioOriginal: dashboardData?.vehicleData?.precioOriginal,
      descuento: dashboardData?.vehicleData?.descuento,
-   }
+  }
 
   const ownerData = {
+
     nombre: dashboardData?.ownerData?.nombre,
     dni: loginData?.dni || dashboardData?.ownerData?.dni,
     telefono: dashboardData?.ownerData?.telefono,
@@ -150,6 +155,7 @@ export default function Dashboard() {
   }
 
   const saleData = {
+
     asesorComercial: dashboardData?.saleData?.asesorComercial,
     asesorPosition: dashboardData?.saleData?.asesorPosition,
     concesionario: dashboardData?.saleData?.concesionario,
@@ -167,6 +173,7 @@ export default function Dashboard() {
   console.log('📋 Incidencias filtradas:', filteredIncidents)
 
   const toggleCard = (cardId: string) => {
+
     setExpandedCards((prev) => {
       const isCurrentlyExpanded = prev.includes(cardId)
       
@@ -234,6 +241,7 @@ export default function Dashboard() {
         return "bg-gray-500"
     }
   }
+
 
   const handleLogout = () => {
     localStorage.removeItem('loginData')
@@ -439,18 +447,22 @@ export default function Dashboard() {
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-                         <div className="flex items-center space-x-4">
-               <div className="bg-blue-600 p-2 rounded-lg">
+            <div className="flex items-center space-x-4">
+              <div className="bg-blue-600 p-2 rounded-lg">
+
                  <CarFrontIcon className="h-6 w-6 text-white" size={24} />
-               </div>
-               <div>
+              </div>
+              <div>
+
                  <h1 className="text-2xl font-bold text-gray-900">Dashboard Cliente</h1>
                                    <div className="flex items-center space-x-2">
-                    <p className="text-sm text-gray-600">Matrícula: {vehicleData.matricula}</p>
+                <p className="text-sm text-gray-600">Matrícula: {vehicleData.matricula}</p>
+
                   </div>
-               </div>
-             </div>
-                         <div className="flex items-center space-x-4">
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+
                <Badge 
                  variant="outline" 
                  className={isWarrantyExpired() 
@@ -465,17 +477,21 @@ export default function Dashboard() {
                    </>
                  ) : (
                    <>
-                     <CheckCircle className="h-3 w-3 mr-1" />
-                     Activo
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Activo
+
                    </>
                  )}
-               </Badge>
+              </Badge>
+
                                <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                                         <Button variant="outline" size="sm">
-                       <User className="h-4 w-4 mr-2" />
+              <Button variant="outline" size="sm">
+                <User className="h-4 w-4 mr-2" />
+
                        {ownerData.nombre || "Usuario"}
-                     </Button>
+              </Button>
+
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-64" align="end">
                                          <DropdownMenuLabel className="font-bold text-base">
@@ -497,7 +513,7 @@ export default function Dashboard() {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-             </div>
+            </div>
           </div>
         </div>
       </div>
@@ -505,10 +521,12 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Progress Steps */}
         <div className="mb-8">
-                     <div className="flex items-center justify-between mb-4">
-             <h2 className="text-lg font-semibold text-gray-900">Progreso del Dashboard</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Progreso del Dashboard</h2>
+
              <span className="text-sm text-gray-600">{expandedCards.length} de 4 secciones expandidas</span>
-           </div>
+          </div>
+
            <Progress value={(expandedCards.length / 4) * 100} className="h-2" />
         </div>
 
@@ -529,14 +547,16 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className="bg-blue-100 p-2 rounded-lg">
+
                       <CarModelSedanIcon className="h-5 w-5 text-blue-600" />
                     </div>
-                                         <div>
-                       <CardTitle>Información del Vehículo</CardTitle>
+                    <div>
+                      <CardTitle>Información del Vehículo</CardTitle>
+
                                                <CardDescription>
                           Datos técnicos y características
                         </CardDescription>
-                     </div>
+                    </div>
                   </div>
                   <Badge variant="secondary">
                     {expandedCards.includes("vehicle-info") ? "Expandido" : "Contraído"}
@@ -549,70 +569,71 @@ export default function Dashboard() {
                     <div className="space-y-4">
                       <h4 className="font-semibold text-gray-900 border-b pb-2">Datos Básicos</h4>
                       <div className="space-y-3">
-                                                 <div className="flex justify-between">
-                           <span className="text-gray-600">Marca:</span>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Marca:</span>
                            <span className="font-medium">{vehicleData.marca || "Cargando..."}</span>
-                         </div>
-                         <div className="flex justify-between">
-                           <span className="text-gray-600">Modelo:</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Modelo:</span>
                            <span className="font-medium">{vehicleData.modelo || "Cargando..."}</span>
-                         </div>
-                         <div className="flex justify-between">
-                           <span className="text-gray-600">Año:</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Año:</span>
                            <span className="font-medium">{vehicleData.año || "Cargando..."}</span>
-                         </div>
-                         <div className="flex justify-between">
-                           <span className="text-gray-600">Color:</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Color:</span>
                            <span className="font-medium">{vehicleData.color || "Cargando..."}</span>
-                         </div>
+                        </div>
                       </div>
                     </div>
 
-                                         <div className="space-y-4">
-                       <h4 className="font-semibold text-gray-900 border-b pb-2">Especificaciones</h4>
-                       <div className="space-y-3">
-                         <div className="flex justify-between">
-                           <span className="text-gray-600">Kilometraje:</span>
+                    <div className="space-y-4">
+                      <h4 className="font-semibold text-gray-900 border-b pb-2">Especificaciones</h4>
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Kilometraje:</span>
                            <span className="font-medium">{vehicleData.kilometraje ? `${vehicleData.kilometraje.toLocaleString()} km` : "Cargando..."}</span>
-                         </div>
-                                                   <div className="flex justify-between">
+                        </div>
+                        <div className="flex justify-between">
                             <span className="text-gray-600">Bastidor:</span>
                             <span className="font-medium">{vehicleData.vin || "Cargando..."}</span>
-                          </div>
-                                                   <div className="flex justify-between">
-                            <span className="text-gray-600">Matriculación:</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Matriculación:</span>
                             <span className="font-medium">{vehicleData.fechaMatriculacion || "Cargando..."}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Entrega:</span>
                             <span className="font-medium">{vehicleData.fechaEntrega || "Cargando..."}</span>
-                          </div>
-                       </div>
-                     </div>
+                        </div>
+                      </div>
+                    </div>
 
                     <div className="space-y-4">
                       <h4 className="font-semibold text-gray-900 border-b pb-2">Estado</h4>
                       <div className="space-y-3">
-                                                 <div className="bg-green-50 p-3 rounded-lg">
-                           <div className="flex items-center space-x-2">
-                             <CheckCircle className="h-4 w-4 text-green-600" />
+                        <div className="bg-green-50 p-3 rounded-lg">
+                          <div className="flex items-center space-x-2">
+                            <CheckCircle className="h-4 w-4 text-green-600" />
                              <span className="text-sm font-medium text-green-800">{vehicleData.tipoCertificacion || "Cargando..."}</span>
-                           </div>
-                           <p className="text-xs text-green-600 mt-1">
+                          </div>
+                          <p className="text-xs text-green-600 mt-1">
                              Certificado el: {vehicleData.fechaCertificacion || "Cargando..."}
-                           </p>
-                         </div>
+                          </p>
+                        </div>
                          
                                                    {/* Valoración */}
-                          <div className="bg-blue-50 p-3 rounded-lg">
-                            <div className="flex items-center space-x-2">
-                              <TrendingUp className="h-4 w-4 text-blue-600" />
-                              <span className="text-sm font-medium text-blue-800">Valoración</span>
-                            </div>
+                        <div className="bg-blue-50 p-3 rounded-lg">
+                          <div className="flex items-center space-x-2">
+                            <TrendingUp className="h-4 w-4 text-blue-600" />
+                            <span className="text-sm font-medium text-blue-800">Valoración</span>
+                          </div>
                                                          <p className="text-xs text-blue-600 mt-1 leading-tight">
                                {vehicleData.valoracion || "Cargando..."}
                              </p>
-                          </div>
+                        </div>
+
 
                       </div>
                     </div>
@@ -627,18 +648,20 @@ export default function Dashboard() {
             >
               <CardHeader className="cursor-pointer" onClick={() => toggleCard("sale-info")}>
                 <div className="flex items-center justify-between">
-                                     <div className="flex items-center space-x-3">
-                     <div className="bg-green-100 p-2 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className="bg-green-100 p-2 rounded-lg">
+
                        <File className="h-5 w-5 text-green-600" />
-                     </div>
+                    </div>
                     <div>
                       <CardTitle>Información de Venta</CardTitle>
                       <CardDescription>Detalles de la transacción y asesor comercial</CardDescription>
                     </div>
                   </div>
-                                     <Badge variant="secondary" className="bg-green-50 text-green-700">
+                  <Badge variant="secondary" className="bg-green-50 text-green-700">
+
                      {vehicleData.diasDesdeVenta || "Cargando..."} desde entrega
-                   </Badge>
+                  </Badge>
                 </div>
               </CardHeader>
               {expandedCards.includes("sale-info") && (
@@ -687,20 +710,20 @@ export default function Dashboard() {
                         </div>
                         <div className="space-y-2 text-sm">
                           {saleData.telefonoAsesor && (
-                            <div className="flex items-center space-x-2">
-                              <Phone className="h-3 w-3 text-blue-600" />
-                              <span>{saleData.telefonoAsesor}</span>
-                            </div>
+                          <div className="flex items-center space-x-2">
+                            <Phone className="h-3 w-3 text-blue-600" />
+                            <span>{saleData.telefonoAsesor}</span>
+                          </div>
                           )}
                           {saleData.emailAsesor && (
-                            <div className="flex items-center space-x-2">
-                              <Mail className="h-3 w-3 text-blue-600" />
-                              <span>{saleData.emailAsesor}</span>
-                            </div>
+                          <div className="flex items-center space-x-2">
+                            <Mail className="h-3 w-3 text-blue-600" />
+                            <span>{saleData.emailAsesor}</span>
+                          </div>
                           )}
-                        </div>
                       </div>
                     </div>
+                  </div>
 
                     <div className="space-y-4">
                       <h4 className="font-semibold text-gray-900 border-b pb-2">Garantía</h4>
@@ -712,14 +735,14 @@ export default function Dashboard() {
                           <div>
                             <p className="font-medium text-orange-900">{vehicleData.tipoCertificacion}</p>
                             <p className="text-xs text-orange-500">Hasta {vehicleData.garantiaInfo?.fechaFinal}</p>
-                          </div>
-                        </div>
+                      </div>
+                    </div>
                         <div className="space-y-2 text-sm">
                           <div className="flex items-center space-x-2">
                             <Calendar className="h-3 w-3 text-orange-600" />
                             <span className="text-xs leading-tight">{vehicleData.garantiaInfo?.descripcion}</span>
-                          </div>
-                        </div>
+                      </div>
+                    </div>
                       </div>
                     </div>
                   </div>
@@ -731,69 +754,74 @@ export default function Dashboard() {
 
             {/* Owner Information and Incidents Summary Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Owner Information Card */}
-              <Card
-                className={`transition-all duration-300 ${expandedCards.includes("owner-info") ? "ring-2 ring-purple-200" : ""}`}
-              >
-                <CardHeader className="cursor-pointer" onClick={() => toggleCard("owner-info")}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="bg-purple-100 p-2 rounded-lg">
-                        <User className="h-5 w-5 text-purple-600" />
-                      </div>
-                      <div>
-                        <CardTitle>Información del Propietario</CardTitle>
-                        <CardDescription>Datos de contacto y personales</CardDescription>
-                      </div>
+            {/* Owner Information Card */}
+            <Card
+              className={`transition-all duration-300 ${expandedCards.includes("owner-info") ? "ring-2 ring-purple-200" : ""}`}
+            >
+              <CardHeader className="cursor-pointer" onClick={() => toggleCard("owner-info")}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="bg-purple-100 p-2 rounded-lg">
+                      <User className="h-5 w-5 text-purple-600" />
                     </div>
-                    <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
-                      Verificado
-                    </Badge>
+                    <div>
+                      <CardTitle>Información del Propietario</CardTitle>
+                      <CardDescription>Datos de contacto y personales</CardDescription>
+                    </div>
                   </div>
-                </CardHeader>
-                {expandedCards.includes("owner-info") && (
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-4">
-                        <h4 className="font-semibold text-gray-900 border-b pb-2">Datos Personales</h4>
-                        <div className="space-y-3">
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Nombre Completo:</span>
-                            <span className="font-medium">{ownerData.nombre || "Cargando..."}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">DNI:</span>
-                            <span className="font-medium font-mono">{ownerData.dni || "Cargando..."}</span>
-                          </div>
-                        </div>
-                      </div>
+                  <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                    Verificado
+                  </Badge>
+                </div>
+              </CardHeader>
+              {expandedCards.includes("owner-info") && (
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <h4 className="font-semibold text-gray-900 border-b pb-2">Datos Personales</h4>
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Nombre Completo:</span>
 
-                      <div className="space-y-4">
-                        <h4 className="font-semibold text-gray-900 border-b pb-2">Contacto</h4>
-                        <div className="space-y-3">
-                          <div className="flex items-center space-x-2">
-                            <Phone className="h-4 w-4 text-gray-500" />
-                            <span className="text-sm">{ownerData.telefono || "Cargando..."}</span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Mail className="h-4 w-4 text-gray-500" />
-                            <span className="text-sm">{ownerData.email || "Cargando..."}</span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <MapPin className="h-4 w-4 text-gray-500" />
-                            <span className="text-sm">{ownerData.direccion || "Cargando..."}</span>
-                          </div>
+                            <span className="font-medium">{ownerData.nombre || "Cargando..."}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">DNI:</span>
+
+                            <span className="font-medium font-mono">{ownerData.dni || "Cargando..."}</span>
                         </div>
                       </div>
                     </div>
-                  </CardContent>
-                )}
-              </Card>
 
-              {/* Incidents Summary Card */}
-              <Card
-                className={`transition-all duration-300 ${expandedCards.includes("incidents-summary") ? "ring-2 ring-red-200" : ""}`}
-              >
+                    <div className="space-y-4">
+                      <h4 className="font-semibold text-gray-900 border-b pb-2">Contacto</h4>
+                      <div className="space-y-3">
+                        <div className="flex items-center space-x-2">
+                          <Phone className="h-4 w-4 text-gray-500" />
+
+                            <span className="text-sm">{ownerData.telefono || "Cargando..."}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Mail className="h-4 w-4 text-gray-500" />
+
+                            <span className="text-sm">{ownerData.email || "Cargando..."}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <MapPin className="h-4 w-4 text-gray-500" />
+
+                            <span className="text-sm">{ownerData.direccion || "Cargando..."}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+
+            {/* Incidents Summary Card */}
+            <Card
+              className={`transition-all duration-300 ${expandedCards.includes("incidents-summary") ? "ring-2 ring-red-200" : ""}`}
+            >
               <CardHeader className="cursor-pointer" onClick={() => toggleCard("incidents-summary")}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
@@ -840,16 +868,19 @@ export default function Dashboard() {
                 </CardContent>
               )}
             </Card>
+
             </div>
           </TabsContent>
 
           <TabsContent value="incidents">
             <Card>
               <CardHeader>
+
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>Gestión de Incidencias</CardTitle>
-                    <CardDescription>Administración y seguimiento de incidencias reportadas</CardDescription>
+                <CardTitle>Gestión de Incidencias</CardTitle>
+                <CardDescription>Administración y seguimiento de incidencias reportadas</CardDescription>
+
                   </div>
                   <Button 
                     onClick={() => setShowIncidentModal(true)}
@@ -861,6 +892,7 @@ export default function Dashboard() {
                 </div>
               </CardHeader>
               <CardContent>
+
                 <div className="space-y-4">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex space-x-2">
@@ -882,8 +914,9 @@ export default function Dashboard() {
                   </div>
                   
                   {filteredIncidents.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <AlertCircle className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <div className="text-center py-8 text-gray-500">
+                  <AlertCircle className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+
                       <p>{incidentFilter === "open" ? "No hay incidencias abiertas" : "No hay incidencias reportadas"}</p>
                       <p className="text-sm mt-2">Haz clic en "Abrir Nueva Incidencia" para reportar un problema</p>
                     </div>
@@ -945,6 +978,7 @@ export default function Dashboard() {
           </TabsContent>
         </Tabs>
       </div>
+
 
       {/* Modal para nueva incidencia */}
       <Dialog open={showIncidentModal} onOpenChange={setShowIncidentModal}>
@@ -1089,4 +1123,5 @@ export default function Dashboard() {
       </Dialog>
     </div>
   )
+
 } 

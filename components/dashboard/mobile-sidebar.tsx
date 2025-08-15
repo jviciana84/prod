@@ -31,6 +31,7 @@ import {
   Headphones,
   Database,
   Tag,
+  Scan,
 } from "lucide-react"
 import { AddCarIcon, CarFrontDoubleIcon } from "@/components/ui/icons"
 import { Button } from "@/components/ui/button"

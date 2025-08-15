@@ -22,6 +22,7 @@ import {
   Bell,
   Menu,
   Trash2,
+  Scan,
 } from "lucide-react"
 import { createClientComponentClient } from "@/lib/supabase/client"
 import { Badge } from "@/components/ui/badge"
@@ -490,6 +491,23 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
           </div>
         </div>
         <div className="flex items-center">
+          {/* Scanner OCR */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative hover:bg-accent"
+            onClick={() => {
+              if (roles.includes('admin')) {
+                router.push("/dashboard/ocr-scanner")
+              } else {
+                router.push("/dashboard/ocr-scanner/coming-soon")
+              }
+            }}
+            title="Scanner OCR - Escanear matrículas y texto"
+          >
+            <Scan className="h-5 w-5" />
+          </Button>
+
           {/* Campana de notificaciones */}
           <div className="relative">
             <Button

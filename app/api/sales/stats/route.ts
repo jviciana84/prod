@@ -170,12 +170,13 @@ export async function GET(request: NextRequest) {
       const descuentos = descuentosData.map(venta => {
         const desc = parseFloat(venta.discount) || 0
         return desc
-      }).filter(desc => desc > 0)
+      }).filter(desc => desc !== 0) // Incluir descuentos negativos y positivos, excluir solo 0
       
       if (descuentos.length > 0) {
-        promedioDescuentos = Math.round(descuentos.reduce((sum, desc) => sum + desc, 0) / descuentos.length)
+        // Usar Math.abs para mostrar el valor absoluto del descuento promedio
+        promedioDescuentos = Math.round(Math.abs(descuentos.reduce((sum, desc) => sum + desc, 0) / descuentos.length))
         console.log('Descuentos encontrados:', descuentos)
-        console.log('Promedio calculado:', promedioDescuentos)
+        console.log('Promedio calculado (absoluto):', promedioDescuentos)
       }
     }
 
