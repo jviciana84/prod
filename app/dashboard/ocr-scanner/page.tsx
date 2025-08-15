@@ -24,13 +24,31 @@ export default function OCRScannerPage() {
       console.log('Intentando activar cámara...');
       alert('Activando cámara...');
       
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          facingMode: 'user',
-          width: { ideal: 640, max: 1280 },
-          height: { ideal: 480, max: 720 }
-        } 
-      });
+      // Intentar primero cámara trasera, luego frontal
+      let stream;
+      try {
+        console.log('Intentando cámara trasera...');
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { 
+            facingMode: 'environment', // Cámara trasera
+            width: { ideal: 1280, max: 1920 },
+            height: { ideal: 720, max: 1080 }
+          } 
+        });
+        console.log('Cámara trasera activada');
+        alert('Cámara trasera activada');
+      } catch (rearError) {
+        console.log('Cámara trasera no disponible, intentando frontal...');
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { 
+            facingMode: 'user', // Cámara frontal como fallback
+            width: { ideal: 1280, max: 1920 },
+            height: { ideal: 720, max: 1080 }
+          } 
+        });
+        console.log('Cámara frontal activada');
+        alert('Cámara frontal activada (trasera no disponible)');
+      }
       
       console.log('Stream obtenido:', stream);
       alert('Stream de cámara obtenido correctamente');
@@ -60,6 +78,19 @@ export default function OCRScannerPage() {
             } catch (e) {
               console.log('Error reproduciendo después de metadata:', e);
               alert('Error reproduciendo después de metadata: ' + e);
+            }
+          };
+          
+          // También intentar cuando el video pueda reproducir
+          videoRef.current.oncanplay = async () => {
+            try {
+              if (videoRef.current && videoRef.current.paused) {
+                await videoRef.current.play();
+                console.log('Video reproducido después de canplay');
+                alert('Video reproducido después de canplay');
+              }
+            } catch (e) {
+              console.log('Error reproduciendo después de canplay:', e);
             }
           };
         }
@@ -339,6 +370,50 @@ export default function OCRScannerPage() {
     }
   };
 
+  // Cambiar entre cámaras
+  const switchCamera = async () => {
+    try {
+      console.log('Cambiando cámara...');
+      alert('Cambiando cámara...');
+      
+      // Detener cámara actual
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
+      
+      // Obtener cámaras disponibles
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(device => device.kind === 'videoinput');
+      console.log('Cámaras disponibles:', videoDevices);
+      
+      // Intentar cámara trasera si no está activa
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { 
+            facingMode: 'environment',
+            width: { ideal: 1280, max: 1920 },
+            height: { ideal: 720, max: 1080 }
+          } 
+        });
+        
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          streamRef.current = stream;
+          await videoRef.current.play();
+          console.log('Cambiado a cámara trasera');
+          alert('Cambiado a cámara trasera');
+        }
+      } catch (error) {
+        console.log('Error cambiando a cámara trasera:', error);
+        alert('Error cambiando cámara: ' + error);
+      }
+    } catch (error) {
+      console.error('Error en switchCamera:', error);
+      alert('Error cambiando cámara: ' + error);
+    }
+  };
+
   // Probar OCR con imagen de prueba
   const testOCR = async () => {
     console.log('Probando OCR con imagen de prueba...');
@@ -481,14 +556,15 @@ export default function OCRScannerPage() {
              <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
                Cámara activa
              </div>
-             {videoRef.current && videoRef.current.videoWidth === 0 && (
-               <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white">
-                 <div className="text-center">
-                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
-                   <p className="text-sm">Cargando cámara...</p>
-                 </div>
-               </div>
-             )}
+                           {videoRef.current && (videoRef.current.videoWidth === 0 || videoRef.current.readyState < 3) && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
+                    <p className="text-sm">Cargando cámara...</p>
+                    <p className="text-xs mt-1">Estado: {videoRef.current.readyState}/4</p>
+                  </div>
+                </div>
+              )}
            </div>
 
                                            {isCameraActive && (
@@ -512,6 +588,9 @@ export default function OCRScannerPage() {
                   </Button>
                   <Button onClick={testOCR} variant="outline" size="sm">
                     Probar OCR
+                  </Button>
+                  <Button onClick={switchCamera} variant="outline" size="sm">
+                    Cambiar Cámara
                   </Button>
                   <Button onClick={stopCamera} variant="outline">
                     Detener Cámara
@@ -546,6 +625,9 @@ export default function OCRScannerPage() {
                </Button>
                <Button onClick={testOCR} variant="outline" size="sm">
                  Probar OCR
+               </Button>
+               <Button onClick={switchCamera} variant="outline" size="sm">
+                 Cambiar Cámara
                </Button>
                <Button onClick={stopCamera} variant="outline">
                  Detener Cámara
