@@ -93,6 +93,19 @@ export default function OCRScannerPage() {
               console.log('Error reproduciendo después de canplay:', e);
             }
           };
+          
+          // Intentar reproducir después de un delay
+          setTimeout(async () => {
+            try {
+              if (videoRef.current && videoRef.current.paused) {
+                await videoRef.current.play();
+                console.log('Video reproducido después de delay');
+                alert('Video reproducido después de delay');
+              }
+            } catch (e) {
+              console.log('Error reproduciendo después de delay:', e);
+            }
+          }, 2000);
         }
       } else {
         alert('Error: videoRef.current es null - El elemento de video no se ha renderizado');
@@ -124,6 +137,8 @@ export default function OCRScannerPage() {
       
       console.log('Capturando imagen...');
       console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
+      console.log('Video readyState:', video.readyState);
+      console.log('Video paused:', video.paused);
       
       if (context && video.videoWidth > 0 && video.videoHeight > 0) {
         // Configurar canvas con mejor calidad
@@ -150,7 +165,9 @@ export default function OCRScannerPage() {
         img.src = imageData;
       } else {
         console.error('Error: Video no tiene dimensiones válidas');
-        alert('❌ Error al capturar imagen. Asegúrate de que la cámara esté funcionando.');
+        console.log('Video width:', video.videoWidth);
+        console.log('Video height:', video.videoHeight);
+        alert('❌ Error al capturar imagen. Asegúrate de que la cámara esté funcionando. Dimensiones: ' + video.videoWidth + 'x' + video.videoHeight);
       }
     } else {
       console.error('Error: videoRef o canvasRef no disponibles');
@@ -414,6 +431,42 @@ export default function OCRScannerPage() {
     }
   };
 
+  // Forzar captura de imagen
+  const forceCapture = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const context = canvas.getContext('2d');
+      
+      console.log('Forzando captura de imagen...');
+      console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
+      
+      if (context) {
+        // Usar dimensiones mínimas si no están disponibles
+        const width = video.videoWidth > 0 ? video.videoWidth : 640;
+        const height = video.videoHeight > 0 ? video.videoHeight : 480;
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        try {
+          context.drawImage(video, 0, 0);
+          const imageData = canvas.toDataURL('image/jpeg', 1.0);
+          setCapturedImage(imageData);
+          stopCamera();
+          
+          console.log('Imagen capturada forzadamente:', width, 'x', height);
+          alert(`✅ Imagen capturada forzadamente: ${width}x${height}`);
+        } catch (error) {
+          console.error('Error forzando captura:', error);
+          alert('Error forzando captura: ' + error);
+        }
+      }
+    } else {
+      alert('❌ No hay video disponible para capturar');
+    }
+  };
+
   // Probar OCR con imagen de prueba
   const testOCR = async () => {
     console.log('Probando OCR con imagen de prueba...');
@@ -556,12 +609,12 @@ export default function OCRScannerPage() {
              <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
                Cámara activa
              </div>
-                           {videoRef.current && (videoRef.current.videoWidth === 0 || videoRef.current.readyState < 3) && (
+                           {videoRef.current && videoRef.current.videoWidth === 0 && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white">
                   <div className="text-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
                     <p className="text-sm">Cargando cámara...</p>
-                    <p className="text-xs mt-1">Estado: {videoRef.current.readyState}/4</p>
+                    <p className="text-xs mt-1">Ancho: {videoRef.current.videoWidth} | Alto: {videoRef.current.videoHeight}</p>
                   </div>
                 </div>
               )}
@@ -588,6 +641,9 @@ export default function OCRScannerPage() {
                   </Button>
                   <Button onClick={testOCR} variant="outline" size="sm">
                     Probar OCR
+                  </Button>
+                  <Button onClick={forceCapture} variant="outline" size="sm">
+                    Forzar Captura
                   </Button>
                   <Button onClick={switchCamera} variant="outline" size="sm">
                     Cambiar Cámara
@@ -623,15 +679,18 @@ export default function OCRScannerPage() {
                <Button onClick={checkVideoRef} variant="outline" size="sm">
                  Verificar VideoRef
                </Button>
-               <Button onClick={testOCR} variant="outline" size="sm">
-                 Probar OCR
-               </Button>
-               <Button onClick={switchCamera} variant="outline" size="sm">
-                 Cambiar Cámara
-               </Button>
-               <Button onClick={stopCamera} variant="outline">
-                 Detener Cámara
-               </Button>
+                               <Button onClick={testOCR} variant="outline" size="sm">
+                  Probar OCR
+                </Button>
+                <Button onClick={forceCapture} variant="outline" size="sm">
+                  Forzar Captura
+                </Button>
+                <Button onClick={switchCamera} variant="outline" size="sm">
+                  Cambiar Cámara
+                </Button>
+                <Button onClick={stopCamera} variant="outline">
+                  Detener Cámara
+                </Button>
              </div>
            </div>
 
