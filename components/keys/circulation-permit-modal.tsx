@@ -368,12 +368,12 @@ export function CirculationPermitModal({ open, onOpenChange }: CirculationPermit
         toast.warning(`⚠️ ${notFoundVehicles.length} vehículos no encontrados, continuando con el registro...`);
         
         // Filtrar solo los materiales de vehículos encontrados
-        selectedMaterialsData = selectedMaterialsData.filter(({ request }) => {
+        const filteredMaterialsData = selectedMaterialsData.filter(({ request }) => {
           const licensePlate = request.license_plate.toUpperCase();
           return !notFoundVehicles.includes(licensePlate);
         });
         
-        if (selectedMaterialsData.length === 0) {
+        if (filteredMaterialsData.length === 0) {
           toast.error("No quedan materiales válidos para procesar");
           setConfirming(false);
           return;
@@ -392,9 +392,9 @@ export function CirculationPermitModal({ open, onOpenChange }: CirculationPermit
       const movimientosPorUsuario = new Map();
       
       // Mostrar progreso
-      toast.info(`Procesando ${selectedMaterialsData.length} materiales...`);
+      toast.info(`Procesando ${filteredMaterialsData.length} materiales...`);
       
-      for (const { request, material } of selectedMaterialsData) {
+      for (const { request, material } of filteredMaterialsData) {
         
         // Obtener el ID del vehículo del mapa
         const vehicleInfo = vehicleMap.get(request.license_plate.toUpperCase());
