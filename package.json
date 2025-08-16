@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "dev:https": "next dev --experimental-https",
+    "dev:https-simple": "node scripts/dev-https.js",
     "setup-https": "node scripts/setup-https.js",
     "build": "next build",
     "start": "next start",

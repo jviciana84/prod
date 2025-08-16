@@ -10,15 +10,18 @@ export default function OCRMobilePage() {
   const [scannedText, setScannedText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [cameraError, setCameraError] = useState('');
+  const [location, setLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [locationError, setLocationError] = useState('');
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const router = useRouter();
 
-  // Activar cámara automáticamente al cargar
+  // Activar cámara y obtener ubicación automáticamente al cargar
   useEffect(() => {
     startCamera();
+    getLocation();
     return () => {
       stopCamera();
     };
@@ -86,6 +89,30 @@ export default function OCRMobilePage() {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
+    }
+  };
+
+  // Obtener ubicación
+  const getLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setLocation({ lat: latitude, lng: longitude });
+          console.log('Ubicación obtenida:', latitude, longitude);
+        },
+        (error) => {
+          console.error('Error obteniendo ubicación:', error);
+          setLocationError('No se pudo obtener la ubicación');
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 60000
+        }
+      );
+    } else {
+      setLocationError('Geolocalización no soportada');
     }
   };
 
@@ -169,12 +196,26 @@ export default function OCRMobilePage() {
       
       if (cleanedText.length > 0) {
         setScannedText(cleanedText);
+        
+        // Crear objeto con texto y ubicación
+        const scanData = {
+          text: cleanedText,
+          location: location,
+          timestamp: new Date().toISOString(),
+          imageData: imageData
+        };
+        
+        console.log('Datos de escaneo:', scanData);
+        
         // Copiar al portapapeles automáticamente
         try {
           await navigator.clipboard.writeText(cleanedText);
         } catch (e) {
           console.log('No se pudo copiar al portapapeles');
         }
+        
+        // Aquí puedes enviar los datos a tu base de datos
+        // await saveScanData(scanData);
       }
       
       await worker.terminate();
@@ -240,9 +281,22 @@ export default function OCRMobilePage() {
            </div>
          )}
 
-                 {/* Texto detectado en tiempo real */}
+                 {/* Indicador de ubicación */}
+         {location && (
+           <div className="absolute top-20 right-4 bg-purple-600/90 text-white p-3 rounded-xl border-2 border-purple-400 shadow-lg">
+             <div className="flex items-center gap-2 mb-1">
+               <div className="w-2 h-2 bg-purple-300 rounded-full animate-pulse"></div>
+               <p className="text-xs font-bold uppercase tracking-wide">Ubicación</p>
+             </div>
+             <p className="text-xs font-medium">
+               {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
+             </p>
+           </div>
+         )}
+
+         {/* Texto detectado en tiempo real */}
          {scannedText && (
-           <div className="absolute top-20 right-4 bg-green-600/90 text-white p-4 rounded-xl max-w-xs border-2 border-green-400 shadow-lg">
+           <div className="absolute top-32 right-4 bg-green-600/90 text-white p-4 rounded-xl max-w-xs border-2 border-green-400 shadow-lg">
              <div className="flex items-center gap-2 mb-2">
                <div className="w-2 h-2 bg-green-300 rounded-full animate-pulse"></div>
                <p className="text-xs font-bold uppercase tracking-wide">Texto Detectado</p>

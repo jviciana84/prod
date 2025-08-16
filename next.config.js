@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Headers para permitir cámara
+  // Headers para permitir cámara y geolocalización
   async headers() {
     return [
       {
@@ -8,7 +8,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Permissions-Policy',
-            value: 'camera=*, microphone=*',
+            value: 'camera=*, microphone=*, geolocation=*',
           },
         ],
       },

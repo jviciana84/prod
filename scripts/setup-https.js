@@ -30,7 +30,8 @@ try {
 // Generar certificados
 try {
   console.log('🔐 Generando certificados...');
-  execSync(`mkcert -key-file ${path.join(certsDir, 'localhost-key.pem')} -cert-file ${path.join(certsDir, 'localhost.pem')} localhost 127.0.0.1 ::1`, { 
+  // mkcert genera automáticamente los archivos en el directorio actual
+  execSync('mkcert localhost 127.0.0.1 ::1', { 
     stdio: 'inherit',
     cwd: certsDir 
   });
