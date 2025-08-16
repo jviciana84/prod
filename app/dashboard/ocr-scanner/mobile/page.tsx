@@ -230,50 +230,53 @@ export default function OCRMobilePage() {
           </div>
         )}
 
-        {/* Indicador de OCR en tiempo real */}
-        {isProcessing && (
-          <div className="absolute top-20 left-4 bg-black/70 text-white px-3 py-2 rounded-lg">
-            <div className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span className="text-sm">Analizando...</span>
-            </div>
-          </div>
-        )}
+                 {/* Indicador de OCR en tiempo real */}
+         {isProcessing && (
+           <div className="absolute top-20 left-4 bg-blue-600/90 text-white px-4 py-3 rounded-xl border-2 border-blue-400 shadow-lg">
+             <div className="flex items-center gap-3">
+               <Loader2 className="h-5 w-5 animate-spin" />
+               <span className="text-sm font-semibold">Analizando...</span>
+             </div>
+           </div>
+         )}
 
-        {/* Texto detectado en tiempo real */}
-        {scannedText && (
-          <div className="absolute top-20 right-4 bg-black/70 text-white p-3 rounded-lg max-w-xs">
-            <p className="text-xs font-medium mb-2">Texto detectado:</p>
-            <p className="text-sm whitespace-pre-wrap">{scannedText}</p>
-          </div>
-        )}
+                 {/* Texto detectado en tiempo real */}
+         {scannedText && (
+           <div className="absolute top-20 right-4 bg-green-600/90 text-white p-4 rounded-xl max-w-xs border-2 border-green-400 shadow-lg">
+             <div className="flex items-center gap-2 mb-2">
+               <div className="w-2 h-2 bg-green-300 rounded-full animate-pulse"></div>
+               <p className="text-xs font-bold uppercase tracking-wide">Texto Detectado</p>
+             </div>
+             <p className="text-sm whitespace-pre-wrap font-medium leading-relaxed">{scannedText}</p>
+           </div>
+         )}
       </div>
 
-      {/* Botones de control */}
-      <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-6">
-        <div className="flex gap-4 justify-center">
-          <Button 
-            onClick={captureImage}
-            disabled={isLoading}
-            className="flex-1 max-w-xs h-12 text-lg font-semibold"
-          >
-            {isLoading ? (
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-            ) : (
-              <Camera className="mr-2 h-5 w-5" />
-            )}
-            {isLoading ? 'Procesando...' : 'Capturar'}
-          </Button>
-          
-          <Button 
-            onClick={exitToDashboard}
-            variant="outline"
-            className="h-12 px-6 text-lg"
-          >
-            Salir
-          </Button>
-        </div>
-      </div>
+             {/* Botones de control */}
+       <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-6 pb-8">
+         <div className="flex gap-4 justify-center">
+           <Button 
+             onClick={captureImage}
+             disabled={isLoading}
+             className="flex-1 max-w-xs h-12 text-lg font-semibold"
+           >
+             {isLoading ? (
+               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+             ) : (
+               <Camera className="mr-2 h-5 w-5" />
+             )}
+             {isLoading ? 'Procesando...' : 'Capturar'}
+           </Button>
+           
+           <Button 
+             onClick={exitToDashboard}
+             variant="outline"
+             className="h-12 px-6 text-lg"
+           >
+             Salir
+           </Button>
+         </div>
+       </div>
 
       {/* Canvas oculto */}
       <canvas ref={canvasRef} style={{ display: 'none' }} />
