@@ -51,7 +51,7 @@ export default function AboutPage() {
                 className="mb-8"
               >
                 <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl shadow-lg mb-6">
-                  <Building2 className="h-10 w-10 text-white" />
+                                     <Building className="h-10 w-10 text-white" />
                 </div>
                 <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl">
                   {PROJECT_INFO.name}
