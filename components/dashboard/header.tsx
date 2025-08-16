@@ -498,7 +498,13 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
             className="relative hover:bg-accent"
             onClick={() => {
               if (roles.includes('admin')) {
-                router.push("/dashboard/ocr-scanner")
+                // Detectar si es móvil y redirigir a la página móvil
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                if (isMobile) {
+                  router.push("/dashboard/ocr-scanner/mobile")
+                } else {
+                  router.push("/dashboard/ocr-scanner")
+                }
               } else {
                 router.push("/dashboard/ocr-scanner/coming-soon")
               }
