@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabaseClient"
 
-export async function PUT(request: Request, { params }: { params: Promise<{ userId: string }> }) {
+export async function PUT(request: Request, { params }: { params: { userId: string } }) {
   try {
-    const { userId } = await params
+    const userId = params.userId
     const body = await request.json()
     const { fullName, alias, phone, position, avatarUrl, roleId } = body
 

@@ -143,10 +143,4 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Re-exportar las funciones para compatibilidad
-export {
-  generateRegistroEmailHTML,
-  generateTramitacionEmailHTML,
-  generateConfirmacionEmailHTML,
-  generateRechazoEmailHTML,
-}
+

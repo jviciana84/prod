@@ -1,12 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ slug: string[] }> }) {
+export async function GET(request: NextRequest, { params }: { params: { slug: string[] } }) {
   try {
-    const { slug } = await params
-    const slugPath = slug.join("/")
+    const slug = params.slug.join("/")
 
     // Construir la URL del blob directamente
-    const blobUrl = `https://blob.vercel-storage.com/${slugPath}`
+    const blobUrl = `https://blob.vercel-storage.com/${slug}`
 
     // Redirigir a la URL del blob
     return NextResponse.redirect(blobUrl)
