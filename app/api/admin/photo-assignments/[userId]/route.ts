@@ -2,11 +2,11 @@ import { createServerClient } from "@/lib/supabase/server"
 import { cookies } from "next/headers"
 import { type NextRequest, NextResponse } from "next/server"
 
-export async function PUT(request: NextRequest, { params }: { params: { userId: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ userId: string }> }) {
   try {
     const cookieStore = await cookies()
     const supabase = createServerClient(cookieStore)
-    const userId = params.userId
+    const { userId } = await params
 
     // Verificar si el usuario está autenticado
     const {
