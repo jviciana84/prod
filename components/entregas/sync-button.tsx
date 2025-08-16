@@ -1,39 +1,41 @@
 "use client"
 
-import React from "react"
-
-import { useActionState } from "react"
+import React, { useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Trophy, Loader2 } from "lucide-react"
 import { toast } from "sonner"
-import { syncEntregas } from "@/server-actions/sync-entregas" // Import the server action
+import { syncEntregas } from "@/server-actions/sync-entregas"
 
 interface SyncButtonProps {
   onSyncComplete?: () => void
 }
 
 export function SyncEntregasButton({ onSyncComplete }: SyncButtonProps) {
-  // useActionState para manejar el estado de la acción del servidor
-  const [state, formAction, isPending] = useActionState(syncEntregas, null)
+  const [isPending, startTransition] = useTransition()
 
-  // Efecto para mostrar notificaciones basadas en el resultado de la acción
-  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
-  React.useEffect(() => {
-    if (state?.success) {
-      toast.success(state.message)
-      if (onSyncComplete) {
-        onSyncComplete() // Llama al callback para refrescar la tabla principal
+  const handleSync = () => {
+    startTransition(async () => {
+      try {
+        const result = await syncEntregas(new FormData())
+        if (result?.success) {
+          toast.success(result.message)
+          if (onSyncComplete) {
+            onSyncComplete()
+          }
+        } else if (result?.message) {
+          toast.error(result.message)
+        }
+      } catch (error) {
+        toast.error("Error al sincronizar entregas")
       }
-    } else if (state?.message) {
-      toast.error(state.message)
-    }
-  }, [state])
+    })
+  }
 
   return (
     <Button
       variant="outline"
       size="icon"
-      onClick={() => formAction(new FormData())} // Llama a la acción del servidor
+      onClick={handleSync}
       disabled={isPending}
       className="h-9 w-9"
       title="Sincronizar Entregas"

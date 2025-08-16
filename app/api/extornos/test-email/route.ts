@@ -3,15 +3,13 @@ import { createClient } from "@/lib/supabase/server"
 import nodemailer from "nodemailer"
 import crypto from "crypto" // For generating dummy token
 
-// Re-import the email generation functions from send-notification route
-// This is a workaround to avoid circular dependencies or duplicating logic.
-// In a larger app, these would be in a shared utility file.
+// Import the email generation functions from the correct location
 import {
   generateRegistroEmailHTML,
   generateRechazoEmailHTML,
   generateTramitacionEmailHTML,
-  generateConfirmacionEmailHTML, // New import
-} from "@/app/api/extornos/send-notification/route" // Adjust path if necessary
+  generateConfirmacionEmailHTML,
+} from "@/lib/email-templates/extorno-email-templates"
 
 export async function POST(request: NextRequest) {
   try {

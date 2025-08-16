@@ -1,0 +1,10 @@
+[33m650cc00[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m HEAD@{0}: reset: moving to 650cc00
+[33mf1329b0[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{1}: reset: moving to f1329b0
+[33m650cc00[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m HEAD@{2}: commit: Fix: Corregir error de reasignación de variable const en circulation-permit-modal
+[33mbf6990b[m HEAD@{3}: commit: Revertir a Next.js 14.2.5 - Volver a versión estable que funcionaba
+[33m2ea7bee[m HEAD@{4}: commit: Fix: Actualizar tipos de params para Next.js 15 en todas las APIs de rutas dinámicas
+[33mb0e7e15[m HEAD@{5}: commit: Fix: Actualizar tipos de params para Next.js 15 en photo-assignments API
+[33ma78e066[m HEAD@{6}: commit: Forzar despliegue - Fix imágenes y OCR Scanner
+[33mb610aed[m HEAD@{7}: commit: Fix: Añadir hostname img.icons8.com a next.config.js para resolver error de imágenes de iconos
+[33m362d2c2[m HEAD@{8}: commit: Fix: Configurar hostname de Vercel Blob en next.config.js para resolver error de imágenes
+[33mbeba726[m HEAD@{9}: commit: Añadir geolocalización al OCR Scanner: permisos de ubicación, captura automática de coordenadas y registro de datos completos

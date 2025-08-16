@@ -19,7 +19,7 @@ import {
   BarChart3,
   Settings,
   FileText,
-  Building2,
+  Building,
   CheckCircle,
   Clock,
   TrendingUp
