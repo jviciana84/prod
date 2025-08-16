@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabaseClient"
 
-export async function PUT(request: Request, { params }: { params: { userId: string } }) {
+export async function PUT(request: Request, { params }: { params: Promise<{ userId: string }> }) {
   try {
+    const { userId } = await params
     const body = await request.json()
     const { fullName, alias, phone, position, avatarUrl, roleId } = body
 
@@ -33,7 +34,7 @@ export async function PUT(request: Request, { params }: { params: { userId: stri
     console.log("📝 Datos que se van a actualizar en profiles:", updateData)
 
     // Actualizar la tabla profiles
-    const { error: profileError } = await supabaseAdmin.from("profiles").update(updateData).eq("id", params.userId)
+    const { error: profileError } = await supabaseAdmin.from("profiles").update(updateData).eq("id", userId)
 
     if (profileError) {
       console.error("Error updating profile:", profileError)
@@ -42,10 +43,10 @@ export async function PUT(request: Request, { params }: { params: { userId: stri
 
     // Si se proporcionó un roleId, actualizar también la tabla user_roles
     if (roleId) {
-      console.log("🔄 Actualizando tabla user_roles para usuario:", params.userId, "con roleId:", roleId)
+      console.log("🔄 Actualizando tabla user_roles para usuario:", userId, "con roleId:", roleId)
       
       // Primero eliminar todos los roles existentes del usuario
-      const { error: deleteError } = await supabaseAdmin.from("user_roles").delete().eq("user_id", params.userId)
+      const { error: deleteError } = await supabaseAdmin.from("user_roles").delete().eq("user_id", userId)
 
       if (deleteError) {
         console.error("Error al eliminar roles existentes:", deleteError)
@@ -54,7 +55,7 @@ export async function PUT(request: Request, { params }: { params: { userId: stri
 
       // Luego asignar el nuevo rol
       const { error: insertError } = await supabaseAdmin.from("user_roles").insert({
-        user_id: params.userId,
+        user_id: userId,
         role_id: roleId,
       })
 

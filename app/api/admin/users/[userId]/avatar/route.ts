@@ -11,9 +11,9 @@ const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, proces
   },
 })
 
-export async function PUT(request: NextRequest, { params }: { params: { userId: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ userId: string }> }) {
   try {
-    const userId = params.userId
+    const { userId } = await params
     const cookieStore = await cookies()
     const supabase = await createServerClient(cookieStore)
 
