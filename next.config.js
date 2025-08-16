@@ -1,11 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Configuración de imágenes para Vercel Blob
+  // Configuración de imágenes para Vercel Blob y otros servicios
   images: {
     remotePatterns: [
       {
         protocol: 'https',
         hostname: 'hebbkx1anhila5yf.public.blob.vercel-storage.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'img.icons8.com',
         port: '',
         pathname: '/**',
       },
