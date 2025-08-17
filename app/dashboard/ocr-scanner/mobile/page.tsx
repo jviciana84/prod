@@ -34,6 +34,8 @@ export default function OCRScannerMobilePage() {
   // Activar cámara automáticamente al cargar
   useEffect(() => {
     startCamera();
+    // Solicitar geolocalización automáticamente
+    requestLocationPermission();
     return () => {
       stopCamera();
     };
@@ -41,14 +43,14 @@ export default function OCRScannerMobilePage() {
 
   // OCR en tiempo real
   useEffect(() => {
-    if (videoRef.current && !isProcessing) {
+    if (videoRef.current && !isProcessing && isCameraActive) {
       const interval = setInterval(() => {
-        performRealTimeOCR();
-      }, 3000); // Cada 3 segundos para móvil
+        detectTextInRealTime();
+      }, 2000); // Cada 2 segundos para móvil
 
       return () => clearInterval(interval);
     }
-  }, [isProcessing]);
+  }, [isProcessing, isCameraActive]);
 
   // Efecto de detección
   useEffect(() => {
@@ -98,19 +100,44 @@ export default function OCRScannerMobilePage() {
       await worker.terminate();
       
       if (result.data.words && result.data.words.length > 0) {
-        // Mostrar efecto de detección
+        // Calcular bounding box del texto detectado
+        let minX = Infinity, minY = Infinity, maxX = 0, maxY = 0;
+        
+        result.data.words.forEach((word: any) => {
+          const bbox = word.bbox;
+          minX = Math.min(minX, bbox.x0);
+          minY = Math.min(minY, bbox.y0);
+          maxX = Math.max(maxX, bbox.x1);
+          maxY = Math.max(maxY, bbox.y1);
+        });
+        
+        // Convertir coordenadas del canvas a coordenadas del video
+        const videoElement = videoRef.current;
+        const videoRect = videoElement.getBoundingClientRect();
+        const scaleX = videoRect.width / video.videoWidth;
+        const scaleY = videoRect.height / video.videoHeight;
+        
+        const detectionBoxData = {
+          x: minX * scaleX,
+          y: minY * scaleY,
+          width: (maxX - minX) * scaleX,
+          height: (maxY - minY) * scaleY
+        };
+        
+        setDetectionBox(detectionBoxData);
         setShowDetectionEffect(true);
         setDetectionCount(prev => prev + 1);
         
         // Vibrar en móviles
         if ('vibrate' in navigator) {
-          navigator.vibrate(50);
+          navigator.vibrate([100, 50, 100]);
         }
         
-        // Ocultar efecto después de 2 segundos
+        // Ocultar efecto después de 3 segundos
         setTimeout(() => {
           setShowDetectionEffect(false);
-        }, 2000);
+          setDetectionBox(null);
+        }, 3000);
       }
       
     } catch (error) {
@@ -401,8 +428,12 @@ export default function OCRScannerMobilePage() {
         // Poner los datos procesados de vuelta
         context.putImageData(imageData, 0, 0);
         
-        const finalImageData = canvas.toDataURL('image/jpeg', 0.95);
-        await processOCR(finalImageData);
+                 const finalImageData = canvas.toDataURL('image/jpeg', 0.95);
+         
+         // Mostrar mensaje de captura exitosa
+         alert('✅ Imagen capturada correctamente\nProcesando con OCR...');
+         
+         await processOCR(finalImageData);
       }
     }
   };
@@ -983,15 +1014,18 @@ export default function OCRScannerMobilePage() {
             }
           }
           
-          setScannedText(cleanedText);
-          console.log('Texto extraído con OCR.Space:', cleanedText);
-          
-          // Copiar al portapapeles automáticamente
-          try {
-            await navigator.clipboard.writeText(cleanedText);
-          } catch (e) {
-            console.log('No se pudo copiar al portapapeles');
-          }
+                     setScannedText(cleanedText);
+           console.log('Texto extraído con OCR.Space:', cleanedText);
+           
+           // Mostrar mensaje de éxito
+           alert(`✅ OCR completado exitosamente!\n\nTexto detectado: "${cleanedText}"\n\nUbicación: ${location ? `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}` : 'No registrada'}`);
+           
+           // Copiar al portapapeles automáticamente
+           try {
+             await navigator.clipboard.writeText(cleanedText);
+           } catch (e) {
+             console.log('No se pudo copiar al portapapeles');
+           }
         }
       }
       
@@ -1125,14 +1159,9 @@ export default function OCRScannerMobilePage() {
             </div>
           )}
           
-          {/* Guía de captura */}
-          <div className="absolute inset-8 border-2 border-dashed border-white/50 rounded-lg pointer-events-none">
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white/70 text-xs text-center">
-              <div className="bg-black/50 px-2 py-1 rounded">
-                Coloca el texto aquí
-              </div>
-            </div>
-          </div>
+                     {/* Guía de captura - SOLO BORDE */}
+           <div className="absolute inset-8 border-2 border-dashed border-white/50 rounded-lg pointer-events-none">
+           </div>
         </div>
         
         {/* Overlay de carga */}
