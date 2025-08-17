@@ -46,33 +46,15 @@ export default function OCRScannerMobilePage() {
     if (videoRef.current && !isProcessing && isCameraActive) {
       const interval = setInterval(() => {
         detectTextInRealTime();
-      }, 2000); // Cada 2 segundos para móvil
+      }, 1500); // Cada 1.5 segundos para detección más rápida
 
       return () => clearInterval(interval);
     }
   }, [isProcessing, isCameraActive]);
 
-  // Efecto de detección
-  useEffect(() => {
-    if (scannedText && scannedText.length > 0) {
-      setShowDetectionEffect(true);
-      setDetectionCount(prev => prev + 1);
-      
-      // Vibración en móviles (si está disponible)
-      if ('vibrate' in navigator) {
-        navigator.vibrate([100, 50, 100]); // Patrón de vibración
-      }
-      
-      // Ocultar el efecto después de 2 segundos
-      const timer = setTimeout(() => {
-        setShowDetectionEffect(false);
-      }, 2000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [scannedText]);
+  
 
-  // Detectar texto en tiempo real
+    // Detectar texto en tiempo real
   const detectTextInRealTime = async () => {
     if (!videoRef.current || !isCameraActive || isProcessing) return;
     
@@ -93,13 +75,15 @@ export default function OCRScannerMobilePage() {
       await worker.setParameters({
         tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
         tessedit_pageseg_mode: '6',
-        tessedit_confidence_threshold: '20',
+        tessedit_confidence_threshold: '15', // Más agresivo
       });
       
       const result = await worker.recognize(canvas);
       await worker.terminate();
       
       if (result.data.words && result.data.words.length > 0) {
+        console.log('TEXTO DETECTADO EN TIEMPO REAL:', result.data.words.map((w: any) => w.text).join(' '));
+        
         // Calcular bounding box del texto detectado
         let minX = Infinity, minY = Infinity, maxX = 0, maxY = 0;
         
@@ -128,7 +112,7 @@ export default function OCRScannerMobilePage() {
         setShowDetectionEffect(true);
         setDetectionCount(prev => prev + 1);
         
-        // Vibrar en móviles
+        // VIBRAR cuando detecta texto
         if ('vibrate' in navigator) {
           navigator.vibrate([100, 50, 100]);
         }
@@ -430,9 +414,6 @@ export default function OCRScannerMobilePage() {
         
                  const finalImageData = canvas.toDataURL('image/jpeg', 0.95);
          
-         // Mostrar mensaje de captura exitosa
-         alert('✅ Imagen capturada correctamente\nProcesando con OCR...');
-         
          await processOCR(finalImageData);
       }
     }
@@ -591,8 +572,8 @@ export default function OCRScannerMobilePage() {
     try {
       console.log('Iniciando procesamiento OCR móvil...');
       
-      // En móvil, SIEMPRE usar OCR.Space para mejor precisión
-      console.log('Usando OCR.Space API (móvil optimizado)...');
+      // SIEMPRE usar OCR.Space para mejor precisión
+      console.log('Usando OCR.Space API...');
       await processOCRWithSpaceAPI(imageData);
       return;
       
@@ -1017,8 +998,8 @@ export default function OCRScannerMobilePage() {
                      setScannedText(cleanedText);
            console.log('Texto extraído con OCR.Space:', cleanedText);
            
-           // Mostrar mensaje de éxito
-           alert(`✅ OCR completado exitosamente!\n\nTexto detectado: "${cleanedText}"\n\nUbicación: ${location ? `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}` : 'No registrada'}`);
+           // MOSTRAR VENTANA CON RESULTADO Y UBICACIÓN
+           alert(`✅ OCR COMPLETADO\n\n📝 TEXTO DETECTADO: "${cleanedText}"\n\n📍 UBICACIÓN: ${location ? `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}` : 'No registrada'}`);
            
            // Copiar al portapapeles automáticamente
            try {
@@ -1159,9 +1140,7 @@ export default function OCRScannerMobilePage() {
             </div>
           )}
           
-                     {/* Guía de captura - SOLO BORDE */}
-           <div className="absolute inset-8 border-2 border-dashed border-white/50 rounded-lg pointer-events-none">
-           </div>
+          
         </div>
         
         {/* Overlay de carga */}
