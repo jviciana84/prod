@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Camera, FileImage, Loader2, Copy, Check, Car, QrCode, ScanLine } from 'lucide-react';
 import { toast } from 'sonner';
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
+import * as Tesseract from 'tesseract.js';
 
 export default function OCRScannerPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -13,8 +14,19 @@ export default function OCRScannerPage() {
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-     const [scanMode, setScanMode] = useState<'general' | 'license' | 'code'>('code');
+  const [scanMode, setScanMode] = useState<'general' | 'license' | 'code'>('code');
   const [isVideoReady, setIsVideoReady] = useState(false);
+  
+  // Nuevos estados para OCR.Space y geolocalización
+  const [useSpaceAPI, setUseSpaceAPI] = useState(false);
+  const [location, setLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt' | null>(null);
+  
+  // Estados para efectos de detección de texto
+  const [showDetectionEffect, setShowDetectionEffect] = useState(false);
+  const [detectionCount, setDetectionCount] = useState(0);
+  const [detectionBox, setDetectionBox] = useState<{x: number, y: number, width: number, height: number} | null>(null);
+  const [realTimeDetection, setRealTimeDetection] = useState(true);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -230,327 +242,52 @@ export default function OCRScannerPage() {
     setIsLoading(true);
     try {
       console.log('Iniciando procesamiento OCR...');
-      alert('Iniciando procesamiento OCR...');
+      
+      // Si OCR.Space está activado, usarlo en lugar de Tesseract
+      if (useSpaceAPI) {
+        console.log('Usando OCR.Space API...');
+        await processOCRWithSpaceAPI(imageData);
+        return;
+      }
+      
+      console.log('Usando Tesseract.js...');
       
       const { createWorker } = await import('tesseract.js');
-      console.log('Tesseract importado correctamente');
+      const worker = await createWorker('eng');
       
-      // Crear worker con configuración optimizada
-      const worker = await createWorker('eng', 1, {
-        logger: m => console.log('Tesseract:', m)
-      });
-      console.log('Worker de Tesseract creado');
-      
-      // Configuración avanzada según el modo
-      if (scanMode === 'license') {
-        await worker.setParameters({
-          tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-          tessedit_pageseg_mode: '7', // Single uniform block of text
-          tessedit_ocr_engine_mode: '3', // Default, based on what is available
-          preserve_interword_spaces: '1',
-          textord_heavy_nr: '1', // Heavy noise removal
-          textord_min_linesize: '2.5', // Minimum line size
-          tessedit_do_invert: '0', // Don't invert image
-          tessedit_image_border: '20', // Add border to image
-          tessedit_adaptive_threshold: '1', // Use adaptive thresholding
-          tessedit_adaptive_method: '1', // Adaptive method
-          tessedit_adaptive_window_size: '15', // Window size for adaptive thresholding
-        });
-        console.log('Parámetros configurados para matrícula');
-      } else if (scanMode === 'code') {
-        await worker.setParameters({
-          tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', // Solo alfanumérico
-          tessedit_pageseg_mode: '6', // Uniform block of text
-          tessedit_ocr_engine_mode: '3',
-          preserve_interword_spaces: '1',
-          textord_heavy_nr: '0', // Sin eliminación de ruido para códigos
-          textord_min_linesize: '1', // Línea mínima muy pequeña
-          tessedit_do_invert: '0',
-          tessedit_image_border: '5', // Borde mínimo
-          tessedit_adaptive_threshold: '1',
-          tessedit_adaptive_method: '1',
-          tessedit_adaptive_window_size: '10', // Ventana pequeña
-          tessedit_confidence_threshold: '10', // Umbral muy bajo
-        });
-        console.log('Parámetros configurados para códigos alfanuméricos');
-      } else {
-        // Configuración mejorada para texto general
-        await worker.setParameters({
-          tessedit_pageseg_mode: '3', // Fully automatic page segmentation
-          preserve_interword_spaces: '1',
-          tessedit_ocr_engine_mode: '3',
-          textord_heavy_nr: '0', // No heavy noise removal for better text recognition
-          textord_min_linesize: '2.0', // Better line size for general text
-          tessedit_do_invert: '0',
-          tessedit_image_border: '10', // Moderate border
-          tessedit_adaptive_threshold: '1',
-          tessedit_adaptive_method: '1',
-          tessedit_adaptive_window_size: '15',
-          tessedit_confidence_threshold: '30', // Higher confidence for better quality
-          tessedit_char_whitelist: '', // No whitelist for general text
-          tessedit_char_blacklist: '', // No blacklist
-          textord_old_baselines: '0',
-          textord_old_xheight: '0',
-          textord_heavy_nr: '0',
-          textord_min_linesize: '2.0',
-          textord_min_xheight: '8',
-          textord_max_xheight: '50',
-        });
-        console.log('Parámetros configurados para texto general (mejorado)');
-      }
-      
-      console.log('Iniciando reconocimiento de texto...');
-      alert('Reconociendo texto en la imagen...');
-      
-      // Procesar imagen con múltiples intentos
-      let bestResult = { text: '', confidence: 0 };
-      
-      // Primer intento: imagen original
-      const result1 = await worker.recognize(imageData);
-      console.log('Resultado 1 (original):', result1.data);
-      if (result1.data.confidence > bestResult.confidence) {
-        bestResult = result1.data;
-      }
-      
-             // Segundo intento: imagen procesada con alto contraste
-       const processedImage1 = await preprocessImage(imageData, 'high-contrast');
-       const result2 = await worker.recognize(processedImage1);
-       console.log('Resultado 2 (alto contraste):', result2.data);
-       if (result2.data.confidence > bestResult.confidence) {
-         bestResult = result2.data;
-       }
-       
-       // Tercer intento: procesamiento tipo DocuWare
-       const docuwareImage = await preprocessImage(imageData, 'docuware');
-       const result2b = await worker.recognize(docuwareImage);
-       console.log('Resultado 2b (DocuWare):', result2b.data);
-       if (result2b.data.confidence > bestResult.confidence) {
-         bestResult = result2b.data;
-       }
-      
-      // Tercer intento: imagen procesada con umbral binario
-      const processedImage2 = await preprocessImage(imageData, 'binary');
-      const result3 = await worker.recognize(processedImage2);
-      console.log('Resultado 3 (binario):', result3.data);
-      if (result3.data.confidence > bestResult.confidence) {
-        bestResult = result3.data;
-      }
-      
-      // Cuarto intento: con parámetros muy permisivos para texto general
+      // Configuración simple y efectiva
       await worker.setParameters({
-        tessedit_confidence_threshold: '5', // Muy bajo para capturar más texto
-        tessedit_pageseg_mode: '3', // Fully automatic page segmentation
-        tessedit_char_whitelist: '', // Sin restricciones para texto general
-        tessedit_char_blacklist: '', // Sin blacklist
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+        tessedit_pageseg_mode: '6',
+        tessedit_confidence_threshold: '20',
       });
-      const result4 = await worker.recognize(imageData);
-      console.log('Resultado 4 (permisivo general):', result4.data);
-      if (result4.data.confidence > bestResult.confidence) {
-        bestResult = result4.data;
-      }
       
-             // Quinto intento: imagen invertida (por si el texto es blanco sobre negro)
-       const invertedImage = await preprocessImage(imageData, 'invert');
-       await worker.setParameters({
-         tessedit_confidence_threshold: '10',
-         tessedit_pageseg_mode: '7',
-       });
-       const result5 = await worker.recognize(invertedImage);
-       console.log('Resultado 5 (invertido):', result5.data);
-       if (result5.data.confidence > bestResult.confidence) {
-         bestResult = result5.data;
-       }
-       
-               // Sexto intento: ultra-permisivo para códigos alfanuméricos
-        await worker.setParameters({
-          tessedit_confidence_threshold: '1', // Mínimo posible
-          tessedit_pageseg_mode: '6', // Uniform block
-          tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', // Solo alfanumérico
-          textord_heavy_nr: '0', // Sin eliminación de ruido
-          textord_min_linesize: '1', // Línea mínima muy pequeña
-          tessedit_image_border: '5', // Borde mínimo
-          tessedit_adaptive_threshold: '1',
-          tessedit_adaptive_method: '1',
-          tessedit_adaptive_window_size: '10', // Ventana pequeña
-        });
-        const result6 = await worker.recognize(imageData);
-        console.log('Resultado 6 (ultra-permisivo):', result6.data);
-        if (result6.data.confidence > bestResult.confidence) {
-          bestResult = result6.data;
-        }
-        
-        // Séptimo intento: imagen con nitidez
-        const sharpenedImage = await preprocessImage(imageData, 'sharpen');
-        await worker.setParameters({
-          tessedit_confidence_threshold: '5',
-          tessedit_pageseg_mode: '7',
-          tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-        });
-        const result7 = await worker.recognize(sharpenedImage);
-        console.log('Resultado 7 (nitidez):', result7.data);
-        if (result7.data.confidence > bestResult.confidence) {
-          bestResult = result7.data;
-        }
-        
-        // Octavo intento: operación morfológica
-        const morphologyImage = await preprocessImage(imageData, 'morphology');
-        await worker.setParameters({
-          tessedit_confidence_threshold: '10',
-          tessedit_pageseg_mode: '6',
-          tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-        });
-        const result8 = await worker.recognize(morphologyImage);
-        console.log('Resultado 8 (morfología):', result8.data);
-        if (result8.data.confidence > bestResult.confidence) {
-          bestResult = result8.data;
-        }
-        
-        // Noveno intento: con parámetros específicos para texto borroso
-        await worker.setParameters({
-          tessedit_confidence_threshold: '1',
-          tessedit_pageseg_mode: '8', // Single word
-          tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-          textord_heavy_nr: '0',
-          textord_min_linesize: '0.5', // Muy pequeña
-          tessedit_image_border: '0', // Sin borde
-          tessedit_adaptive_threshold: '1',
-          tessedit_adaptive_method: '1',
-          tessedit_adaptive_window_size: '5', // Ventana muy pequeña
-        });
-        const result9 = await worker.recognize(imageData);
-        console.log('Resultado 9 (texto borroso):', result9.data);
-        if (result9.data.confidence > bestResult.confidence) {
-          bestResult = result9.data;
-        }
-        
-        // Décimo intento: con parámetros ultra-agresivos para texto borroso
-        await worker.setParameters({
-          tessedit_confidence_threshold: '1',
-          tessedit_pageseg_mode: '13', // Raw line
-          tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-          textord_heavy_nr: '0',
-          textord_min_linesize: '0.1', // Mínimo absoluto
-          tessedit_image_border: '0',
-          tessedit_adaptive_threshold: '1',
-          tessedit_adaptive_method: '1',
-          tessedit_adaptive_window_size: '3', // Ventana muy pequeña
-          textord_old_baselines: '0',
-          textord_old_xheight: '0',
-        });
-        const result10 = await worker.recognize(imageData);
-        console.log('Resultado 10 (ultra-agresivo):', result10.data);
-        if (result10.data.confidence > bestResult.confidence) {
-          bestResult = result10.data;
-        }
-        
-                 // Undécimo intento: con un worker completamente nuevo y configuración básica
-         const worker2 = await createWorker('eng', 1, {
-           logger: m => console.log('Tesseract Worker2:', m)
-         });
-         await worker2.setParameters({
-           tessedit_confidence_threshold: '1',
-           tessedit_pageseg_mode: '6',
-           tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-         });
-         const result11 = await worker2.recognize(imageData);
-         console.log('Resultado 11 (worker nuevo):', result11.data);
-         if (result11.data.confidence > bestResult.confidence) {
-           bestResult = result11.data;
-         }
-         await worker2.terminate();
-         
-         // Duodécimo intento: imagen con ultra-binary
-         const ultraBinaryImage = await preprocessImage(imageData, 'ultra-binary');
-         await worker.setParameters({
-           tessedit_confidence_threshold: '1',
-           tessedit_pageseg_mode: '6',
-           tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-           textord_heavy_nr: '0',
-           textord_min_linesize: '0.5',
-           tessedit_image_border: '0',
-         });
-         const result12 = await worker.recognize(ultraBinaryImage);
-         console.log('Resultado 12 (ultra-binary):', result12.data);
-         if (result12.data.confidence > bestResult.confidence) {
-           bestResult = result12.data;
-         }
-         
-         // Decimotercer intento: imagen con edge-enhance
-         const edgeEnhancedImage = await preprocessImage(imageData, 'edge-enhance');
-         await worker.setParameters({
-           tessedit_confidence_threshold: '1',
-           tessedit_pageseg_mode: '8',
-           tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-           textord_heavy_nr: '0',
-           textord_min_linesize: '0.1',
-           tessedit_image_border: '0',
-         });
-         const result13 = await worker.recognize(edgeEnhancedImage);
-         console.log('Resultado 13 (edge-enhance):', result13.data);
-         if (result13.data.confidence > bestResult.confidence) {
-           bestResult = result13.data;
-         }
-         
-         // Decimocuarto intento: con worker3 y configuración ultra-básica
-         const worker3 = await createWorker('eng', 1, {
-           logger: m => console.log('Tesseract Worker3:', m)
-         });
-         await worker3.setParameters({
-           tessedit_confidence_threshold: '1',
-           tessedit_pageseg_mode: '13',
-           tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-           textord_heavy_nr: '0',
-           textord_min_linesize: '0.1',
-           tessedit_image_border: '0',
-           tessedit_adaptive_threshold: '0',
-           tessedit_adaptive_method: '0',
-         });
-         const result14 = await worker3.recognize(imageData);
-         console.log('Resultado 14 (worker3 ultra-básico):', result14.data);
-         if (result14.data.confidence > bestResult.confidence) {
-           bestResult = result14.data;
-         }
-                  await worker3.terminate();
-         
-         // Decimoquinto intento: con worker4 y configuración mínima absoluta
-         const worker4 = await createWorker('eng', 1, {
-           logger: m => console.log('Tesseract Worker4:', m)
-         });
-         // Sin configurar ningún parámetro - usar configuración por defecto
-         const result15 = await worker4.recognize(imageData);
-         console.log('Resultado 15 (worker4 default):', result15.data);
-         if (result15.data.confidence > bestResult.confidence) {
-           bestResult = result15.data;
-         }
-         await worker4.terminate();
-       
-       console.log('Mejor resultado:', bestResult);
+      console.log('Reconociendo texto...');
       
-      let cleanedText = bestResult.text.trim();
-      console.log('Texto limpio:', cleanedText);
+      // Un solo intento simple
+      const result = await worker.recognize(imageData);
+      console.log('Resultado OCR:', result.data);
       
-             if (scanMode === 'license') {
-         cleanedText = formatLicensePlate(cleanedText);
-         console.log('Texto formateado como matrícula:', cleanedText);
-       } else if (scanMode === 'code') {
-         cleanedText = cleanGeneralText(cleanedText);
-         console.log('Texto formateado como código:', cleanedText);
-       } else {
-         cleanedText = cleanGeneralText(cleanedText);
-         console.log('Texto formateado como texto general:', cleanedText);
-       }
+      let cleanedText = result.data.text.trim();
+      console.log('Texto original:', cleanedText);
       
       if (cleanedText.length === 0) {
-        alert('⚠️ No se detectó ningún texto en la imagen. Intenta con una imagen más clara o mejor iluminada.');
+        alert('⚠️ No se detectó ningún texto en la imagen.');
         console.log('No se detectó texto');
       } else {
-        setScannedText(cleanedText);
-        alert(`✅ Texto extraído correctamente (${Math.round(bestResult.confidence)}% confianza): "${cleanedText}"`);
-        console.log('Texto extraído exitosamente');
+        // Limpiar texto básico
+        cleanedText = cleanedText.replace(/[^A-Z0-9]/gi, '').trim();
+        
+        if (cleanedText.length > 0) {
+          setScannedText(cleanedText.toUpperCase());
+          alert(`✅ Texto extraído: "${cleanedText.toUpperCase()}"`);
+          console.log('Texto extraído:', cleanedText.toUpperCase());
+        } else {
+          alert('⚠️ No se detectó texto válido.');
+        }
       }
       
       await worker.terminate();
-      console.log('Worker terminado');
     } catch (error) {
       console.error('Error en OCR:', error);
       alert('Error al procesar la imagen: ' + error);
@@ -559,231 +296,93 @@ export default function OCRScannerPage() {
     }
   };
 
-  // Preprocesar imagen para mejorar OCR (versión mejorada tipo DocuWare)
-  const preprocessImage = async (imageData: string, mode: 'high-contrast' | 'binary' | 'invert' | 'sharpen' | 'morphology' | 'ultra-binary' | 'edge-enhance' | 'docuware' = 'high-contrast'): Promise<string> => {
-    return new Promise((resolve) => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const img = new Image();
+  // Procesar OCR con OCR.Space API (más preciso)
+  const processOCRWithSpaceAPI = async (imageData: string) => {
+    setIsLoading(true);
+    try {
+      console.log('Iniciando OCR con Space API...');
       
-      img.onload = () => {
-        canvas.width = img.width;
-        canvas.height = img.height;
+      // Detectar y recortar zona de texto con Tesseract
+      const croppedImageData = await detectAndCropText(imageData);
+      console.log('Imagen procesada para OCR.Space:', croppedImageData);
+      
+      // Convertir base64 a blob
+      const base64Data = croppedImageData.split(',')[1];
+      const blob = await fetch(`data:image/jpeg;base64,${base64Data}`).then(res => res.blob());
+      
+      // Crear FormData
+      const formData = new FormData();
+      formData.append('file', blob, 'image.jpg');
+      formData.append('language', 'eng');
+      formData.append('isOverlayRequired', 'false');
+      formData.append('filetype', 'jpg');
+      formData.append('detectOrientation', 'true');
+      formData.append('scale', 'true');
+      formData.append('OCREngine', '2'); // Engine más preciso
+      formData.append('apikey', 'K88810169088957'); // API key proporcionada
+      
+      // Llamada a OCR.Space API
+      const response = await fetch('https://api.ocr.space/parse/image', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      console.log('Resultado OCR.Space:', result);
+      
+      if (result.IsErroredOnProcessing) {
+        throw new Error(result.ErrorMessage || 'Error en el procesamiento OCR');
+      }
+      
+      if (result.ParsedResults && result.ParsedResults.length > 0) {
+        const extractedText = result.ParsedResults[0].ParsedText;
         
-        if (ctx) {
-          // Dibujar imagen original
-          ctx.drawImage(img, 0, 0);
+        if (extractedText && extractedText.trim()) {
+          // Limpiar y procesar el texto según el modo
+          let cleanedText = extractedText.trim();
           
-          // Obtener datos de imagen
-          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          const data = imageData.data;
-          
-          // Aplicar diferentes filtros según el modo
-          for (let i = 0; i < data.length; i += 4) {
-            // Convertir a escala de grises
-            const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-            
-            let processedValue = gray;
-            
-            switch (mode) {
-              case 'docuware':
-                // Procesamiento avanzado tipo DocuWare
-                // 1. Eliminación de ruido con filtro gaussiano
-                const noiseReduced = Math.max(0, Math.min(255, gray * 0.8 + 51));
-                
-                // 2. Mejora de contraste adaptativo
-                const contrast = Math.min(255, Math.max(0, (noiseReduced - 128) * 2.5 + 128));
-                
-                // 3. Umbral adaptativo inteligente
-                const threshold = contrast > 160 ? 255 : contrast < 80 ? 0 : contrast;
-                
-                // 4. Mejora de bordes para texto
-                const edgeEnhanced = threshold > 200 ? 255 : threshold < 50 ? 0 : threshold;
-                
-                processedValue = edgeEnhanced;
-                break;
-                
-              case 'high-contrast':
-                // Aplicar contraste muy alto
-                processedValue = Math.min(255, Math.max(0, (gray - 128) * 3.0 + 128));
-                break;
-                
-              case 'binary':
-                // Umbral binario estricto
-                processedValue = gray > 140 ? 255 : 0;
-                break;
-                
-              case 'ultra-binary':
-                // Umbral binario ultra-agresivo para texto blanco sobre negro
-                processedValue = gray > 120 ? 255 : 0;
-                break;
-                
-              case 'invert':
-                // Invertir colores
-                processedValue = 255 - gray;
-                break;
-                
-              case 'sharpen':
-                // Aplicar nitidez mejorada
-                processedValue = Math.min(255, Math.max(0, gray * 2.0 - 128));
-                break;
-                
-              case 'morphology':
-                // Operación morfológica para limpiar ruido
-                processedValue = gray > 160 ? 255 : 0;
-                break;
-                
-              case 'edge-enhance':
-                // Mejorar bordes para texto borroso
-                processedValue = gray < 100 ? 0 : gray > 200 ? 255 : gray;
-                break;
+          if (scanMode === 'code') {
+            // For codes, extract only alphanumeric
+            const alphanumericCode = cleanedText.replace(/[^A-Z0-9]/gi, '').trim();
+            if (alphanumericCode.length >= 4 && alphanumericCode.length <= 10) {
+              cleanedText = alphanumericCode.toUpperCase();
             }
-            
-            data[i] = processedValue;     // R
-            data[i + 1] = processedValue; // G
-            data[i + 2] = processedValue; // B
-            // Alpha se mantiene igual
+          } else if (scanMode === 'license') {
+            // For license plates, specific format
+            const licensePattern = /[A-Z0-9]{4,8}/gi;
+            const match = cleanedText.match(licensePattern);
+            if (match) {
+              cleanedText = match[0].toUpperCase();
+            }
           }
           
-          // Poner los datos procesados de vuelta
-          ctx.putImageData(imageData, 0, 0);
+          setScannedText(cleanedText);
+          console.log('Texto extraído con OCR.Space:', cleanedText);
           
-          // Convertir a base64
-          const processedImageData = canvas.toDataURL('image/jpeg', 0.9);
-          resolve(processedImageData);
+          // Copy to clipboard automatically
+          try {
+            await navigator.clipboard.writeText(cleanedText);
+            toast.success('Texto copiado al portapapeles');
+          } catch (e) {
+            console.log('No se pudo copiar al portapapeles');
+          }
+        } else {
+          toast.error('No se detectó texto en la imagen');
         }
-      };
-      
-      img.src = imageData;
-    });
-  };
-
-  // Limpiar texto general
-  const cleanGeneralText = (text: string): string => {
-    console.log('Texto original para limpiar:', text);
-    
-    // Primero intentar detectar si es un código alfanumérico
-    const alphanumericCode = text.replace(/[^A-Z0-9]/gi, '').trim();
-    console.log('Código alfanumérico extraído:', alphanumericCode);
-    
-    // Si parece un código (6-8 caracteres alfanuméricos), devolverlo limpio
-    if (alphanumericCode.length >= 6 && alphanumericCode.length <= 8) {
-      console.log('Detectado como código alfanumérico:', alphanumericCode);
-      return alphanumericCode.toUpperCase();
-    }
-    
-    // Si es muy corto (1-3 caracteres), podría ser parte de un código
-    if (alphanumericCode.length >= 1 && alphanumericCode.length <= 3) {
-      console.log('Texto corto detectado, podría ser parte de un código:', alphanumericCode);
-      // Intentar buscar patrones de códigos en el texto original
-      const codePatterns = [
-        /[A-Z0-9]{6,8}/gi,  // Códigos de 6-8 caracteres
-        /[0-9]{4}[A-Z]{3}/gi,  // Patrón como 4988MVL
-        /[A-Z]{3}[0-9]{4}/gi,  // Patrón inverso
-      ];
-      
-      for (const pattern of codePatterns) {
-        const match = text.match(pattern);
-        if (match) {
-          console.log('Patrón de código encontrado:', match[0]);
-          return match[0].toUpperCase();
-        }
+      } else {
+        toast.error('No se encontraron resultados en la imagen');
       }
+      
+    } catch (error) {
+      console.error('Error en OCR.Space:', error);
+      toast.error('Error procesando imagen con OCR.Space');
+    } finally {
+      setIsLoading(false);
     }
-    
-         // Intentar corregir errores comunes de OCR
-     let correctedText = text;
-     
-     // Correcciones específicas para "Pr UNE" -> "4988MVL"
-     if (text.includes('Pr') || text.includes('UNE')) {
-       console.log('Detectado posible error de OCR, intentando corregir...');
-       
-       // Mapeo de caracteres comúnmente confundidos
-       const charMappings = {
-         'P': '4', 'r': '9', 'U': 'V', 'N': 'M', 'E': 'L',
-         'O': '0', 'I': '1', 'l': '1', 'S': '5', 'G': '6',
-         'B': '8', 'Z': '2', 'A': '4', 'T': '7'
-       };
-       
-       // Aplicar correcciones
-       let corrected = text.toUpperCase();
-       for (const [wrong, correct] of Object.entries(charMappings)) {
-         corrected = corrected.replace(new RegExp(wrong, 'g'), correct);
-       }
-       
-       // Limpiar espacios y caracteres extra
-       corrected = corrected.replace(/[^A-Z0-9]/g, '').trim();
-       
-       if (corrected.length >= 6 && corrected.length <= 8) {
-         console.log('Texto corregido:', corrected);
-         return corrected;
-       }
-     }
-     
-     // Si el texto es muy corto (1-2 caracteres), intentar reconstruir
-     if (alphanumericCode.length <= 2) {
-       console.log('Texto muy corto detectado, intentando reconstruir...');
-       
-       // Si detectamos "3", podría ser parte de "4988MVL"
-       if (text.includes('3') || text.includes('8')) {
-         console.log('Detectado número 3 u 8, posible parte de código...');
-         return '4988MVL'; // Asumir el código correcto
-       }
-       
-       // Si detectamos "M", "V", "L", etc.
-       if (text.match(/[MVL]/i)) {
-         console.log('Detectadas letras M/V/L, posible código...');
-         return '4988MVL';
-       }
-     }
-    
-         // Si no es un código, aplicar limpieza general mejorada
-     let cleanedText = text;
-     
-     // Corregir errores comunes de OCR para texto general
-     const generalCharMappings = {
-       '0': 'O', 'O': '0', // Confusión común entre O y 0
-       '1': 'I', 'I': '1', // Confusión común entre I y 1
-       '5': 'S', 'S': '5', // Confusión común entre S y 5
-       '8': 'B', 'B': '8', // Confusión común entre B y 8
-       'Z': '2', '2': 'Z', // Confusión común entre Z y 2
-     };
-     
-     // Aplicar correcciones solo si el contexto lo sugiere
-     if (text.length > 10) { // Solo para texto largo
-       for (const [wrong, correct] of Object.entries(generalCharMappings)) {
-         // Solo corregir si hay contexto que lo sugiera
-         if (text.includes(wrong) && !text.includes(correct)) {
-           cleanedText = cleanedText.replace(new RegExp(wrong, 'g'), correct);
-         }
-       }
-     }
-     
-     // Limpieza general mejorada
-     cleanedText = cleanedText
-       .replace(/\n\s*\n\s*\n/g, '\n\n') // Eliminar líneas vacías múltiples
-       .replace(/[^\w\s\n.,!?;:()\-_áéíóúñÁÉÍÓÚÑ]/g, '') // Mantener caracteres válidos incluyendo acentos
-       .replace(/\s+/g, ' ') // Normalizar espacios
-       .replace(/\s*\.\s*/g, '. ') // Normalizar puntos
-       .replace(/\s*,\s*/g, ', ') // Normalizar comas
-       .replace(/\s*:\s*/g, ': ') // Normalizar dos puntos
-       .replace(/\s*;\s*/g, '; ') // Normalizar punto y coma
-       .trim();
-     
-     console.log('Texto limpio final:', cleanedText);
-     return cleanedText;
-  };
-
-  // Formatear matrícula
-  const formatLicensePlate = (text: string): string => {
-    let cleaned = text.replace(/[^A-Z0-9]/gi, '').toUpperCase();
-    if (cleaned.length >= 7) {
-      const match = cleaned.match(/^([A-Z]{3,4})(\d{3,4})$/);
-      if (match) {
-        return `${match[1]} ${match[2]}`;
-      }
-    }
-    return cleaned;
   };
 
   // Subir imagen
@@ -816,6 +415,158 @@ export default function OCRScannerPage() {
     setScannedText('');
     setCapturedImage(null);
     setCopied(false);
+  };
+
+  // Solicitar permisos de geolocalización
+  const requestLocationPermission = async () => {
+    try {
+      console.log('Solicitando permisos de geolocalización...');
+      
+      if (!navigator.geolocation) {
+        toast.error('Geolocalización no soportada en este navegador');
+        return;
+      }
+
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 60000
+        });
+      });
+
+      const { latitude, longitude } = position.coords;
+      setLocation({ lat: latitude, lng: longitude });
+      setLocationPermission('granted');
+      
+      console.log('Ubicación obtenida:', { latitude, longitude });
+      toast.success('Ubicación registrada correctamente');
+      
+    } catch (error) {
+      console.error('Error obteniendo ubicación:', error);
+      setLocationPermission('denied');
+      
+      if (error instanceof GeolocationPositionError) {
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            toast.error('Permisos de ubicación denegados');
+            break;
+          case error.POSITION_UNAVAILABLE:
+            toast.error('Ubicación no disponible');
+            break;
+          case error.TIMEOUT:
+            toast.error('Tiempo de espera agotado');
+            break;
+          default:
+            toast.error('Error obteniendo ubicación');
+        }
+      } else {
+        toast.error('Error obteniendo ubicación');
+      }
+    }
+  };
+
+  // Detectar y recortar zona de texto con Tesseract
+  const detectAndCropText = async (imageData: string): Promise<string> => {
+    try {
+      console.log('Detectando zona de texto...');
+      
+      // Crear canvas para procesar imagen
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      return new Promise((resolve) => {
+        img.onload = async () => {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx?.drawImage(img, 0, 0);
+          
+          // Usar Tesseract para detectar texto y obtener coordenadas
+          const worker = await Tesseract.createWorker('eng');
+          
+          // Configurar para detectar texto sin procesar
+          await worker.setParameters({
+            tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+            tessedit_pageseg_mode: '6', // Single uniform block of text
+          });
+          
+          const result = await worker.recognize(canvas);
+          await worker.terminate();
+          
+          console.log('Resultado detección Tesseract:', result);
+          
+          if (result.data.words && result.data.words.length > 0) {
+            // Calcular bounding box de todo el texto
+            let minX = Infinity, minY = Infinity, maxX = 0, maxY = 0;
+            
+            result.data.words.forEach((word: any) => {
+              const bbox = word.bbox;
+              minX = Math.min(minX, bbox.x0);
+              minY = Math.min(minY, bbox.y0);
+              maxX = Math.max(maxX, bbox.x1);
+              maxY = Math.max(maxY, bbox.y1);
+            });
+            
+            // Añadir padding
+            const padding = 20;
+            minX = Math.max(0, minX - padding);
+            minY = Math.max(0, minY - padding);
+            maxX = Math.min(img.width, maxX + padding);
+            maxY = Math.min(img.height, maxY + padding);
+            
+            // Recortar zona de texto
+            const cropCanvas = document.createElement('canvas');
+            const cropCtx = cropCanvas.getContext('2d');
+            const cropWidth = maxX - minX;
+            const cropHeight = maxY - minY;
+            
+            cropCanvas.width = cropWidth;
+            cropCanvas.height = cropHeight;
+            
+            cropCtx?.drawImage(
+              canvas,
+              minX, minY, cropWidth, cropHeight,
+              0, 0, cropWidth, cropHeight
+            );
+            
+            // Comprimir al máximo (calidad 0.3, máximo 800px)
+            const maxSize = 800;
+            const scale = Math.min(1, maxSize / Math.max(cropWidth, cropHeight));
+            const finalWidth = Math.round(cropWidth * scale);
+            const finalHeight = Math.round(cropHeight * scale);
+            
+            const finalCanvas = document.createElement('canvas');
+            const finalCtx = finalCanvas.getContext('2d');
+            finalCanvas.width = finalWidth;
+            finalCanvas.height = finalHeight;
+            
+            finalCtx?.drawImage(
+              cropCanvas,
+              0, 0, cropWidth, cropHeight,
+              0, 0, finalWidth, finalHeight
+            );
+            
+            // Convertir a base64 con máxima compresión
+            const compressedImage = finalCanvas.toDataURL('image/jpeg', 0.3);
+            console.log(`Imagen recortada: ${cropWidth}x${cropHeight} → ${finalWidth}x${finalHeight}`);
+            
+            resolve(compressedImage);
+          } else {
+            // Si no detecta texto, usar imagen original comprimida
+            console.log('No se detectó texto, usando imagen original comprimida');
+            const compressedOriginal = canvas.toDataURL('image/jpeg', 0.3);
+            resolve(compressedOriginal);
+          }
+        };
+        
+        img.src = imageData;
+      });
+    } catch (error) {
+      console.error('Error en detección de texto:', error);
+      // En caso de error, devolver imagen original comprimida
+      return imageData;
+    }
   };
 
   // Verificar estado de la cámara
@@ -1137,6 +888,125 @@ export default function OCRScannerPage() {
     }
   };
 
+  // Detectar texto en tiempo real
+  const detectTextInRealTime = async () => {
+    if (!videoRef.current || !isCameraActive) {
+      console.log('Detección en tiempo real: condiciones no cumplidas', {
+        hasVideo: !!videoRef.current,
+        isCameraActive
+      });
+      return;
+    }
+    
+    try {
+      console.log('Iniciando detección en tiempo real...');
+      const video = videoRef.current;
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx || video.videoWidth === 0 || video.videoHeight === 0) {
+        console.log('Video no tiene dimensiones válidas:', {
+          hasCtx: !!ctx,
+          videoWidth: video.videoWidth,
+          videoHeight: video.videoHeight
+        });
+        return;
+      }
+      
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0);
+      
+      // Usar Tesseract para detectar texto rápidamente
+      const worker = await Tesseract.createWorker('eng');
+      
+      await worker.setParameters({
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+        tessedit_pageseg_mode: '6', // Single uniform block of text
+        tessedit_confidence_threshold: '20', // Umbral muy bajo para detección rápida
+      });
+      
+      const result = await worker.recognize(canvas);
+      await worker.terminate();
+      
+      console.log('Resultado detección en tiempo real:', result);
+      
+      if (result.data.words && result.data.words.length > 0) {
+        console.log('Texto detectado:', result.data.words.map((w: any) => w.text).join(' '));
+        
+        // Calcular bounding box del texto detectado
+        let minX = Infinity, minY = Infinity, maxX = 0, maxY = 0;
+        
+        result.data.words.forEach((word: any) => {
+          const bbox = word.bbox;
+          minX = Math.min(minX, bbox.x0);
+          minY = Math.min(minY, bbox.y0);
+          maxX = Math.max(maxX, bbox.x1);
+          maxY = Math.max(maxY, bbox.y1);
+        });
+        
+        // Convertir coordenadas del canvas a coordenadas del video
+        const videoElement = videoRef.current;
+        const videoRect = videoElement.getBoundingClientRect();
+        const scaleX = videoRect.width / video.videoWidth;
+        const scaleY = videoRect.height / video.videoHeight;
+        
+        const detectionBoxData = {
+          x: minX * scaleX,
+          y: minY * scaleY,
+          width: (maxX - minX) * scaleX,
+          height: (maxY - minY) * scaleY
+        };
+        
+        console.log('Bounding box calculado:', detectionBoxData);
+        setDetectionBox(detectionBoxData);
+        setShowDetectionEffect(true);
+        setDetectionCount(prev => prev + 1);
+        
+        // Vibrar en móviles
+        if ('vibrate' in navigator) {
+          navigator.vibrate(50);
+        }
+        
+        // Ocultar efecto después de 3 segundos
+        setTimeout(() => {
+          setShowDetectionEffect(false);
+        }, 3000);
+        
+      } else {
+        console.log('No se detectó texto');
+        setDetectionBox(null);
+        setShowDetectionEffect(false);
+      }
+      
+    } catch (error) {
+      console.log('Error en detección en tiempo real:', error);
+    }
+  };
+
+  // Efecto para iniciar detección en tiempo real
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    console.log('useEffect detección en tiempo real:', {
+      isCameraActive,
+      realTimeDetection
+    });
+    
+    if (isCameraActive && realTimeDetection) {
+      console.log('Iniciando intervalo de detección en tiempo real...');
+      // Detectar texto cada 3 segundos
+      interval = setInterval(detectTextInRealTime, 3000);
+    }
+    
+    return () => {
+      if (interval) {
+        console.log('Limpiando intervalo de detección en tiempo real');
+        clearInterval(interval);
+      }
+    };
+  }, [isCameraActive, realTimeDetection]);
+
   return (
     <div className="p-4 md:p-5 space-y-4 pb-20">
       <div className="space-y-2">
@@ -1207,6 +1077,72 @@ export default function OCRScannerPage() {
         </CardContent>
       </Card>
 
+      {/* Configuración avanzada */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center text-lg">
+            <ScanLine className="mr-2 h-4 w-4 text-blue-500" />
+            Configuración Avanzada
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-4 space-y-4">
+          {/* Toggle OCR.Space */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium">OCR.Space API (Más preciso)</p>
+              <p className="text-sm text-muted-foreground">
+                Usar OCR.Space en lugar de Tesseract para mejor precisión
+              </p>
+            </div>
+            <Button
+              variant={useSpaceAPI ? 'default' : 'outline'}
+              onClick={() => setUseSpaceAPI(!useSpaceAPI)}
+              size="sm"
+            >
+              {useSpaceAPI ? 'Activado' : 'Desactivado'}
+            </Button>
+          </div>
+
+          {/* Geolocalización */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium">Registrar Ubicación</p>
+              <p className="text-sm text-muted-foreground">
+                {location 
+                  ? `Ubicación: ${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`
+                  : 'Solicitar permisos de geolocalización'
+                }
+              </p>
+            </div>
+            <Button
+              variant={location ? 'default' : 'outline'}
+              onClick={requestLocationPermission}
+              size="sm"
+              disabled={locationPermission === 'denied'}
+            >
+              {location ? 'Registrada' : 'Solicitar'}
+            </Button>
+          </div>
+
+          {/* Detección en tiempo real */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium">Detección en Tiempo Real</p>
+              <p className="text-sm text-muted-foreground">
+                Detectar texto automáticamente mientras la cámara está activa
+              </p>
+            </div>
+            <Button
+              variant={realTimeDetection ? 'default' : 'outline'}
+              onClick={() => setRealTimeDetection(!realTimeDetection)}
+              size="sm"
+            >
+              {realTimeDetection ? 'Activada' : 'Desactivada'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Cámara */}
       <Card>
         <CardHeader className="pb-3">
@@ -1260,6 +1196,56 @@ export default function OCRScannerPage() {
                  alert('Error en el elemento de video');
                }}
              />
+             
+             {/* Caja de detección de texto */}
+             {detectionBox && showDetectionEffect && (
+               <div
+                 className="absolute border-2 border-green-400 bg-green-400/20 pointer-events-none"
+                 style={{
+                   left: detectionBox.x,
+                   top: detectionBox.y,
+                   width: detectionBox.width,
+                   height: detectionBox.height,
+                   animation: 'pulse 1s infinite'
+                 }}
+               >
+                 {/* Líneas de escaneo */}
+                 <div className="absolute inset-0 overflow-hidden">
+                   <div className="absolute top-0 left-0 right-0 h-0.5 bg-green-400 animate-pulse"></div>
+                   <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-400 animate-pulse"></div>
+                   <div className="absolute top-0 bottom-0 left-0 w-0.5 bg-green-400 animate-pulse"></div>
+                   <div className="absolute top-0 bottom-0 right-0 w-0.5 bg-green-400 animate-pulse"></div>
+                 </div>
+                 
+                 {/* Indicador de texto detectado */}
+                 <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-2 py-1 rounded text-xs whitespace-nowrap">
+                   📝 Texto detectado
+                 </div>
+               </div>
+             )}
+             
+             {/* Efecto de flash cuando se detecta texto */}
+             {showDetectionEffect && (
+               <div className="absolute inset-0 bg-green-400/30 pointer-events-none animate-pulse"></div>
+             )}
+             
+             {/* Partículas de detección */}
+             {showDetectionEffect && (
+               <div className="absolute inset-0 pointer-events-none">
+                 {[...Array(5)].map((_, i) => (
+                   <div
+                     key={i}
+                     className="absolute w-2 h-2 bg-green-400 rounded-full animate-ping"
+                     style={{
+                       left: `${Math.random() * 100}%`,
+                       top: `${Math.random() * 100}%`,
+                       animationDelay: `${i * 0.2}s`
+                     }}
+                   />
+                 ))}
+               </div>
+             )}
+             
              <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
                Cámara activa
              </div>
@@ -1271,6 +1257,13 @@ export default function OCRScannerPage() {
                  OCR Optimizado
                </div>
              </div>
+             
+             {/* Contador de detecciones */}
+             {detectionCount > 0 && (
+               <div className="absolute bottom-2 left-2 bg-blue-500/80 text-white px-2 py-1 rounded text-xs">
+                 Detecciones: {detectionCount}
+               </div>
+             )}
              
              {/* Guía de captura */}
              <div className="absolute inset-4 border-2 border-dashed border-white/50 rounded-lg pointer-events-none">
@@ -1320,12 +1313,15 @@ export default function OCRScannerPage() {
                 <Button onClick={testOCR} variant="outline" size="sm">
                   Probar OCR
                 </Button>
-                <Button onClick={forceCapture} variant="outline" size="sm">
-                  Forzar Captura
-                </Button>
-                <Button onClick={switchCamera} variant="outline" size="sm">
-                  Cambiar Cámara
-                </Button>
+                              <Button onClick={forceCapture} variant="outline" size="sm">
+                Forzar Captura
+              </Button>
+              <Button onClick={detectTextInRealTime} variant="outline" size="sm">
+                Probar Detección
+              </Button>
+              <Button onClick={switchCamera} variant="outline" size="sm">
+                Cambiar Cámara
+              </Button>
                 <Button onClick={stopCamera} variant="outline">
                   Detener Cámara
                 </Button>
@@ -1362,6 +1358,9 @@ export default function OCRScannerPage() {
               </Button>
               <Button onClick={forceCapture} variant="outline" size="sm">
                 Forzar Captura
+              </Button>
+              <Button onClick={detectTextInRealTime} variant="outline" size="sm">
+                Probar Detección
               </Button>
               <Button onClick={switchCamera} variant="outline" size="sm">
                 Cambiar Cámara

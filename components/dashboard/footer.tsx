@@ -95,12 +95,13 @@ export function DashboardFooter() {
   return (
     <footer className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-1">
       <div className="container flex max-w-full px-2 md:px-6 lg:px-8 xl:px-10 items-center justify-between gap-2">
-        <div className="text-xs md:text-sm text-muted-foreground flex-shrink-0">
-          © {new Date().getFullYear()} CVO
+        <div className="text-sm md:text-sm text-muted-foreground flex-shrink-0">
+          <span className="hidden md:inline">© {new Date().getFullYear()} CVO - Control Vehículos de Ocasión</span>
+          <span className="md:hidden">© {new Date().getFullYear()} CVO</span>
         </div>
 
         {displayMessage && (
-          <div className="flex-1 mx-1 md:mx-2 overflow-hidden min-w-0">
+          <div className="flex-1 mx-1 md:mx-2 overflow-hidden min-w-0 hidden md:block">
             <div className={marqueeContainerClass}>
               <div className={marqueeContentClass} style={marqueeStyle}>
                 {displayMessage}
@@ -110,7 +111,7 @@ export function DashboardFooter() {
         )}
 
         <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
-          <span className="text-xs md:text-sm text-muted-foreground hidden sm:inline">controlvo.ovh</span>
+          <span className="text-xs md:text-sm text-muted-foreground hidden xs:inline">controlvo.ovh</span>
           <VersionBadge version={APP_VERSION} />
           <div className="relative">
             <PerformanceMonitor />

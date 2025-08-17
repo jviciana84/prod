@@ -361,6 +361,49 @@ body {
   }
 }
 
+/* Footer responsive para móviles y tablets */
+@media (max-width: 1024px) {
+  footer {
+    padding: 8px 0 !important;
+    min-height: 40px;
+  }
+  
+  footer .container {
+    gap: 4px !important;
+    padding: 0 8px !important;
+  }
+  
+  footer .text-sm {
+    font-size: 0.75rem;
+  }
+  
+  .marquee-container {
+    max-width: 60%;
+  }
+}
+
+@media (max-width: 640px) {
+  footer .container {
+    padding: 0 4px !important;
+  }
+  
+  footer .text-sm {
+    font-size: 0.8rem;
+  }
+}
+
+/* Asegurar que el footer no interfiera con el OCR móvil */
+@media (max-width: 768px) {
+  .dashboard-footer {
+    z-index: 40 !important;
+  }
+  
+  /* Cuando estamos en la página OCR móvil, ocultar el footer del dashboard */
+  body:has(.fixed.inset-0.bg-black) .dashboard-footer {
+    display: none !important;
+  }
+}
+
 /* Optimizaciones para tablets */
 .tablet-optimized {
   /* Prevenir zoom automático */

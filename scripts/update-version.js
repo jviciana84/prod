@@ -54,8 +54,8 @@ function generateVersion() {
   const shortHash = getShortHash();
   const timestamp = getLastCommitTimestamp();
   
-  // Formato: 1.0.{commitCount}-{shortHash}
-  return `1.0.${commitCount}-${shortHash}`;
+  // Formato: 1.1.{commitCount}-{shortHash}
+  return `1.1.${commitCount}-${shortHash}`;
 }
 
 // Función para actualizar el archivo de versiones

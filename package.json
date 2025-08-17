@@ -1,12 +1,13 @@
 {
   "name": "my-v0-project",
-  "version": "0.1.0",
+  "version": "1.1.169-2292858",
   "private": true,
   "scripts": {
-    "build": "next build",
     "dev": "next dev",
-    "lint": "next lint",
+    "dev:https": "node scripts/dev-https.js",
+    "build": "next build",
     "start": "next start",
+    "lint": "next lint",
     "update-version": "node scripts/update-version.js",
     "pre-commit": "npm run update-version && git add lib/version.ts",
     "install-hooks": "node scripts/install-hooks.js",
