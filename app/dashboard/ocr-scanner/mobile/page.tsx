@@ -18,7 +18,7 @@ export default function OCRScannerMobilePage() {
   const [cameraError, setCameraError] = useState<string | null>(null);
   
   // Nuevos estados para OCR.Space y geolocalización
-  const [useSpaceAPI, setUseSpaceAPI] = useState(false);
+  const [useSpaceAPI, setUseSpaceAPI] = useState(true);
   const [location, setLocation] = useState<{lat: number, lng: number} | null>(null);
   const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt' | null>(null);
   
@@ -1242,6 +1242,15 @@ export default function OCRScannerMobilePage() {
 
       {/* Canvas oculto */}
       <canvas ref={canvasRef} style={{ display: 'none' }} />
+      
+      {/* Footer */}
+      <footer className="dashboard-footer fixed bottom-0 left-0 right-0 bg-gray-900 text-white py-2 z-50">
+        <div className="container mx-auto px-4 flex items-center justify-between text-sm">
+          <span className="hidden md:inline">© 2025 CVO - Control Vehículos de Ocasión</span>
+          <span className="md:hidden">© 2025 CVO</span>
+          <span className="hidden xs:inline">controlvo.ovh</span>
+        </div>
+      </footer>
     </div>
   );
 }
