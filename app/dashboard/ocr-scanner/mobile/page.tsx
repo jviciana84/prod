@@ -378,7 +378,7 @@ export default function OCRMobilePage() {
     }
   };
 
-  // Procesar OCR con optimizaciones completas
+  // Procesar OCR con optimizaciones completas (igual que PC)
   const processOCR = async (imageData: string) => {
     setIsLoading(true);
     try {
@@ -393,25 +393,58 @@ export default function OCRMobilePage() {
       });
       console.log('Worker de Tesseract creado');
       
-      // Configuración avanzada para códigos
-      await worker.setParameters({
-        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-        tessedit_pageseg_mode: '6',
-        tessedit_ocr_engine_mode: '3',
-        preserve_interword_spaces: '1',
-        textord_heavy_nr: '0',
-        textord_min_linesize: '1',
-        tessedit_do_invert: '0',
-        tessedit_image_border: '5',
-        tessedit_adaptive_threshold: '1',
-        tessedit_adaptive_method: '1',
-        tessedit_adaptive_window_size: '10',
-        tessedit_confidence_threshold: '10',
-      });
+      // Configuración avanzada según el modo (igual que PC)
+      if (scanMode === 'license') {
+        await worker.setParameters({
+          tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+          tessedit_pageseg_mode: '7', // Single uniform block of text
+          tessedit_ocr_engine_mode: '3', // Default, based on what is available
+          preserve_interword_spaces: '1',
+          textord_heavy_nr: '1', // Heavy noise removal
+          textord_min_linesize: '2.5', // Minimum line size
+          tessedit_do_invert: '0', // Don't invert image
+          tessedit_image_border: '20', // Add border to image
+          tessedit_adaptive_threshold: '1', // Use adaptive thresholding
+          tessedit_adaptive_method: '1', // Adaptive method
+          tessedit_adaptive_window_size: '15', // Window size for adaptive thresholding
+        });
+        console.log('Parámetros configurados para matrícula');
+      } else if (scanMode === 'code') {
+        await worker.setParameters({
+          tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', // Solo alfanumérico
+          tessedit_pageseg_mode: '6', // Uniform block of text
+          tessedit_ocr_engine_mode: '3',
+          preserve_interword_spaces: '1',
+          textord_heavy_nr: '0', // Sin eliminación de ruido para códigos
+          textord_min_linesize: '1', // Línea mínima muy pequeña
+          tessedit_do_invert: '0',
+          tessedit_image_border: '5', // Borde mínimo
+          tessedit_adaptive_threshold: '1',
+          tessedit_adaptive_method: '1',
+          tessedit_adaptive_window_size: '10', // Ventana pequeña
+          tessedit_confidence_threshold: '10', // Umbral muy bajo
+        });
+        console.log('Parámetros configurados para códigos alfanuméricos');
+      } else {
+        await worker.setParameters({
+          tessedit_pageseg_mode: '7', // Single uniform block of text
+          preserve_interword_spaces: '1',
+          tessedit_ocr_engine_mode: '3',
+          textord_heavy_nr: '0', // No heavy noise removal for codes
+          textord_min_linesize: '1.5', // Smaller line size for codes
+          tessedit_do_invert: '0',
+          tessedit_image_border: '10', // Smaller border
+          tessedit_adaptive_threshold: '1',
+          tessedit_adaptive_method: '1',
+          tessedit_adaptive_window_size: '15',
+          tessedit_confidence_threshold: '20', // Lower confidence threshold
+        });
+        console.log('Parámetros configurados para texto general');
+      }
       
       console.log('Iniciando reconocimiento de texto...');
       
-      // Procesar imagen con múltiples intentos (reducido para móvil)
+      // Procesar imagen con múltiples intentos (15 intentos como PC)
       let bestResult = { text: '', confidence: 0 };
       
       // Primer intento: imagen original
@@ -437,29 +470,209 @@ export default function OCRMobilePage() {
         bestResult = result3.data;
       }
       
-      // Cuarto intento: ultra-binary
-      const ultraBinaryImage = await preprocessImage(imageData, 'ultra-binary');
-      const result4 = await worker.recognize(ultraBinaryImage);
-      console.log('Resultado 4 (ultra-binary):', result4.data);
+      // Cuarto intento: con parámetros muy permisivos
+      await worker.setParameters({
+        tessedit_confidence_threshold: '5', // Muy bajo para capturar más texto
+        tessedit_pageseg_mode: '6', // Uniform block of text
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', // Solo alfanumérico
+      });
+      const result4 = await worker.recognize(imageData);
+      console.log('Resultado 4 (permisivo):', result4.data);
       if (result4.data.confidence > bestResult.confidence) {
         bestResult = result4.data;
       }
       
-      // Quinto intento: edge-enhance
-      const edgeEnhancedImage = await preprocessImage(imageData, 'edge-enhance');
-      const result5 = await worker.recognize(edgeEnhancedImage);
-      console.log('Resultado 5 (edge-enhance):', result5.data);
+      // Quinto intento: imagen invertida (por si el texto es blanco sobre negro)
+      const invertedImage = await preprocessImage(imageData, 'invert');
+      await worker.setParameters({
+        tessedit_confidence_threshold: '10',
+        tessedit_pageseg_mode: '7',
+      });
+      const result5 = await worker.recognize(invertedImage);
+      console.log('Resultado 5 (invertido):', result5.data);
       if (result5.data.confidence > bestResult.confidence) {
         bestResult = result5.data;
       }
+      
+      // Sexto intento: ultra-permisivo para códigos alfanuméricos
+      await worker.setParameters({
+        tessedit_confidence_threshold: '1', // Mínimo posible
+        tessedit_pageseg_mode: '6', // Uniform block
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', // Solo alfanumérico
+        textord_heavy_nr: '0', // Sin eliminación de ruido
+        textord_min_linesize: '1', // Línea mínima muy pequeña
+        tessedit_image_border: '5', // Borde mínimo
+        tessedit_adaptive_threshold: '1',
+        tessedit_adaptive_method: '1',
+        tessedit_adaptive_window_size: '10', // Ventana pequeña
+      });
+      const result6 = await worker.recognize(imageData);
+      console.log('Resultado 6 (ultra-permisivo):', result6.data);
+      if (result6.data.confidence > bestResult.confidence) {
+        bestResult = result6.data;
+      }
+      
+      // Séptimo intento: imagen con nitidez
+      const sharpenedImage = await preprocessImage(imageData, 'sharpen');
+      await worker.setParameters({
+        tessedit_confidence_threshold: '5',
+        tessedit_pageseg_mode: '7',
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+      });
+      const result7 = await worker.recognize(sharpenedImage);
+      console.log('Resultado 7 (nitidez):', result7.data);
+      if (result7.data.confidence > bestResult.confidence) {
+        bestResult = result7.data;
+      }
+      
+      // Octavo intento: operación morfológica
+      const morphologyImage = await preprocessImage(imageData, 'morphology');
+      await worker.setParameters({
+        tessedit_confidence_threshold: '10',
+        tessedit_pageseg_mode: '6',
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+      });
+      const result8 = await worker.recognize(morphologyImage);
+      console.log('Resultado 8 (morfología):', result8.data);
+      if (result8.data.confidence > bestResult.confidence) {
+        bestResult = result8.data;
+      }
+      
+      // Noveno intento: con parámetros específicos para texto borroso
+      await worker.setParameters({
+        tessedit_confidence_threshold: '1',
+        tessedit_pageseg_mode: '8', // Single word
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+        textord_heavy_nr: '0',
+        textord_min_linesize: '0.5', // Muy pequeña
+        tessedit_image_border: '0', // Sin borde
+        tessedit_adaptive_threshold: '1',
+        tessedit_adaptive_method: '1',
+        tessedit_adaptive_window_size: '5', // Ventana muy pequeña
+      });
+      const result9 = await worker.recognize(imageData);
+      console.log('Resultado 9 (texto borroso):', result9.data);
+      if (result9.data.confidence > bestResult.confidence) {
+        bestResult = result9.data;
+      }
+      
+      // Décimo intento: con parámetros ultra-agresivos para texto borroso
+      await worker.setParameters({
+        tessedit_confidence_threshold: '1',
+        tessedit_pageseg_mode: '13', // Raw line
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+        textord_heavy_nr: '0',
+        textord_min_linesize: '0.1', // Mínimo absoluto
+        tessedit_image_border: '0',
+        tessedit_adaptive_threshold: '1',
+        tessedit_adaptive_method: '1',
+        tessedit_adaptive_window_size: '3', // Ventana muy pequeña
+        textord_old_baselines: '0',
+        textord_old_xheight: '0',
+      });
+      const result10 = await worker.recognize(imageData);
+      console.log('Resultado 10 (ultra-agresivo):', result10.data);
+      if (result10.data.confidence > bestResult.confidence) {
+        bestResult = result10.data;
+      }
+      
+      // Undécimo intento: con un worker completamente nuevo y configuración básica
+      const worker2 = await createWorker('eng', 1, {
+        logger: m => console.log('Tesseract Worker2:', m)
+      });
+      await worker2.setParameters({
+        tessedit_confidence_threshold: '1',
+        tessedit_pageseg_mode: '6',
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+      });
+      const result11 = await worker2.recognize(imageData);
+      console.log('Resultado 11 (worker nuevo):', result11.data);
+      if (result11.data.confidence > bestResult.confidence) {
+        bestResult = result11.data;
+      }
+      await worker2.terminate();
+      
+      // Duodécimo intento: imagen con ultra-binary
+      const ultraBinaryImage = await preprocessImage(imageData, 'ultra-binary');
+      await worker.setParameters({
+        tessedit_confidence_threshold: '1',
+        tessedit_pageseg_mode: '6',
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+        textord_heavy_nr: '0',
+        textord_min_linesize: '0.5',
+        tessedit_image_border: '0',
+      });
+      const result12 = await worker.recognize(ultraBinaryImage);
+      console.log('Resultado 12 (ultra-binary):', result12.data);
+      if (result12.data.confidence > bestResult.confidence) {
+        bestResult = result12.data;
+      }
+      
+      // Decimotercer intento: imagen con edge-enhance
+      const edgeEnhancedImage = await preprocessImage(imageData, 'edge-enhance');
+      await worker.setParameters({
+        tessedit_confidence_threshold: '1',
+        tessedit_pageseg_mode: '8',
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+        textord_heavy_nr: '0',
+        textord_min_linesize: '0.1',
+        tessedit_image_border: '0',
+      });
+      const result13 = await worker.recognize(edgeEnhancedImage);
+      console.log('Resultado 13 (edge-enhance):', result13.data);
+      if (result13.data.confidence > bestResult.confidence) {
+        bestResult = result13.data;
+      }
+      
+      // Decimocuarto intento: con worker3 y configuración ultra-básica
+      const worker3 = await createWorker('eng', 1, {
+        logger: m => console.log('Tesseract Worker3:', m)
+      });
+      await worker3.setParameters({
+        tessedit_confidence_threshold: '1',
+        tessedit_pageseg_mode: '13',
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+        textord_heavy_nr: '0',
+        textord_min_linesize: '0.1',
+        tessedit_image_border: '0',
+        tessedit_adaptive_threshold: '0',
+        tessedit_adaptive_method: '0',
+      });
+      const result14 = await worker3.recognize(imageData);
+      console.log('Resultado 14 (worker3 ultra-básico):', result14.data);
+      if (result14.data.confidence > bestResult.confidence) {
+        bestResult = result14.data;
+      }
+      await worker3.terminate();
+      
+      // Decimoquinto intento: con worker4 y configuración mínima absoluta
+      const worker4 = await createWorker('eng', 1, {
+        logger: m => console.log('Tesseract Worker4:', m)
+      });
+      // Sin configurar ningún parámetro - usar configuración por defecto
+      const result15 = await worker4.recognize(imageData);
+      console.log('Resultado 15 (worker4 default):', result15.data);
+      if (result15.data.confidence > bestResult.confidence) {
+        bestResult = result15.data;
+      }
+      await worker4.terminate();
       
       console.log('Mejor resultado:', bestResult);
       
       let cleanedText = bestResult.text.trim();
       console.log('Texto limpio:', cleanedText);
       
-      cleanedText = cleanGeneralText(cleanedText);
-      console.log('Texto formateado como código:', cleanedText);
+      if (scanMode === 'license') {
+        // Aquí necesitarías la función formatLicensePlate si la tienes
+        cleanedText = cleanGeneralText(cleanedText);
+        console.log('Texto formateado como matrícula:', cleanedText);
+      } else if (scanMode === 'code') {
+        cleanedText = cleanGeneralText(cleanedText);
+        console.log('Texto formateado como código:', cleanedText);
+      } else {
+        cleanedText = cleanGeneralText(cleanedText);
+        console.log('Texto formateado como texto general:', cleanedText);
+      }
       
       if (cleanedText.length === 0) {
         console.log('No se detectó texto');
