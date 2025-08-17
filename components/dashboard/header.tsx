@@ -22,7 +22,7 @@ import {
   Bell,
   Menu,
   Trash2,
-  Scan,
+  ScanLine,
 } from "lucide-react"
 import { createClientComponentClient } from "@/lib/supabase/client"
 import { Badge } from "@/components/ui/badge"
@@ -511,7 +511,7 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
             }}
             title="Scanner OCR - Escanear matrículas y texto"
           >
-            <Scan className="h-5 w-5" />
+                            <ScanLine className="h-5 w-5" />
           </Button>
 
           {/* Campana de notificaciones */}

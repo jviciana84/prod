@@ -350,6 +350,47 @@ body {
   color: #666;
   font-style: italic;
   padding: 0 20px;
+  font-size: 0.75rem; /* Texto más pequeño por defecto */
+}
+
+/* Responsive marquee para móviles */
+@media (max-width: 768px) {
+  .marquee-content {
+    font-size: 0.7rem; /* Texto aún más pequeño en móviles */
+    padding: 0 10px;
+  }
+}
+
+/* Optimizaciones para tablets */
+.tablet-optimized {
+  /* Prevenir zoom automático */
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+}
+
+/* Estilos específicos para tablets en la página OCR */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .tablet-optimized button {
+    min-height: 48px;
+    min-width: 48px;
+    font-size: 16px;
+    padding: 12px 20px;
+  }
+  
+  .tablet-optimized input[type="file"] {
+    min-height: 48px;
+    font-size: 16px;
+  }
+  
+  .tablet-optimized video {
+    max-width: 100%;
+    height: auto;
+  }
+  
+  /* Mejorar la experiencia táctil en la cámara */
+  .tablet-optimized .relative {
+    touch-action: manipulation;
+  }
 }
 
 @keyframes marquee {
@@ -436,6 +477,92 @@ body {
 }
 :root::-webkit-scrollbar-thumb, .ocre::-webkit-scrollbar-thumb {
   background: #d1cfc7;
+}
+
+/* Optimizaciones globales para tablets iOS */
+html {
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  touch-action: manipulation;
+}
+
+body {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Permitir selección de texto en áreas específicas */
+input, textarea, [contenteditable="true"] {
+  -webkit-user-select: text;
+  -khtml-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+/* Estilos específicos para tablets */
+@media (min-width: 768px) and (max-width: 1024px) {
+  /* Botones más grandes para tablets */
+  button, .btn, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+    font-size: 16px;
+    padding: 12px 16px;
+  }
+  
+  /* Inputs más grandes para tablets */
+  input, select, textarea {
+    min-height: 44px;
+    font-size: 16px;
+    padding: 12px;
+  }
+  
+  /* Enlaces más grandes */
+  a {
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* Estilos específicos para iPad */
+@media only screen 
+  and (min-device-width: 768px) 
+  and (max-device-width: 1024px) 
+  and (-webkit-min-device-pixel-ratio: 2) {
+  
+  /* Prevenir zoom automático en iPad */
+  html, body {
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+  }
+  
+  /* Mejorar la experiencia táctil */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Botones más grandes para iPad */
+  button, .btn, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 12px 16px;
+  }
+  
+  /* Inputs más grandes para iPad */
+  input, select, textarea {
+    min-height: 44px;
+    font-size: 16px;
+    padding: 12px;
+  }
+}
   border-radius: 6px;
 }
 :root::-webkit-scrollbar-thumb:hover, .ocre::-webkit-scrollbar-thumb:hover {

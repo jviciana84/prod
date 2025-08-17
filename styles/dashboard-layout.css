@@ -124,7 +124,7 @@ html, body {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 33px;
+  min-height: 33px;
   z-index: 50;
 }
 
@@ -160,5 +160,84 @@ html, body {
   .dashboard-main-content {
     width: 100vw;
     margin-left: 0;
+  }
+  
+  /* Footer responsive para móviles */
+  .dashboard-footer {
+    min-height: 40px; /* Más altura en móviles */
+    padding: 4px 0;
+  }
+  
+  /* Ajustar el área de contenido para el footer más alto */
+  .dashboard-content-area {
+    height: calc(100vh - 56px - 40px);
+  }
+  
+  /* Ajustar el sidebar para el footer más alto */
+  .dashboard-sidebar {
+    bottom: 40px;
+  }
+}
+
+/* Estilos específicos para tablets iOS */
+@media (min-width: 768px) and (max-width: 1024px) {
+  /* Prevenir zoom automático en tablets */
+  .dashboard-layout {
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  
+  /* Mejorar la experiencia táctil */
+  .dashboard-main-content {
+    touch-action: pan-y;
+  }
+  
+  /* Botones más grandes para tablets */
+  button, .btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Inputs más grandes para tablets */
+  input, select, textarea {
+    min-height: 44px;
+    font-size: 16px; /* Evita zoom en iOS */
+  }
+}
+
+/* Estilos específicos para iPad */
+@media only screen 
+  and (min-device-width: 768px) 
+  and (max-device-width: 1024px) 
+  and (-webkit-min-device-pixel-ratio: 2) {
+  
+  /* Prevenir zoom automático */
+  html, body {
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+  }
+  
+  /* Mejorar la experiencia táctil */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Botones más grandes para iPad */
+  button, .btn, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 12px 16px;
+  }
+  
+  /* Inputs más grandes para iPad */
+  input, select, textarea {
+    min-height: 44px;
+    font-size: 16px;
+    padding: 12px;
   }
 } 
