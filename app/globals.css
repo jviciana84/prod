@@ -563,8 +563,7 @@ input, textarea, [contenteditable="true"] {
     padding: 12px;
   }
 }
-  border-radius: 6px;
-}
+
 :root::-webkit-scrollbar-thumb:hover, .ocre::-webkit-scrollbar-thumb:hover {
   background: #b8b6ad;
 }
