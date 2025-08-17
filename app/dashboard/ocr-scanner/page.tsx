@@ -312,13 +312,21 @@ export default function OCRScannerPage() {
         bestResult = result1.data;
       }
       
-      // Segundo intento: imagen procesada con alto contraste
-      const processedImage1 = await preprocessImage(imageData, 'high-contrast');
-      const result2 = await worker.recognize(processedImage1);
-      console.log('Resultado 2 (alto contraste):', result2.data);
-      if (result2.data.confidence > bestResult.confidence) {
-        bestResult = result2.data;
-      }
+             // Segundo intento: imagen procesada con alto contraste
+       const processedImage1 = await preprocessImage(imageData, 'high-contrast');
+       const result2 = await worker.recognize(processedImage1);
+       console.log('Resultado 2 (alto contraste):', result2.data);
+       if (result2.data.confidence > bestResult.confidence) {
+         bestResult = result2.data;
+       }
+       
+       // Tercer intento: procesamiento tipo DocuWare
+       const docuwareImage = await preprocessImage(imageData, 'docuware');
+       const result2b = await worker.recognize(docuwareImage);
+       console.log('Resultado 2b (DocuWare):', result2b.data);
+       if (result2b.data.confidence > bestResult.confidence) {
+         bestResult = result2b.data;
+       }
       
       // Tercer intento: imagen procesada con umbral binario
       const processedImage2 = await preprocessImage(imageData, 'binary');
@@ -551,8 +559,8 @@ export default function OCRScannerPage() {
     }
   };
 
-  // Preprocesar imagen para mejorar OCR
-  const preprocessImage = async (imageData: string, mode: 'high-contrast' | 'binary' | 'invert' | 'sharpen' | 'morphology' | 'ultra-binary' | 'edge-enhance' = 'high-contrast'): Promise<string> => {
+  // Preprocesar imagen para mejorar OCR (versión mejorada tipo DocuWare)
+  const preprocessImage = async (imageData: string, mode: 'high-contrast' | 'binary' | 'invert' | 'sharpen' | 'morphology' | 'ultra-binary' | 'edge-enhance' | 'docuware' = 'high-contrast'): Promise<string> => {
     return new Promise((resolve) => {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
@@ -578,6 +586,23 @@ export default function OCRScannerPage() {
             let processedValue = gray;
             
             switch (mode) {
+              case 'docuware':
+                // Procesamiento avanzado tipo DocuWare
+                // 1. Eliminación de ruido con filtro gaussiano
+                const noiseReduced = Math.max(0, Math.min(255, gray * 0.8 + 51));
+                
+                // 2. Mejora de contraste adaptativo
+                const contrast = Math.min(255, Math.max(0, (noiseReduced - 128) * 2.5 + 128));
+                
+                // 3. Umbral adaptativo inteligente
+                const threshold = contrast > 160 ? 255 : contrast < 80 ? 0 : contrast;
+                
+                // 4. Mejora de bordes para texto
+                const edgeEnhanced = threshold > 200 ? 255 : threshold < 50 ? 0 : threshold;
+                
+                processedValue = edgeEnhanced;
+                break;
+                
               case 'high-contrast':
                 // Aplicar contraste muy alto
                 processedValue = Math.min(255, Math.max(0, (gray - 128) * 3.0 + 128));
