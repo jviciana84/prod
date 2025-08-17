@@ -241,54 +241,63 @@ export default function OCRScannerPage() {
       });
       console.log('Worker de Tesseract creado');
       
-             // Configuración avanzada según el modo
-       if (scanMode === 'license') {
-         await worker.setParameters({
-           tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-           tessedit_pageseg_mode: '7', // Single uniform block of text
-           tessedit_ocr_engine_mode: '3', // Default, based on what is available
-           preserve_interword_spaces: '1',
-           textord_heavy_nr: '1', // Heavy noise removal
-           textord_min_linesize: '2.5', // Minimum line size
-           tessedit_do_invert: '0', // Don't invert image
-           tessedit_image_border: '20', // Add border to image
-           tessedit_adaptive_threshold: '1', // Use adaptive thresholding
-           tessedit_adaptive_method: '1', // Adaptive method
-           tessedit_adaptive_window_size: '15', // Window size for adaptive thresholding
-         });
-         console.log('Parámetros configurados para matrícula');
-       } else if (scanMode === 'code') {
-         await worker.setParameters({
-           tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', // Solo alfanumérico
-           tessedit_pageseg_mode: '6', // Uniform block of text
-           tessedit_ocr_engine_mode: '3',
-           preserve_interword_spaces: '1',
-           textord_heavy_nr: '0', // Sin eliminación de ruido para códigos
-           textord_min_linesize: '1', // Línea mínima muy pequeña
-           tessedit_do_invert: '0',
-           tessedit_image_border: '5', // Borde mínimo
-           tessedit_adaptive_threshold: '1',
-           tessedit_adaptive_method: '1',
-           tessedit_adaptive_window_size: '10', // Ventana pequeña
-           tessedit_confidence_threshold: '10', // Umbral muy bajo
-         });
-         console.log('Parámetros configurados para códigos alfanuméricos');
-       } else {
-         await worker.setParameters({
-           tessedit_pageseg_mode: '7', // Single uniform block of text
-           preserve_interword_spaces: '1',
-           tessedit_ocr_engine_mode: '3',
-           textord_heavy_nr: '0', // No heavy noise removal for codes
-           textord_min_linesize: '1.5', // Smaller line size for codes
-           tessedit_do_invert: '0',
-           tessedit_image_border: '10', // Smaller border
-           tessedit_adaptive_threshold: '1',
-           tessedit_adaptive_method: '1',
-           tessedit_adaptive_window_size: '15',
-           tessedit_confidence_threshold: '20', // Lower confidence threshold
-         });
-         console.log('Parámetros configurados para texto general');
-       }
+      // Configuración avanzada según el modo
+      if (scanMode === 'license') {
+        await worker.setParameters({
+          tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+          tessedit_pageseg_mode: '7', // Single uniform block of text
+          tessedit_ocr_engine_mode: '3', // Default, based on what is available
+          preserve_interword_spaces: '1',
+          textord_heavy_nr: '1', // Heavy noise removal
+          textord_min_linesize: '2.5', // Minimum line size
+          tessedit_do_invert: '0', // Don't invert image
+          tessedit_image_border: '20', // Add border to image
+          tessedit_adaptive_threshold: '1', // Use adaptive thresholding
+          tessedit_adaptive_method: '1', // Adaptive method
+          tessedit_adaptive_window_size: '15', // Window size for adaptive thresholding
+        });
+        console.log('Parámetros configurados para matrícula');
+      } else if (scanMode === 'code') {
+        await worker.setParameters({
+          tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', // Solo alfanumérico
+          tessedit_pageseg_mode: '6', // Uniform block of text
+          tessedit_ocr_engine_mode: '3',
+          preserve_interword_spaces: '1',
+          textord_heavy_nr: '0', // Sin eliminación de ruido para códigos
+          textord_min_linesize: '1', // Línea mínima muy pequeña
+          tessedit_do_invert: '0',
+          tessedit_image_border: '5', // Borde mínimo
+          tessedit_adaptive_threshold: '1',
+          tessedit_adaptive_method: '1',
+          tessedit_adaptive_window_size: '10', // Ventana pequeña
+          tessedit_confidence_threshold: '10', // Umbral muy bajo
+        });
+        console.log('Parámetros configurados para códigos alfanuméricos');
+      } else {
+        // Configuración mejorada para texto general
+        await worker.setParameters({
+          tessedit_pageseg_mode: '3', // Fully automatic page segmentation
+          preserve_interword_spaces: '1',
+          tessedit_ocr_engine_mode: '3',
+          textord_heavy_nr: '0', // No heavy noise removal for better text recognition
+          textord_min_linesize: '2.0', // Better line size for general text
+          tessedit_do_invert: '0',
+          tessedit_image_border: '10', // Moderate border
+          tessedit_adaptive_threshold: '1',
+          tessedit_adaptive_method: '1',
+          tessedit_adaptive_window_size: '15',
+          tessedit_confidence_threshold: '30', // Higher confidence for better quality
+          tessedit_char_whitelist: '', // No whitelist for general text
+          tessedit_char_blacklist: '', // No blacklist
+          textord_old_baselines: '0',
+          textord_old_xheight: '0',
+          textord_heavy_nr: '0',
+          textord_min_linesize: '2.0',
+          textord_min_xheight: '8',
+          textord_max_xheight: '50',
+        });
+        console.log('Parámetros configurados para texto general (mejorado)');
+      }
       
       console.log('Iniciando reconocimiento de texto...');
       alert('Reconociendo texto en la imagen...');
@@ -319,14 +328,15 @@ export default function OCRScannerPage() {
         bestResult = result3.data;
       }
       
-      // Cuarto intento: con parámetros muy permisivos
+      // Cuarto intento: con parámetros muy permisivos para texto general
       await worker.setParameters({
         tessedit_confidence_threshold: '5', // Muy bajo para capturar más texto
-        tessedit_pageseg_mode: '6', // Uniform block of text
-        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', // Solo alfanumérico
+        tessedit_pageseg_mode: '3', // Fully automatic page segmentation
+        tessedit_char_whitelist: '', // Sin restricciones para texto general
+        tessedit_char_blacklist: '', // Sin blacklist
       });
       const result4 = await worker.recognize(imageData);
-      console.log('Resultado 4 (permisivo):', result4.data);
+      console.log('Resultado 4 (permisivo general):', result4.data);
       if (result4.data.confidence > bestResult.confidence) {
         bestResult = result4.data;
       }
@@ -689,13 +699,6 @@ export default function OCRScannerPage() {
      if (alphanumericCode.length <= 2) {
        console.log('Texto muy corto detectado, intentando reconstruir...');
        
-       // Intentar diferentes combinaciones basadas en el patrón esperado
-       const possibleCodes = [
-         '4988MVL', '4988MUL', '4988NVL', '4988NUL',
-         '4988MVL', '4988MUL', '4988NVL', '4988NUL',
-         '4988MVL', '4988MUL', '4988NVL', '4988NUL'
-       ];
-       
        // Si detectamos "3", podría ser parte de "4988MVL"
        if (text.includes('3') || text.includes('8')) {
          console.log('Detectado número 3 u 8, posible parte de código...');
@@ -709,15 +712,41 @@ export default function OCRScannerPage() {
        }
      }
     
-    // Si no es un código, aplicar limpieza general
-    const cleanedText = text
-      .replace(/\n\s*\n\s*\n/g, '\n\n') // Eliminar líneas vacías múltiples
-      .replace(/[^\w\s\n.,!?;:()\-_]/g, '') // Mantener solo caracteres válidos
-      .replace(/\s+/g, ' ') // Normalizar espacios
-      .trim();
-    
-    console.log('Texto limpio final:', cleanedText);
-    return cleanedText;
+         // Si no es un código, aplicar limpieza general mejorada
+     let cleanedText = text;
+     
+     // Corregir errores comunes de OCR para texto general
+     const generalCharMappings = {
+       '0': 'O', 'O': '0', // Confusión común entre O y 0
+       '1': 'I', 'I': '1', // Confusión común entre I y 1
+       '5': 'S', 'S': '5', // Confusión común entre S y 5
+       '8': 'B', 'B': '8', // Confusión común entre B y 8
+       'Z': '2', '2': 'Z', // Confusión común entre Z y 2
+     };
+     
+     // Aplicar correcciones solo si el contexto lo sugiere
+     if (text.length > 10) { // Solo para texto largo
+       for (const [wrong, correct] of Object.entries(generalCharMappings)) {
+         // Solo corregir si hay contexto que lo sugiera
+         if (text.includes(wrong) && !text.includes(correct)) {
+           cleanedText = cleanedText.replace(new RegExp(wrong, 'g'), correct);
+         }
+       }
+     }
+     
+     // Limpieza general mejorada
+     cleanedText = cleanedText
+       .replace(/\n\s*\n\s*\n/g, '\n\n') // Eliminar líneas vacías múltiples
+       .replace(/[^\w\s\n.,!?;:()\-_áéíóúñÁÉÍÓÚÑ]/g, '') // Mantener caracteres válidos incluyendo acentos
+       .replace(/\s+/g, ' ') // Normalizar espacios
+       .replace(/\s*\.\s*/g, '. ') // Normalizar puntos
+       .replace(/\s*,\s*/g, ', ') // Normalizar comas
+       .replace(/\s*:\s*/g, ': ') // Normalizar dos puntos
+       .replace(/\s*;\s*/g, '; ') // Normalizar punto y coma
+       .trim();
+     
+     console.log('Texto limpio final:', cleanedText);
+     return cleanedText;
   };
 
   // Formatear matrícula

@@ -426,20 +426,29 @@ export default function OCRMobilePage() {
         });
         console.log('Parámetros configurados para códigos alfanuméricos');
       } else {
+        // Configuración mejorada para texto general
         await worker.setParameters({
-          tessedit_pageseg_mode: '7', // Single uniform block of text
+          tessedit_pageseg_mode: '3', // Fully automatic page segmentation
           preserve_interword_spaces: '1',
           tessedit_ocr_engine_mode: '3',
-          textord_heavy_nr: '0', // No heavy noise removal for codes
-          textord_min_linesize: '1.5', // Smaller line size for codes
+          textord_heavy_nr: '0', // No heavy noise removal for better text recognition
+          textord_min_linesize: '2.0', // Better line size for general text
           tessedit_do_invert: '0',
-          tessedit_image_border: '10', // Smaller border
+          tessedit_image_border: '10', // Moderate border
           tessedit_adaptive_threshold: '1',
           tessedit_adaptive_method: '1',
           tessedit_adaptive_window_size: '15',
-          tessedit_confidence_threshold: '20', // Lower confidence threshold
+          tessedit_confidence_threshold: '30', // Higher confidence for better quality
+          tessedit_char_whitelist: '', // No whitelist for general text
+          tessedit_char_blacklist: '', // No blacklist
+          textord_old_baselines: '0',
+          textord_old_xheight: '0',
+          textord_heavy_nr: '0',
+          textord_min_linesize: '2.0',
+          textord_min_xheight: '8',
+          textord_max_xheight: '50',
         });
-        console.log('Parámetros configurados para texto general');
+        console.log('Parámetros configurados para texto general (mejorado)');
       }
       
       console.log('Iniciando reconocimiento de texto...');
