@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Camera, X, Loader2 } from 'lucide-react';
+import { Camera, X, Loader2, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function OCRMobilePage() {
@@ -11,6 +11,8 @@ export default function OCRMobilePage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [cameraError, setCameraError] = useState('');
   const [scanMode, setScanMode] = useState<'general' | 'license' | 'code'>('code');
+  const [showDetectionEffect, setShowDetectionEffect] = useState(false);
+  const [detectionCount, setDetectionCount] = useState(0);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -35,6 +37,26 @@ export default function OCRMobilePage() {
       return () => clearInterval(interval);
     }
   }, [isProcessing]);
+
+  // Efecto de detección
+  useEffect(() => {
+    if (scannedText && scannedText.length > 0) {
+      setShowDetectionEffect(true);
+      setDetectionCount(prev => prev + 1);
+      
+      // Vibración en móviles (si está disponible)
+      if ('vibrate' in navigator) {
+        navigator.vibrate([100, 50, 100]); // Patrón de vibración
+      }
+      
+      // Ocultar el efecto después de 2 segundos
+      const timer = setTimeout(() => {
+        setShowDetectionEffect(false);
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [scannedText]);
 
   // Activar cámara
   const startCamera = async () => {
@@ -522,6 +544,46 @@ export default function OCRMobilePage() {
           <div className="absolute top-20 right-4 bg-black/70 text-white p-3 rounded-lg max-w-xs">
             <p className="text-xs font-medium mb-2">Texto detectado:</p>
             <p className="text-sm whitespace-pre-wrap">{scannedText}</p>
+          </div>
+        )}
+
+        {/* Efecto de detección */}
+        {showDetectionEffect && (
+          <div className="absolute inset-0 pointer-events-none">
+            {/* Recuadro de detección dinámico */}
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-32 border-4 border-green-400 rounded-lg animate-pulse shadow-lg">
+              <div className="absolute -top-2 -left-2 bg-green-500 text-white px-2 py-1 rounded text-xs font-bold animate-pulse">
+                TEXTO DETECTADO
+              </div>
+              <div className="absolute -bottom-2 -right-2 bg-green-500 text-white px-2 py-1 rounded text-xs font-bold">
+                ✓
+              </div>
+            </div>
+            
+            {/* Líneas de escaneo */}
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-32">
+              <div className="absolute top-0 left-0 w-full h-0.5 bg-green-400 animate-pulse"></div>
+              <div className="absolute bottom-0 left-0 w-full h-0.5 bg-green-400 animate-pulse"></div>
+              <div className="absolute top-0 left-0 w-0.5 h-full bg-green-400 animate-pulse"></div>
+              <div className="absolute top-0 right-0 w-0.5 h-full bg-green-400 animate-pulse"></div>
+            </div>
+            
+            {/* Notificación flotante */}
+            <div className="absolute bottom-20 left-1/2 -translate-x-1/2 bg-green-500 text-white px-4 py-2 rounded-full flex items-center gap-2 shadow-lg animate-bounce">
+              <Check className="h-4 w-4" />
+              <span className="text-sm font-semibold">¡Texto detectado! ({detectionCount})</span>
+            </div>
+            
+            {/* Efecto de flash */}
+            <div className="absolute inset-0 bg-green-400 opacity-20 animate-ping"></div>
+            
+            {/* Partículas de éxito */}
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-ping absolute -top-4 -left-4"></div>
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-ping absolute -top-4 -right-4" style={{animationDelay: '0.2s'}}></div>
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-ping absolute -bottom-4 -left-4" style={{animationDelay: '0.4s'}}></div>
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-ping absolute -bottom-4 -right-4" style={{animationDelay: '0.6s'}}></div>
+            </div>
           </div>
         )}
       </div>
