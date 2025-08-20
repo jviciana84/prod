@@ -154,7 +154,7 @@ export default function OCRScannerMobilePage() {
   // Activar cámara
   const startCamera = async () => {
     try {
-      console.log('Activando cámara automáticamente...');
+      console.log('🔵 Activando cámara automáticamente...');
       
       // Intentar cámara trasera primero
       let stream;
@@ -186,10 +186,11 @@ export default function OCRScannerMobilePage() {
         // Reproducir automáticamente
         try {
           await videoRef.current.play();
-          console.log('Video reproduciéndose automáticamente');
+          console.log('🔵 Video reproduciéndose automáticamente');
           setIsCameraActive(true);
+          console.log('🔵 Cámara activada correctamente');
         } catch (playError) {
-          console.log('Error reproduciendo automáticamente:', playError);
+          console.log('🔴 Error reproduciendo automáticamente:', playError);
         }
       }
     } catch (error) {
@@ -381,63 +382,105 @@ export default function OCRScannerMobilePage() {
 
   // Capturar imagen
   const captureImage = async () => {
-    if (videoRef.current && canvasRef.current) {
+    try {
+      console.log('🔵 Botón Capturar presionado');
+      console.log('🔵 Estado cámara:', { isCameraActive, isProcessing, isLoading });
+      console.log('🔵 Refs:', { videoRef: !!videoRef.current, canvasRef: !!canvasRef.current });
+      
+      if (!videoRef.current || !canvasRef.current) {
+        console.log('🔴 Error: videoRef o canvasRef no están disponibles');
+        return;
+      }
+      
       const video = videoRef.current;
       const canvas = canvasRef.current;
       const context = canvas.getContext('2d');
       
-      if (context && video.videoWidth > 0 && video.videoHeight > 0) {
-        // CONGELAR LA IMAGEN - Pausar la cámara
-        if (streamRef.current) {
-          streamRef.current.getTracks().forEach(track => track.pause());
-        }
+      console.log('🔵 Video dimensions:', { width: video.videoWidth, height: video.videoHeight });
+      console.log('🔵 Context available:', !!context);
+      
+      if (!context) {
+        console.log('🔴 Error: No se pudo obtener el contexto del canvas');
+        return;
+      }
+      
+      if (video.videoWidth === 0 || video.videoHeight === 0) {
+        console.log('🔴 Error: Video no tiene dimensiones válidas');
+        return;
+      }
+      
+      console.log('🔵 Cámara activa, iniciando captura...');
+      
+      // CONGELAR LA IMAGEN - Pausar la cámara
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.pause());
+        console.log('🔵 Cámara pausada');
+      }
+      
+      // Mostrar imagen congelada
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      console.log('🔵 Canvas configurado:', { width: canvas.width, height: canvas.height });
+      
+      // Aplicar filtros para mejorar calidad
+      context.filter = 'contrast(1.3) brightness(1.2) saturate(1.2)';
+      context.drawImage(video, 0, 0);
+      console.log('🔵 Imagen dibujada en canvas');
+      
+      // Aplicar post-procesamiento adicional
+      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      
+      // Mejorar contraste y nitidez
+      for (let i = 0; i < data.length; i += 4) {
+        // Convertir a escala de grises para OCR
+        const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
         
-        // Mostrar imagen congelada
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+        // Aplicar umbral adaptativo
+        const threshold = gray > 140 ? 255 : 0;
         
-        // Aplicar filtros para mejorar calidad
-        context.filter = 'contrast(1.3) brightness(1.2) saturate(1.2)';
-        context.drawImage(video, 0, 0);
+        // Aplicar contraste mejorado
+        const contrast = Math.min(255, Math.max(0, (gray - 128) * 1.8 + 128));
         
-        // Aplicar post-procesamiento adicional
-        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-        const data = imageData.data;
-        
-        // Mejorar contraste y nitidez
-        for (let i = 0; i < data.length; i += 4) {
-          // Convertir a escala de grises para OCR
-          const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-          
-          // Aplicar umbral adaptativo
-          const threshold = gray > 140 ? 255 : 0;
-          
-          // Aplicar contraste mejorado
-          const contrast = Math.min(255, Math.max(0, (gray - 128) * 1.8 + 128));
-          
-          data[i] = contrast;     // R
-          data[i + 1] = contrast; // G
-          data[i + 2] = contrast; // B
-          // Alpha se mantiene igual
-        }
-        
-        // Poner los datos procesados de vuelta
-        context.putImageData(imageData, 0, 0);
-        
-        const finalImageData = canvas.toDataURL('image/jpeg', 0.95);
-        
-        // ACTIVAR EFECTO DE ESCANEO
-        setShowScanningEffect(true);
-        setIsLoading(true);
-        
-        // Procesar OCR con efecto visual
-        await processOCR(finalImageData);
-        
-        // REACTIVAR CÁMARA después del procesamiento
-        if (streamRef.current) {
-          streamRef.current.getTracks().forEach(track => track.resume());
-        }
-        setShowScanningEffect(false);
+        data[i] = contrast;     // R
+        data[i + 1] = contrast; // G
+        data[i + 2] = contrast; // B
+        // Alpha se mantiene igual
+      }
+      
+      // Poner los datos procesados de vuelta
+      context.putImageData(imageData, 0, 0);
+      console.log('🔵 Post-procesamiento aplicado');
+      
+      const finalImageData = canvas.toDataURL('image/jpeg', 0.95);
+      console.log('🔵 Imagen final generada, tamaño:', finalImageData.length);
+      
+      // ACTIVAR EFECTO DE ESCANEO
+      setShowScanningEffect(true);
+      setIsLoading(true);
+      console.log('🔵 Efecto de escaneo activado');
+      
+      // Procesar OCR con efecto visual
+      console.log('🔵 Iniciando procesamiento OCR...');
+      await processOCR(finalImageData);
+      console.log('🔵 Procesamiento OCR completado');
+      
+      // REACTIVAR CÁMARA después del procesamiento
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.resume());
+        console.log('🔵 Cámara reactivada');
+      }
+      setShowScanningEffect(false);
+      setIsLoading(false);
+      console.log('🔵 Estados reseteados');
+      
+    } catch (error) {
+      console.error('🔴 Error en captura:', error);
+      setShowScanningEffect(false);
+      setIsLoading(false);
+      // REACTIVAR CÁMARA en caso de error
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.resume());
       }
     }
   };
@@ -592,11 +635,13 @@ export default function OCRScannerMobilePage() {
   // Procesar OCR con optimizaciones completas (igual que PC)
   const processOCR = async (imageData: string) => {
     try {
-      console.log('Iniciando procesamiento OCR móvil...');
+      console.log('🔵 Iniciando procesamiento OCR móvil...');
+      console.log('🔵 Tamaño de imagen recibida:', imageData.length);
       
       // SIEMPRE usar OCR.Space para mejor precisión
-      console.log('Usando OCR.Space API...');
+      console.log('🔵 Usando OCR.Space API...');
       await processOCRWithSpaceAPI(imageData);
+      console.log('🔵 OCR.Space completado');
       return;
       
       console.log('Usando Tesseract.js...');
@@ -1017,11 +1062,13 @@ export default function OCRScannerMobilePage() {
   // Procesar OCR con OCR.Space API (más preciso)
   const processOCRWithSpaceAPI = async (imageData: string) => {
     try {
-      console.log('Iniciando OCR con Space API...');
+      console.log('🔵 Iniciando OCR con Space API...');
+      console.log('🔵 Tamaño de imagen de entrada:', imageData.length);
       
       // Detectar y recortar zona de texto con Tesseract
+      console.log('🔵 Detectando y recortando texto...');
       const croppedImageData = await detectAndCropText(imageData);
-      console.log('Imagen procesada para OCR.Space:', croppedImageData);
+      console.log('🔵 Imagen procesada para OCR.Space, tamaño:', croppedImageData.length);
       
       // Convertir base64 a blob
       const base64Data = croppedImageData.split(',')[1];
@@ -1039,17 +1086,20 @@ export default function OCRScannerMobilePage() {
       formData.append('apikey', 'K88810169088957'); // API key de OCR.Space
       
       // Llamada a OCR.Space API
+      console.log('🔵 Enviando imagen a OCR.Space API...');
       const response = await fetch('https://api.ocr.space/parse/image', {
         method: 'POST',
         body: formData
       });
+      
+      console.log('🔵 Respuesta de OCR.Space recibida, status:', response.status);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       const result = await response.json();
-      console.log('Resultado OCR.Space:', result);
+      console.log('🔵 Resultado OCR.Space:', result);
       
       if (result.IsErroredOnProcessing) {
         throw new Error(result.ErrorMessage || 'Error en el procesamiento OCR');
@@ -1375,11 +1425,14 @@ export default function OCRScannerMobilePage() {
       {/* Botones de control */}
       <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-6 pb-20">
         <div className="flex gap-4 justify-center">
-          <Button 
-            onClick={captureImage}
-            disabled={isLoading}
-            className="flex-1 max-w-xs h-14 text-lg font-semibold bg-blue-600 hover:bg-blue-700 shadow-lg"
-          >
+                     <Button 
+             onClick={() => {
+               console.log('🔵 Botón Capturar clickeado');
+               captureImage();
+             }}
+             disabled={isLoading}
+             className="flex-1 max-w-xs h-14 text-lg font-semibold bg-blue-600 hover:bg-blue-700 shadow-lg"
+           >
             {isLoading ? (
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
             ) : (
