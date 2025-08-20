@@ -19,12 +19,18 @@ export default function OCRScannerMobilePage() {
   
   // Nuevos estados para OCR.Space y geolocalización
   const [useSpaceAPI, setUseSpaceAPI] = useState(true);
-  const [location, setLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [location, setLocation] = useState<{lat: number, lng: number, address?: string} | null>(null);
   const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt' | null>(null);
   
   // Estados para efectos de detección de texto
   const [detectionBox, setDetectionBox] = useState<{x: number, y: number, width: number, height: number} | null>(null);
   const [realTimeDetection, setRealTimeDetection] = useState(true);
+  
+  // Estado para efecto de escaneo durante procesamiento
+  const [showScanningEffect, setShowScanningEffect] = useState(false);
+  
+  // Estado para geolocalización
+  const [isGettingAddress, setIsGettingAddress] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -381,6 +387,12 @@ export default function OCRScannerMobilePage() {
       const context = canvas.getContext('2d');
       
       if (context && video.videoWidth > 0 && video.videoHeight > 0) {
+        // CONGELAR LA IMAGEN - Pausar la cámara
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(track => track.pause());
+        }
+        
+        // Mostrar imagen congelada
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         
@@ -412,9 +424,20 @@ export default function OCRScannerMobilePage() {
         // Poner los datos procesados de vuelta
         context.putImageData(imageData, 0, 0);
         
-                 const finalImageData = canvas.toDataURL('image/jpeg', 0.95);
-         
-         await processOCR(finalImageData);
+        const finalImageData = canvas.toDataURL('image/jpeg', 0.95);
+        
+        // ACTIVAR EFECTO DE ESCANEO
+        setShowScanningEffect(true);
+        setIsLoading(true);
+        
+        // Procesar OCR con efecto visual
+        await processOCR(finalImageData);
+        
+        // REACTIVAR CÁMARA después del procesamiento
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(track => track.resume());
+        }
+        setShowScanningEffect(false);
       }
     }
   };
@@ -568,7 +591,6 @@ export default function OCRScannerMobilePage() {
 
   // Procesar OCR con optimizaciones completas (igual que PC)
   const processOCR = async (imageData: string) => {
-    setIsLoading(true);
     try {
       console.log('Iniciando procesamiento OCR móvil...');
       
@@ -896,8 +918,6 @@ export default function OCRScannerMobilePage() {
       console.log('Worker terminado');
     } catch (error) {
       console.error('Error en OCR:', error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -925,15 +945,77 @@ export default function OCRScannerMobilePage() {
       
       console.log('Ubicación obtenida:', { latitude, longitude });
       
+      // Obtener dirección completa
+      setIsGettingAddress(true);
+      await getAddressFromCoordinates(latitude, longitude);
+      setIsGettingAddress(false);
+      
     } catch (error) {
       console.error('Error obteniendo ubicación:', error);
       setLocationPermission('denied');
     }
   };
 
+  // Obtener dirección completa desde coordenadas
+  const getAddressFromCoordinates = async (lat: number, lng: number) => {
+    try {
+      console.log('Obteniendo dirección desde coordenadas...');
+      
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+        {
+          headers: {
+            'Accept-Language': 'es,en',
+            'User-Agent': 'CVO-OCR-App/1.0'
+          }
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Datos de dirección obtenidos:', data);
+      
+      // Extraer información relevante
+      const address = data.address;
+      let fullAddress = '';
+      
+      if (address) {
+        // Construir dirección completa
+        const parts = [];
+        
+        if (address.road) parts.push(address.road);
+        if (address.house_number) parts.push(address.house_number);
+        if (address.postcode) parts.push(address.postcode);
+        if (address.city || address.town || address.village) {
+          parts.push(address.city || address.town || address.village);
+        }
+        if (address.state) parts.push(address.state);
+        if (address.country) parts.push(address.country);
+        
+        fullAddress = parts.join(', ');
+      }
+      
+      // Si no hay dirección detallada, usar display_name
+      if (!fullAddress && data.display_name) {
+        fullAddress = data.display_name;
+      }
+      
+      // Actualizar estado con dirección completa
+      setLocation(prev => prev ? { ...prev, address: fullAddress } : null);
+      
+      console.log('Dirección completa:', fullAddress);
+      
+    } catch (error) {
+      console.error('Error obteniendo dirección:', error);
+      // No fallar si no se puede obtener la dirección
+    }
+  };
+
   // Procesar OCR con OCR.Space API (más preciso)
   const processOCRWithSpaceAPI = async (imageData: string) => {
-    setIsLoading(true);
     try {
       console.log('Iniciando OCR con Space API...');
       
@@ -999,7 +1081,13 @@ export default function OCRScannerMobilePage() {
            console.log('Texto extraído con OCR.Space:', cleanedText);
            
            // MOSTRAR VENTANA CON RESULTADO Y UBICACIÓN
-           alert(`✅ OCR COMPLETADO\n\n📝 TEXTO DETECTADO: "${cleanedText}"\n\n📍 UBICACIÓN: ${location ? `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}` : 'No registrada'}`);
+           const locationInfo = location ? 
+             (location.address ? 
+               `📍 DIRECCIÓN: ${location.address}\n📍 COORDENADAS: ${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}` : 
+               `📍 COORDENADAS: ${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`
+             ) : 'No registrada';
+           
+           alert(`✅ OCR COMPLETADO\n\n📝 TEXTO DETECTADO: "${cleanedText}"\n\n${locationInfo}`);
            
            // Copiar al portapapeles automáticamente
            try {
@@ -1012,8 +1100,6 @@ export default function OCRScannerMobilePage() {
       
     } catch (error) {
       console.error('Error en OCR.Space:', error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -1056,9 +1142,13 @@ export default function OCRScannerMobilePage() {
               onClick={requestLocationPermission}
               size="sm"
               className="text-white border-white/20 hover:bg-white/20"
-              disabled={locationPermission === 'denied'}
+              disabled={locationPermission === 'denied' || isGettingAddress}
             >
-              📍
+              {isGettingAddress ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                location?.address ? '📍✓' : '📍'
+              )}
             </Button>
             
             <Button 
@@ -1140,6 +1230,74 @@ export default function OCRScannerMobilePage() {
             </div>
           )}
           
+          {/* EFECTO DE ESCANEO DURANTE PROCESAMIENTO */}
+          {showScanningEffect && (
+            <div className="absolute inset-0 pointer-events-none">
+              {/* Overlay verde semi-transparente */}
+              <div className="absolute inset-0 bg-green-500/20"></div>
+              
+              {/* Líneas de escaneo horizontales */}
+              <div className="absolute inset-0">
+                {[...Array(8)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="absolute left-0 right-0 h-1 bg-green-400 animate-pulse"
+                    style={{
+                      top: `${(i * 12.5)}%`,
+                      animationDelay: `${i * 0.1}s`,
+                      animationDuration: '1.5s'
+                    }}
+                  />
+                ))}
+              </div>
+              
+              {/* Líneas de escaneo verticales */}
+              <div className="absolute inset-0">
+                {[...Array(6)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="absolute top-0 bottom-0 w-1 bg-green-400 animate-pulse"
+                    style={{
+                      left: `${(i * 16.67)}%`,
+                      animationDelay: `${i * 0.15}s`,
+                      animationDuration: '1.5s'
+                    }}
+                  />
+                ))}
+              </div>
+              
+              {/* Círculo de escaneo central */}
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                <div className="w-32 h-32 border-4 border-green-400 rounded-full animate-ping"></div>
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-24 h-24 border-4 border-green-300 rounded-full animate-ping" style={{animationDelay: '0.5s'}}></div>
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-16 h-16 border-4 border-green-200 rounded-full animate-ping" style={{animationDelay: '1s'}}></div>
+              </div>
+              
+              {/* Texto de procesamiento */}
+              <div className="absolute bottom-1/3 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-4 py-2 rounded-full shadow-lg">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm font-semibold">Procesando imagen...</span>
+                </div>
+              </div>
+              
+              {/* Partículas de escaneo */}
+              <div className="absolute inset-0">
+                {[...Array(12)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="absolute w-1 h-1 bg-green-400 rounded-full animate-ping"
+                    style={{
+                      left: `${Math.random() * 100}%`,
+                      top: `${Math.random() * 100}%`,
+                      animationDelay: `${i * 0.2}s`,
+                      animationDuration: '2s'
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
           
         </div>
         
