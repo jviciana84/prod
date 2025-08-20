@@ -31,12 +31,25 @@ export const metadata: Metadata = {
       { url: '/android-chrome-192x192.png', sizes: '192x192', type: 'image/png' },
       { url: '/android-chrome-512x512.png', sizes: '512x512', type: 'image/png' }
     ],
-    apple: '/apple-touch-icon.png'
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }
+    ],
+    shortcut: '/favicon-round.svg'
   },
   other: {
     'theme-color': '#000000',
+    'apple-mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-status-bar-style': 'black-translucent',
+    'apple-mobile-web-app-title': 'CVO Dashboard',
     'mobile-web-app-capable': 'yes',
-    'application-name': 'CVO Dashboard'
+    'application-name': 'CVO Dashboard',
+    'msapplication-TileColor': '#000000'
+  },
+  openGraph: {
+    title: 'CVO Dashboard',
+    description: 'Sistema de gestión de vehículos CVO - App instalable',
+    type: 'website',
+    locale: 'es_ES'
   }
 }
 
