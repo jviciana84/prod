@@ -1,0 +1,47 @@
+{
+  "name": "CVO Dashboard",
+  "short_name": "CVO",
+  "description": "Sistema de gestión de vehículos CVO",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "es",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon-round.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Acceso rápido al dashboard",
+      "url": "/dashboard",
+      "icons": [
+        {
+          "src": "/android-chrome-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}
