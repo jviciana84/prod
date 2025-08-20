@@ -380,108 +380,102 @@ export default function OCRScannerMobilePage() {
     return cleanedText;
   };
 
-  // Capturar imagen
+  // Capturar imagen - VERSIÓN SIMPLIFICADA PARA DEBUG
   const captureImage = async () => {
+    console.log('🚨 INICIO DE CAPTURE IMAGE');
+    
     try {
-      console.log('🔵 Botón Capturar presionado');
-      console.log('🔵 Estado cámara:', { isCameraActive, isProcessing, isLoading });
-      console.log('🔵 Refs:', { videoRef: !!videoRef.current, canvasRef: !!canvasRef.current });
+      // PASO 1: Verificar que el botón se presionó
+      console.log('✅ PASO 1: Botón presionado correctamente');
       
-      if (!videoRef.current || !canvasRef.current) {
-        console.log('🔴 Error: videoRef o canvasRef no están disponibles');
+      // PASO 2: Verificar estados
+      console.log('✅ PASO 2: Estados actuales:', {
+        isCameraActive,
+        isProcessing,
+        isLoading,
+        hasVideoRef: !!videoRef.current,
+        hasCanvasRef: !!canvasRef.current
+      });
+      
+      // PASO 3: Verificar refs
+      if (!videoRef.current) {
+        console.log('❌ ERROR: videoRef.current es null');
+        alert('Error: videoRef no disponible');
         return;
       }
       
+      if (!canvasRef.current) {
+        console.log('❌ ERROR: canvasRef.current es null');
+        alert('Error: canvasRef no disponible');
+        return;
+      }
+      
+      console.log('✅ PASO 3: Refs disponibles');
+      
+      // PASO 4: Verificar video
       const video = videoRef.current;
+      console.log('✅ PASO 4: Video encontrado, dimensiones:', {
+        width: video.videoWidth,
+        height: video.videoHeight,
+        readyState: video.readyState
+      });
+      
+      if (video.videoWidth === 0 || video.videoHeight === 0) {
+        console.log('❌ ERROR: Video no tiene dimensiones válidas');
+        alert('Error: Video no tiene dimensiones válidas');
+        return;
+      }
+      
+      // PASO 5: Verificar canvas
       const canvas = canvasRef.current;
       const context = canvas.getContext('2d');
       
-      console.log('🔵 Video dimensions:', { width: video.videoWidth, height: video.videoHeight });
-      console.log('🔵 Context available:', !!context);
-      
       if (!context) {
-        console.log('🔴 Error: No se pudo obtener el contexto del canvas');
+        console.log('❌ ERROR: No se pudo obtener contexto del canvas');
+        alert('Error: No se pudo obtener contexto del canvas');
         return;
       }
       
-      if (video.videoWidth === 0 || video.videoHeight === 0) {
-        console.log('🔴 Error: Video no tiene dimensiones válidas');
-        return;
-      }
+      console.log('✅ PASO 5: Contexto del canvas obtenido');
       
-      console.log('🔵 Cámara activa, iniciando captura...');
-      
-      // CONGELAR LA IMAGEN - Pausar la cámara
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.pause());
-        console.log('🔵 Cámara pausada');
-      }
-      
-      // Mostrar imagen congelada
+      // PASO 6: Configurar canvas
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
-      console.log('🔵 Canvas configurado:', { width: canvas.width, height: canvas.height });
+      console.log('✅ PASO 6: Canvas configurado:', { width: canvas.width, height: canvas.height });
       
-      // Aplicar filtros para mejorar calidad
-      context.filter = 'contrast(1.3) brightness(1.2) saturate(1.2)';
+      // PASO 7: Dibujar imagen
       context.drawImage(video, 0, 0);
-      console.log('🔵 Imagen dibujada en canvas');
+      console.log('✅ PASO 7: Imagen dibujada en canvas');
       
-      // Aplicar post-procesamiento adicional
-      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imageData.data;
+      // PASO 8: Generar imagen final
+      const finalImageData = canvas.toDataURL('image/jpeg', 0.8);
+      console.log('✅ PASO 8: Imagen final generada, tamaño:', finalImageData.length);
       
-      // Mejorar contraste y nitidez
-      for (let i = 0; i < data.length; i += 4) {
-        // Convertir a escala de grises para OCR
-        const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-        
-        // Aplicar umbral adaptativo
-        const threshold = gray > 140 ? 255 : 0;
-        
-        // Aplicar contraste mejorado
-        const contrast = Math.min(255, Math.max(0, (gray - 128) * 1.8 + 128));
-        
-        data[i] = contrast;     // R
-        data[i + 1] = contrast; // G
-        data[i + 2] = contrast; // B
-        // Alpha se mantiene igual
-      }
-      
-      // Poner los datos procesados de vuelta
-      context.putImageData(imageData, 0, 0);
-      console.log('🔵 Post-procesamiento aplicado');
-      
-      const finalImageData = canvas.toDataURL('image/jpeg', 0.95);
-      console.log('🔵 Imagen final generada, tamaño:', finalImageData.length);
-      
-      // ACTIVAR EFECTO DE ESCANEO
+      // PASO 9: Activar efectos visuales
       setShowScanningEffect(true);
       setIsLoading(true);
-      console.log('🔵 Efecto de escaneo activado');
+      console.log('✅ PASO 9: Efectos visuales activados');
       
-      // Procesar OCR con efecto visual
-      console.log('🔵 Iniciando procesamiento OCR...');
-      await processOCR(finalImageData);
-      console.log('🔵 Procesamiento OCR completado');
+      // PASO 10: Mostrar alerta de prueba
+      alert('✅ CAPTURA EXITOSA\n\nImagen capturada correctamente.\nTamaño: ' + finalImageData.length + ' bytes');
       
-      // REACTIVAR CÁMARA después del procesamiento
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.resume());
-        console.log('🔵 Cámara reactivada');
-      }
-      setShowScanningEffect(false);
-      setIsLoading(false);
-      console.log('🔵 Estados reseteados');
+      // PASO 11: Procesar OCR (simplificado)
+      console.log('✅ PASO 11: Iniciando OCR simplificado...');
+      
+      // Simular procesamiento OCR
+      setTimeout(() => {
+        console.log('✅ PASO 12: OCR simulado completado');
+        setScannedText('TEXTO DE PRUEBA - OCR FUNCIONANDO');
+        setShowScanningEffect(false);
+        setIsLoading(false);
+        alert('✅ OCR COMPLETADO\n\nTexto detectado: "TEXTO DE PRUEBA - OCR FUNCIONANDO"');
+      }, 2000);
       
     } catch (error) {
-      console.error('🔴 Error en captura:', error);
+      console.error('❌ ERROR CRÍTICO en captureImage:', error);
+      alert('❌ ERROR: ' + error.message);
       setShowScanningEffect(false);
       setIsLoading(false);
-      // REACTIVAR CÁMARA en caso de error
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.resume());
-      }
     }
   };
 
@@ -1427,18 +1421,19 @@ export default function OCRScannerMobilePage() {
         <div className="flex gap-4 justify-center">
                      <Button 
              onClick={() => {
-               console.log('🔵 Botón Capturar clickeado');
+               console.log('🚨 BOTÓN CAPTURAR CLICKEADO - INICIO');
+               alert('🚨 Botón Capturar presionado - Iniciando captura...');
                captureImage();
              }}
              disabled={isLoading}
-             className="flex-1 max-w-xs h-14 text-lg font-semibold bg-blue-600 hover:bg-blue-700 shadow-lg"
+             className="flex-1 max-w-xs h-14 text-lg font-semibold bg-red-600 hover:bg-red-700 shadow-lg"
            >
             {isLoading ? (
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
             ) : (
               <Camera className="mr-2 h-5 w-5" />
             )}
-            {isLoading ? 'Procesando...' : 'Capturar'}
+            {isLoading ? 'Procesando...' : 'CAPTURAR (DEBUG)'}
           </Button>
           
           <Button 
