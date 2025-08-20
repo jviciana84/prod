@@ -1,17 +1,29 @@
-// Service Worker - PUSH NOTIFICATIONS ANULADO
-// Solo campana activa
+// Service Worker - PWA básico
+const CACHE_NAME = 'cvo-dashboard-v1'
+const urlsToCache = [
+  '/',
+  '/dashboard',
+  '/globals.css'
+]
 
 self.addEventListener("install", (event) => {
-  console.log("Service Worker instalado (push anulado)")
+  console.log("Service Worker instalado - PWA")
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => {
+        console.log('Cache abierto')
+        return cache.addAll(urlsToCache)
+      })
+  )
   self.skipWaiting()
 })
 
 self.addEventListener("activate", (event) => {
-  console.log("Service Worker activado (push anulado)")
+  console.log("Service Worker activado - PWA")
   event.waitUntil(self.clients.claim())
 })
 
-// PUSH EVENT ANULADO - No procesar push notifications
+// PUSH EVENT - Mantener funcionalidad existente
 self.addEventListener("push", (event) => {
   console.log("Push event recibido pero anulado - solo campana activa")
   // No hacer nada - push anulado

@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from "@/components/auth/auth-provider"
 import { PushProcessor } from "@/components/push-processor"
+import { PWAInstaller } from "@/components/pwa-installer"
 
 // import ThemeHtmlSync from "@/components/theme-html-sync"
 // import { RoundFavicon } from "@/components/ui/round-favicon"
@@ -21,15 +22,22 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "CVO Dashboard",
-  description: "Sistema de gestión de vehículos",
+  description: "Sistema de gestión de vehículos CVO - App instalable",
   generator: 'v0.dev',
+  manifest: '/manifest.json',
   icons: {
-    icon: '/favicon-round.svg',
-    apple: '/favicon-round.svg',
+    icon: [
+      { url: '/favicon-round.svg', type: 'image/svg+xml' },
+      { url: '/android-chrome-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/android-chrome-512x512.png', sizes: '512x512', type: 'image/png' }
+    ],
+    apple: '/apple-touch-icon.png'
   },
   other: {
     'theme-color': '#000000',
-  },
+    'mobile-web-app-capable': 'yes',
+    'application-name': 'CVO Dashboard'
+  }
 }
 
 export const viewport: Viewport = {
@@ -69,6 +77,7 @@ export default function RootLayout({
             {children}
             <Toaster />
             <PushProcessor />
+            <PWAInstaller />
           </AuthProvider>
         </ThemeProvider>
       </body>
