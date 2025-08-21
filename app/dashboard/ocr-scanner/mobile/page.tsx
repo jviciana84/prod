@@ -31,6 +31,13 @@ export default function OCRScannerMobilePage() {
   
   // Estado para geolocalización
   const [isGettingAddress, setIsGettingAddress] = useState(false);
+  
+  // Estados para selección de texto y entrenamiento de matrículas
+  const [detectedTexts, setDetectedTexts] = useState<string[]>([]);
+  const [selectedTextIndex, setSelectedTextIndex] = useState<number | null>(null);
+  const [showTextSelector, setShowTextSelector] = useState(false);
+  const [licensePlateMode, setLicensePlateMode] = useState(false);
+  const [licensePlatePattern, setLicensePlatePattern] = useState<string>('');
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -538,31 +545,74 @@ export default function OCRScannerMobilePage() {
         const extractedText = result.ParsedResults[0].ParsedText;
         
         if (extractedText && extractedText.trim()) {
-          // Limpiar y procesar el texto según el modo
-          let cleanedText = extractedText.trim();
+          // Dividir el texto en líneas y palabras
+          const lines = extractedText.split('\n').filter(line => line.trim());
+          const allTexts: string[] = [];
+          
+          lines.forEach(line => {
+            const words = line.split(' ').filter(word => word.trim());
+            words.forEach(word => {
+              const cleanedWord = word.trim().replace(/[^A-Z0-9]/gi, '');
+              if (cleanedWord.length >= 2) {
+                allTexts.push(cleanedWord.toUpperCase());
+              }
+            });
+            // También añadir la línea completa si es válida
+            const cleanedLine = line.trim().replace(/[^A-Z0-9\s]/gi, '').trim();
+            if (cleanedLine.length >= 3) {
+              allTexts.push(cleanedLine.toUpperCase());
+            }
+          });
+          
+          // Filtrar textos según el modo
+          let filteredTexts = allTexts;
           
           if (scanMode === 'code') {
-            // Para códigos, extraer solo alfanumérico
-            const alphanumericCode = cleanedText.replace(/[^A-Z0-9]/gi, '').trim();
-            if (alphanumericCode.length >= 4 && alphanumericCode.length <= 10) {
-              cleanedText = alphanumericCode.toUpperCase();
-            }
+            // Para códigos, solo alfanumérico de 4-10 caracteres
+            filteredTexts = allTexts.filter(text => 
+              /^[A-Z0-9]{4,10}$/.test(text)
+            );
           } else if (scanMode === 'license') {
-            // Para matrículas, formato específico
-            const licensePattern = /[A-Z0-9]{4,8}/gi;
-            const match = cleanedText.match(licensePattern);
-            if (match) {
-              cleanedText = match[0].toUpperCase();
+            // Para matrículas, patrones específicos
+            if (licensePlateMode) {
+              // Modo entrenado: usar patrón personalizado
+              const pattern = new RegExp(licensePlatePattern || '[A-Z0-9]{4,8}', 'i');
+              filteredTexts = allTexts.filter(text => pattern.test(text));
+            } else {
+              // Modo automático: patrones comunes de matrículas
+              const licensePatterns = [
+                /^[A-Z0-9]{4,8}$/, // Formato básico
+                /^[A-Z]{2,3}[0-9]{3,4}[A-Z]{1,2}$/, // Formato español
+                /^[0-9]{4}[A-Z]{3}$/, // Formato europeo
+              ];
+              filteredTexts = allTexts.filter(text => 
+                licensePatterns.some(pattern => pattern.test(text))
+              );
             }
           }
           
-          setScannedText(cleanedText);
+          // Eliminar duplicados y ordenar por longitud
+          const uniqueTexts = [...new Set(filteredTexts)].sort((a, b) => b.length - a.length);
           
-          // Copiar al portapapeles automáticamente
-          try {
-            await navigator.clipboard.writeText(cleanedText);
-          } catch (e) {
-            // Error silencioso
+          if (uniqueTexts.length > 0) {
+            setDetectedTexts(uniqueTexts);
+            setShowTextSelector(true);
+            
+            // Si solo hay un texto, seleccionarlo automáticamente
+            if (uniqueTexts.length === 1) {
+              setSelectedTextIndex(0);
+              setScannedText(uniqueTexts[0]);
+              setShowTextSelector(false);
+              
+              // Copiar al portapapeles automáticamente
+              try {
+                await navigator.clipboard.writeText(uniqueTexts[0]);
+              } catch (e) {
+                // Error silencioso
+              }
+            }
+          } else {
+            setScannedText('No se detectó texto válido');
           }
         }
       }
@@ -570,6 +620,35 @@ export default function OCRScannerMobilePage() {
     } catch (error) {
       // Error silencioso
     }
+  };
+
+  // Seleccionar texto detectado
+  const selectText = (index: number) => {
+    setSelectedTextIndex(index);
+    setScannedText(detectedTexts[index]);
+    setShowTextSelector(false);
+    
+    // Copiar al portapapeles
+    navigator.clipboard.writeText(detectedTexts[index]).catch(() => {});
+  };
+
+  // Cancelar selección de texto
+  const cancelTextSelection = () => {
+    setShowTextSelector(false);
+    setDetectedTexts([]);
+    setSelectedTextIndex(null);
+  };
+
+  // Entrenar patrón de matrícula
+  const trainLicensePlatePattern = (example: string) => {
+    // Analizar el ejemplo y crear un patrón
+    const pattern = example
+      .replace(/[A-Z]/g, '[A-Z]')
+      .replace(/[0-9]/g, '[0-9]')
+      .replace(/[^A-Z0-9]/g, '');
+    
+    setLicensePlatePattern(pattern);
+    setLicensePlateMode(true);
   };
 
   // Detectar y recortar zona de texto con Tesseract
@@ -960,27 +1039,27 @@ export default function OCRScannerMobilePage() {
             </div>
           )}
           
-          {/* Marca de agua tipo cámara profesional */}
-          <div className="absolute inset-0 pointer-events-none">
-            {/* Esquinas de guía de centrado */}
-            <div className="absolute top-8 left-8 w-12 h-12 border-l-2 border-t-2 border-white/40"></div>
-            <div className="absolute top-8 right-8 w-12 h-12 border-r-2 border-t-2 border-white/40"></div>
-            <div className="absolute bottom-8 left-8 w-12 h-12 border-l-2 border-b-2 border-white/40"></div>
-            <div className="absolute bottom-8 right-8 w-12 h-12 border-r-2 border-b-2 border-white/40"></div>
+                     {/* Marca de agua tipo cámara profesional */}
+           <div className="absolute inset-0 pointer-events-none">
+             {/* Esquinas de guía de centrado */}
+             <div className="absolute top-8 left-8 w-12 h-12 border-l-2 border-t-2 border-white/70"></div>
+             <div className="absolute top-8 right-8 w-12 h-12 border-r-2 border-t-2 border-white/70"></div>
+             <div className="absolute bottom-8 left-8 w-12 h-12 border-l-2 border-b-2 border-white/70"></div>
+             <div className="absolute bottom-8 right-8 w-12 h-12 border-r-2 border-b-2 border-white/70"></div>
             
-            {/* Centro de enfoque */}
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-              <div className="w-2 h-2 bg-white/60 rounded-full"></div>
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-16 h-16 border border-white/30 rounded-full"></div>
-            </div>
-            
-            {/* Líneas de guía horizontales */}
-            <div className="absolute top-1/3 left-0 right-0 h-px bg-white/20"></div>
-            <div className="absolute top-2/3 left-0 right-0 h-px bg-white/20"></div>
-            
-            {/* Líneas de guía verticales */}
-            <div className="absolute top-0 bottom-0 left-1/3 w-px bg-white/20"></div>
-            <div className="absolute top-0 bottom-0 left-2/3 w-px bg-white/20"></div>
+                         {/* Centro de enfoque */}
+             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+               <div className="w-2 h-2 bg-white/80 rounded-full"></div>
+               <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-16 h-16 border border-white/50 rounded-full"></div>
+             </div>
+             
+             {/* Líneas de guía horizontales */}
+             <div className="absolute top-1/3 left-0 right-0 h-px bg-white/40"></div>
+             <div className="absolute top-2/3 left-0 right-0 h-px bg-white/40"></div>
+             
+             {/* Líneas de guía verticales */}
+             <div className="absolute top-0 bottom-0 left-1/3 w-px bg-white/40"></div>
+             <div className="absolute top-0 bottom-0 left-2/3 w-px bg-white/40"></div>
             
             {/* Indicador de resolución */}
             <div className="absolute bottom-4 left-4 bg-black/50 text-white/80 px-2 py-1 rounded text-xs font-mono">
@@ -1012,10 +1091,10 @@ export default function OCRScannerMobilePage() {
               </div>
             )}
             
-            {/* Indicador de modo */}
-            <div className="absolute top-1/2 left-4 transform -translate-y-1/2 bg-black/50 text-white/80 px-2 py-1 rounded text-xs">
-              {scanMode === 'code' ? 'CODE' : scanMode === 'license' ? 'LICENSE' : 'TEXT'}
-            </div>
+                         {/* Indicador de modo */}
+             <div className="absolute top-1/2 left-4 transform -translate-y-1/2 bg-black/50 text-white/80 px-2 py-1 rounded text-xs">
+               {scanMode === 'code' ? 'CODE' : scanMode === 'license' ? (licensePlateMode ? 'TRAINED' : 'LICENSE') : 'TEXT'}
+             </div>
             
             {/* Indicador de calidad */}
             <div className="absolute top-1/2 right-4 transform -translate-y-1/2 bg-black/50 text-white/80 px-2 py-1 rounded text-xs">
@@ -1047,10 +1126,67 @@ export default function OCRScannerMobilePage() {
         )}
 
         {/* Texto detectado en tiempo real */}
-        {scannedText && (
+        {scannedText && !showTextSelector && (
           <div className="absolute top-20 right-4 bg-black/70 text-white p-3 rounded-lg max-w-xs">
             <p className="text-xs font-medium mb-2">Texto detectado:</p>
             <p className="text-sm whitespace-pre-wrap">{scannedText}</p>
+          </div>
+        )}
+
+        {/* Selector de texto detectado */}
+        {showTextSelector && (
+          <div className="absolute top-20 right-4 bg-black/90 text-white p-4 rounded-lg max-w-xs max-h-96 overflow-y-auto">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-medium">Selecciona el texto:</p>
+              <Button
+                onClick={cancelTextSelection}
+                variant="ghost"
+                size="sm"
+                className="text-white hover:bg-white/20 h-6 w-6 p-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="space-y-2">
+              {detectedTexts.map((text, index) => (
+                <div
+                  key={index}
+                  onClick={() => selectText(index)}
+                  className={`p-2 rounded cursor-pointer transition-colors ${
+                    selectedTextIndex === index
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-700 hover:bg-gray-600 text-white'
+                  }`}
+                >
+                  <p className="text-sm font-mono">{text}</p>
+                  {scanMode === 'license' && (
+                    <p className="text-xs text-gray-300 mt-1">
+                      {licensePlateMode ? 'Patrón entrenado' : 'Matrícula detectada'}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+            
+            {scanMode === 'license' && detectedTexts.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-gray-600">
+                <p className="text-xs text-gray-300 mb-2">Entrenar patrón:</p>
+                <div className="flex gap-1 flex-wrap">
+                  {detectedTexts.slice(0, 3).map((text, index) => (
+                    <Button
+                      key={index}
+                      onClick={() => trainLicensePlatePattern(text)}
+                      variant="outline"
+                      size="sm"
+                      className="text-xs h-6 px-2 border-gray-500 text-gray-300 hover:bg-gray-600"
+                    >
+                      Entrenar "{text}"
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

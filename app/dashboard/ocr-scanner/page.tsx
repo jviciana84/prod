@@ -31,6 +31,13 @@ export default function OCRScannerPage() {
   
   // Estado para geolocalización
   const [isGettingAddress, setIsGettingAddress] = useState(false);
+  
+  // Estados para selección de texto y entrenamiento de matrículas
+  const [detectedTexts, setDetectedTexts] = useState<string[]>([]);
+  const [selectedTextIndex, setSelectedTextIndex] = useState<number | null>(null);
+  const [showTextSelector, setShowTextSelector] = useState(false);
+  const [licensePlateMode, setLicensePlateMode] = useState(false);
+  const [licensePlatePattern, setLicensePlatePattern] = useState<string>('');
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -582,6 +589,35 @@ export default function OCRScannerPage() {
     }
   };
 
+  // Seleccionar texto detectado
+  const selectText = (index: number) => {
+    setSelectedTextIndex(index);
+    setScannedText(detectedTexts[index]);
+    setShowTextSelector(false);
+    
+    // Copiar al portapapeles
+    navigator.clipboard.writeText(detectedTexts[index]).catch(() => {});
+  };
+
+  // Cancelar selección de texto
+  const cancelTextSelection = () => {
+    setShowTextSelector(false);
+    setDetectedTexts([]);
+    setSelectedTextIndex(null);
+  };
+
+  // Entrenar patrón de matrícula
+  const trainLicensePlatePattern = (example: string) => {
+    // Analizar el ejemplo y crear un patrón
+    const pattern = example
+      .replace(/[A-Z]/g, '[A-Z]')
+      .replace(/[0-9]/g, '[0-9]')
+      .replace(/[^A-Z0-9]/g, '');
+    
+    setLicensePlatePattern(pattern);
+    setLicensePlateMode(true);
+  };
+
   // Procesar OCR con OCR.Space API (más preciso)
   const processOCRWithSpaceAPI = async (imageData: string) => {
     try {
@@ -619,38 +655,81 @@ export default function OCRScannerPage() {
         throw new Error(result.ErrorMessage || 'Error en el procesamiento OCR');
       }
       
-      if (result.ParsedResults && result.ParsedResults.length > 0) {
-        const extractedText = result.ParsedResults[0].ParsedText;
-        
-        if (extractedText && extractedText.trim()) {
-          // Limpiar y procesar el texto según el modo
-          let cleanedText = extractedText.trim();
-          
-          if (scanMode === 'code') {
-            // Para códigos, extraer solo alfanumérico
-            const alphanumericCode = cleanedText.replace(/[^A-Z0-9]/gi, '').trim();
-            if (alphanumericCode.length >= 4 && alphanumericCode.length <= 10) {
-              cleanedText = alphanumericCode.toUpperCase();
-            }
-          } else if (scanMode === 'license') {
-            // Para matrículas, formato específico
-            const licensePattern = /[A-Z0-9]{4,8}/gi;
-            const match = cleanedText.match(licensePattern);
-            if (match) {
-              cleanedText = match[0].toUpperCase();
-            }
-          }
-          
-          setScannedText(cleanedText);
-          
-          // Copiar al portapapeles automáticamente
-          try {
-            await navigator.clipboard.writeText(cleanedText);
-          } catch (e) {
-            // Error silencioso
-          }
-        }
-      }
+             if (result.ParsedResults && result.ParsedResults.length > 0) {
+         const extractedText = result.ParsedResults[0].ParsedText;
+         
+         if (extractedText && extractedText.trim()) {
+           // Dividir el texto en líneas y palabras
+           const lines = extractedText.split('\n').filter(line => line.trim());
+           const allTexts: string[] = [];
+           
+           lines.forEach(line => {
+             const words = line.split(' ').filter(word => word.trim());
+             words.forEach(word => {
+               const cleanedWord = word.trim().replace(/[^A-Z0-9]/gi, '');
+               if (cleanedWord.length >= 2) {
+                 allTexts.push(cleanedWord.toUpperCase());
+               }
+             });
+             // También añadir la línea completa si es válida
+             const cleanedLine = line.trim().replace(/[^A-Z0-9\s]/gi, '').trim();
+             if (cleanedLine.length >= 3) {
+               allTexts.push(cleanedLine.toUpperCase());
+             }
+           });
+           
+           // Filtrar textos según el modo
+           let filteredTexts = allTexts;
+           
+           if (scanMode === 'code') {
+             // Para códigos, solo alfanumérico de 4-10 caracteres
+             filteredTexts = allTexts.filter(text => 
+               /^[A-Z0-9]{4,10}$/.test(text)
+             );
+           } else if (scanMode === 'license') {
+             // Para matrículas, patrones específicos
+             if (licensePlateMode) {
+               // Modo entrenado: usar patrón personalizado
+               const pattern = new RegExp(licensePlatePattern || '[A-Z0-9]{4,8}', 'i');
+               filteredTexts = allTexts.filter(text => pattern.test(text));
+             } else {
+               // Modo automático: patrones comunes de matrículas
+               const licensePatterns = [
+                 /^[A-Z0-9]{4,8}$/, // Formato básico
+                 /^[A-Z]{2,3}[0-9]{3,4}[A-Z]{1,2}$/, // Formato español
+                 /^[0-9]{4}[A-Z]{3}$/, // Formato europeo
+               ];
+               filteredTexts = allTexts.filter(text => 
+                 licensePatterns.some(pattern => pattern.test(text))
+               );
+             }
+           }
+           
+           // Eliminar duplicados y ordenar por longitud
+           const uniqueTexts = [...new Set(filteredTexts)].sort((a, b) => b.length - a.length);
+           
+           if (uniqueTexts.length > 0) {
+             setDetectedTexts(uniqueTexts);
+             setShowTextSelector(true);
+             
+             // Si solo hay un texto, seleccionarlo automáticamente
+             if (uniqueTexts.length === 1) {
+               setSelectedTextIndex(0);
+               setScannedText(uniqueTexts[0]);
+               setShowTextSelector(false);
+               
+               // Copiar al portapapeles automáticamente
+               try {
+                 await navigator.clipboard.writeText(uniqueTexts[0]);
+               } catch (e) {
+                 // Error silencioso
+               }
+             }
+           } else {
+             setScannedText('No se detectó texto válido');
+           }
+         }
+       }
       
     } catch (error) {
       // Error silencioso
@@ -739,27 +818,27 @@ export default function OCRScannerPage() {
                   className="w-full h-64 object-cover"
                 />
                 
-                {/* Marca de agua tipo cámara profesional */}
-                <div className="absolute inset-0 pointer-events-none">
-                  {/* Esquinas de guía de centrado */}
-                  <div className="absolute top-4 left-4 w-8 h-8 border-l-2 border-t-2 border-white/40"></div>
-                  <div className="absolute top-4 right-4 w-8 h-8 border-r-2 border-t-2 border-white/40"></div>
-                  <div className="absolute bottom-4 left-4 w-8 h-8 border-l-2 border-b-2 border-white/40"></div>
-                  <div className="absolute bottom-4 right-4 w-8 h-8 border-r-2 border-b-2 border-white/40"></div>
+                                 {/* Marca de agua tipo cámara profesional */}
+                 <div className="absolute inset-0 pointer-events-none">
+                   {/* Esquinas de guía de centrado */}
+                   <div className="absolute top-4 left-4 w-8 h-8 border-l-2 border-t-2 border-white/70"></div>
+                   <div className="absolute top-4 right-4 w-8 h-8 border-r-2 border-t-2 border-white/70"></div>
+                   <div className="absolute bottom-4 left-4 w-8 h-8 border-l-2 border-b-2 border-white/70"></div>
+                   <div className="absolute bottom-4 right-4 w-8 h-8 border-r-2 border-b-2 border-white/70"></div>
                   
-                  {/* Centro de enfoque */}
-                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                    <div className="w-1.5 h-1.5 bg-white/60 rounded-full"></div>
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 border border-white/30 rounded-full"></div>
-                  </div>
-                  
-                  {/* Líneas de guía horizontales */}
-                  <div className="absolute top-1/3 left-0 right-0 h-px bg-white/20"></div>
-                  <div className="absolute top-2/3 left-0 right-0 h-px bg-white/20"></div>
-                  
-                  {/* Líneas de guía verticales */}
-                  <div className="absolute top-0 bottom-0 left-1/3 w-px bg-white/20"></div>
-                  <div className="absolute top-0 bottom-0 left-2/3 w-px bg-white/20"></div>
+                                     {/* Centro de enfoque */}
+                   <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                     <div className="w-1.5 h-1.5 bg-white/80 rounded-full"></div>
+                     <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 border border-white/50 rounded-full"></div>
+                   </div>
+                   
+                   {/* Líneas de guía horizontales */}
+                   <div className="absolute top-1/3 left-0 right-0 h-px bg-white/40"></div>
+                   <div className="absolute top-2/3 left-0 right-0 h-px bg-white/40"></div>
+                   
+                   {/* Líneas de guía verticales */}
+                   <div className="absolute top-0 bottom-0 left-1/3 w-px bg-white/40"></div>
+                   <div className="absolute top-0 bottom-0 left-2/3 w-px bg-white/40"></div>
                   
                   {/* Indicador de resolución */}
                   <div className="absolute bottom-2 left-2 bg-black/50 text-white/80 px-1.5 py-0.5 rounded text-xs font-mono">
