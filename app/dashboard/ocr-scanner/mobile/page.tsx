@@ -579,15 +579,26 @@ export default function OCRScannerMobilePage() {
               const pattern = new RegExp(licensePlatePattern || '[A-Z0-9]{4,8}', 'i');
               filteredTexts = allTexts.filter(text => pattern.test(text));
             } else {
-              // Modo automático: patrones comunes de matrículas
+              // Modo automático: patrones comunes de matrículas - MEJORADO
               const licensePatterns = [
                 /^[A-Z0-9]{4,8}$/, // Formato básico
                 /^[A-Z]{2,3}[0-9]{3,4}[A-Z]{1,2}$/, // Formato español
                 /^[0-9]{4}[A-Z]{3}$/, // Formato europeo
+                /^[A-Z]{1,2}[0-9]{4}[A-Z]{1,2}$/, // Formato con letras al inicio y final
+                /^[0-9]{2}[A-Z]{3}[0-9]{2}$/, // Formato 2 números + 3 letras + 2 números
+                /^[A-Z]{3}[0-9]{3}$/, // Formato 3 letras + 3 números
+                /^[0-9]{3}[A-Z]{3}$/, // Formato 3 números + 3 letras
               ];
-              filteredTexts = allTexts.filter(text => 
-                licensePatterns.some(pattern => pattern.test(text))
-              );
+              
+              // Filtrar textos que contengan al menos 2 letras y 2 números
+              filteredTexts = allTexts.filter(text => {
+                const hasLetters = /[A-Z]/.test(text);
+                const hasNumbers = /[0-9]/.test(text);
+                const hasMinLength = text.length >= 4 && text.length <= 8;
+                
+                return hasLetters && hasNumbers && hasMinLength && 
+                       licensePatterns.some(pattern => pattern.test(text));
+              });
             }
           }
           
@@ -1041,11 +1052,11 @@ export default function OCRScannerMobilePage() {
           
                      {/* Marca de agua tipo cámara profesional */}
            <div className="absolute inset-0 pointer-events-none">
-             {/* Esquinas de guía de centrado */}
-             <div className="absolute top-8 left-8 w-12 h-12 border-l-2 border-t-2 border-white/70"></div>
-             <div className="absolute top-8 right-8 w-12 h-12 border-r-2 border-t-2 border-white/70"></div>
-             <div className="absolute bottom-8 left-8 w-12 h-12 border-l-2 border-b-2 border-white/70"></div>
-             <div className="absolute bottom-8 right-8 w-12 h-12 border-r-2 border-b-2 border-white/70"></div>
+             {/* Esquinas de guía de centrado - más hacia adentro */}
+             <div className="absolute top-16 left-16 w-12 h-12 border-l-2 border-t-2 border-white/70"></div>
+             <div className="absolute top-16 right-16 w-12 h-12 border-r-2 border-t-2 border-white/70"></div>
+             <div className="absolute bottom-16 left-16 w-12 h-12 border-l-2 border-b-2 border-white/70"></div>
+             <div className="absolute bottom-16 right-16 w-12 h-12 border-r-2 border-b-2 border-white/70"></div>
             
                          {/* Centro de enfoque */}
              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">

@@ -820,11 +820,11 @@ export default function OCRScannerPage() {
                 
                                  {/* Marca de agua tipo cámara profesional */}
                  <div className="absolute inset-0 pointer-events-none">
-                   {/* Esquinas de guía de centrado */}
-                   <div className="absolute top-4 left-4 w-8 h-8 border-l-2 border-t-2 border-white/70"></div>
-                   <div className="absolute top-4 right-4 w-8 h-8 border-r-2 border-t-2 border-white/70"></div>
-                   <div className="absolute bottom-4 left-4 w-8 h-8 border-l-2 border-b-2 border-white/70"></div>
-                   <div className="absolute bottom-4 right-4 w-8 h-8 border-r-2 border-b-2 border-white/70"></div>
+                   {/* Esquinas de guía de centrado - más hacia adentro */}
+                   <div className="absolute top-8 left-8 w-8 h-8 border-l-2 border-t-2 border-white/70"></div>
+                   <div className="absolute top-8 right-8 w-8 h-8 border-r-2 border-t-2 border-white/70"></div>
+                   <div className="absolute bottom-8 left-8 w-8 h-8 border-l-2 border-b-2 border-white/70"></div>
+                   <div className="absolute bottom-8 right-8 w-8 h-8 border-r-2 border-b-2 border-white/70"></div>
                   
                                      {/* Centro de enfoque */}
                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
