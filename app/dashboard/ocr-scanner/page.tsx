@@ -692,17 +692,33 @@ export default function OCRScannerPage() {
                // Modo entrenado: usar patrón personalizado
                const pattern = new RegExp(licensePlatePattern || '[A-Z0-9]{4,8}', 'i');
                filteredTexts = allTexts.filter(text => pattern.test(text));
-             } else {
-               // Modo automático: patrones comunes de matrículas
-               const licensePatterns = [
-                 /^[A-Z0-9]{4,8}$/, // Formato básico
-                 /^[A-Z]{2,3}[0-9]{3,4}[A-Z]{1,2}$/, // Formato español
-                 /^[0-9]{4}[A-Z]{3}$/, // Formato europeo
-               ];
-               filteredTexts = allTexts.filter(text => 
-                 licensePatterns.some(pattern => pattern.test(text))
-               );
-             }
+                           } else {
+                // Modo automático: patrones más flexibles para matrículas
+                // Ser más permisivo para capturar letras y números
+                filteredTexts = allTexts.filter(text => {
+                  // Debe tener al menos 1 letra y 1 número
+                  const hasLetters = /[A-Z]/.test(text);
+                  const hasNumbers = /[0-9]/.test(text);
+                  const hasMinLength = text.length >= 3 && text.length <= 10;
+                  
+                  // Si tiene letras y números, es candidato
+                  if (hasLetters && hasNumbers && hasMinLength) {
+                    return true;
+                  }
+                  
+                  // También aceptar solo números si son 4-6 dígitos (parte de matrícula)
+                  if (!hasLetters && hasNumbers && text.length >= 4 && text.length <= 6) {
+                    return true;
+                  }
+                  
+                  // También aceptar solo letras si son 2-4 caracteres (parte de matrícula)
+                  if (hasLetters && !hasNumbers && text.length >= 2 && text.length <= 4) {
+                    return true;
+                  }
+                  
+                  return false;
+                });
+              }
            }
            
            // Eliminar duplicados y ordenar por longitud
@@ -820,11 +836,11 @@ export default function OCRScannerPage() {
                 
                                  {/* Marca de agua tipo cámara profesional */}
                  <div className="absolute inset-0 pointer-events-none">
-                   {/* Esquinas de guía de centrado - más hacia adentro */}
-                   <div className="absolute top-8 left-8 w-8 h-8 border-l-2 border-t-2 border-white/70"></div>
-                   <div className="absolute top-8 right-8 w-8 h-8 border-r-2 border-t-2 border-white/70"></div>
-                   <div className="absolute bottom-8 left-8 w-8 h-8 border-l-2 border-b-2 border-white/70"></div>
-                   <div className="absolute bottom-8 right-8 w-8 h-8 border-r-2 border-b-2 border-white/70"></div>
+                   {/* Esquinas de guía de centrado - mucho más hacia adentro */}
+                   <div className="absolute top-12 left-12 w-8 h-8 border-l-2 border-t-2 border-white/70"></div>
+                   <div className="absolute top-12 right-12 w-8 h-8 border-r-2 border-t-2 border-white/70"></div>
+                   <div className="absolute bottom-16 left-12 w-8 h-8 border-l-2 border-b-2 border-white/70"></div>
+                   <div className="absolute bottom-16 right-12 w-8 h-8 border-r-2 border-b-2 border-white/70"></div>
                   
                                      {/* Centro de enfoque */}
                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
