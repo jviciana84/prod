@@ -960,6 +960,68 @@ export default function OCRScannerMobilePage() {
             </div>
           )}
           
+          {/* Marca de agua tipo cámara profesional */}
+          <div className="absolute inset-0 pointer-events-none">
+            {/* Esquinas de guía de centrado */}
+            <div className="absolute top-8 left-8 w-12 h-12 border-l-2 border-t-2 border-white/40"></div>
+            <div className="absolute top-8 right-8 w-12 h-12 border-r-2 border-t-2 border-white/40"></div>
+            <div className="absolute bottom-8 left-8 w-12 h-12 border-l-2 border-b-2 border-white/40"></div>
+            <div className="absolute bottom-8 right-8 w-12 h-12 border-r-2 border-b-2 border-white/40"></div>
+            
+            {/* Centro de enfoque */}
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+              <div className="w-2 h-2 bg-white/60 rounded-full"></div>
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-16 h-16 border border-white/30 rounded-full"></div>
+            </div>
+            
+            {/* Líneas de guía horizontales */}
+            <div className="absolute top-1/3 left-0 right-0 h-px bg-white/20"></div>
+            <div className="absolute top-2/3 left-0 right-0 h-px bg-white/20"></div>
+            
+            {/* Líneas de guía verticales */}
+            <div className="absolute top-0 bottom-0 left-1/3 w-px bg-white/20"></div>
+            <div className="absolute top-0 bottom-0 left-2/3 w-px bg-white/20"></div>
+            
+            {/* Indicador de resolución */}
+            <div className="absolute bottom-4 left-4 bg-black/50 text-white/80 px-2 py-1 rounded text-xs font-mono">
+              1080P
+            </div>
+            
+            {/* Indicador de OCR */}
+            <div className="absolute top-4 left-4 bg-black/50 text-white/80 px-2 py-1 rounded text-xs">
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                OCR
+              </div>
+            </div>
+            
+            {/* Indicador de geolocalización */}
+            {location && (
+              <div className="absolute top-4 right-4 bg-black/50 text-white/80 px-2 py-1 rounded text-xs">
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                  GPS
+                </div>
+              </div>
+            )}
+            
+            {/* Contador de detecciones */}
+            {detectionCount > 0 && (
+              <div className="absolute bottom-4 right-4 bg-black/50 text-white/80 px-2 py-1 rounded text-xs font-mono">
+                {detectionCount.toString().padStart(3, '0')}
+              </div>
+            )}
+            
+            {/* Indicador de modo */}
+            <div className="absolute top-1/2 left-4 transform -translate-y-1/2 bg-black/50 text-white/80 px-2 py-1 rounded text-xs">
+              {scanMode === 'code' ? 'CODE' : scanMode === 'license' ? 'LICENSE' : 'TEXT'}
+            </div>
+            
+            {/* Indicador de calidad */}
+            <div className="absolute top-1/2 right-4 transform -translate-y-1/2 bg-black/50 text-white/80 px-2 py-1 rounded text-xs">
+              {useSpaceAPI ? 'OCR+' : 'OCR'}
+            </div>
+          </div>
         </div>
         
         {/* Overlay de carga */}
