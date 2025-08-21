@@ -62,7 +62,7 @@ export default function OCRScannerMobilePage() {
 
     // Detectar texto en tiempo real
   const detectTextInRealTime = async () => {
-    if (!videoRef.current || !isCameraActive || isProcessing) return;
+    if (!videoRef.current || !isCameraActive || isProcessing || !realTimeDetection) return;
     
     try {
       const video = videoRef.current;
@@ -88,8 +88,6 @@ export default function OCRScannerMobilePage() {
       await worker.terminate();
       
       if (result.data.words && result.data.words.length > 0) {
-        console.log('TEXTO DETECTADO EN TIEMPO REAL:', result.data.words.map((w: any) => w.text).join(' '));
-        
         // Calcular bounding box del texto detectado
         let minX = Infinity, minY = Infinity, maxX = 0, maxY = 0;
         
@@ -118,9 +116,9 @@ export default function OCRScannerMobilePage() {
         setShowDetectionEffect(true);
         setDetectionCount(prev => prev + 1);
         
-        // VIBRAR cuando detecta texto
-        if ('vibrate' in navigator) {
-          navigator.vibrate([100, 50, 100]);
+        // Vibración en móviles
+        if (navigator.vibrate) {
+          navigator.vibrate(100);
         }
         
         // Ocultar efecto después de 3 segundos
@@ -131,7 +129,7 @@ export default function OCRScannerMobilePage() {
       }
       
     } catch (error) {
-      console.log('Error en detección en tiempo real:', error);
+      // Error silencioso en detección en tiempo real
     }
   };
 
@@ -380,102 +378,66 @@ export default function OCRScannerMobilePage() {
     return cleanedText;
   };
 
-  // Capturar imagen - VERSIÓN SIMPLIFICADA PARA DEBUG
+  // Capturar imagen
   const captureImage = async () => {
-    console.log('🚨 INICIO DE CAPTURE IMAGE');
-    
     try {
-      // PASO 1: Verificar que el botón se presionó
-      console.log('✅ PASO 1: Botón presionado correctamente');
-      
-      // PASO 2: Verificar estados
-      console.log('✅ PASO 2: Estados actuales:', {
-        isCameraActive,
-        isProcessing,
-        isLoading,
-        hasVideoRef: !!videoRef.current,
-        hasCanvasRef: !!canvasRef.current
-      });
-      
-      // PASO 3: Verificar refs
-      if (!videoRef.current) {
-        console.log('❌ ERROR: videoRef.current es null');
-        alert('Error: videoRef no disponible');
+      if (!videoRef.current || !canvasRef.current) {
         return;
       }
       
-      if (!canvasRef.current) {
-        console.log('❌ ERROR: canvasRef.current es null');
-        alert('Error: canvasRef no disponible');
-        return;
-      }
-      
-      console.log('✅ PASO 3: Refs disponibles');
-      
-      // PASO 4: Verificar video
       const video = videoRef.current;
-      console.log('✅ PASO 4: Video encontrado, dimensiones:', {
-        width: video.videoWidth,
-        height: video.videoHeight,
-        readyState: video.readyState
-      });
-      
-      if (video.videoWidth === 0 || video.videoHeight === 0) {
-        console.log('❌ ERROR: Video no tiene dimensiones válidas');
-        alert('Error: Video no tiene dimensiones válidas');
-        return;
-      }
-      
-      // PASO 5: Verificar canvas
       const canvas = canvasRef.current;
       const context = canvas.getContext('2d');
       
-      if (!context) {
-        console.log('❌ ERROR: No se pudo obtener contexto del canvas');
-        alert('Error: No se pudo obtener contexto del canvas');
+      if (!context || video.videoWidth === 0 || video.videoHeight === 0) {
         return;
       }
       
-      console.log('✅ PASO 5: Contexto del canvas obtenido');
+      // Pausar la cámara durante el procesamiento
+      if (video.srcObject) {
+        const stream = video.srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.enabled = false);
+      }
       
-      // PASO 6: Configurar canvas
+      // Configurar canvas
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
-      console.log('✅ PASO 6: Canvas configurado:', { width: canvas.width, height: canvas.height });
       
-      // PASO 7: Dibujar imagen
+      // Dibujar imagen
       context.drawImage(video, 0, 0);
-      console.log('✅ PASO 7: Imagen dibujada en canvas');
       
-      // PASO 8: Generar imagen final
+      // Generar imagen final
       const finalImageData = canvas.toDataURL('image/jpeg', 0.8);
-      console.log('✅ PASO 8: Imagen final generada, tamaño:', finalImageData.length);
       
-      // PASO 9: Activar efectos visuales
+      // Activar efectos visuales
       setShowScanningEffect(true);
       setIsLoading(true);
-      console.log('✅ PASO 9: Efectos visuales activados');
+      setIsProcessing(true);
       
-      // PASO 10: Mostrar alerta de prueba
-      alert('✅ CAPTURA EXITOSA\n\nImagen capturada correctamente.\nTamaño: ' + finalImageData.length + ' bytes');
+      // Procesar OCR
+      await processOCR(finalImageData);
       
-      // PASO 11: Procesar OCR (simplificado)
-      console.log('✅ PASO 11: Iniciando OCR simplificado...');
-      
-      // Simular procesamiento OCR
-      setTimeout(() => {
-        console.log('✅ PASO 12: OCR simulado completado');
-        setScannedText('TEXTO DE PRUEBA - OCR FUNCIONANDO');
-        setShowScanningEffect(false);
-        setIsLoading(false);
-        alert('✅ OCR COMPLETADO\n\nTexto detectado: "TEXTO DE PRUEBA - OCR FUNCIONANDO"');
-      }, 2000);
-      
-    } catch (error) {
-      console.error('❌ ERROR CRÍTICO en captureImage:', error);
-      alert('❌ ERROR: ' + error.message);
+      // Limpiar estados
       setShowScanningEffect(false);
       setIsLoading(false);
+      setIsProcessing(false);
+      
+      // Reactivar la cámara después del procesamiento
+      if (video.srcObject) {
+        const stream = video.srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.enabled = true);
+      }
+      
+    } catch (error) {
+      setShowScanningEffect(false);
+      setIsLoading(false);
+      setIsProcessing(false);
+      
+      // Reactivar la cámara en caso de error
+      if (videoRef.current && videoRef.current.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.enabled = true);
+      }
     }
   };
 
@@ -523,11 +485,96 @@ export default function OCRScannerMobilePage() {
     }
   };
 
+  // Procesar OCR con optimizaciones completas
+  const processOCR = async (imageData: string) => {
+    try {
+      // SIEMPRE usar OCR.Space para mejor precisión
+      await processOCRWithSpaceAPI(imageData);
+      return;
+      
+    } catch (error) {
+      // Error silencioso
+    }
+  };
+
+  // Procesar OCR con OCR.Space API (más preciso)
+  const processOCRWithSpaceAPI = async (imageData: string) => {
+    try {
+      // Detectar y recortar zona de texto con Tesseract
+      const croppedImageData = await detectAndCropText(imageData);
+      
+      // Convertir base64 a blob
+      const base64Data = croppedImageData.split(',')[1];
+      const blob = await fetch(`data:image/jpeg;base64,${base64Data}`).then(res => res.blob());
+      
+      // Crear FormData
+      const formData = new FormData();
+      formData.append('file', blob, 'image.jpg');
+      formData.append('language', 'eng');
+      formData.append('isOverlayRequired', 'false');
+      formData.append('filetype', 'jpg');
+      formData.append('detectOrientation', 'true');
+      formData.append('scale', 'true');
+      formData.append('OCREngine', '2'); // Engine más preciso
+      formData.append('apikey', 'K88810169088957'); // API key de OCR.Space
+      
+      // Llamada a OCR.Space API
+      const response = await fetch('https://api.ocr.space/parse/image', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      if (result.IsErroredOnProcessing) {
+        throw new Error(result.ErrorMessage || 'Error en el procesamiento OCR');
+      }
+      
+      if (result.ParsedResults && result.ParsedResults.length > 0) {
+        const extractedText = result.ParsedResults[0].ParsedText;
+        
+        if (extractedText && extractedText.trim()) {
+          // Limpiar y procesar el texto según el modo
+          let cleanedText = extractedText.trim();
+          
+          if (scanMode === 'code') {
+            // Para códigos, extraer solo alfanumérico
+            const alphanumericCode = cleanedText.replace(/[^A-Z0-9]/gi, '').trim();
+            if (alphanumericCode.length >= 4 && alphanumericCode.length <= 10) {
+              cleanedText = alphanumericCode.toUpperCase();
+            }
+          } else if (scanMode === 'license') {
+            // Para matrículas, formato específico
+            const licensePattern = /[A-Z0-9]{4,8}/gi;
+            const match = cleanedText.match(licensePattern);
+            if (match) {
+              cleanedText = match[0].toUpperCase();
+            }
+          }
+          
+          setScannedText(cleanedText);
+          
+          // Copiar al portapapeles automáticamente
+          try {
+            await navigator.clipboard.writeText(cleanedText);
+          } catch (e) {
+            // Error silencioso
+          }
+        }
+      }
+      
+    } catch (error) {
+      // Error silencioso
+    }
+  };
+
   // Detectar y recortar zona de texto con Tesseract
   const detectAndCropText = async (imageData: string): Promise<string> => {
     try {
-      console.log('Detectando zona de texto...');
-      
       // Crear canvas para procesar imagen
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
@@ -550,8 +597,6 @@ export default function OCRScannerMobilePage() {
           
           const result = await worker.recognize(canvas);
           await worker.terminate();
-          
-          console.log('Resultado detección Tesseract:', result);
           
           if (result.data.words && result.data.words.length > 0) {
             // Calcular bounding box de todo el texto
@@ -606,12 +651,10 @@ export default function OCRScannerMobilePage() {
             
             // Convertir a base64 con máxima compresión
             const compressedImage = finalCanvas.toDataURL('image/jpeg', 0.3);
-            console.log(`Imagen recortada: ${cropWidth}x${cropHeight} → ${finalWidth}x${finalHeight}`);
             
             resolve(compressedImage);
           } else {
             // Si no detecta texto, usar imagen original comprimida
-            console.log('No se detectó texto, usando imagen original comprimida');
             const compressedOriginal = canvas.toDataURL('image/jpeg', 0.3);
             resolve(compressedOriginal);
           }
@@ -620,343 +663,8 @@ export default function OCRScannerMobilePage() {
         img.src = imageData;
       });
     } catch (error) {
-      console.error('Error en detección de texto:', error);
       // En caso de error, devolver imagen original comprimida
       return imageData;
-    }
-  };
-
-  // Procesar OCR con optimizaciones completas (igual que PC)
-  const processOCR = async (imageData: string) => {
-    try {
-      console.log('🔵 Iniciando procesamiento OCR móvil...');
-      console.log('🔵 Tamaño de imagen recibida:', imageData.length);
-      
-      // SIEMPRE usar OCR.Space para mejor precisión
-      console.log('🔵 Usando OCR.Space API...');
-      await processOCRWithSpaceAPI(imageData);
-      console.log('🔵 OCR.Space completado');
-      return;
-      
-      console.log('Usando Tesseract.js...');
-      
-      const { createWorker } = await import('tesseract.js');
-      console.log('Tesseract importado correctamente');
-      
-      // Crear worker con configuración optimizada
-      const worker = await createWorker('eng', 1, {
-        logger: m => console.log('Tesseract Mobile:', m)
-      });
-      console.log('Worker de Tesseract creado');
-      
-      // Configuración avanzada según el modo (igual que PC)
-      if (scanMode === 'license') {
-        await worker.setParameters({
-          tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-          tessedit_pageseg_mode: '7', // Single uniform block of text
-          tessedit_ocr_engine_mode: '3', // Default, based on what is available
-          preserve_interword_spaces: '1',
-          textord_heavy_nr: '1', // Heavy noise removal
-          textord_min_linesize: '2.5', // Minimum line size
-          tessedit_do_invert: '0', // Don't invert image
-          tessedit_image_border: '20', // Add border to image
-          tessedit_adaptive_threshold: '1', // Use adaptive thresholding
-          tessedit_adaptive_method: '1', // Adaptive method
-          tessedit_adaptive_window_size: '15', // Window size for adaptive thresholding
-        });
-        console.log('Parámetros configurados para matrícula');
-      } else if (scanMode === 'code') {
-        await worker.setParameters({
-          tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', // Solo alfanumérico
-          tessedit_pageseg_mode: '6', // Uniform block of text
-          tessedit_ocr_engine_mode: '3',
-          preserve_interword_spaces: '1',
-          textord_heavy_nr: '0', // Sin eliminación de ruido para códigos
-          textord_min_linesize: '1', // Línea mínima muy pequeña
-          tessedit_do_invert: '0',
-          tessedit_image_border: '5', // Borde mínimo
-          tessedit_adaptive_threshold: '1',
-          tessedit_adaptive_method: '1',
-          tessedit_adaptive_window_size: '10', // Ventana pequeña
-          tessedit_confidence_threshold: '10', // Umbral muy bajo
-        });
-        console.log('Parámetros configurados para códigos alfanuméricos');
-      } else {
-        // Configuración mejorada para texto general
-        await worker.setParameters({
-          tessedit_pageseg_mode: '3', // Fully automatic page segmentation
-          preserve_interword_spaces: '1',
-          tessedit_ocr_engine_mode: '3',
-          textord_heavy_nr: '0', // No heavy noise removal for better text recognition
-          textord_min_linesize: '2.0', // Better line size for general text
-          tessedit_do_invert: '0',
-          tessedit_image_border: '10', // Moderate border
-          tessedit_adaptive_threshold: '1',
-          tessedit_adaptive_method: '1',
-          tessedit_adaptive_window_size: '15',
-          tessedit_confidence_threshold: '30', // Higher confidence for better quality
-          tessedit_char_whitelist: '', // No whitelist for general text
-          tessedit_char_blacklist: '', // No blacklist
-          textord_old_baselines: '0',
-          textord_old_xheight: '0',
-          textord_heavy_nr: '0',
-          textord_min_linesize: '2.0',
-          textord_min_xheight: '8',
-          textord_max_xheight: '50',
-        });
-        console.log('Parámetros configurados para texto general (mejorado)');
-      }
-      
-      console.log('Iniciando reconocimiento de texto...');
-      
-      // Procesar imagen con múltiples intentos (15 intentos como PC)
-      let bestResult = { text: '', confidence: 0 };
-      
-      // Primer intento: imagen original
-      const result1 = await worker.recognize(imageData);
-      console.log('Resultado 1 (original):', result1.data);
-      if (result1.data.confidence > bestResult.confidence) {
-        bestResult = result1.data;
-      }
-      
-      // Segundo intento: imagen procesada con alto contraste
-      const processedImage1 = await preprocessImage(imageData, 'high-contrast');
-      const result2 = await worker.recognize(processedImage1);
-      console.log('Resultado 2 (alto contraste):', result2.data);
-      if (result2.data.confidence > bestResult.confidence) {
-        bestResult = result2.data;
-      }
-      
-      // Tercer intento: imagen procesada con umbral binario
-      const processedImage2 = await preprocessImage(imageData, 'binary');
-      const result3 = await worker.recognize(processedImage2);
-      console.log('Resultado 3 (binario):', result3.data);
-      if (result3.data.confidence > bestResult.confidence) {
-        bestResult = result3.data;
-      }
-      
-      // Cuarto intento: con parámetros muy permisivos
-      await worker.setParameters({
-        tessedit_confidence_threshold: '5', // Muy bajo para capturar más texto
-        tessedit_pageseg_mode: '6', // Uniform block of text
-        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', // Solo alfanumérico
-      });
-      const result4 = await worker.recognize(imageData);
-      console.log('Resultado 4 (permisivo):', result4.data);
-      if (result4.data.confidence > bestResult.confidence) {
-        bestResult = result4.data;
-      }
-      
-      // Quinto intento: imagen invertida (por si el texto es blanco sobre negro)
-      const invertedImage = await preprocessImage(imageData, 'invert');
-      await worker.setParameters({
-        tessedit_confidence_threshold: '10',
-        tessedit_pageseg_mode: '7',
-      });
-      const result5 = await worker.recognize(invertedImage);
-      console.log('Resultado 5 (invertido):', result5.data);
-      if (result5.data.confidence > bestResult.confidence) {
-        bestResult = result5.data;
-      }
-      
-      // Sexto intento: ultra-permisivo para códigos alfanuméricos
-      await worker.setParameters({
-        tessedit_confidence_threshold: '1', // Mínimo posible
-        tessedit_pageseg_mode: '6', // Uniform block
-        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', // Solo alfanumérico
-        textord_heavy_nr: '0', // Sin eliminación de ruido
-        textord_min_linesize: '1', // Línea mínima muy pequeña
-        tessedit_image_border: '5', // Borde mínimo
-        tessedit_adaptive_threshold: '1',
-        tessedit_adaptive_method: '1',
-        tessedit_adaptive_window_size: '10', // Ventana pequeña
-      });
-      const result6 = await worker.recognize(imageData);
-      console.log('Resultado 6 (ultra-permisivo):', result6.data);
-      if (result6.data.confidence > bestResult.confidence) {
-        bestResult = result6.data;
-      }
-      
-      // Séptimo intento: imagen con nitidez
-      const sharpenedImage = await preprocessImage(imageData, 'sharpen');
-      await worker.setParameters({
-        tessedit_confidence_threshold: '5',
-        tessedit_pageseg_mode: '7',
-        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-      });
-      const result7 = await worker.recognize(sharpenedImage);
-      console.log('Resultado 7 (nitidez):', result7.data);
-      if (result7.data.confidence > bestResult.confidence) {
-        bestResult = result7.data;
-      }
-      
-      // Octavo intento: operación morfológica
-      const morphologyImage = await preprocessImage(imageData, 'morphology');
-      await worker.setParameters({
-        tessedit_confidence_threshold: '10',
-        tessedit_pageseg_mode: '6',
-        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-      });
-      const result8 = await worker.recognize(morphologyImage);
-      console.log('Resultado 8 (morfología):', result8.data);
-      if (result8.data.confidence > bestResult.confidence) {
-        bestResult = result8.data;
-      }
-      
-      // Noveno intento: con parámetros específicos para texto borroso
-      await worker.setParameters({
-        tessedit_confidence_threshold: '1',
-        tessedit_pageseg_mode: '8', // Single word
-        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-        textord_heavy_nr: '0',
-        textord_min_linesize: '0.5', // Muy pequeña
-        tessedit_image_border: '0', // Sin borde
-        tessedit_adaptive_threshold: '1',
-        tessedit_adaptive_method: '1',
-        tessedit_adaptive_window_size: '5', // Ventana muy pequeña
-      });
-      const result9 = await worker.recognize(imageData);
-      console.log('Resultado 9 (texto borroso):', result9.data);
-      if (result9.data.confidence > bestResult.confidence) {
-        bestResult = result9.data;
-      }
-      
-      // Décimo intento: con parámetros ultra-agresivos para texto borroso
-      await worker.setParameters({
-        tessedit_confidence_threshold: '1',
-        tessedit_pageseg_mode: '13', // Raw line
-        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-        textord_heavy_nr: '0',
-        textord_min_linesize: '0.1', // Mínimo absoluto
-        tessedit_image_border: '0',
-        tessedit_adaptive_threshold: '1',
-        tessedit_adaptive_method: '1',
-        tessedit_adaptive_window_size: '3', // Ventana muy pequeña
-        textord_old_baselines: '0',
-        textord_old_xheight: '0',
-      });
-      const result10 = await worker.recognize(imageData);
-      console.log('Resultado 10 (ultra-agresivo):', result10.data);
-      if (result10.data.confidence > bestResult.confidence) {
-        bestResult = result10.data;
-      }
-      
-      // Undécimo intento: con un worker completamente nuevo y configuración básica
-      const worker2 = await createWorker('eng', 1, {
-        logger: m => console.log('Tesseract Worker2:', m)
-      });
-      await worker2.setParameters({
-        tessedit_confidence_threshold: '1',
-        tessedit_pageseg_mode: '6',
-        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-      });
-      const result11 = await worker2.recognize(imageData);
-      console.log('Resultado 11 (worker nuevo):', result11.data);
-      if (result11.data.confidence > bestResult.confidence) {
-        bestResult = result11.data;
-      }
-      await worker2.terminate();
-      
-      // Duodécimo intento: imagen con ultra-binary
-      const ultraBinaryImage = await preprocessImage(imageData, 'ultra-binary');
-      await worker.setParameters({
-        tessedit_confidence_threshold: '1',
-        tessedit_pageseg_mode: '6',
-        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-        textord_heavy_nr: '0',
-        textord_min_linesize: '0.5',
-        tessedit_image_border: '0',
-      });
-      const result12 = await worker.recognize(ultraBinaryImage);
-      console.log('Resultado 12 (ultra-binary):', result12.data);
-      if (result12.data.confidence > bestResult.confidence) {
-        bestResult = result12.data;
-      }
-      
-      // Decimotercer intento: imagen con edge-enhance
-      const edgeEnhancedImage = await preprocessImage(imageData, 'edge-enhance');
-      await worker.setParameters({
-        tessedit_confidence_threshold: '1',
-        tessedit_pageseg_mode: '8',
-        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-        textord_heavy_nr: '0',
-        textord_min_linesize: '0.1',
-        tessedit_image_border: '0',
-      });
-      const result13 = await worker.recognize(edgeEnhancedImage);
-      console.log('Resultado 13 (edge-enhance):', result13.data);
-      if (result13.data.confidence > bestResult.confidence) {
-        bestResult = result13.data;
-      }
-      
-      // Decimocuarto intento: con worker3 y configuración ultra-básica
-      const worker3 = await createWorker('eng', 1, {
-        logger: m => console.log('Tesseract Worker3:', m)
-      });
-      await worker3.setParameters({
-        tessedit_confidence_threshold: '1',
-        tessedit_pageseg_mode: '13',
-        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-        textord_heavy_nr: '0',
-        textord_min_linesize: '0.1',
-        tessedit_image_border: '0',
-        tessedit_adaptive_threshold: '0',
-        tessedit_adaptive_method: '0',
-      });
-      const result14 = await worker3.recognize(imageData);
-      console.log('Resultado 14 (worker3 ultra-básico):', result14.data);
-      if (result14.data.confidence > bestResult.confidence) {
-        bestResult = result14.data;
-      }
-      await worker3.terminate();
-      
-      // Decimoquinto intento: con worker4 y configuración mínima absoluta
-      const worker4 = await createWorker('eng', 1, {
-        logger: m => console.log('Tesseract Worker4:', m)
-      });
-      // Sin configurar ningún parámetro - usar configuración por defecto
-      const result15 = await worker4.recognize(imageData);
-      console.log('Resultado 15 (worker4 default):', result15.data);
-      if (result15.data.confidence > bestResult.confidence) {
-        bestResult = result15.data;
-      }
-      await worker4.terminate();
-      
-      console.log('Mejor resultado:', bestResult);
-      
-      let cleanedText = bestResult.text.trim();
-      console.log('Texto limpio:', cleanedText);
-      
-      if (scanMode === 'license') {
-        // Aquí necesitarías la función formatLicensePlate si la tienes
-        cleanedText = cleanGeneralText(cleanedText);
-        console.log('Texto formateado como matrícula:', cleanedText);
-      } else if (scanMode === 'code') {
-        cleanedText = cleanGeneralText(cleanedText);
-        console.log('Texto formateado como código:', cleanedText);
-      } else {
-        cleanedText = cleanGeneralText(cleanedText);
-        console.log('Texto formateado como texto general:', cleanedText);
-      }
-      
-      if (cleanedText.length === 0) {
-        console.log('No se detectó texto');
-      } else {
-        setScannedText(cleanedText);
-        console.log('Texto extraído exitosamente');
-        
-        // Copiar al portapapeles automáticamente
-        try {
-          await navigator.clipboard.writeText(cleanedText);
-        } catch (e) {
-          console.log('No se pudo copiar al portapapeles');
-        }
-      }
-      
-      await worker.terminate();
-      console.log('Worker terminado');
-    } catch (error) {
-      console.error('Error en OCR:', error);
     }
   };
 
@@ -1050,100 +758,6 @@ export default function OCRScannerMobilePage() {
     } catch (error) {
       console.error('Error obteniendo dirección:', error);
       // No fallar si no se puede obtener la dirección
-    }
-  };
-
-  // Procesar OCR con OCR.Space API (más preciso)
-  const processOCRWithSpaceAPI = async (imageData: string) => {
-    try {
-      console.log('🔵 Iniciando OCR con Space API...');
-      console.log('🔵 Tamaño de imagen de entrada:', imageData.length);
-      
-      // Detectar y recortar zona de texto con Tesseract
-      console.log('🔵 Detectando y recortando texto...');
-      const croppedImageData = await detectAndCropText(imageData);
-      console.log('🔵 Imagen procesada para OCR.Space, tamaño:', croppedImageData.length);
-      
-      // Convertir base64 a blob
-      const base64Data = croppedImageData.split(',')[1];
-      const blob = await fetch(`data:image/jpeg;base64,${base64Data}`).then(res => res.blob());
-      
-      // Crear FormData
-      const formData = new FormData();
-      formData.append('file', blob, 'image.jpg');
-      formData.append('language', 'eng');
-      formData.append('isOverlayRequired', 'false');
-      formData.append('filetype', 'jpg');
-      formData.append('detectOrientation', 'true');
-      formData.append('scale', 'true');
-      formData.append('OCREngine', '2'); // Engine más preciso
-      formData.append('apikey', 'K88810169088957'); // API key de OCR.Space
-      
-      // Llamada a OCR.Space API
-      console.log('🔵 Enviando imagen a OCR.Space API...');
-      const response = await fetch('https://api.ocr.space/parse/image', {
-        method: 'POST',
-        body: formData
-      });
-      
-      console.log('🔵 Respuesta de OCR.Space recibida, status:', response.status);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const result = await response.json();
-      console.log('🔵 Resultado OCR.Space:', result);
-      
-      if (result.IsErroredOnProcessing) {
-        throw new Error(result.ErrorMessage || 'Error en el procesamiento OCR');
-      }
-      
-      if (result.ParsedResults && result.ParsedResults.length > 0) {
-        const extractedText = result.ParsedResults[0].ParsedText;
-        
-        if (extractedText && extractedText.trim()) {
-          // Limpiar y procesar el texto según el modo
-          let cleanedText = extractedText.trim();
-          
-          if (scanMode === 'code') {
-            // Para códigos, extraer solo alfanumérico
-            const alphanumericCode = cleanedText.replace(/[^A-Z0-9]/gi, '').trim();
-            if (alphanumericCode.length >= 4 && alphanumericCode.length <= 10) {
-              cleanedText = alphanumericCode.toUpperCase();
-            }
-          } else if (scanMode === 'license') {
-            // Para matrículas, formato específico
-            const licensePattern = /[A-Z0-9]{4,8}/gi;
-            const match = cleanedText.match(licensePattern);
-            if (match) {
-              cleanedText = match[0].toUpperCase();
-            }
-          }
-          
-                     setScannedText(cleanedText);
-           console.log('Texto extraído con OCR.Space:', cleanedText);
-           
-           // MOSTRAR VENTANA CON RESULTADO Y UBICACIÓN
-           const locationInfo = location ? 
-             (location.address ? 
-               `📍 DIRECCIÓN: ${location.address}\n📍 COORDENADAS: ${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}` : 
-               `📍 COORDENADAS: ${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`
-             ) : 'No registrada';
-           
-           alert(`✅ OCR COMPLETADO\n\n📝 TEXTO DETECTADO: "${cleanedText}"\n\n${locationInfo}`);
-           
-           // Copiar al portapapeles automáticamente
-           try {
-             await navigator.clipboard.writeText(cleanedText);
-           } catch (e) {
-             console.log('No se pudo copiar al portapapeles');
-           }
-        }
-      }
-      
-    } catch (error) {
-      console.error('Error en OCR.Space:', error);
     }
   };
 
@@ -1278,14 +892,14 @@ export default function OCRScannerMobilePage() {
           {showScanningEffect && (
             <div className="absolute inset-0 pointer-events-none">
               {/* Overlay verde semi-transparente */}
-              <div className="absolute inset-0 bg-green-500/20"></div>
+              <div className="absolute inset-0 bg-green-500/30"></div>
               
               {/* Líneas de escaneo horizontales */}
               <div className="absolute inset-0">
                 {[...Array(8)].map((_, i) => (
                   <div
                     key={i}
-                    className="absolute left-0 right-0 h-1 bg-green-400 animate-pulse"
+                    className="absolute left-0 right-0 h-2 bg-green-400 animate-pulse"
                     style={{
                       top: `${(i * 12.5)}%`,
                       animationDelay: `${i * 0.1}s`,
@@ -1300,7 +914,7 @@ export default function OCRScannerMobilePage() {
                 {[...Array(6)].map((_, i) => (
                   <div
                     key={i}
-                    className="absolute top-0 bottom-0 w-1 bg-green-400 animate-pulse"
+                    className="absolute top-0 bottom-0 w-2 bg-green-400 animate-pulse"
                     style={{
                       left: `${(i * 16.67)}%`,
                       animationDelay: `${i * 0.15}s`,
@@ -1318,12 +932,15 @@ export default function OCRScannerMobilePage() {
               </div>
               
               {/* Texto de procesamiento */}
-              <div className="absolute bottom-1/3 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-4 py-2 rounded-full shadow-lg">
-                <div className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
+              <div className="absolute bottom-1/3 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-full shadow-lg">
+                <div className="flex items-center gap-3">
+                  <Loader2 className="h-5 w-5 animate-spin" />
                   <span className="text-sm font-semibold">Procesando imagen...</span>
                 </div>
               </div>
+              
+              {/* Efecto de flash */}
+              <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
               
               {/* Partículas de escaneo */}
               <div className="absolute inset-0">
@@ -1420,20 +1037,20 @@ export default function OCRScannerMobilePage() {
       <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-6 pb-20">
         <div className="flex gap-4 justify-center">
                      <Button 
-             onClick={() => {
-               console.log('🚨 BOTÓN CAPTURAR CLICKEADO - INICIO');
-               alert('🚨 Botón Capturar presionado - Iniciando captura...');
-               captureImage();
-             }}
-             disabled={isLoading}
-             className="flex-1 max-w-xs h-14 text-lg font-semibold bg-red-600 hover:bg-red-700 shadow-lg"
-           >
+            onClick={captureImage}
+            disabled={isLoading}
+            className={`flex-1 max-w-xs h-14 text-lg font-semibold shadow-lg ${
+              isLoading 
+                ? 'bg-red-600 hover:bg-red-700' 
+                : 'bg-blue-600 hover:bg-blue-700'
+            }`}
+          >
             {isLoading ? (
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
             ) : (
               <Camera className="mr-2 h-5 w-5" />
             )}
-            {isLoading ? 'Procesando...' : 'CAPTURAR (DEBUG)'}
+            {isLoading ? 'Procesando...' : 'Capturar'}
           </Button>
           
           <Button 
