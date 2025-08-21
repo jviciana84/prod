@@ -60,7 +60,7 @@ export default function OCRScannerPage() {
 
   // Detectar texto en tiempo real
   const detectTextInRealTime = async () => {
-    if (!videoRef.current || !isCameraActive || isProcessing) return;
+    if (!videoRef.current || !isCameraActive || isProcessing || !realTimeDetection) return;
     
     try {
       const video = videoRef.current;
@@ -113,6 +113,11 @@ export default function OCRScannerPage() {
         setDetectionBox(detectionBoxData);
         setShowDetectionEffect(true);
         setDetectionCount(prev => prev + 1);
+        
+        // Vibración en móviles
+        if (navigator.vibrate) {
+          navigator.vibrate(100);
+        }
         
         // Ocultar efecto después de 3 segundos
         setTimeout(() => {
@@ -340,6 +345,12 @@ export default function OCRScannerPage() {
         return;
       }
       
+      // Pausar la cámara durante el procesamiento
+      if (video.srcObject) {
+        const stream = video.srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.enabled = false);
+      }
+      
       // Configurar canvas
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
@@ -353,6 +364,7 @@ export default function OCRScannerPage() {
       // Activar efectos visuales
       setShowScanningEffect(true);
       setIsLoading(true);
+      setIsProcessing(true);
       
       // Procesar OCR
       await processOCR(finalImageData);
@@ -360,10 +372,24 @@ export default function OCRScannerPage() {
       // Limpiar estados
       setShowScanningEffect(false);
       setIsLoading(false);
+      setIsProcessing(false);
+      
+      // Reactivar la cámara después del procesamiento
+      if (video.srcObject) {
+        const stream = video.srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.enabled = true);
+      }
       
     } catch (error) {
       setShowScanningEffect(false);
       setIsLoading(false);
+      setIsProcessing(false);
+      
+      // Reactivar la cámara en caso de error
+      if (videoRef.current && videoRef.current.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.enabled = true);
+      }
     }
   };
 
@@ -749,14 +775,14 @@ export default function OCRScannerPage() {
                 {showScanningEffect && (
                   <div className="absolute inset-0 pointer-events-none">
                     {/* Overlay verde semi-transparente */}
-                    <div className="absolute inset-0 bg-green-500/20"></div>
+                    <div className="absolute inset-0 bg-green-500/30"></div>
                     
                     {/* Líneas de escaneo horizontales */}
                     <div className="absolute inset-0">
                       {[...Array(8)].map((_, i) => (
                         <div
                           key={i}
-                          className="absolute left-0 right-0 h-1 bg-green-400 animate-pulse"
+                          className="absolute left-0 right-0 h-2 bg-green-400 animate-pulse"
                           style={{
                             top: `${(i * 12.5)}%`,
                             animationDelay: `${i * 0.1}s`,
@@ -767,12 +793,15 @@ export default function OCRScannerPage() {
                     </div>
                     
                     {/* Texto de procesamiento */}
-                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-4 py-2 rounded-full shadow-lg">
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-full shadow-lg">
+                      <div className="flex items-center gap-3">
+                        <Loader2 className="h-5 w-5 animate-spin" />
                         <span className="text-sm font-semibold">Procesando imagen...</span>
                       </div>
                     </div>
+                    
+                    {/* Efecto de flash */}
+                    <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
                   </div>
                 )}
               </div>
@@ -782,7 +811,7 @@ export default function OCRScannerPage() {
                 <Button 
                   onClick={captureImage}
                   disabled={isLoading}
-                  className="flex-1"
+                  className={`flex-1 ${isLoading ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-600 hover:bg-blue-700'}`}
                 >
                   {isLoading ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
