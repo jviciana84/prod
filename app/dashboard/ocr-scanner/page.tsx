@@ -49,14 +49,14 @@ export default function OCRScannerPage() {
 
   // OCR en tiempo real
   useEffect(() => {
-    if (videoRef.current && !isProcessing && isCameraActive) {
+    if (videoRef.current && !isProcessing && isCameraActive && realTimeDetection) {
       const interval = setInterval(() => {
         detectTextInRealTime();
       }, 2000); // Cada 2 segundos para escritorio
 
       return () => clearInterval(interval);
     }
-  }, [isProcessing, isCameraActive]);
+  }, [isProcessing, isCameraActive, realTimeDetection]);
 
   // Detectar texto en tiempo real
   const detectTextInRealTime = async () => {
@@ -86,8 +86,6 @@ export default function OCRScannerPage() {
       await worker.terminate();
       
       if (result.data.words && result.data.words.length > 0) {
-        console.log('TEXTO DETECTADO EN TIEMPO REAL:', result.data.words.map((w: any) => w.text).join(' '));
-        
         // Calcular bounding box del texto detectado
         let minX = Infinity, minY = Infinity, maxX = 0, maxY = 0;
         
@@ -124,15 +122,13 @@ export default function OCRScannerPage() {
       }
       
     } catch (error) {
-      console.log('Error en detección en tiempo real:', error);
+      // Error silencioso en detección en tiempo real
     }
   };
 
   // Activar cámara
   const startCamera = async () => {
     try {
-      console.log('🔵 Activando cámara automáticamente...');
-      
       // Para escritorio, intentar cámara frontal primero
       let stream;
       try {
@@ -143,9 +139,7 @@ export default function OCRScannerPage() {
             height: { ideal: 720, max: 1080 }
           } 
         });
-        console.log('Cámara frontal activada');
       } catch (frontError) {
-        console.log('Cámara frontal no disponible, intentando trasera...');
         stream = await navigator.mediaDevices.getUserMedia({ 
           video: { 
             facingMode: 'environment',
@@ -153,7 +147,6 @@ export default function OCRScannerPage() {
             height: { ideal: 720, max: 1080 }
           } 
         });
-        console.log('Cámara trasera activada');
       }
       
       if (videoRef.current) {
@@ -163,15 +156,12 @@ export default function OCRScannerPage() {
         // Reproducir automáticamente
         try {
           await videoRef.current.play();
-          console.log('🔵 Video reproduciéndose automáticamente');
           setIsCameraActive(true);
-          console.log('🔵 Cámara activada correctamente');
         } catch (playError) {
-          console.log('🔴 Error reproduciendo automáticamente:', playError);
+          // Error silencioso
         }
       }
     } catch (error) {
-      console.error('Error accediendo a la cámara:', error);
       setCameraError('No se pudo acceder a la cámara');
     }
   };
@@ -261,21 +251,16 @@ export default function OCRScannerPage() {
 
   // Limpiar texto general
   const cleanGeneralText = (text: string): string => {
-    console.log('Texto original para limpiar:', text);
-    
     // Primero intentar detectar si es un código alfanumérico
     const alphanumericCode = text.replace(/[^A-Z0-9]/gi, '').trim();
-    console.log('Código alfanumérico extraído:', alphanumericCode);
     
     // Si parece un código (6-8 caracteres alfanuméricos), devolverlo limpio
     if (alphanumericCode.length >= 6 && alphanumericCode.length <= 8) {
-      console.log('Detectado como código alfanumérico:', alphanumericCode);
       return alphanumericCode.toUpperCase();
     }
     
     // Si es muy corto (1-3 caracteres), podría ser parte de un código
     if (alphanumericCode.length >= 1 && alphanumericCode.length <= 3) {
-      console.log('Texto corto detectado, podría ser parte de un código:', alphanumericCode);
       // Intentar buscar patrones de códigos en el texto original
       const codePatterns = [
         /[A-Z0-9]{6,8}/gi,  // Códigos de 6-8 caracteres
@@ -286,7 +271,6 @@ export default function OCRScannerPage() {
       for (const pattern of codePatterns) {
         const match = text.match(pattern);
         if (match) {
-          console.log('Patrón de código encontrado:', match[0]);
           return match[0].toUpperCase();
         }
       }
@@ -297,8 +281,6 @@ export default function OCRScannerPage() {
     
     // Correcciones específicas para "Pr UNE" -> "4988MVL"
     if (text.includes('Pr') || text.includes('UNE')) {
-      console.log('Detectado posible error de OCR, intentando corregir...');
-      
       // Mapeo de caracteres comúnmente confundidos
       const charMappings = {
         'P': '4', 'r': '9', 'U': 'V', 'N': 'M', 'E': 'L',
@@ -316,24 +298,19 @@ export default function OCRScannerPage() {
       corrected = corrected.replace(/[^A-Z0-9]/g, '').trim();
       
       if (corrected.length >= 6 && corrected.length <= 8) {
-        console.log('Texto corregido:', corrected);
         return corrected;
       }
     }
     
     // Si el texto es muy corto (1-2 caracteres), intentar reconstruir
     if (alphanumericCode.length <= 2) {
-      console.log('Texto muy corto detectado, intentando reconstruir...');
-      
       // Si detectamos "3", podría ser parte de "4988MVL"
       if (text.includes('3') || text.includes('8')) {
-        console.log('Detectado número 3 u 8, posible parte de código...');
         return '4988MVL'; // Asumir el código correcto
       }
       
       // Si detectamos "M", "V", "L", etc.
       if (text.match(/[MVL]/i)) {
-        console.log('Detectadas letras M/V/L, posible código...');
         return '4988MVL';
       }
     }
@@ -345,98 +322,46 @@ export default function OCRScannerPage() {
       .replace(/\s+/g, ' ') // Normalizar espacios
       .trim();
     
-    console.log('Texto limpio final:', cleanedText);
     return cleanedText;
   };
 
   // Capturar imagen
   const captureImage = async () => {
-    console.log('🚨 INICIO DE CAPTURE IMAGE');
-    
     try {
-      // PASO 1: Verificar que el botón se presionó
-      console.log('✅ PASO 1: Botón presionado correctamente');
-      
-      // PASO 2: Verificar estados
-      console.log('✅ PASO 2: Estados actuales:', {
-        isCameraActive,
-        isProcessing,
-        isLoading,
-        hasVideoRef: !!videoRef.current,
-        hasCanvasRef: !!canvasRef.current
-      });
-      
-      // PASO 3: Verificar refs
-      if (!videoRef.current) {
-        console.log('❌ ERROR: videoRef.current es null');
-        alert('Error: videoRef no disponible');
+      if (!videoRef.current || !canvasRef.current) {
         return;
       }
       
-      if (!canvasRef.current) {
-        console.log('❌ ERROR: canvasRef.current es null');
-        alert('Error: canvasRef no disponible');
-        return;
-      }
-      
-      console.log('✅ PASO 3: Refs disponibles');
-      
-      // PASO 4: Verificar video
       const video = videoRef.current;
-      console.log('✅ PASO 4: Video encontrado, dimensiones:', {
-        width: video.videoWidth,
-        height: video.videoHeight,
-        readyState: video.readyState
-      });
-      
-      if (video.videoWidth === 0 || video.videoHeight === 0) {
-        console.log('❌ ERROR: Video no tiene dimensiones válidas');
-        alert('Error: Video no tiene dimensiones válidas');
-        return;
-      }
-      
-      // PASO 5: Verificar canvas
       const canvas = canvasRef.current;
       const context = canvas.getContext('2d');
       
-      if (!context) {
-        console.log('❌ ERROR: No se pudo obtener contexto del canvas');
-        alert('Error: No se pudo obtener contexto del canvas');
+      if (!context || video.videoWidth === 0 || video.videoHeight === 0) {
         return;
       }
       
-      console.log('✅ PASO 5: Contexto del canvas obtenido');
-      
-      // PASO 6: Configurar canvas
+      // Configurar canvas
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
-      console.log('✅ PASO 6: Canvas configurado:', { width: canvas.width, height: canvas.height });
       
-      // PASO 7: Dibujar imagen
+      // Dibujar imagen
       context.drawImage(video, 0, 0);
-      console.log('✅ PASO 7: Imagen dibujada en canvas');
       
-      // PASO 8: Generar imagen final
+      // Generar imagen final
       const finalImageData = canvas.toDataURL('image/jpeg', 0.8);
-      console.log('✅ PASO 8: Imagen final generada, tamaño:', finalImageData.length);
       
-      // PASO 9: Activar efectos visuales
+      // Activar efectos visuales
       setShowScanningEffect(true);
       setIsLoading(true);
-      console.log('✅ PASO 9: Efectos visuales activados');
       
-      // PASO 10: Procesar OCR
-      console.log('✅ PASO 10: Iniciando OCR...');
+      // Procesar OCR
       await processOCR(finalImageData);
       
-      // PASO 11: Limpiar estados
+      // Limpiar estados
       setShowScanningEffect(false);
       setIsLoading(false);
-      console.log('✅ PASO 11: Estados limpiados');
       
     } catch (error) {
-      console.error('❌ ERROR CRÍTICO en captureImage:', error);
-      alert('❌ ERROR: ' + error.message);
       setShowScanningEffect(false);
       setIsLoading(false);
     }
@@ -445,8 +370,6 @@ export default function OCRScannerPage() {
   // Detectar y recortar zona de texto con Tesseract
   const detectAndCropText = async (imageData: string): Promise<string> => {
     try {
-      console.log('Detectando zona de texto...');
-      
       // Crear canvas para procesar imagen
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
@@ -469,8 +392,6 @@ export default function OCRScannerPage() {
           
           const result = await worker.recognize(canvas);
           await worker.terminate();
-          
-          console.log('Resultado detección Tesseract:', result);
           
           if (result.data.words && result.data.words.length > 0) {
             // Calcular bounding box de todo el texto
@@ -525,12 +446,10 @@ export default function OCRScannerPage() {
             
             // Convertir a base64 con máxima compresión
             const compressedImage = finalCanvas.toDataURL('image/jpeg', 0.3);
-            console.log(`Imagen recortada: ${cropWidth}x${cropHeight} → ${finalWidth}x${finalHeight}`);
             
             resolve(compressedImage);
           } else {
             // Si no detecta texto, usar imagen original comprimida
-            console.log('No se detectó texto, usando imagen original comprimida');
             const compressedOriginal = canvas.toDataURL('image/jpeg', 0.3);
             resolve(compressedOriginal);
           }
@@ -539,7 +458,6 @@ export default function OCRScannerPage() {
         img.src = imageData;
       });
     } catch (error) {
-      console.error('Error en detección de texto:', error);
       // En caso de error, devolver imagen original comprimida
       return imageData;
     }
@@ -548,28 +466,19 @@ export default function OCRScannerPage() {
   // Procesar OCR con optimizaciones completas
   const processOCR = async (imageData: string) => {
     try {
-      console.log('🔵 Iniciando procesamiento OCR...');
-      console.log('🔵 Tamaño de imagen recibida:', imageData.length);
-      
       // SIEMPRE usar OCR.Space para mejor precisión
-      console.log('🔵 Usando OCR.Space API...');
       await processOCRWithSpaceAPI(imageData);
-      console.log('🔵 OCR.Space completado');
       return;
       
     } catch (error) {
-      console.error('Error en OCR:', error);
-      alert('Error al procesar la imagen: ' + error);
+      // Error silencioso
     }
   };
 
   // Solicitar permisos de geolocalización
   const requestLocationPermission = async () => {
     try {
-      console.log('Solicitando permisos de geolocalización...');
-      
       if (!navigator.geolocation) {
-        console.error('Geolocalización no soportada');
         return;
       }
 
@@ -585,15 +494,12 @@ export default function OCRScannerPage() {
       setLocation({ lat: latitude, lng: longitude });
       setLocationPermission('granted');
       
-      console.log('Ubicación obtenida:', { latitude, longitude });
-      
       // Obtener dirección completa
       setIsGettingAddress(true);
       await getAddressFromCoordinates(latitude, longitude);
       setIsGettingAddress(false);
       
     } catch (error) {
-      console.error('Error obteniendo ubicación:', error);
       setLocationPermission('denied');
     }
   };
@@ -601,8 +507,6 @@ export default function OCRScannerPage() {
   // Obtener dirección completa desde coordenadas
   const getAddressFromCoordinates = async (lat: number, lng: number) => {
     try {
-      console.log('Obteniendo dirección desde coordenadas...');
-      
       const response = await fetch(
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
         {
@@ -618,7 +522,6 @@ export default function OCRScannerPage() {
       }
       
       const data = await response.json();
-      console.log('Datos de dirección obtenidos:', data);
       
       // Extraer información relevante
       const address = data.address;
@@ -648,10 +551,7 @@ export default function OCRScannerPage() {
       // Actualizar estado con dirección completa
       setLocation(prev => prev ? { ...prev, address: fullAddress } : null);
       
-      console.log('Dirección completa:', fullAddress);
-      
     } catch (error) {
-      console.error('Error obteniendo dirección:', error);
       // No fallar si no se puede obtener la dirección
     }
   };
@@ -659,13 +559,8 @@ export default function OCRScannerPage() {
   // Procesar OCR con OCR.Space API (más preciso)
   const processOCRWithSpaceAPI = async (imageData: string) => {
     try {
-      console.log('🔵 Iniciando OCR con Space API...');
-      console.log('🔵 Tamaño de imagen de entrada:', imageData.length);
-      
       // Detectar y recortar zona de texto con Tesseract
-      console.log('🔵 Detectando y recortando texto...');
       const croppedImageData = await detectAndCropText(imageData);
-      console.log('🔵 Imagen procesada para OCR.Space, tamaño:', croppedImageData.length);
       
       // Convertir base64 a blob
       const base64Data = croppedImageData.split(',')[1];
@@ -683,20 +578,16 @@ export default function OCRScannerPage() {
       formData.append('apikey', 'K88810169088957'); // API key de OCR.Space
       
       // Llamada a OCR.Space API
-      console.log('🔵 Enviando imagen a OCR.Space API...');
       const response = await fetch('https://api.ocr.space/parse/image', {
         method: 'POST',
         body: formData
       });
-      
-      console.log('🔵 Respuesta de OCR.Space recibida, status:', response.status);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       const result = await response.json();
-      console.log('🔵 Resultado OCR.Space:', result);
       
       if (result.IsErroredOnProcessing) {
         throw new Error(result.ErrorMessage || 'Error en el procesamiento OCR');
@@ -725,29 +616,18 @@ export default function OCRScannerPage() {
           }
           
           setScannedText(cleanedText);
-          console.log('Texto extraído con OCR.Space:', cleanedText);
-          
-          // MOSTRAR VENTANA CON RESULTADO Y UBICACIÓN
-          const locationInfo = location ? 
-            (location.address ? 
-              `📍 DIRECCIÓN: ${location.address}\n📍 COORDENADAS: ${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}` : 
-              `📍 COORDENADAS: ${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`
-            ) : 'No registrada';
-          
-          alert(`✅ OCR COMPLETADO\n\n📝 TEXTO DETECTADO: "${cleanedText}"\n\n${locationInfo}`);
           
           // Copiar al portapapeles automáticamente
           try {
             await navigator.clipboard.writeText(cleanedText);
           } catch (e) {
-            console.log('No se pudo copiar al portapapeles');
+            // Error silencioso
           }
         }
       }
       
     } catch (error) {
-      console.error('Error en OCR.Space:', error);
-      alert('Error al procesar la imagen: ' + error);
+      // Error silencioso
     }
   };
 
