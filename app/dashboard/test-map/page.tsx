@@ -4,6 +4,7 @@ import { MapaEspanaGeoJSON } from "@/components/reports/mapa-espana-geojson"
 import { MapaSimpleTest } from "@/components/reports/mapa-simple-test"
 import { MapaSVGSimple } from "@/components/reports/mapa-svg-simple"
 import { MapaFuncional } from "@/components/reports/mapa-funcional"
+import { MapaConContorno } from "@/components/reports/mapa-con-contorno"
 import { MapPin } from "lucide-react"
 
 export const metadata: Metadata = {
@@ -94,7 +95,7 @@ export default function TestMapPage() {
         </p>
       </div>
 
-      <MapaFuncional />
+      <MapaConContorno />
     </div>
   )
 }
