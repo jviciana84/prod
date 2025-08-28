@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { FileBarChart, FileText, AlertTriangle, Clock } from "lucide-react"
+import { FileBarChart, FileText, AlertTriangle, Clock, TrendingUp } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
@@ -103,6 +103,24 @@ export default function ReportsPage() {
             <Link href="/dashboard/reports/dias-preparacion-vo">
               <Button variant="outline" className="w-full">
                 <Clock className="mr-2 h-4 w-4" />
+                Ver Informe
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Informe de Ventas Mensual</CardTitle>
+            <CardDescription>Análisis completo de ventas con estadísticas, precios y distribución geográfica</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Informe detallado de ventas mensuales incluyendo análisis de precios, financiaciones, códigos postales, descuentos y rendimiento por asesor.
+            </p>
+            <Link href="/dashboard/reports/ventas-mensual">
+              <Button variant="outline" className="w-full">
+                <TrendingUp className="mr-2 h-4 w-4" />
                 Ver Informe
               </Button>
             </Link>

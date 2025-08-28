@@ -1,0 +1,165 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Barcelona"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [2.0, 41.5],
+          [2.5, 41.5],
+          [2.5, 41.0],
+          [2.0, 41.0],
+          [2.0, 41.5]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Madrid"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-3.8, 40.5],
+          [-3.3, 40.5],
+          [-3.3, 40.0],
+          [-3.8, 40.0],
+          [-3.8, 40.5]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Valencia"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-0.5, 39.5],
+          [0.0, 39.5],
+          [0.0, 39.0],
+          [-0.5, 39.0],
+          [-0.5, 39.5]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Sevilla"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-6.0, 37.5],
+          [-5.5, 37.5],
+          [-5.5, 37.0],
+          [-6.0, 37.0],
+          [-6.0, 37.5]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Bilbao"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-3.0, 43.5],
+          [-2.5, 43.5],
+          [-2.5, 43.0],
+          [-3.0, 43.0],
+          [-3.0, 43.5]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Málaga"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-4.5, 36.5],
+          [-4.0, 36.5],
+          [-4.0, 36.0],
+          [-4.5, 36.0],
+          [-4.5, 36.5]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Zaragoza"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-1.0, 41.5],
+          [-0.5, 41.5],
+          [-0.5, 41.0],
+          [-1.0, 41.0],
+          [-1.0, 41.5]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Murcia"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-1.5, 38.0],
+          [-1.0, 38.0],
+          [-1.0, 37.5],
+          [-1.5, 37.5],
+          [-1.5, 38.0]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Alicante"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-0.5, 38.5],
+          [0.0, 38.5],
+          [0.0, 38.0],
+          [-0.5, 38.0],
+          [-0.5, 38.5]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Córdoba"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-4.8, 37.5],
+          [-4.3, 37.5],
+          [-4.3, 37.0],
+          [-4.8, 37.0],
+          [-4.8, 37.5]
+        ]]
+      }
+    }
+  ]
+}
