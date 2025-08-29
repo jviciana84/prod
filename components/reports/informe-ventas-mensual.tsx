@@ -51,6 +51,107 @@ import type { VentaMensual, EstadisticasVentas } from "@/types/ventas"
 // Colores para los gráficos
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d", "#ff6b6b", "#4ecdc4"]
 
+// Función para normalizar nombres de provincias
+const normalizarProvincia = (provincia: string): string => {
+  if (!provincia) return 'Sin provincia'
+  
+  // Convertir a minúsculas y luego capitalizar primera letra
+  const normalizada = provincia.toLowerCase().trim()
+  
+  // Casos especiales para provincias con nombres compuestos
+  const casosEspeciales: Record<string, string> = {
+    'barcelona': 'Barcelona',
+    'madrid': 'Madrid',
+    'valencia': 'Valencia',
+    'sevilla': 'Sevilla',
+    'malaga': 'Málaga',
+    'bilbao': 'Bilbao',
+    'zaragoza': 'Zaragoza',
+    'murcia': 'Murcia',
+    'alicante': 'Alicante',
+    'cordoba': 'Córdoba',
+    'granada': 'Granada',
+    'valladolid': 'Valladolid',
+    'oviedo': 'Oviedo',
+    'vigo': 'Vigo',
+    'gijon': 'Gijón',
+    'hospitalet': 'L\'Hospitalet',
+    'a coruna': 'A Coruña',
+    'vitoria': 'Vitoria',
+    'gran canaria': 'Gran Canaria',
+    'tenerife': 'Tenerife',
+    'badajoz': 'Badajoz',
+    'elche': 'Elche',
+    'mostoles': 'Móstoles',
+    'alcala de henares': 'Alcalá de Henares',
+    'fuenlabrada': 'Fuenlabrada',
+    'leganes': 'Leganés',
+    'getafe': 'Getafe',
+    'alcorcon': 'Alcorcón',
+    'torrejon de ardoz': 'Torrejón de Ardoz',
+    'parla': 'Parla',
+    'alcobendas': 'Alcobendas',
+    'san sebastian de los reyes': 'San Sebastián de los Reyes',
+    'pozuelo de alarcon': 'Pozuelo de Alarcón',
+    'coslada': 'Coslada',
+    'las rozas de madrid': 'Las Rozas de Madrid',
+    'majadahonda': 'Majadahonda',
+    'rivas-vaciamadrid': 'Rivas-Vaciamadrid',
+    'valdemoro': 'Valdemoro',
+    'collado villalba': 'Collado Villalba',
+    'san fernando de henares': 'San Fernando de Henares',
+    'tres cantos': 'Tres Cantos',
+    'boadilla del monte': 'Boadilla del Monte',
+    'pinto': 'Pinto',
+    'colmenar viejo': 'Colmenar Viejo',
+    'san martin de la vega': 'San Martín de la Vega',
+    'arganda del rey': 'Arganda del Rey',
+    'torrelodones': 'Torrelodones',
+    'navalcarnero': 'Navalcarnero',
+    'villaviciosa de odon': 'Villaviciosa de Odón',
+    'mejorada del campo': 'Mejorada del Campo',
+    'velilla de san antonio': 'Velilla de San Antonio',
+    'lleida': 'Lleida',
+    'girona': 'Girona',
+    'tarragona': 'Tarragona',
+    'huelva': 'Huelva',
+    'cadiz': 'Cádiz',
+    'jaen': 'Jaén',
+    'almeria': 'Almería',
+    'albacete': 'Albacete',
+    'ciudad real': 'Ciudad Real',
+    'castellon': 'Castellón',
+    'tortosa': 'Tortosa',
+    'palma': 'Palma',
+    'ceuta': 'Ceuta',
+    'melilla': 'Melilla',
+    'baleares': 'Baleares',
+    'canarias': 'Canarias',
+    'asturias': 'Asturias',
+    'cantabria': 'Cantabria',
+    'galicia': 'Galicia',
+    'pais vasco': 'País Vasco',
+    'navarra': 'Navarra',
+    'aragon': 'Aragón',
+    'la rioja': 'La Rioja',
+    'castilla y leon': 'Castilla y León',
+    'castilla-la mancha': 'Castilla-La Mancha',
+    'extremadura': 'Extremadura',
+    'andalucia': 'Andalucía',
+    'region de murcia': 'Región de Murcia',
+    'comunidad valenciana': 'Comunidad Valenciana',
+    'cataluna': 'Cataluña',
+    'principado de asturias': 'Principado de Asturias'
+  }
+  
+  // Buscar en casos especiales
+  if (casosEspeciales[normalizada]) {
+    return casosEspeciales[normalizada]
+  }
+  
+  // Si no está en casos especiales, aplicar capitalización general
+  return normalizada.charAt(0).toUpperCase() + normalizada.slice(1)
+}
 
 
 export function InformeVentasMensual() {
@@ -185,7 +286,7 @@ export function InformeVentasMensual() {
     // Ventas por provincia y códigos postales
     const provinciasMap = new Map<string, { cantidad: number; ingresos: number; codigosPostales: Map<string, { cantidad: number; ingresos: number }> }>()
     ventasData.forEach(venta => {
-      const provincia = venta.client_province || 'Sin provincia'
+      const provincia = normalizarProvincia(venta.client_province || 'Sin provincia')
       const codigoPostal = venta.client_postal_code || 'Sin código'
       
       const currentProvincia = provinciasMap.get(provincia) || { 
@@ -335,7 +436,7 @@ export function InformeVentasMensual() {
         venta.payment_method,
         venta.client_name || "",
         venta.client_postal_code || "",
-        venta.client_province || "",
+        normalizarProvincia(venta.client_province || ""),
         venta.discount || ""
       ].join(","))
     ].join("\n")
@@ -886,7 +987,7 @@ export function InformeVentasMensual() {
                         <TableCell>
                           <Badge variant="outline">{venta.payment_method}</Badge>
                         </TableCell>
-                        <TableCell>{venta.client_province || "Sin datos"}</TableCell>
+                        <TableCell>{normalizarProvincia(venta.client_province || "Sin datos")}</TableCell>
                         <TableCell>{venta.discount || "Sin descuento"}</TableCell>
                       </TableRow>
                     ))}
