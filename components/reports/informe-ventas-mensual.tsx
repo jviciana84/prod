@@ -44,7 +44,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { MapaConContorno } from "./mapa-con-contorno"
+import { MapaEspanaReal } from "./mapa-espana-real"
 import type { VentaMensual, EstadisticasVentas } from "@/types/ventas"
 
 // Colores para los gráficos
@@ -649,7 +649,7 @@ export function InformeVentasMensual() {
                  <CardDescription>Concentración de ventas por código postal</CardDescription>
                </CardHeader>
                        <CardContent>
-          <MapaConContorno />
+          <MapaEspanaReal />
         </CardContent>
              </Card>
           </div>
