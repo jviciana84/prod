@@ -369,3 +369,5 @@ const pathsProvincias = [
     stroke: "#9ca3af"
   },
 ];
+
+export { coordenadasProvincias, pathsProvincias };

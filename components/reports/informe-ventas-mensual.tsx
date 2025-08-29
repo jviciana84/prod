@@ -45,6 +45,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { MapaEspanaSVGReal } from "./mapa-espana-svg-real"
+import { MapaDebug } from "./mapa-debug"
 import type { VentaMensual, EstadisticasVentas } from "@/types/ventas"
 
 // Colores para los gráficos
@@ -53,6 +54,7 @@ const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d"
 
 
 export function InformeVentasMensual() {
+  const [showDebug, setShowDebug] = useState(false)
   const [ventas, setVentas] = useState<VentaMensual[]>([])
   const [estadisticas, setEstadisticas] = useState<EstadisticasVentas | null>(null)
   const [loading, setLoading] = useState(true)
@@ -623,65 +625,72 @@ export function InformeVentasMensual() {
         </TabsContent>
 
         {/* Tab Geografía */}
-        <TabsContent value="geografia" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Ventas por Provincia</CardTitle>
-                <CardDescription>Distribución geográfica de ventas</CardDescription>
+        <TabsContent value="geografia" className="space-y-6">
+          {/* Layout principal: Mapa (2/3) + Ventas por Provincia (1/3) */}
+          <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
+            {/* Mapa - ocupa 2/3 del ancho */}
+            <Card className="flex flex-col h-[720px] lg:col-span-2">
+              <CardHeader className="flex-shrink-0">
+                <div>
+                  <CardTitle>Distribución Geográfica de Ventas</CardTitle>
+                  <CardDescription>Densidad de ventas por provincia</CardDescription>
+                </div>
               </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={estadisticas?.ventasPorProvincia}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="provincia" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="cantidad" fill="#FFBB28" />
-                  </BarChart>
-                </ResponsiveContainer>
+              <CardContent className="flex-1 min-h-0 p-6">
+                {showDebug ? <MapaDebug /> : <MapaEspanaSVGReal />}
               </CardContent>
             </Card>
 
-                         <Card>
-               <CardHeader>
-                 <CardTitle>Mapa de Densidad</CardTitle>
-                 <CardDescription>Concentración de ventas por código postal</CardDescription>
-               </CardHeader>
-                                       <CardContent>
-                  <MapaEspanaSVGReal />
-                </CardContent>
-             </Card>
+            {/* Card de Ventas por Provincia - ocupa 1/3 del ancho */}
+            <Card className="h-[720px]">
+              <CardHeader>
+                <CardTitle>Ventas por Provincia</CardTitle>
+                <CardDescription>Distribución detallada de ventas por provincia</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4 max-h-[620px] overflow-y-auto">
+                  {estadisticas?.ventasPorProvincia.map((provincia, index) => (
+                    <div key={provincia.provincia} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">
+                      <div className="flex items-center gap-3">
+                        <Badge variant={index < 3 ? "default" : "secondary"}>
+                          #{index + 1}
+                        </Badge>
+                        <span className="font-medium">{provincia.provincia}</span>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className="text-sm text-muted-foreground">
+                          {provincia.cantidad} ventas
+                        </span>
+                        <span className="font-medium">
+                          {provincia.ingresos.toLocaleString("es-ES", {
+                            style: "currency",
+                            currency: "EUR"
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
+          {/* Gráfico adicional */}
           <Card>
             <CardHeader>
-              <CardTitle>Top Provincias</CardTitle>
+              <CardTitle>Distribución Geográfica de Ventas</CardTitle>
+              <CardDescription>Comparativa de ventas por provincia</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {estadisticas?.ventasPorProvincia.slice(0, 10).map((provincia, index) => (
-                  <div key={provincia.provincia} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Badge variant={index < 3 ? "default" : "secondary"}>
-                        #{index + 1}
-                      </Badge>
-                      <span className="font-medium">{provincia.provincia}</span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <span className="text-sm text-muted-foreground">
-                        {provincia.cantidad} ventas
-                      </span>
-                      <span className="font-medium">
-                        {provincia.ingresos.toLocaleString("es-ES", {
-                          style: "currency",
-                          currency: "EUR"
-                        })}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={estadisticas?.ventasPorProvincia}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="provincia" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="cantidad" fill="#FFBB28" />
+                </BarChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
         </TabsContent>
