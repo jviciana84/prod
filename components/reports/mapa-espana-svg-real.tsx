@@ -1,59 +1,226 @@
 "use client"
 import { useState, useEffect } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createClientComponentClient } from "@/lib/supabase/client-singleton"
 import { pathsProvincias, coordenadasProvincias } from "./mapa-final-data"
 import { preciseProvinceMapping, inverseProvinceMapping } from "./precise-mapping"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { format, subMonths, startOfMonth, endOfMonth } from "date-fns"
+import { es } from "date-fns/locale"
 
 interface VentaGeografica {
   nombre: string
   cantidad: number
 }
 
+// Función para normalizar nombres de provincias (igual que en el informe)
+const normalizarProvincia = (provincia: string): string => {
+  if (!provincia) return 'Sin provincia'
+  
+  const normalizada = provincia.toLowerCase().trim()
+  
+  const casosEspeciales: Record<string, string> = {
+    'barcelona': 'Barcelona',
+    'madrid': 'Madrid',
+    'valencia': 'Valencia',
+    'sevilla': 'Sevilla',
+    'malaga': 'Málaga',
+    'bilbao': 'Bilbao',
+    'zaragoza': 'Zaragoza',
+    'murcia': 'Murcia',
+    'alicante': 'Alicante',
+    'cordoba': 'Córdoba',
+    'granada': 'Granada',
+    'valladolid': 'Valladolid',
+    'oviedo': 'Oviedo',
+    'vigo': 'Vigo',
+    'gijon': 'Gijón',
+    'hospitalet': 'L\'Hospitalet',
+    'a coruna': 'A Coruña',
+    'vitoria': 'Vitoria',
+    'gran canaria': 'Gran Canaria',
+    'tenerife': 'Tenerife',
+    'badajoz': 'Badajoz',
+    'elche': 'Elche',
+    'mostoles': 'Móstoles',
+    'alcala de henares': 'Alcalá de Henares',
+    'fuenlabrada': 'Fuenlabrada',
+    'leganes': 'Leganés',
+    'getafe': 'Getafe',
+    'alcorcon': 'Alcorcón',
+    'torrejon de ardoz': 'Torrejón de Ardoz',
+    'parla': 'Parla',
+    'alcobendas': 'Alcobendas',
+    'san sebastian de los reyes': 'San Sebastián de los Reyes',
+    'pozuelo de alarcon': 'Pozuelo de Alarcón',
+    'coslada': 'Coslada',
+    'las rozas de madrid': 'Las Rozas de Madrid',
+    'majadahonda': 'Majadahonda',
+    'rivas-vaciamadrid': 'Rivas-Vaciamadrid',
+    'valdemoro': 'Valdemoro',
+    'collado villalba': 'Collado Villalba',
+    'san fernando de henares': 'San Fernando de Henares',
+    'tres cantos': 'Tres Cantos',
+    'boadilla del monte': 'Boadilla del Monte',
+    'pinto': 'Pinto',
+    'colmenar viejo': 'Colmenar Viejo',
+    'san martin de la vega': 'San Martín de la Vega',
+    'arganda del rey': 'Arganda del Rey',
+    'torrelodones': 'Torrelodones',
+    'navalcarnero': 'Navalcarnero',
+    'villaviciosa de odon': 'Villaviciosa de Odón',
+    'mejorada del campo': 'Mejorada del Campo',
+    'velilla de san antonio': 'Velilla de San Antonio',
+    'lleida': 'Lleida',
+    'girona': 'Girona',
+    'tarragona': 'Tarragona',
+    'huelva': 'Huelva',
+    'cadiz': 'Cádiz',
+    'jaen': 'Jaén',
+    'almeria': 'Almería',
+    'albacete': 'Albacete',
+    'ciudad real': 'Ciudad Real',
+    'castellon': 'Castellón',
+    'tortosa': 'Tortosa',
+    'palma': 'Palma',
+    'ceuta': 'Ceuta',
+    'melilla': 'Melilla',
+    'baleares': 'Baleares',
+    'illes balears': 'Baleares',
+    'canarias': 'Canarias',
+    'asturias': 'Asturias',
+    'cantabria': 'Cantabria',
+    'galicia': 'Galicia',
+    'pais vasco': 'País Vasco',
+    'navarra': 'Navarra',
+    'aragon': 'Aragón',
+    'la rioja': 'La Rioja',
+    'castilla y leon': 'Castilla y León',
+    'castilla-la mancha': 'Castilla-La Mancha',
+    'extremadura': 'Extremadura',
+    'andalucia': 'Andalucía',
+    'region de murcia': 'Región de Murcia',
+    'comunidad valenciana': 'Comunidad Valenciana',
+    'cataluna': 'Cataluña',
+    'principado de asturias': 'Principado de Asturias'
+  }
+  
+  if (casosEspeciales[normalizada]) {
+    return casosEspeciales[normalizada]
+  }
+  
+  return normalizada.charAt(0).toUpperCase() + normalizada.slice(1)
+}
 
+// Función para calcular el centro de un path SVG
+const calcularCentroPath = (pathD: string): { x: number, y: number } => {
+  const comandos = pathD.match(/[MLHVCSQTAZ][^MLHVCSQTAZ]*/g) || []
+  let puntos: { x: number, y: number }[] = []
+  
+  comandos.forEach(comando => {
+    const tipo = comando[0]
+    const valores = comando.slice(1).trim().split(/[\s,]+/).map(Number).filter(n => !isNaN(n))
+    
+    if (tipo === 'M' || tipo === 'L') {
+      // Mover a o línea a
+      for (let i = 0; i < valores.length; i += 2) {
+        if (valores[i] !== undefined && valores[i + 1] !== undefined) {
+          puntos.push({ x: valores[i], y: valores[i + 1] })
+        }
+      }
+    } else if (tipo === 'H') {
+      // Línea horizontal
+      valores.forEach(x => {
+        if (puntos.length > 0) {
+          puntos.push({ x, y: puntos[puntos.length - 1].y })
+        }
+      })
+    } else if (tipo === 'V') {
+      // Línea vertical
+      valores.forEach(y => {
+        if (puntos.length > 0) {
+          puntos.push({ x: puntos[puntos.length - 1].x, y })
+        }
+      })
+    }
+  })
+  
+  if (puntos.length === 0) return { x: 0, y: 0 }
+  
+  const sumX = puntos.reduce((sum, p) => sum + p.x, 0)
+  const sumY = puntos.reduce((sum, p) => sum + p.y, 0)
+  
+  return {
+    x: Math.round(sumX / puntos.length),
+    y: Math.round(sumY / puntos.length)
+  }
+}
+
+// Calcular coordenadas centradas para cada provincia
+const calcularCoordenadasProvincias = () => {
+  const coordenadas: Record<number, { x: number, y: number }> = {}
+  
+  pathsProvincias.forEach(path => {
+    const centro = calcularCentroPath(path.d)
+    coordenadas[path.id] = centro
+  })
+  
+  return coordenadas
+}
 
 export function MapaEspanaSVGReal() {
   const [provincias, setProvincias] = useState<VentaGeografica[]>([])
   const [provinciaSeleccionada, setProvinciaSeleccionada] = useState<string | null>(null)
+  const [provinciaHover, setProvinciaHover] = useState<string | null>(null)
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
   const [loading, setLoading] = useState(true)
+  const [mesSeleccionado, setMesSeleccionado] = useState<string>(format(new Date(), "yyyy-MM"))
   const supabase = createClientComponentClient()
+
+  const getFechasMes = (mesString: string) => {
+    const [year, month] = mesString.split("-").map(Number)
+    const fechaInicio = startOfMonth(new Date(year, month - 1))
+    const fechaFin = endOfMonth(new Date(year, month - 1))
+    return { fechaInicio, fechaFin }
+  }
 
   useEffect(() => {
     fetchVentasGeograficas()
-  }, [])
+  }, [mesSeleccionado])
 
   const fetchVentasGeograficas = async () => {
     try {
       setLoading(true)
-
-      // Obtener datos de ventas de la tabla sales_vehicles
-      const { data: ventas, error } = await supabase
+      
+      let query = supabase
         .from('sales_vehicles')
-        .select('client_postal_code, price')
-        .not('client_postal_code', 'is', null)
+        .select('client_province, price')
+        .not('client_province', 'is', null)
+
+      if (mesSeleccionado !== "total") {
+        const { fechaInicio, fechaFin } = getFechasMes(mesSeleccionado)
+        console.log("🗺️ Obteniendo ventas geográficas del mes:", mesSeleccionado)
+        console.log("📅 Desde:", fechaInicio.toISOString())
+        console.log("📅 Hasta:", fechaFin.toISOString())
+        
+        query = query
+          .gte("sale_date", fechaInicio.toISOString())
+          .lte("sale_date", fechaFin.toISOString())
+      } else {
+        console.log("🗺️ Obteniendo ventas geográficas totales (sin filtro de fecha)")
+      }
+
+      const { data: ventas, error } = await query
 
       if (error) {
         console.error('Error fetching sales data:', error)
         return
       }
 
-      // Mapeo de códigos postales a provincias españolas
-      const mapeoCodigosPostales = {
-        '01': 'Álava', '02': 'Albacete', '03': 'Alicante', '04': 'Almería', '05': 'Ávila',
-        '06': 'Badajoz', '07': 'Baleares', '08': 'Barcelona', '09': 'Burgos', '10': 'Cáceres',
-        '11': 'Cádiz', '12': 'Castellón', '13': 'Ciudad Real', '14': 'Córdoba', '15': 'A Coruña',
-        '16': 'Cuenca', '17': 'Girona', '18': 'Granada', '19': 'Guadalajara', '20': 'Gipuzkoa',
-        '21': 'Huelva', '22': 'Huesca', '23': 'Jaén', '24': 'León', '25': 'Lleida',
-        '26': 'La Rioja', '27': 'Lugo', '28': 'Madrid', '29': 'Málaga', '30': 'Murcia',
-        '31': 'Navarra', '32': 'Ourense', '33': 'Asturias', '34': 'Palencia', '35': 'Las Palmas',
-        '36': 'Pontevedra', '37': 'Salamanca', '38': 'Santa Cruz de Tenerife', '39': 'Cantabria', '40': 'Segovia',
-        '41': 'Sevilla', '42': 'Soria', '43': 'Tarragona', '44': 'Teruel', '45': 'Toledo',
-        '46': 'Valencia', '47': 'Valladolid', '48': 'Bizkaia', '49': 'Zamora', '50': 'Zaragoza'
-      }
+      console.log(`🗺️ Ventas geográficas encontradas: ${ventas?.length || 0}`)
 
-      // Agrupar por códigos postales y contar ventas
+      // Agrupar por provincia usando client_province directamente
       const ventasPorProvincia = ventas.reduce((acc, venta) => {
-        const codigo = venta.client_postal_code?.toString().substring(0, 2) || '00'
-        const provincia = mapeoCodigosPostales[codigo]
+        const provincia = normalizarProvincia(venta.client_province || 'Sin provincia')
         
         if (provincia) {
           acc[provincia] = (acc[provincia] || 0) + 1
@@ -66,6 +233,8 @@ export function MapaEspanaSVGReal() {
         nombre: provincia,
         cantidad
       }))
+      
+      console.log("🗺️ Provincias con ventas:", provinciasData)
       setProvincias(provinciasData)
     } catch (error) {
       console.error('Error:', error)
@@ -82,59 +251,8 @@ export function MapaEspanaSVGReal() {
     return "#0891b2" // Azul claro
   }
 
-  // Coordenadas centradas manualmente para cada provincia
-  const coordenadasCentradas = {
-    0: { x: 720, y: 240 }, // Baleares
-    1: { x: 280, y: 30 }, // Asturias
-    2: { x: 95, y: 35 }, // A Coruña
-    3: { x: 680, y: 100 }, // Girona
-    4: { x: 50, y: 65 }, // Pontevedra
-    5: { x: 360, y: 30 }, // Cantabria
-    6: { x: 295, y: 410 }, // Málaga
-    7: { x: 420, y: 370 }, // Almería
-    8: { x: 480, y: 320 }, // Murcia
-    9: { x: 460, y: 280 }, // Albacete
-    10: { x: 260, y: 160 }, // Ávila
-    11: { x: 375, y: 50 }, // Araba/Álava
-    12: { x: 270, y: 280 }, // Badajoz
-    13: { x: 540, y: 300 }, // Alicante
-    14: { x: 80, y: 75 }, // Ourense
-    15: { x: 665, y: 95 }, // Barcelona
-    16: { x: 350, y: 65 }, // Burgos
-    17: { x: 185, y: 200 }, // Cáceres
-    18: { x: 230, y: 420 }, // Cádiz
-    19: { x: 550, y: 200 }, // Castelló/Castellón
-    20: { x: 290, y: 250 }, // Ciudad Real
-    21: { x: 395, y: 320 }, // Jaén
-    22: { x: 250, y: 340 }, // Córdoba
-    23: { x: 430, y: 190 }, // Cuenca
-    24: { x: 410, y: 350 }, // Granada
-    25: { x: 380, y: 150 }, // Guadalajara
-    26: { x: 440, y: 35 }, // Gipuzkoa/Guipúzcoa
-    27: { x: 150, y: 340 }, // Huelva
-    28: { x: 585, y: 70 }, // Huesca
-    29: { x: 250, y: 65 }, // León
-    30: { x: 645, y: 80 }, // Lleida
-    31: { x: 375, y: 70 }, // La Rioja
-    32: { x: 410, y: 100 }, // Soria
-    33: { x: 485, y: 75 }, // Navarra
-    34: { x: 235, y: 465 }, // Ceuta
-    35: { x: 135, y: 20 }, // Lugo
-    36: { x: 320, y: 175 }, // Madrid
-    37: { x: 300, y: 70 }, // Palencia
-    38: { x: 175, y: 150 }, // Salamanca
-    39: { x: 320, y: 140 }, // Segovia
-    40: { x: 235, y: 360 }, // Sevilla
-    41: { x: 290, y: 205 }, // Toledo
-    42: { x: 630, y: 130 }, // Tarragona
-    43: { x: 560, y: 160 }, // Teruel
-    44: { x: 480, y: 220 }, // València/Valencia
-    45: { x: 235, y: 95 }, // Valladolid
-    46: { x: 375, y: 40 }, // Bizkaia/Vizcaya
-    47: { x: 165, y: 95 }, // Zamora
-    48: { x: 485, y: 75 }, // Zaragoza
-    49: { x: 375, y: 500 } // Melilla
-  }
+  // Calcular coordenadas centradas dinámicamente para cada provincia
+  const coordenadasCentradas = calcularCoordenadasProvincias()
 
   if (loading) {
     return (
@@ -148,6 +266,37 @@ export function MapaEspanaSVGReal() {
     <div className="h-full flex flex-col">
       {/* Contenedor del mapa que ocupa el espacio restante */}
       <div className="relative flex-1 min-h-0">
+        {/* Controles dentro del mapa */}
+        <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+          <Select value={mesSeleccionado} onValueChange={setMesSeleccionado}>
+            <SelectTrigger className="w-32 h-8 text-xs">
+              <SelectValue placeholder="Mes" />
+            </SelectTrigger>
+            <SelectContent>
+              {[...Array(12)].map((_, i) => {
+                const fecha = subMonths(new Date(), i)
+                const valor = format(fecha, "yyyy-MM")
+                const etiqueta = format(fecha, "MMMM yyyy", { locale: es })
+                return (
+                  <SelectItem key={valor} value={valor}>
+                    {etiqueta.charAt(0).toUpperCase() + etiqueta.slice(1)}
+                  </SelectItem>
+                )
+              })}
+            </SelectContent>
+          </Select>
+          <button
+            onClick={() => setMesSeleccionado("total")}
+            className={`px-3 py-1 text-xs rounded border ${
+              mesSeleccionado === "total" 
+                ? "bg-blue-600 text-white border-blue-600" 
+                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+            }`}
+          >
+            Total
+          </button>
+        </div>
+
         <svg
           width="100%"
           height="100%"
@@ -161,16 +310,33 @@ export function MapaEspanaSVGReal() {
               <path
                 key={index}
                 d={path.d}
-                fill={path.fill}
+                fill={(() => {
+                  const mapeoIdsAProvincias = preciseProvinceMapping;
+                  const provinciaNombre = mapeoIdsAProvincias[path.id];
+                  if (provinciaNombre === provinciaSeleccionada) {
+                    return "#059669"; // Verde para provincia seleccionada
+                  }
+                  return path.fill;
+                })()}
                 stroke={path.stroke}
                 strokeWidth="0.5"
                 className="cursor-pointer hover:fill-blue-200 dark:hover:fill-blue-800 transition-colors"
-                onClick={() => {
-                  // Usar el mapeo preciso generado por el script
+                onMouseEnter={(e) => {
                   const mapeoIdsAProvincias = preciseProvinceMapping;
                   const provinciaNombre = mapeoIdsAProvincias[path.id];
                   if (provinciaNombre) {
-                    setProvinciaSeleccionada(provinciaNombre);
+                    setProvinciaHover(provinciaNombre);
+                    setMousePosition({ x: e.clientX, y: e.clientY });
+                  }
+                }}
+                onMouseLeave={() => {
+                  setProvinciaHover(null);
+                }}
+                onClick={() => {
+                  const mapeoIdsAProvincias = preciseProvinceMapping;
+                  const provinciaNombre = mapeoIdsAProvincias[path.id];
+                  if (provinciaNombre) {
+                    setProvinciaSeleccionada(provinciaSeleccionada === provinciaNombre ? null : provinciaNombre);
                   }
                 }}
               />
@@ -194,19 +360,29 @@ export function MapaEspanaSVGReal() {
                 <circle
                   cx={coord.x}
                   cy={coord.y}
-                  r={Math.max(6, Math.min(15, provincia.cantidad * 3))}
-                  fill={getIntensidadColor(provincia.cantidad)}
-                  stroke="white"
-                  strokeWidth="2"
+                  r={Math.max(10, Math.min(25, provincia.cantidad * 4))}
+                  fill={provincia.nombre === provinciaSeleccionada ? "#059669" : getIntensidadColor(provincia.cantidad)}
+                  stroke={provincia.nombre === provinciaSeleccionada ? "#047857" : "white"}
+                  strokeWidth={provincia.nombre === provinciaSeleccionada ? 4 : 3}
                   className="cursor-pointer hover:opacity-80 transition-opacity drop-shadow-lg"
-                  onClick={() => setProvinciaSeleccionada(provincia.nombre)}
+                  onMouseEnter={(e) => {
+                    setProvinciaHover(provincia.nombre);
+                    setMousePosition({ x: e.clientX, y: e.clientY });
+                  }}
+                  onMouseLeave={() => {
+                    setProvinciaHover(null);
+                  }}
+                  onClick={() => {
+                    setProvinciaSeleccionada(provinciaSeleccionada === provincia.nombre ? null : provincia.nombre);
+                  }}
                 />
                 <text
                   x={coord.x}
-                  y={coord.y + 2}
+                  y={coord.y + 1}
                   textAnchor="middle"
-                  className="text-xs font-bold fill-current text-white pointer-events-none"
-                  style={{ fontSize: '12px', textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}
+                  dominantBaseline="middle"
+                  className="font-bold fill-current text-white pointer-events-none"
+                  style={{ fontSize: '16px', textShadow: '2px 2px 4px rgba(0,0,0,0.9)' }}
                 >
                   {provincia.cantidad}
                 </text>
@@ -215,16 +391,58 @@ export function MapaEspanaSVGReal() {
           })}
         </svg>
 
-        {/* Información de provincia seleccionada */}
-        {provinciaSeleccionada && (
-          <div className="absolute bottom-4 left-4 bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-            <p className="text-sm font-medium text-gray-900 dark:text-white">
-              {provinciaSeleccionada}
-            </p>
-            <p className="text-xs text-gray-600 dark:text-gray-400">
-              {provincias.find(p => p.nombre === provinciaSeleccionada)?.cantidad || 0} ventas
-            </p>
-          </div>
+        {/* Tooltip comparativo */}
+        {provinciaSeleccionada ? (
+          // Si hay provincia seleccionada, mostrar comparación
+          provinciaHover && provinciaHover !== provinciaSeleccionada && (
+            <div 
+              className="absolute bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 pointer-events-none z-20"
+              style={{
+                left: `${mousePosition.x + 5}px`,
+                top: `${mousePosition.y - 5}px`,
+                transform: 'translateY(-100%)'
+              }}
+            >
+              {/* Provincia seleccionada (fija) */}
+              <div className="mb-2 pb-2 border-b border-gray-200 dark:border-gray-600">
+                <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                  {provinciaSeleccionada}
+                </p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  {provincias.find(p => p.nombre === provinciaSeleccionada)?.cantidad || 0} ventas
+                </p>
+              </div>
+              
+              {/* Provincia del hover */}
+              <div>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                  {provinciaHover}
+                </p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  {provincias.find(p => p.nombre === provinciaHover)?.cantidad || 0} ventas
+                </p>
+              </div>
+            </div>
+          )
+        ) : (
+          // Si no hay provincia seleccionada, solo mostrar hover
+          provinciaHover && (
+            <div 
+              className="absolute bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 pointer-events-none z-20"
+              style={{
+                left: `${mousePosition.x + 5}px`,
+                top: `${mousePosition.y - 5}px`,
+                transform: 'translateY(-100%)'
+              }}
+            >
+              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                {provinciaHover}
+              </p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                {provincias.find(p => p.nombre === provinciaHover)?.cantidad || 0} ventas
+              </p>
+            </div>
+          )
         )}
       </div>
 
