@@ -52,6 +52,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { DateFilter } from "@/components/ui/date-filter"
+import { PrintExportButton } from "./print-export-button"
 
 // Tipo de pestaña
 type EntregaTab = "todas" | "con_incidencia" | "sin_incidencia" | "pendientes" | "docu_no_entregada"
@@ -187,7 +188,7 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
 
       // Determinar si el usuario es administrador
       const userRole = profile?.role?.toLowerCase() || ""
-      const isAdmin = ["admin", "administrador"].includes(userRole)
+      const isAdmin = ["admin", "administrador", "director"].includes(userRole)
       const isAsesor = ["asesor", "asesor ventas", "asesor comercial"].includes(userRole)
 
       console.log("🔍 Debug info:")
@@ -688,6 +689,13 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
                   >
                     {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                   </Button>
+
+                  <PrintExportButton
+                    entregas={filteredEntregas}
+                    activeTab={activeTab}
+                    searchQuery={searchQuery}
+                    dateFilter={dateRange}
+                  />
 
                   {/* Botón de filtro de fechas temporal */}
                   <DateFilter

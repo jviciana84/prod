@@ -1,6 +1,7 @@
 // Mapeo manual de provincias realizado con el botón de debug
+// Actualizado para ser consistente con la normalización de provincias
 export const preciseProvinceMapping = {
-  "0": "Illes Balears",
+  "0": "Baleares",
   "1": "Asturias",
   "2": "A Coruña",
   "3": "Girona",
@@ -19,14 +20,14 @@ export const preciseProvinceMapping = {
   "16": "Burgos",
   "17": "Cáceres",
   "18": "Cádiz",
-  "19": "Castelló/Castellón",
+  "19": "Castellón",
   "20": "Ciudad Real",
   "21": "Jaén",
   "22": "Córdoba",
   "23": "Cuenca",
   "24": "Granada",
   "25": "Guadalajara",
-  "26": "Gipuzkoa/Guipúzcoa",
+  "26": "Gipuzkoa",
   "27": "Huelva",
   "28": "Huesca",
   "29": "León",
@@ -44,9 +45,9 @@ export const preciseProvinceMapping = {
   "41": "Toledo",
   "42": "Tarragona",
   "43": "Teruel",
-  "44": "València/Valencia",
+  "44": "Valencia",
   "45": "Valladolid",
-  "46": "Bizkaia/Vizcaya",
+  "46": "Bizkaia",
   "47": "Zamora",
   "48": "Zaragoza",
   "49": "Melilla"
