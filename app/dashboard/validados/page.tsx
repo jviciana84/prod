@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { CheckCircle } from "lucide-react"
 import { ValidadosTable } from "@/components/validados/validados-table"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
+import { CompactSearchWithModal } from "@/components/dashboard/compact-search-with-modal"
 
 export default async function ValidadosPage() {
   const cookieStore = await cookies()
@@ -40,7 +41,10 @@ export default async function ValidadosPage() {
   return (
     <div className="p-4 md:p-5 space-y-4 pb-20">
       <div className="space-y-2">
-        <Breadcrumbs className="mt-4" />
+        <div className="flex items-center justify-between">
+          <Breadcrumbs className="mt-4" />
+          <CompactSearchWithModal className="mt-4" />
+        </div>
         <div className="flex items-center gap-3">
           <CheckCircle className="h-8 w-8 text-green-600" />
           <div>

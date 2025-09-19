@@ -2,16 +2,54 @@
 import { Moon, Sun, Sunset } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 
 export function ThemeToggle() {
   const { setTheme, theme } = useTheme()
   const [isOpen, setIsOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Manejar eventos de clic fuera del menú
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node
+      
+      // Verificar si el clic fue fuera del menú de tema
+      const isOutsideThemeMenu = 
+        menuRef.current && 
+        !menuRef.current.contains(target) &&
+        buttonRef.current && 
+        !buttonRef.current.contains(target)
+      
+      // Cerrar menú si se hace clic fuera
+      if (isOutsideThemeMenu) {
+        setIsOpen(false)
+      }
+    }
+
+    // Manejar tecla Escape
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false)
+      }
+    }
+
+    // Solo agregar los listeners si el menú está abierto
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside)
+      document.addEventListener("keydown", handleEscapeKey)
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside)
+        document.removeEventListener("keydown", handleEscapeKey)
+      }
+    }
+  }, [isOpen])
 
   // Determina el icono a mostrar según el tema activo
   const getIcon = () => {
@@ -23,13 +61,22 @@ export function ThemeToggle() {
 
   return (
     <div className="relative">
-      <Button variant="ghost" size="icon" onClick={() => setIsOpen(!isOpen)} className="relative">
+      <Button 
+        ref={buttonRef}
+        variant="ghost" 
+        size="icon" 
+        onClick={() => setIsOpen(!isOpen)} 
+        className="relative"
+      >
         {getIcon()}
         <span className="sr-only">Cambiar tema</span>
       </Button>
 
       {isOpen && (
-        <div className="absolute right-1/2 translate-x-1/2 mt-2 flex flex-col gap-1 p-1 rounded-md border bg-popover shadow-md animate-in fade-in-0 zoom-in-95 z-50">
+        <div 
+          ref={menuRef}
+          className="absolute right-1/2 translate-x-1/2 mt-2 flex flex-col gap-1 p-1 rounded-md border bg-popover shadow-md animate-in fade-in-0 zoom-in-95 z-[60]"
+        >
           <Button
             variant="ghost"
             size="icon"

@@ -13,6 +13,7 @@ import { Loader2, FileText } from "lucide-react"
 import { KeyDocumentIncidencesCard } from "@/components/keys/key-document-incidences-card"
 import { Key, Search, Clock } from "lucide-react"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
+import { CompactSearchWithModal } from "@/components/dashboard/compact-search-with-modal"
 import { toast } from "sonner"
 
 // Define SPECIAL_USERS here or import from a shared location
@@ -176,7 +177,10 @@ export default function KeysManagementPage() {
   return (
     <div className="p-4 md:p-5 space-y-4 pb-20">
       <div className="space-y-2">
-        <Breadcrumbs className="mt-4" />
+        <div className="flex items-center justify-between">
+          <Breadcrumbs className="mt-4" />
+          <CompactSearchWithModal className="mt-4" />
+        </div>
         <div className="flex items-center gap-3">
           <Key className="h-7 w-7 text-blue-500" />
           <div>

@@ -4,6 +4,7 @@ import { createServerClient } from "@/lib/supabase/server"
 import ProfileForm from "@/components/profile/profile-form"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
+import { CompactSearchWithModal } from "@/components/dashboard/compact-search-with-modal"
 import { User } from "lucide-react"
 
 export default async function ProfilePage() {
@@ -23,10 +24,13 @@ export default async function ProfilePage() {
   return (
     <div className="p-4 md:p-5 space-y-4 pb-20">
       <div className="space-y-2">
-        <Breadcrumbs className="mt-4" segments={[
-          { title: "Dashboard", href: "/dashboard" },
-          { title: "Perfil", href: "/dashboard/profile" },
-        ]} />
+        <div className="flex items-center justify-between">
+          <Breadcrumbs className="mt-4" segments={[
+            { title: "Dashboard", href: "/dashboard" },
+            { title: "Perfil", href: "/dashboard/profile" },
+          ]} />
+          <CompactSearchWithModal className="mt-4" />
+        </div>
         <div className="flex items-center gap-3">
           <User className="h-8 w-8 text-muted-foreground" />
           <div>

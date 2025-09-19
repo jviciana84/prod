@@ -95,7 +95,7 @@ export function DashboardContent({
       </div>
 
       {/* Buscador moderno - posicionado correctamente */}
-      <div className="fixed top-20 z-50" style={{ left: 'calc(100% - 27rem)', right: '1rem' }}>
+      <div className="fixed top-20 z-40" style={{ left: 'calc(100% - 27rem)', right: '1rem' }}>
         <SearchWithModal 
           placeholder="Buscar vehículos, clientes, ventas..."
           className="max-w-sm"

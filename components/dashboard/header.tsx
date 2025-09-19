@@ -535,7 +535,7 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
             {isNotificationsOpen && (
               <div
                 ref={notificationsRef}
-                className="absolute right-0 mt-2 w-80 rounded-md border bg-popover shadow-md animate-in fade-in-0 zoom-in-95 z-50"
+                className="absolute right-0 mt-2 w-80 rounded-md border bg-popover shadow-md animate-in fade-in-0 zoom-in-95 z-[60]"
               >
                 <div className="p-3">
                   <div className="flex items-center justify-between pb-2">
@@ -626,7 +626,7 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
             {isMenuOpen && (
               <div
                 ref={menuRef}
-                className="absolute right-0 mt-2 w-72 rounded-md border bg-popover shadow-md animate-in fade-in-0 zoom-in-95 z-50"
+                className="absolute right-0 mt-2 w-72 rounded-md border bg-popover shadow-md animate-in fade-in-0 zoom-in-95 z-[60]"
               >
                 <div className="p-3">
                   <div className="flex flex-col items-center pt-1 pb-2 relative">

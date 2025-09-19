@@ -6,6 +6,7 @@ import SalesTable from "@/components/sales/sales-table"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Car, Wrench, TableIcon, FileText, Plus, Calendar, Clock, Hash, ShoppingCart, TrendingUp, Upload, Percent } from "lucide-react"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
+import { CompactSearchWithModal } from "@/components/dashboard/compact-search-with-modal"
 import { Button } from "@/components/ui/button"
 import { AutoRefreshIndicator } from "@/components/ui/auto-refresh-indicator"
 import { AutoRefreshSettings } from "@/components/ui/auto-refresh-settings"
@@ -96,7 +97,10 @@ export default function VentasPage() {
   return (
     <div className="p-4 md:p-5 space-y-4 pb-20">
       <div className="space-y-2">
-        <Breadcrumbs className="mt-4" />
+        <div className="flex items-center justify-between">
+          <Breadcrumbs className="mt-4" />
+          <CompactSearchWithModal className="mt-4" />
+        </div>
         <div className="flex items-center gap-3">
           <Car className="h-8 w-8 text-green-500" />
           <div className="flex-1">

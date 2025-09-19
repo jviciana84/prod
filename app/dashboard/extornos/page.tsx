@@ -73,6 +73,7 @@ import { AlertTriangle } from "lucide-react"
 
 import { DocumentUploaderCompact } from "@/components/extornos/document-uploader-compact"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
+import { CompactSearchWithModal } from "@/components/dashboard/compact-search-with-modal"
 import { cn } from "@/lib/utils"
 
 interface DocumentMetadata {
@@ -1207,7 +1208,10 @@ Muchas gracias`.trim()
   return (
     <div className="p-4 md:p-5 space-y-4 pb-20">
       <div className="space-y-2">
-        <Breadcrumbs className="mt-4" />
+        <div className="flex items-center justify-between">
+          <Breadcrumbs className="mt-4" />
+          <CompactSearchWithModal className="mt-4" />
+        </div>
         <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <ArrowRightLeft className="h-8 w-8 text-blue-600" />

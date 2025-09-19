@@ -1,6 +1,7 @@
 "use client"
 
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
+import { CompactSearchWithModal } from "@/components/dashboard/compact-search-with-modal"
 import { Trophy, Settings, RefreshCw, Loader2, CheckCircle, Car, Tag, Euro, Calculator, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -143,18 +144,21 @@ export default function IncentivosPageClient({
   return (
     <div className="p-4 md:p-5 space-y-4 pb-20">
       <div className="space-y-2">
-        <Breadcrumbs className="mt-4"
-          segments={[
-            {
-              title: "Dashboard",
-              href: "/dashboard",
-            },
-            {
-              title: "Incentivos",
-              href: "/dashboard/incentivos",
-            },
-          ]}
-        />
+        <div className="flex items-center justify-between">
+          <Breadcrumbs className="mt-4"
+            segments={[
+              {
+                title: "Dashboard",
+                href: "/dashboard",
+              },
+              {
+                title: "Incentivos",
+                href: "/dashboard/incentivos",
+              },
+            ]}
+          />
+          <CompactSearchWithModal className="mt-4" />
+        </div>
         <div className="flex items-center gap-3 justify-between">
           <div className="flex items-center gap-3">
             <Trophy className="h-8 w-8 text-muted-foreground" />

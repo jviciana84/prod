@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
+import { CompactSearchWithModal } from "@/components/dashboard/compact-search-with-modal"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { FileBarChart, FileText, AlertTriangle, Clock, TrendingUp } from "lucide-react"
 import Link from "next/link"
@@ -14,18 +15,21 @@ export default function ReportsPage() {
   return (
     <div className="p-4 md:p-5 space-y-4 pb-20">
       <div className="space-y-2">
-        <Breadcrumbs className="mt-4"
-          segments={[
-            {
-              title: "Dashboard",
-              href: "/dashboard",
-            },
-            {
-              title: "Informes",
-              href: "/dashboard/reports",
-            },
-          ]}
-        />
+        <div className="flex items-center justify-between">
+          <Breadcrumbs className="mt-4"
+            segments={[
+              {
+                title: "Dashboard",
+                href: "/dashboard",
+              },
+              {
+                title: "Informes",
+                href: "/dashboard/reports",
+              },
+            ]}
+          />
+          <CompactSearchWithModal className="mt-4" />
+        </div>
         <div className="flex items-center gap-3">
           <FileBarChart className="h-8 w-8 text-muted-foreground" />
           <div>

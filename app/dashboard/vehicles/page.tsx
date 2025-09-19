@@ -4,6 +4,7 @@ import { useState, useCallback } from "react"
 import { supabaseAdmin } from "@/lib/supabaseClient"
 import StockTable from "@/components/vehicles/stock-table"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
+import { CompactSearchWithModal } from "@/components/dashboard/compact-search-with-modal"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { AutoRefreshIndicator } from "@/components/ui/auto-refresh-indicator"
 import { AutoRefreshSettings } from "@/components/ui/auto-refresh-settings"
@@ -42,18 +43,21 @@ export default function VehiclesPage() {
   return (
     <div className="p-4 md:p-5 space-y-4 pb-20">
       <div className="space-y-2">
-        <Breadcrumbs className="mt-4"
-          segments={[
-            {
-              title: "Dashboard",
-              href: "/dashboard",
-            },
-            {
-              title: "Vehículos",
-              href: "/dashboard/vehicles",
-            },
-          ]}
-        />
+        <div className="flex items-center justify-between">
+          <Breadcrumbs className="mt-4"
+            segments={[
+              {
+                title: "Dashboard",
+                href: "/dashboard",
+              },
+              {
+                title: "Vehículos",
+                href: "/dashboard/vehicles",
+              },
+            ]}
+          />
+          <CompactSearchWithModal className="mt-4" />
+        </div>
         <div className="flex items-center gap-3">
           <CarFrontDoubleIcon className="h-8 w-8 text-muted-foreground" />
           <div>

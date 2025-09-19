@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
+import { CompactSearchWithModal } from "@/components/dashboard/compact-search-with-modal"
 import { RecogidasManager } from "@/components/recogidas/recogidas-manager"
 import { Truck } from "lucide-react"
 
@@ -16,18 +17,21 @@ export default function RecogidasPage({ searchParams }: RecogidasPageProps) {
   return (
     <div className="p-4 md:p-5 space-y-4 pb-20">
       <div className="space-y-4">
-        <Breadcrumbs className="mt-4"
-          segments={[
-            {
-              title: "Dashboard",
-              href: "/dashboard",
-            },
-            {
-              title: "Solicitar Recogida",
-              href: "/dashboard/recogidas",
-            },
-          ]}
-        />
+        <div className="flex items-center justify-between">
+          <Breadcrumbs className="mt-4"
+            segments={[
+              {
+                title: "Dashboard",
+                href: "/dashboard",
+              },
+              {
+                title: "Solicitar Recogida",
+                href: "/dashboard/recogidas",
+              },
+            ]}
+          />
+          <CompactSearchWithModal className="mt-4" />
+        </div>
         <div className="flex items-center gap-3">
           <Truck className="h-8 w-8 text-muted-foreground" />
           <div>

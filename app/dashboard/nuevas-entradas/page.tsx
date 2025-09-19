@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import TransportDashboard from "@/components/transport/transport-dashboard"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
+import { CompactSearchWithModal } from "@/components/dashboard/compact-search-with-modal"
 import { getUserRolesClient } from "@/lib/auth/permissions-client"
 import { AutoRefreshIndicator } from "@/components/ui/auto-refresh-indicator"
 import { AutoRefreshSettings } from "@/components/ui/auto-refresh-settings"
@@ -128,7 +129,10 @@ export default function TransportPage() {
   return (
     <div className="p-4 md:p-5 space-y-4 pb-20">
       <div className="space-y-2">
-        <Breadcrumbs className="mt-4" />
+        <div className="flex items-center justify-between">
+          <Breadcrumbs className="mt-4" />
+          <CompactSearchWithModal className="mt-4" />
+        </div>
         <div className="flex items-center gap-3">
           <AddCarIcon className="h-8 w-8 text-green-600" />
           <div>
