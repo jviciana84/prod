@@ -55,7 +55,7 @@ export default function ChatWrapper({ isOpen, onClose }: ChatWrapperProps) {
                   EDELWEISS
                 </h1>
                 <p className="text-blue-200 text-xl font-medium mb-1">Asistente IA de CVO</p>
-                <p className="text-white/90 text-sm">Especialista en CVO • Groq Llama 3.1 8B</p>
+                <p className="text-white/90 text-sm">Especialista en CVO • OpenAI GPT-4o</p>
               </div>
             </div>
 

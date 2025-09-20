@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Send } from 'lucide-react'
+import { X, Send, Copy, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { useAuth } from '@/hooks/use-auth'
@@ -15,11 +15,12 @@ interface IsolatedChatProps {
 }
 
 export default function IsolatedChat({ isOpen, onClose, initialQuery }: IsolatedChatProps) {
-  const [messages, setMessages] = useState<Array<{id: string, text: string, isUser: boolean, timestamp: Date, isDisclaimer?: boolean}>>([])
+  const [messages, setMessages] = useState<Array<{id: string, text: string, isUser: boolean, timestamp: Date, isDisclaimer?: boolean, isError?: boolean}>>([])
   const [chatInput, setChatInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false)
   const [hasShownInitialDisclaimer, setHasShownInitialDisclaimer] = useState(false)
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const processedInitialQuery = useRef<string>("")
   
@@ -58,6 +59,17 @@ export default function IsolatedChat({ isOpen, onClose, initialQuery }: Isolated
   // Función para hacer scroll automático al final
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [])
+
+  // Función para copiar texto al portapapeles
+  const copyToClipboard = useCallback(async (text: string, messageId: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedMessageId(messageId)
+      setTimeout(() => setCopiedMessageId(null), 2000)
+    } catch (error) {
+      console.error('Error copiando al portapapeles:', error)
+    }
   }, [])
 
   // Scroll automático cuando se agregan mensajes o cambia el loading
@@ -101,11 +113,37 @@ export default function IsolatedChat({ isOpen, onClose, initialQuery }: Isolated
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message: messageToSend }),
+        body: JSON.stringify({ 
+          message: messageToSend,
+          userInfo: {
+            id: user?.id,
+            name: profile?.full_name || user?.email || 'Usuario CVO',
+            email: user?.email || 'usuario@cvo.com',
+            role: profile?.role || 'Usuario del Sistema'
+          }
+        }),
+        // Agregar timeout para evitar que se cuelgue
+        signal: AbortSignal.timeout(30000) // 30 segundos
       })
 
       if (!response.ok) {
-        throw new Error('Error en la respuesta')
+        const errorData = await response.json().catch(() => null)
+        console.error('Error response:', errorData)
+        
+        // Manejar límite de uso diario
+        if (response.status === 429 && errorData?.error === 'Límite diario alcanzado') {
+          const limitMessage = {
+            id: generateUniqueId(),
+            text: `🚫 **Límite diario alcanzado**\n\n${errorData.message}\n\n**Uso actual**: ${errorData.usage.current}/${errorData.usage.limit} preguntas\n\n💡 **Tip**: Los administradores no tienen límite de uso.`,
+            isUser: false,
+            timestamp: new Date(),
+            isError: true
+          }
+          setMessages(prev => [...prev, limitMessage])
+          return
+        }
+        
+        throw new Error(`Error ${response.status}: ${response.statusText}`)
       }
 
       const data = await response.json()
@@ -120,9 +158,24 @@ export default function IsolatedChat({ isOpen, onClose, initialQuery }: Isolated
       setMessages(prev => [...prev, aiMessage])
     } catch (error) {
       console.error('Error:', error)
+      
+      let errorText = 'Lo siento, hubo un error al procesar tu mensaje. Por favor, inténtalo de nuevo.'
+      
+      if (error instanceof Error) {
+        if (error.name === 'TimeoutError') {
+          errorText = 'La respuesta está tardando demasiado. Por favor, inténtalo de nuevo.'
+        } else if (error.message.includes('Failed to fetch')) {
+          errorText = 'Error de conexión. Verifica que el servidor esté funcionando e inténtalo de nuevo.'
+        } else if (error.message.includes('Error 500')) {
+          errorText = 'Error interno del servidor. Por favor, inténtalo de nuevo en unos momentos.'
+        } else if (error.message.includes('Error 429')) {
+          errorText = 'Demasiadas solicitudes. Por favor, espera un momento e inténtalo de nuevo.'
+        }
+      }
+      
       const errorMessage = {
         id: generateUniqueId(),
-        text: 'Lo siento, hubo un error al procesar tu mensaje. Por favor, inténtalo de nuevo.',
+        text: errorText,
         isUser: false,
         timestamp: new Date()
       }
@@ -353,15 +406,33 @@ export default function IsolatedChat({ isOpen, onClose, initialQuery }: Isolated
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.3, delay: 0.15 }}
-                        className={`${message.isUser ? 'max-w-[90%] min-w-fit' : 'max-w-[80%]'} rounded-lg p-3 ${
+                        className={`${message.isUser ? 'max-w-[90%] min-w-fit' : 'max-w-[80%]'} rounded-lg p-3 relative group ${
                           message.isUser 
                             ? 'bg-blue-500 text-white' 
+                            : message.isError
+                            ? 'bg-red-100 dark:bg-red-900/20 text-red-900 dark:text-red-100 border border-red-300 dark:border-red-600'
                             : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
                         }`}
                       >
                         <p className={`text-sm leading-relaxed whitespace-pre-wrap ${message.isUser ? 'text-right' : 'text-left'}`}>
                           {message.text}
                         </p>
+                        
+                        {/* Botón de copiar para mensajes de Edelweis */}
+                        {!message.isUser && !message.isDisclaimer && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="absolute top-2 right-2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-gray-200 dark:hover:bg-gray-600"
+                            onClick={() => copyToClipboard(message.text, message.id)}
+                          >
+                            {copiedMessageId === message.id ? (
+                              <Check className="h-3 w-3 text-green-600" />
+                            ) : (
+                              <Copy className="h-3 w-3" />
+                            )}
+                          </Button>
+                        )}
                       </motion.div>
                       <motion.p 
                         initial={{ opacity: 0 }}
@@ -497,7 +568,7 @@ export default function IsolatedChat({ isOpen, onClose, initialQuery }: Isolated
                   EDELWEISS
                 </h1>
                 <p className="text-blue-200 text-xl font-medium mb-1">Asistente IA de CVO</p>
-                <p className="text-white/90 text-sm">Especialista en CVO • Groq Llama 3.1 8B</p>
+                <p className="text-white/90 text-sm">Especialista en CVO • OpenAI GPT-4o</p>
               </div>
             </div>
 
