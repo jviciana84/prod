@@ -55,7 +55,7 @@ function SidebarItem({ href, icon, title, isActive, isExpanded }: SidebarItemPro
       className={cn(
         "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all hover:bg-accent whitespace-nowrap",
         isActive ? "bmw-sidebar-active text-accent-foreground" : "text-muted-foreground hover:text-accent-foreground",
-        !isExpanded && "justify-center px-0",
+        !isExpanded && "justify-start px-0",
       )}
     >
       {icon}
@@ -82,11 +82,11 @@ function SidebarGroup({ title, icon, children, defaultOpen = false, isExpanded }
           variant="ghost"
           className={cn(
             "flex w-full items-center justify-between px-3 py-2 text-sm font-medium whitespace-nowrap",
-            !isExpanded && "justify-center px-0",
+            !isExpanded && "justify-start px-0",
             "bmw-m-hover-border",
           )}
         >
-          <div className={cn("flex items-center gap-3", !isExpanded && "justify-center")}>
+          <div className={cn("flex items-center gap-3", !isExpanded && "justify-start")}>
             {icon}
             {isExpanded && <span className="truncate">{title}</span>}
           </div>
@@ -120,7 +120,7 @@ export default function DashboardSidebar({ roles }: DashboardSidebarProps) {
       onMouseEnter={() => setIsExpanded(true)}
       onMouseLeave={() => setIsExpanded(false)}
     >
-      <nav className={cn("flex flex-col gap-2 p-4", !isExpanded && "items-center")}>
+      <nav className={cn("flex flex-col gap-2 p-4", !isExpanded && "items-start")}>
         <SidebarItem
           href="/dashboard"
           icon={<LayoutDashboard className="h-5 w-5" />}
