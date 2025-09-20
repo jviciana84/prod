@@ -4,9 +4,7 @@ import { VersionBadge } from "@/components/version-badge"
 import { useEffect, useState } from "react"
 import { createClientComponentClient } from "@/lib/supabase/client"
 import { PerformanceMonitor } from "@/components/ui/performance-monitor"
-
-// Definir la versión actual de la aplicación
-const APP_VERSION = "1.0.0"
+import { APP_VERSION } from "@/lib/version"
 
 interface FooterMessage {
   id: number
