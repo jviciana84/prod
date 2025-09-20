@@ -136,8 +136,8 @@ async function getSystemContext() {
 
 async function processAIQuery(message: string, context: any) {
   try {
-        // Crear el prompt con contexto del sistema CVO
-        const systemPrompt = `Eres Edelweiss 🌸, un asistente IA especializado en el sistema CVO (Certificado de Vehículo Ocasional).
+    // Crear el prompt con contexto del sistema CVO
+    const systemPrompt = `Eres Edelweiss 🌸, un asistente IA especializado en el sistema CVO (Certificado de Vehículo Ocasional).
 
 📊 **INFORMACIÓN ACTUAL DEL SISTEMA (DATOS REALES):**
 • Stock total: ${context.stockCount} vehículos
@@ -220,22 +220,22 @@ Para preguntas sobre stock:
 
 Responde en español de forma clara, organizada y útil.`
 
-        const completion = await groq.chat.completions.create({
-          messages: [
-            {
-              role: "system",
-              content: systemPrompt
-            },
-            {
-              role: "user", 
-              content: message
-            }
-          ],
-          model: "llama-3.1-8b-instant", // Modelo actual y rápido de Groq
-          temperature: 0.7,
-          max_tokens: 1000,
-          stream: false
-        })
+    const completion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: systemPrompt
+        },
+        {
+          role: "user", 
+          content: message
+        }
+      ],
+      model: "llama-3.1-8b-instant", // Modelo actual y rápido de Groq
+      temperature: 0.7,
+      max_tokens: 1000,
+      stream: false
+    })
 
     return completion.choices[0]?.message?.content || "Lo siento, no pude procesar tu consulta en este momento."
     
