@@ -65,6 +65,7 @@
     "exceljs": "latest",
     "framer-motion": "latest",
     "fs": "latest",
+    "groq-sdk": "^0.32.0",
     "html2canvas": "^1.4.1",
     "imap-simple": "latest",
     "input-otp": "1.4.1",

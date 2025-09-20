@@ -33,6 +33,7 @@ import { toast } from "@/hooks/use-toast"
 import { getUserPreferences } from "@/lib/user-preferences"
 import type { PageInfo } from "@/types/user-preferences"
 import { clearCorruptedSession } from "@/utils/fix-auth"
+import HeaderAssistant from "@/components/ai-assistant/header-assistant"
 
 interface DashboardHeaderProps {
   user: User
@@ -489,6 +490,11 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
               </Badge>
             ))}
           </div>
+        </div>
+
+        {/* Asistente IA en el centro - solo visible en PC */}
+        <div className="hidden md:flex items-center justify-center flex-1">
+          <HeaderAssistant />
         </div>
         <div className="flex items-center">
           {/* Scanner OCR */}

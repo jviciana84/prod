@@ -82,11 +82,15 @@ export function useGlobalSearch() {
 
     try {
       // Buscar en sales_vehicles (ventas)
-      const { data: salesData } = await supabase
+      const { data: salesData, error: salesError } = await supabase
         .from('sales_vehicles')
         .select('*')
         .or(`license_plate.ilike.%${query}%,model.ilike.%${query}%,advisor.ilike.%${query}%,client_name.ilike.%${query}%,client_email.ilike.%${query}%`)
         .limit(10)
+      
+      if (salesError) {
+        console.error('Error en sales_vehicles:', salesError)
+      }
 
       if (salesData) {
         // Resolver nombres de asesores para todos los elementos

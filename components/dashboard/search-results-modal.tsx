@@ -244,12 +244,12 @@ export function SearchResultsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[95vh] flex flex-col">
+      <DialogContent className="max-w-5xl max-h-[95vh] flex flex-col" aria-describedby="search-results-description">
         <DialogHeader className="pb-2 flex-shrink-0">
           <DialogTitle className="text-xl font-bold">
             Resultados de búsqueda
           </DialogTitle>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground" id="search-results-description">
             Búsqueda: <span className="font-medium text-foreground">"{query}"</span>
           </p>
         </DialogHeader>

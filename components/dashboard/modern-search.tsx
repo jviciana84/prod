@@ -71,9 +71,7 @@ export function ModernSearch({
   const suggestions = [
     { label: "1234ABC", category: "Matrícula", icon: "🚗" },
     { label: "BMW Serie 3", category: "Modelo", icon: "🚙" },
-    { label: "Juan Pérez", category: "Cliente", icon: "👤" },
-    { label: "Ventas pendientes", category: "Estado", icon: "📊" },
-    { label: "Entregas hoy", category: "Entregas", icon: "📦" },
+    { label: "Agustín Muñoz", category: "Cliente", icon: "👤" },
   ]
 
   return (
