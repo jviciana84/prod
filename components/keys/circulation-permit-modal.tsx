@@ -213,7 +213,7 @@ export function CirculationPermitModal({ open, onOpenChange }: CirculationPermit
     }
 
     fetchReceiverProfiles();
-  }, [open, requests, supabase])
+  }, [open, requests])
 
   const loadRequests = async () => {
     setLoading(true);
