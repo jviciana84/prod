@@ -97,6 +97,29 @@ export async function POST(request: NextRequest) {
       responseLength: "detailed"
     })
     
+    // Guardar la conversación en la base de datos
+    if (currentUser?.id) {
+      try {
+        const { sessionId } = await request.json()
+        await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/ai-assistant/conversations`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message,
+            response,
+            sessionId,
+            contextData: {
+              timestamp: new Date().toISOString(),
+              userRole: currentUser.role
+            }
+          })
+        })
+      } catch (error) {
+        console.error('Error guardando conversación:', error)
+        // No fallar si no se puede guardar la conversación
+      }
+    }
+    
     // Incrementar contador de uso si hay información del usuario
     if (userInfo?.id) {
       await incrementDailyUsage(userInfo.id)

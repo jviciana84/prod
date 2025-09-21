@@ -18,6 +18,7 @@ export default function ChatModal({ isOpen, onClose, onInfoClick }: ChatModalPro
   const [chatInput, setChatInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
+  const [sessionId, setSessionId] = useState<string | null>(null)
   const chatInputRef = useRef<HTMLInputElement>(null)
   
   // Obtener información del usuario autenticado
@@ -63,6 +64,7 @@ export default function ChatModal({ isOpen, onClose, onInfoClick }: ChatModalPro
         },
         body: JSON.stringify({ 
           message: chatInput,
+          sessionId: sessionId,
           userInfo: {
             id: user?.id,
             name: profile?.full_name || user?.email || 'Usuario CVO',
