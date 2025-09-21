@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Bot, Send, X, MessageCircle, Sparkles, Mic, MicOff } from "lucide-react"
+import { Bot, Send, X, MessageCircle, Sparkles, Mic, MicOff, Copy, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
@@ -21,6 +21,7 @@ export function AIAssistant() {
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [isListening, setIsListening] = useState(false)
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const recognitionRef = useRef<any>(null)
 
@@ -29,13 +30,24 @@ export function AIAssistant() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
-  // Mensaje de bienvenida
+  // Función para copiar texto al portapapeles
+  const copyToClipboard = async (text: string, messageId: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedMessageId(messageId)
+      setTimeout(() => setCopiedMessageId(null), 2000)
+    } catch (err) {
+      console.error('Error al copiar:', err)
+    }
+  }
+
+  // Mensaje de bienvenida inicial (solo una vez)
   useEffect(() => {
     if (isOpen && messages.length === 0) {
       setMessages([{
         id: '1',
         type: 'assistant',
-        content: '¡Hola! Soy tu asistente CVO. Puedo ayudarte con:\n\n• 📊 Consultas sobre vehículos y stock\n• 💰 Información de ventas y asesores\n• 🚚 Estado de entregas pendientes\n• 📋 Gestión de CVO y certificados\n• 🔧 Estado del taller y reparaciones\n\n¿En qué puedo ayudarte?',
+        content: '¡Hola! ¿Qué tal? ¿En qué te puedo ayudar hoy?',
         timestamp: new Date()
       }])
     }
@@ -204,12 +216,32 @@ export function AIAssistant() {
                     className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     <div className={`max-w-[80%] ${message.type === 'user' ? 'order-2' : 'order-1'}`}>
-                      <div className={`p-3 rounded-lg ${
+                      <div className={`p-3 rounded-lg relative group ${
                         message.type === 'user' 
                           ? 'bg-blue-500 text-white' 
                           : 'bg-gray-100 dark:bg-gray-800'
                       }`}>
-                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                        <p className={`text-sm whitespace-pre-wrap ${
+                          message.type === 'user' ? 'text-right' : 'text-left'
+                        }`}>{message.content}</p>
+                        
+                        {/* Botón de copiar para TODOS los mensajes */}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className={`absolute top-2 right-2 h-6 w-6 p-0 transition-opacity duration-200 ${
+                            message.type === 'user' 
+                              ? 'opacity-100 hover:opacity-100 hover:bg-white/20' 
+                              : 'opacity-0 group-hover:opacity-100 hover:bg-gray-200 dark:hover:bg-gray-600'
+                          }`}
+                          onClick={() => copyToClipboard(message.content, message.id)}
+                        >
+                          {copiedMessageId === message.id ? (
+                            <Check className="h-3 w-3 text-green-600" />
+                          ) : (
+                            <Copy className={`h-3 w-3 ${message.type === 'user' ? 'text-white' : ''}`} />
+                          )}
+                        </Button>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
                         {message.timestamp.toLocaleTimeString()}

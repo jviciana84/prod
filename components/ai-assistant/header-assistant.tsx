@@ -15,7 +15,7 @@ export default function HeaderAssistant() {
   const [searchQuery, setSearchQuery] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [lastResponse, setLastResponse] = useState("")
-  // const [isAutoHover, setIsAutoHover] = useState(false) // Removido para evitar problemas
+  const [isAutoHover, setIsAutoHover] = useState(false)
   const [isChatOpen, setIsChatOpen] = useState(false)
   const [initialChatQuery, setInitialChatQuery] = useState<string>("")
   const inputRef = useRef<HTMLInputElement>(null)
@@ -73,17 +73,29 @@ export default function HeaderAssistant() {
   }, [isExpanded])
 
 
-  // Efecto automático de hover desactivado para evitar interferencias con el chat
-  // useEffect(() => {
-  //   if (isExpanded || isChatOpen || isInfoModalOpen) return
-  //   const interval = setInterval(() => {
-  //     setIsAutoHover(true)
-  //     setTimeout(() => {
-  //       setIsAutoHover(false)
-  //     }, 600)
-  //   }, 8000)
-  //   return () => clearInterval(interval)
-  // }, [isExpanded, isChatOpen, isInfoModalOpen])
+  // Efecto automático de hover cada 8 segundos
+  useEffect(() => {
+    if (isExpanded || isChatOpen) return
+    const interval = setInterval(() => {
+      // Brillo de izquierda a derecha
+      setIsAutoHover(true)
+      setTimeout(() => {
+        setIsAutoHover(false)
+        // Pequeña pausa antes del segundo brillo
+        setTimeout(() => {
+          // Brillo de derecha a izquierda (usando una clase especial)
+          const button = document.querySelector('.edelweiss-button')
+          if (button) {
+            button.classList.add('reverse-shine')
+            setTimeout(() => {
+              button.classList.remove('reverse-shine')
+            }, 600)
+          }
+        }, 200)
+      }, 600)
+    }, 8000)
+    return () => clearInterval(interval)
+  }, [isExpanded, isChatOpen])
 
   const handleSearch = async () => {
     if (!searchQuery.trim() || isLoading) return
@@ -240,7 +252,7 @@ export default function HeaderAssistant() {
                 variant="ghost"
                 size="sm"
                 onClick={handleToggle}
-                className="group relative text-sm font-black tracking-wider border border-gray-300 dark:border-gray-600 overflow-hidden transition-all duration-300 ease-in-out hover:scale-105 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/25"
+                className="edelweiss-button group relative text-sm font-black tracking-wider border border-gray-300 dark:border-gray-600 overflow-hidden transition-all duration-300 ease-in-out hover:scale-105 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/25"
                 style={{ 
                   fontFamily: '"Times New Roman", serif', 
                   fontWeight: '900', 
@@ -251,8 +263,11 @@ export default function HeaderAssistant() {
                 {/* Efecto de fondo animado - solo en hover manual */}
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-purple-500/0 to-blue-500/0 group-hover:from-blue-500/10 group-hover:via-purple-500/10 group-hover:to-blue-500/10 transition-all duration-500 ease-in-out"></div>
                 
-        {/* Efecto de brillo que se mueve - solo en hover manual */}
-        <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 ease-in-out"></div>
+                {/* Efecto de brillo que se mueve - en hover manual y automático */}
+                <div className={`absolute inset-0 -translate-x-full group-hover:translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 ease-in-out ${isAutoHover ? 'translate-x-full' : ''}`}></div>
+                
+                {/* Efecto de brillo reverso - solo automático */}
+                <div className="absolute inset-0 translate-x-full reverse-shine:-translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 ease-in-out"></div>
                 
                 {/* Texto con efecto de color - solo en hover manual */}
                 <span className="relative z-10 transition-colors duration-300 group-hover:text-blue-600 dark:group-hover:text-blue-400">

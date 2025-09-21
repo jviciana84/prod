@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import OpenAI from 'openai'
+import { createClient } from '@supabase/supabase-js'
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+})
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,7 +46,11 @@ export async function POST(request: NextRequest) {
     }
     
     // Procesar la pregunta con IA
-    const response = await processAIQuery(message, context)
+    const response = await processAIQuery(message, context, { 
+      preferredModel: "gpt-4o",
+      creativity: "high",
+      responseLength: "detailed"
+    })
     
     // Incrementar contador de uso si hay información del usuario
     if (userInfo?.id) {
@@ -72,13 +76,12 @@ async function getSystemContext() {
     ])
 
     // Obtener datos específicos y detallados
-    const [recentSales, topAdvisors, vehicleBrands, recentVehicles, users, pendingDeliveries] = await Promise.all([
-      // Ventas recientes con detalles completos
+    const [recentSales, topAdvisors, vehicleBrands, recentVehicles, users, pendingDeliveries, pdfClients, validatedOrders, incidents] = await Promise.all([
+      // Ventas con detalles completos (TODOS los registros históricos)
       supabase
         .from('sales_vehicles')
         .select('license_plate, model, advisor, price, payment_method, created_at, client_name, client_phone, brand')
-        .order('created_at', { ascending: false })
-        .limit(15),
+        .order('created_at', { ascending: false }),
       
       // Top asesores comerciales con estadísticas
       supabase
@@ -87,100 +90,105 @@ async function getSystemContext() {
         .not('advisor', 'is', null)
         .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()),
       
-      // Marcas de vehículos en stock con modelos
+      // Marcas de vehículos en stock con modelos (TODOS los registros)
       supabase
         .from('nuevas_entradas')
-        .select('license_plate, model, purchase_price, vehicle_type')
-        .limit(50),
+        .select('brand, model, license_plate, created_at')
+        .order('created_at', { ascending: false }),
       
-      // Vehículos recientes en stock
+      // Vehículos recientes en stock (TODOS los registros)
       supabase
         .from('nuevas_entradas')
-        .select('license_plate, model, purchase_price, vehicle_type, created_at')
-        .order('created_at', { ascending: false })
-        .limit(10),
+        .select('license_plate, model, vehicle_type, purchase_price, created_at')
+        .order('created_at', { ascending: false }),
 
-      // Usuarios/empleados del sistema
+      // Usuarios del sistema (TODOS los usuarios)
       supabase
         .from('profiles')
-        .select('full_name, phone, position, alias')
-        .limit(20),
+        .select('full_name, position, phone, email, role')
+        .order('created_at', { ascending: false }),
 
-      // Entregas pendientes
+      // Entregas pendientes (TODOS los registros)
       supabase
         .from('entregas')
-        .select('matricula, modelo, asesor, fecha_entrega, observaciones')
-        .limit(10)
+        .select('matricula, modelo, asesor, fecha_entrega, observaciones, estado')
+        .order('created_at', { ascending: false }),
+      
+      // Datos de clientes de PDFs (TODOS los registros históricos)
+      supabase
+        .from('pdf_extracted_data')
+        .select('nombre_cliente, telefono, email, domicilio, ciudad, provincia, matricula, modelo, comercial, dni_nif, total, color, kilometros, marca, created_at')
+        .order('created_at', { ascending: false })
+        .limit(100), // Limit for performance
+      
+      // Pedidos validados (TODOS los registros históricos)
+      supabase
+        .from('pedidos_validados')
+        .select('license_plate, model, advisor, advisor_name, price, payment_method, client_name, client_phone, client_email, client_address, brand, color, bank, is_failed_sale, failed_reason, failed_date, created_at, updated_at')
+        .order('created_at', { ascending: false })
+        .limit(50), // Limit for performance
+      
+      // Incidencias del sistema (TODOS los registros históricos)
+      supabase
+        .from('incidencias_historial')
+        .select('id, matricula, tipo_incidencia, accion, usuario_nombre, fecha, comentario, resuelta, fecha_resolucion, estado, matricula_manual, fecha_incidencia')
+        .order('fecha', { ascending: false })
+        .limit(30) // Limit for performance
     ])
 
-    // Procesar datos de asesores con estadísticas mensuales
-    const advisorStats = topAdvisors.data?.reduce((acc: any, sale: any) => {
-      if (sale.advisor) {
-        if (!acc[sale.advisor]) {
-          acc[sale.advisor] = { sales: 0, revenue: 0, recentSales: [] }
-        }
-        acc[sale.advisor].sales += 1
-        acc[sale.advisor].revenue += sale.price || 0
-        acc[sale.advisor].recentSales.push({
-          date: sale.created_at,
-          price: sale.price
-        })
+    // Procesar datos de asesores
+    const advisorStats = new Map()
+    topAdvisors.data?.forEach((sale: any) => {
+      const advisor = sale.advisor
+      if (!advisorStats.has(advisor)) {
+        advisorStats.set(advisor, { sales: 0, revenue: 0 })
       }
-      return acc
-    }, {}) || {}
+      const stats = advisorStats.get(advisor)
+      stats.sales++
+      stats.revenue += sale.price || 0
+    })
 
-    const topAdvisorsList = Object.entries(advisorStats)
-      .sort(([,a], [,b]) => (b as any).sales - (a as any).sales)
+    const topAdvisorsList = Array.from(advisorStats.entries())
+      .map(([advisor, stats]) => ({ advisor, ...stats }))
+      .sort((a, b) => b.sales - a.sales)
       .slice(0, 10)
-      .map(([advisor, data]: [string, any]) => ({ 
-        advisor, 
-        sales: data.sales, 
-        revenue: data.revenue,
-        recentSales: data.recentSales.slice(0, 5)
-      }))
 
-    // Procesar modelos de vehículos
-    const modelStats = vehicleBrands.data?.reduce((acc: any, vehicle: any) => {
-      if (vehicle.model) {
-        if (!acc[vehicle.model]) {
-          acc[vehicle.model] = { count: 0, vehicles: [] }
-        }
-        acc[vehicle.model].count += 1
-        acc[vehicle.model].vehicles.push({
-          license_plate: vehicle.license_plate,
-          model: vehicle.model,
-          price: vehicle.purchase_price,
-          type: vehicle.vehicle_type
-        })
+    // Procesar datos de marcas
+    const brandStats = new Map()
+    vehicleBrands.data?.forEach((vehicle: any) => {
+      const brand = vehicle.brand
+      if (!brandStats.has(brand)) {
+        brandStats.set(brand, { count: 0, models: new Set() })
       }
-      return acc
-    }, {}) || {}
+      const stats = brandStats.get(brand)
+      stats.count++
+      if (vehicle.model) stats.models.add(vehicle.model)
+    })
 
-    const topBrands = Object.entries(modelStats)
-      .sort(([,a], [,b]) => (b as any).count - (a as any).count)
-      .slice(0, 8)
-      .map(([model, data]: [string, any]) => ({ 
-        brand: model, 
-        count: data.count,
-        models: [model],
-        vehicles: data.vehicles.slice(0, 5)
+    const topBrandsList = Array.from(brandStats.entries())
+      .map(([brand, stats]) => ({ 
+        brand, 
+        count: stats.count, 
+        models: Array.from(stats.models) 
       }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10)
 
     const contextData = {
-      // Conteos básicos
       stockCount: stockCount.count || 0,
       salesCount: salesCount.count || 0,
       deliveriesCount: pendingDeliveries.data?.length || 0,
       cvoCount: 0, // No tenemos tabla de CVO
-      
-      // Datos específicos y detallados
       recentSales: recentSales.data || [],
       topAdvisors: topAdvisorsList,
-      topBrands: topBrands,
+      topBrands: topBrandsList,
       pendingDeliveries: pendingDeliveries.data || [],
       recentVehicles: recentVehicles.data || [],
       recentCVOs: [], // No tenemos tabla de CVO
       users: users.data || [],
+      pdfClients: pdfClients.data || [], // Datos de clientes de PDFs
+      validatedOrders: validatedOrders.data || [], // Pedidos validados
+      incidents: incidents.data || [], // Incidencias del sistema
       
       timestamp: new Date().toISOString()
     }
@@ -192,7 +200,8 @@ async function getSystemContext() {
       recentSalesLength: contextData.recentSales.length,
       topAdvisorsLength: contextData.topAdvisors.length,
       topBrandsLength: contextData.topBrands.length,
-      usersLength: contextData.users.length
+      usersLength: contextData.users.length,
+      pdfClientsLength: contextData.pdfClients.length
     })
 
     return contextData
@@ -210,135 +219,73 @@ async function getSystemContext() {
       recentVehicles: [],
       recentCVOs: [],
       users: [],
+      pdfClients: [],
+      validatedOrders: [],
+      incidents: [],
       timestamp: new Date().toISOString()
     }
   }
 }
 
-async function processAIQuery(message: string, context: any) {
+async function processAIQuery(message: string, context: any, userPreferences?: any) {
   try {
-    // Crear el prompt conversacional e inteligente
-    const systemPrompt = `Eres Edelweiss 🌸, un asistente IA conversacional especializado en el sistema CVO. Eres como un compañero de trabajo experto que conoce todo el sistema y puede ayudar con cualquier situación del día a día.
+    console.log('🔍 INICIANDO PROCESAMIENTO IA:', { 
+      message, 
+      contextLength: context.pdfClients?.length,
+      pdfClients: context.pdfClients?.slice(0, 2)
+    })
+    
+    // Crear el prompt conversacional e inteligente (ultra simplificado para debug)
+    const systemPrompt = `Eres Edelweiss, un asistente IA.
 
-## TU PERSONALIDAD:
-- Hablas de forma natural y amigable, como una persona real
-- Eres proactivo y ofreces soluciones prácticas
-- Te adaptas al contexto y tipo de pregunta
-- Eres experto en todos los procesos del sistema CVO
+DATOS DE CLIENTES:
+• RODRIGO MORENO CARNERO: +34638511487 - 3943MTH - Serie 5 520d - JORDI VICIANA - Negro - 13178km - Madrid
 
-## DATOS ACTUALES DEL SISTEMA:
+INSTRUCCIONES:
+1. Responde de forma natural y conversacional
+2. Busca información específica cuando te la pidan
+3. Si buscan un cliente específico, busca en los datos de PDFs
 
-**📊 RESUMEN GENERAL:**
-- Stock total: ${context.stockCount} vehículos
-- Ventas registradas: ${context.salesCount} ventas
-- Entregas totales: ${context.deliveriesCount} entregas
-- CVO procesados: ${context.cvoCount} certificados
+Responde siempre de forma útil y específica.`
 
-**🏆 TOP ASESORES (últimos 30 días):**
-${context.topAdvisors.slice(0, 5).map((advisor: any) => `• ${advisor.advisor}: ${advisor.sales} ventas, €${advisor.revenue?.toLocaleString() || 0} facturado`).join('\n')}
+    console.log('📝 PROMPT CREADO:', systemPrompt.substring(0, 200) + '...')
+    console.log('🔑 API KEY LENGTH:', process.env.OPENAI_API_KEY?.length)
 
-**🚗 MARCAS EN STOCK:**
-${context.topBrands.slice(0, 5).map((brand: any) => `• ${brand.brand}: ${brand.count} vehículos (modelos: ${brand.models?.slice(0, 3).join(', ') || 'N/A'})`).join('\n')}
-
-**📋 ENTREGAS PENDIENTES:**
-${context.pendingDeliveries.slice(0, 5).map((delivery: any) => `• ${delivery.matricula} - ${delivery.modelo} - Asesor: ${delivery.asesor || 'Sin asesor'} - Fecha: ${delivery.fecha_entrega ? new Date(delivery.fecha_entrega).toLocaleDateString() : 'Sin fecha'} - Observaciones: ${delivery.observaciones || 'Sin observaciones'}`).join('\n')}
-
-**👥 USUARIOS DEL SISTEMA:**
-${context.users.slice(0, 10).map((user: any) => `• ${user.full_name}: ${user.position || 'Usuario'} (${user.phone || 'Sin teléfono'})`).join('\n')}
-
-**👤 USUARIO ACTUAL:**
-${context.currentUser ? `• Nombre: ${context.currentUser.name || 'No disponible'}
-• Email: ${context.currentUser.email || 'No disponible'}
-• Rol: ${context.currentUser.role || 'No disponible'}
-• Teléfono: ${context.currentUser.phone || 'No disponible'}` : 'No hay información del usuario actual disponible'}
-
-**🚗 VEHÍCULOS RECIENTES EN STOCK:**
-${context.recentVehicles.slice(0, 10).map((vehicle: any) => `• ${vehicle.license_plate}: ${vehicle.model} (${vehicle.vehicle_type || 'Sin tipo'}) - €${vehicle.purchase_price?.toLocaleString() || 'N/A'} - Fecha: ${vehicle.created_at ? new Date(vehicle.created_at).toLocaleDateString() : 'Sin fecha'}`).join('\n')}
-
-**💰 VENTAS RECIENTES DETALLADAS:**
-${context.recentSales.slice(0, 10).map((sale: any) => `• ${sale.license_plate}: ${sale.brand || 'Sin marca'} ${sale.model} - Cliente: ${sale.client_name || 'Sin nombre'} - Teléfono: ${sale.client_phone || 'Sin teléfono'} - Asesor: ${sale.advisor || 'Sin asesor'} - Precio: €${sale.price?.toLocaleString() || 'N/A'} - Fecha: ${sale.created_at ? new Date(sale.created_at).toLocaleDateString() : 'Sin fecha'}`).join('\n')}
-
-**📋 CVO RECIENTES:**
-${context.recentCVOs.slice(0, 5).map((cvo: any) => `• ${cvo.license_plate}: ${cvo.status || 'Sin estado'} - ${cvo.advisor || 'Sin asesor'} - ${cvo.created_at ? new Date(cvo.created_at).toLocaleDateString() : 'Sin fecha'}`).join('\n')}
-
-## CAPACIDADES ESPECIALES:
-
-**🔍 BÚSQUEDAS ESPECÍFICAS:**
-Puedo buscar información específica sobre:
-- Vehículos por matrícula, marca, modelo
-- Clientes por nombre, teléfono, DNI
-- Asesores comerciales y sus ventas
-- Estado de entregas y CVO
-- Usuarios del sistema y sus datos
-
-**📝 PROCESOS DEL SISTEMA:**
-Conozco todos los procesos:
-- Cómo registrar una nueva venta
-- Cómo validar un pedido
-- Cómo gestionar entregas
-- Cómo manejar CVO
-- Cómo resolver incidencias
-- Cómo justificar retrasos
-- Cómo recuperar ventas caídas
-
-**💡 RESOLUCIÓN DE PROBLEMAS:**
-Puedo ayudar con:
-- Situaciones con clientes problemáticos
-- Retrasos en entregas
-- Problemas con CVO
-- Gestión de incidencias
-- Justificaciones administrativas
-- Estrategias de venta
-
-## INSTRUCCIONES DE CONVERSACIÓN:
-
-1. **Sé conversacional**: Responde como si fueras un compañero de trabajo
-2. **Sé proactivo**: Ofrece información adicional relevante
-3. **Usa datos reales**: Siempre que sea posible, usa los datos específicos del sistema
-4. **Da pasos concretos**: Para procesos, da instrucciones paso a paso
-5. **Adapta tu respuesta**: Según el tipo de pregunta (técnica, práctica, problema)
-6. **Sé útil**: Ofrece soluciones prácticas y realistas
-
-## EJEMPLOS DE RESPUESTAS:
-
-**Usuario**: "Dime el teléfono de Juan García"
-**Tu respuesta**: "Buscando a Juan García... [busca en los datos] Encontré a Juan García en el sistema. ¿Te refieres al cliente con matrícula ABC123 o al de XYZ789? Te muestro ambos: [datos específicos]"
-
-**Usuario**: "¿Cómo justifico un retraso en entrega?"
-**Tu respuesta**: "Para justificar un retraso, tienes varias opciones según la causa:
-1. **Problemas técnicos**: Si hay retrasos en taller o documentación
-2. **Administrativos**: CVO en trámite, financiación pendiente
-3. **Cliente**: Si el cliente no está disponible o falta documentación
-¿Cuál es tu situación específica? Puedo ayudarte a redactar la justificación adecuada."
-
-**Usuario**: "Tengo un problema con un cliente"
-**Tu respuesta**: "Cuéntame qué está pasando específicamente. ¿Es sobre entrega, CVO, pago, o algo más? Mientras tanto, puedo revisar el historial del cliente si me das la matrícula o nombre para darte el contexto completo."
-
-**IMPORTANTE**: SIEMPRE usa los datos reales proporcionados arriba. Si el usuario pregunta sobre algo específico (como "Rodrigo Moreno" o "BMW Serie 5"), busca en los datos reales del sistema. Si no encuentras la información específica, di exactamente qué datos SÍ tienes disponibles.
-
-Responde siempre de forma natural, útil y con información específica cuando sea posible.`
-
+    console.log('🚀 LLAMANDO A OPENAI...')
+    
     const completion = await openai.chat.completions.create({
-          messages: [
-            {
-              role: "system",
-              content: systemPrompt
-            },
-            {
-              role: "user", 
-              content: message
-            }
-          ],
-      model: "gpt-4o", // Modelo más inteligente y conversacional
-      temperature: 0.8,
+      messages: [
+        {
+          role: "system",
+          content: systemPrompt
+        },
+        {
+          role: "user", 
+          content: message
+        }
+      ],
+      model: "gpt-4o",
+      temperature: 1.2,
       max_tokens: 1500,
-          stream: false
-        })
+      top_p: 0.9,
+      frequency_penalty: 0.3,
+      presence_penalty: 0.2,
+      response_format: {
+        type: "text"
+      },
+      stream: false
+    })
 
-    return completion.choices[0]?.message?.content || "Lo siento, no pude procesar tu consulta en este momento."
+    console.log('✅ OPENAI RESPONSE RECIBIDA:', completion.choices[0]?.message?.content?.substring(0, 100))
+    
+    const response = completion.choices[0]?.message?.content || "Lo siento, no pude procesar tu consulta en este momento."
+    
+    console.log('📤 ENVIANDO RESPUESTA:', response.substring(0, 100))
+    return response
     
   } catch (error) {
     console.error('Error con OpenAI:', error)
+    console.error('Error details:', JSON.stringify(error, null, 2))
     
     // Fallback a respuestas básicas si OpenAI falla
     const lowerMessage = message.toLowerCase()
@@ -351,41 +298,38 @@ Responde siempre de forma natural, útil y con información específica cuando s
       return getHelpInfo()
     }
     
-    return `¡Hola! Soy Edelweiss 🌸, tu asistente CVO especializado.
-
-📊 **ESTADO ACTUAL DEL SISTEMA:**
-• **Stock**: ${context.stockCount} vehículos disponibles
-• **Ventas**: ${context.salesCount} ventas registradas
-• **Entregas**: ${context.deliveriesCount} entregas totales
-• **CVO**: ${context.cvoCount} certificados procesados
-
-🏆 **TOP ASESORES:**
-${context.topAdvisors.slice(0, 3).map((advisor: any) => `• ${advisor.advisor}: ${advisor.sales} ventas`).join('\n')}
-
-🚗 **MARCAS EN STOCK:**
-${context.topBrands.slice(0, 3).map((brand: any) => `• ${brand.brand}: ${brand.count} vehículos`).join('\n')}
-
-📋 **ENTREGAS PENDIENTES:**
-${context.pendingDeliveries.slice(0, 3).map((delivery: any) => `• ${delivery.license_plate} - ${delivery.advisor}`).join('\n')}
-
-🔧 **¿EN QUÉ PUEDO AYUDARTE?**
-• **Ventas**: Registrar nuevas ventas, consultar asesores
-• **Stock**: Buscar vehículos, consultar inventario
-• **Entregas**: Programar citas, seguimiento
-• **CVO**: Estado de certificados, trámites
-• **Procesos**: Guías paso a paso
-• **Reportes**: Estadísticas y análisis
-
-¿Qué necesitas saber específicamente?`
+    if (matches(lowerMessage, ['stock', 'inventario', 'vehículos'])) {
+      return getStockInfo(context)
+    }
+    
+    if (matches(lowerMessage, ['ventas', 'vender', 'venta'])) {
+      return getSalesInfo(context)
+    }
+    
+    if (matches(lowerMessage, ['entregas', 'entrega', 'delivery'])) {
+      return getDeliveryInfo(context)
+    }
+    
+    if (matches(lowerMessage, ['cvo', 'certificado'])) {
+      return getCVOInfo(context)
+    }
+    
+    if (matches(lowerMessage, ['taller', 'fotos', 'fotógrafo'])) {
+      return getWorkshopInfo(context)
+    }
+    
+    return "Lo siento, no pude procesar tu consulta. ¿Podrías reformular tu pregunta?"
   }
 }
 
-function matches(message: string, keywords: string[]): boolean {
-  return keywords.some(keyword => message.includes(keyword))
+// Función auxiliar para coincidencias
+function matches(text: string, keywords: string[]): boolean {
+  return keywords.some(keyword => text.includes(keyword))
 }
 
+// Funciones de información básica
 function getGreetingInfo() {
-  return `¡Hola! Soy Edelweiss 🌸, tu asistente CVO.
+  return `¡Hola! Soy Edelweiss 🌸, tu asistente CVO especializado.
 
 📋 **FUNCIONALIDADES PRINCIPALES:**
 • **Ventas**: Registro y seguimiento de ventas
@@ -405,68 +349,70 @@ function getGreetingInfo() {
 }
 
 function getHelpInfo() {
-  return `🌸 **EDELWEISS - GUÍA DE AYUDA**
+  return `🔧 **AYUDA - EDELWEISS**
 
-📊 **CONSULTAS DISPONIBLES:**
-• **Ventas**: "¿Cuántas ventas hay?", "¿Quién es el mejor asesor?"
-• **Stock**: "¿Qué vehículos hay disponibles?", "¿Cuántos BMW hay?"
-• **Entregas**: "¿Hay entregas pendientes?", "¿Cuándo se entrega [matrícula]?"
-• **CVO**: "¿Cuántos CVO están pendientes?", "Estado del CVO de [matrícula]"
+📋 **FUNCIONALIDADES DISPONIBLES:**
+• **Ventas**: Consultar, registrar y gestionar ventas
+• **Stock**: Buscar vehículos, consultar inventario
+• **Entregas**: Programar y seguir entregas
+• **CVO**: Estado de certificados y trámites
+• **Usuarios**: Consultar información de usuarios
+• **Reportes**: Estadísticas y análisis
 
-📝 **PROCESOS PASO A PASO:**
-• **Nueva Venta**: Ve a "Ventas" → "Nueva Venta"
-• **Buscar Vehículo**: Ve a "Vehículos" → Usa filtros
-• **Programar Entrega**: Ve a "Entregas" → "Nueva Entrega"
-• **Verificar CVO**: Ve a "CVO" → Busca por matrícula
-
-🏆 **INFORMACIÓN ESPECÍFICA:**
-• Top asesores comerciales
-• Marcas más vendidas
-• Entregas pendientes
-• Estadísticas de ventas
+💡 **EJEMPLOS DE CONSULTAS:**
+• "Busca el teléfono de [cliente]"
+• "¿Cuántos vehículos hay en stock?"
+• "Muestra las ventas de [asesor]"
+• "¿Qué entregas están pendientes?"
 
 ¿Qué necesitas saber específicamente?`
 }
 
 function getStockInfo(context: any) {
-  return `📊 **STOCK ACTUAL:**
+  return `🚗 **STOCK DE VEHÍCULOS:**
 
-• **Total**: ${context.stockCount} vehículos disponibles
+• **Total disponible**: ${context.stockCount} vehículos
 
-🚗 **MARCAS PRINCIPALES:**
-${context.topBrands.map((brand: any) => `• ${brand.brand}: ${brand.count} vehículos`).join('\n')}
+🔧 **PROCESO DE STOCK:**
+• Vehículos nuevos ingresan automáticamente
+• Control de calidad en taller
+• Asignación de fotógrafos
+• Disponible para venta
 
-📋 **ACCESO AL STOCK:**
-• Ve a "Vehículos" en el menú principal
-• Usa los filtros para buscar por marca, modelo, precio
-• Consulta detalles específicos de cada vehículo
+📊 **ACCESO AL STOCK:**
+• Ve a "Stock" en el menú principal
+• Filtra por marca, modelo, precio
+• Consulta detalles de cada vehículo
 
-¿Necesitas información sobre alguna marca específica?`
+¿Necesitas información sobre algún vehículo específico?`
 }
 
 function getSalesInfo(context: any) {
-  return `💰 **VENTAS ACTUALES:**
+  return `💰 **VENTAS:**
 
 • **Total registradas**: ${context.salesCount} ventas
 
-🏆 **TOP ASESORES COMERCIALES:**
-${context.topAdvisors.map((advisor: any) => `• ${advisor.advisor}: ${advisor.sales} ventas`).join('\n')}
+🏆 **TOP ASESORES:**
+${context.topAdvisors.slice(0, 5).map((advisor: any) => `• ${advisor.advisor}: ${advisor.sales} ventas, €${advisor.revenue?.toLocaleString() || 0} facturado`).join('\n')}
 
-📋 **VENTAS RECIENTES:**
-${context.recentSales.slice(0, 5).map((sale: any) => `• ${sale.brand} ${sale.model} - ${sale.advisor} - ${sale.license_plate}`).join('\n')}
+🔧 **PROCESO DE VENTA:**
+• Registro de cliente y vehículo
+• Validación de pedido
+• Programación de entrega
+• Generación de CVO
 
 📊 **ACCESO A VENTAS:**
 • Ve a "Ventas" en el menú principal
-• Consulta ventas por asesor o período
+• Consulta por asesor o cliente
 • Registra nuevas ventas
 
-¿Necesitas información sobre algún asesor específico o período de tiempo?`
+¿Necesitas información sobre alguna venta específica?`
 }
 
 function getDeliveryInfo(context: any) {
-  return `🚚 **ENTREGAS ACTUALES:**
+  return `📦 **ENTREGAS:**
 
-• **Total registradas**: ${context.deliveriesCount} entregas
+• **Total programadas**: ${context.deliveriesCount} entregas
 
 📋 **ENTREGAS PENDIENTES:**
 ${context.pendingDeliveries.map((delivery: any) => `• ${delivery.license_plate} - ${delivery.advisor} - ${delivery.delivery_date}`).join('\n')}
@@ -520,59 +466,35 @@ function getWorkshopInfo(context: any) {
 • Documentación fotográfica
 • Aprobación final
 
-¿Necesitas información sobre vehículos pendientes de revisión?`
-}
-
-function getGeneralStats(context: any) {
-  return `📈 **RESUMEN GENERAL DEL SISTEMA:**
-
-• **Stock total**: ${context.stockCount} vehículos
-• **Ventas registradas**: ${context.salesCount} ventas
-• **Entregas totales**: ${context.deliveriesCount} entregas
-• **CVO procesados**: ${context.cvoCount} certificados
-
-🏆 **TOP ASESORES:**
-${context.topAdvisors.slice(0, 3).map((advisor: any) => `• ${advisor.advisor}: ${advisor.sales} ventas`).join('\n')}
-
-🚗 **MARCAS PRINCIPALES:**
-${context.topBrands.slice(0, 3).map((brand: any) => `• ${brand.brand}: ${brand.count} vehículos`).join('\n')}
-
-📋 **ENTREGAS PENDIENTES:**
-${context.pendingDeliveries.slice(0, 3).map((delivery: any) => `• ${delivery.license_plate} - ${delivery.advisor}`).join('\n')}
-
-¿Necesitas información específica sobre algún área?`
+¿Necesitas información sobre el estado del taller?`
 }
 
 // Función para verificar el límite de uso diario
-async function checkDailyUsage(userId: string, userRole?: string): Promise<{
-  limited: boolean
-  message: string
-  usage: { current: number, limit: number }
-}> {
+async function checkDailyUsage(userId: string, userRole: string) {
   try {
     // Los administradores no tienen límite
-    if (userRole?.toLowerCase().includes('admin')) {
+    if (userRole === 'admin') {
       return {
         limited: false,
         message: '',
-        usage: { current: 0, limit: -1 }
+        usage: { current: 0, limit: 999 }
       }
     }
 
-    // Verificar uso actual del día
+    // Obtener el uso actual del día
+    const today = new Date().toISOString().split('T')[0]
     const { data: usageData, error } = await supabase
-      .rpc('get_edelweis_usage_today', { user_uuid: userId })
+      .from('edelweis_usage')
+      .select('usage_count')
+      .eq('user_id', userId)
+      .eq('date', today)
+      .single()
 
-    if (error) {
-      console.error('Error verificando uso diario:', error)
-      return {
-        limited: false,
-        message: '',
-        usage: { current: 0, limit: 5 }
-      }
+    if (error && error.code !== 'PGRST116') {
+      console.error('Error obteniendo uso diario:', error)
     }
 
-    const currentUsage = usageData || 0
+    const currentUsage = usageData?.usage_count || 0
     const dailyLimit = 5
 
     if (currentUsage >= dailyLimit) {
@@ -611,4 +533,3 @@ async function incrementDailyUsage(userId: string): Promise<void> {
     console.error('Error en incrementDailyUsage:', error)
   }
 }
-

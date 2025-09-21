@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Send } from 'lucide-react'
+import { X, Send, Copy, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface ChatModalProps {
@@ -16,6 +16,7 @@ export default function ChatModal({ isOpen, onClose, onInfoClick }: ChatModalPro
   const [messages, setMessages] = useState<Array<{id: string, text: string, isUser: boolean, timestamp: Date}>>([])
   const [chatInput, setChatInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
   const chatInputRef = useRef<HTMLInputElement>(null)
 
   // Auto-scroll al final cuando se agregan mensajes
@@ -24,6 +25,17 @@ export default function ChatModal({ isOpen, onClose, onInfoClick }: ChatModalPro
       chatInputRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }, [messages])
+
+  // Función para copiar texto al portapapeles
+  const copyToClipboard = useCallback(async (text: string, messageId: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedMessageId(messageId)
+      setTimeout(() => setCopiedMessageId(null), 2000)
+    } catch (err) {
+      console.error('Error al copiar:', err)
+    }
+  }, [])
 
   const handleSendMessage = useCallback(async () => {
     if (!chatInput.trim() || isLoading) return
@@ -161,12 +173,32 @@ export default function ChatModal({ isOpen, onClose, onInfoClick }: ChatModalPro
           >
             {messages.map((message) => (
               <div key={message.id} className={`flex flex-col ${message.isUser ? 'items-end' : 'items-start'}`}>
-                <div className={`max-w-[80%] rounded-lg p-3 ${
+                <div className={`max-w-[80%] rounded-lg p-3 relative group ${
                   message.isUser 
                     ? 'bg-blue-500 text-white' 
                     : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
                 }`}>
-                  <p className="text-sm leading-relaxed">{message.text}</p>
+                  <p className={`text-sm leading-relaxed ${
+                    message.isUser ? 'text-right' : 'text-left'
+                  }`}>{message.text}</p>
+                  
+                  {/* Botón de copiar para TODOS los mensajes */}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className={`absolute top-2 right-2 h-6 w-6 p-0 transition-opacity duration-200 ${
+                      message.isUser 
+                        ? 'opacity-100 hover:opacity-100 hover:bg-white/20' 
+                        : 'opacity-0 group-hover:opacity-100 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
+                    onClick={() => copyToClipboard(message.text, message.id)}
+                  >
+                    {copiedMessageId === message.id ? (
+                      <Check className="h-3 w-3 text-green-600" />
+                    ) : (
+                      <Copy className={`h-3 w-3 ${message.isUser ? 'text-white' : ''}`} />
+                    )}
+                  </Button>
                 </div>
                 <p className={`text-xs mt-1 ${
                   message.isUser ? 'text-blue-400 mr-1' : 'text-gray-500 dark:text-gray-400 ml-1'
