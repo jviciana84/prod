@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import ChatModal from './chat-modal'
 import { ChatMinimized } from './chat-minimized'
+import { ConversationSidebar } from './conversation-sidebar'
 
 interface ChatWrapperProps {
   isOpen: boolean
@@ -15,9 +16,15 @@ interface ChatWrapperProps {
 export default function ChatWrapper({ isOpen, onClose, initialQuery, user, profile }: ChatWrapperProps) {
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
+  const [showConversationSidebar, setShowConversationSidebar] = useState(false)
 
   const handleInfoClick = useCallback(() => {
     setIsInfoModalOpen(true)
+  }, [])
+
+  const handleToggleHistory = useCallback(() => {
+    setShowHistory(prev => !prev)
   }, [])
 
   const handleCloseInfo = useCallback(() => {
@@ -47,6 +54,8 @@ export default function ChatWrapper({ isOpen, onClose, initialQuery, user, profi
         initialQuery={initialQuery}
         user={user}
         profile={profile}
+        showHistory={showHistory}
+        onToggleHistory={handleToggleHistory}
       />
       
       <ChatMinimized
@@ -56,7 +65,7 @@ export default function ChatWrapper({ isOpen, onClose, initialQuery, user, profi
       />
       
       {/* Modal de información de Edelweiss */}
-      {isInfoModalOpen && (
+      {isInfoModalOpen && !showHistory && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[10001] flex items-center justify-center p-4">
           <div 
             className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-[30%] h-full max-h-[90vh] flex flex-col border border-gray-200 dark:border-gray-700 relative z-[10002] overflow-hidden"
@@ -104,6 +113,18 @@ export default function ChatWrapper({ isOpen, onClose, initialQuery, user, profi
           </div>
         </div>
       )}
+
+      {/* Sidebar de conversaciones */}
+      <ConversationSidebar
+        key="conversation-sidebar"
+        isOpen={showConversationSidebar}
+        onClose={() => setShowConversationSidebar(false)}
+        onSelectSession={(sessionId) => {
+          // Aquí podrías cargar el historial de la sesión
+          setShowConversationSidebar(false)
+        }}
+        currentSessionId={null}
+      />
     </>
   )
 }

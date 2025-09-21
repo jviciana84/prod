@@ -69,6 +69,7 @@ export async function GET(request: NextRequest) {
 
       if (currentUser.role === 'admin') {
         // Si es admin, obtener todas las sesiones de todos los usuarios
+        const supabase = await createServerClient()
         const { data: sessionsData, error: sessionsDataError } = await supabase
           .from('ai_sessions')
           .select('id, title, created_at, last_message_at, user_id')
@@ -82,7 +83,7 @@ export async function GET(request: NextRequest) {
           const userIds = [...new Set(sessionsData.map(s => s.user_id))]
           const { data: profiles, error: profilesError } = await supabase
             .from('profiles')
-            .select('id, full_name, email, role, position')
+            .select('id, full_name, email, role, position, avatar_url')
             .in('id', userIds)
 
           if (profilesError) {
@@ -101,11 +102,34 @@ export async function GET(request: NextRequest) {
         }
       } else {
         // Si no es admin, solo sus propias sesiones
-        const { data, error } = await supabase
-          .rpc('get_user_sessions', { user_uuid: currentUser.id })
+        const supabase = await createServerClient()
+        const { data: sessionsData, error: sessionsDataError } = await supabase
+          .from('ai_sessions')
+          .select('id, title, created_at, last_message_at, user_id')
+          .eq('user_id', currentUser.id)
+          .order('last_message_at', { ascending: false })
 
-        sessions = data
-        sessionsError = error
+        if (sessionsDataError) {
+          sessions = null
+          sessionsError = sessionsDataError
+        } else if (sessionsData && sessionsData.length > 0) {
+          // Agregar información del perfil del usuario actual
+          sessions = sessionsData.map(session => ({
+            ...session,
+            profiles: {
+              id: currentUser.id,
+              full_name: currentUser.name,
+              email: currentUser.email,
+              role: currentUser.role,
+              position: currentUser.position,
+              avatar_url: currentUser.avatar_url
+            }
+          }))
+          sessionsError = null
+        } else {
+          sessions = []
+          sessionsError = null
+        }
       }
 
       if (sessionsError) {
@@ -129,6 +153,7 @@ export async function GET(request: NextRequest) {
 
       if (currentUser.role === 'admin') {
         // Si es admin, puede ver el historial de cualquier sesión
+        const supabase = await createServerClient()
         const { data: conversationsData, error: conversationsDataError } = await supabase
           .from('ai_conversations')
           .select('id, message, response, created_at, user_id')
@@ -162,6 +187,7 @@ export async function GET(request: NextRequest) {
         }
       } else {
         // Si no es admin, solo puede ver sus propias conversaciones
+        const supabase = await createServerClient()
         const { data, error } = await supabase
           .rpc('get_conversation_history', { session_uuid: sessionId })
 
@@ -188,7 +214,7 @@ export async function GET(request: NextRequest) {
 // Crear nueva conversación
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies()
+    const supabase = await createServerClient()
     const { data: { user }, error } = await supabase.auth.getUser()
     
     if (error || !user) {
@@ -260,7 +286,7 @@ export async function POST(request: NextRequest) {
 // Eliminar conversación o sesión
 export async function DELETE(request: NextRequest) {
   try {
-    const cookieStore = await cookies()
+    const supabase = await createServerClient()
     const { data: { user }, error } = await supabase.auth.getUser()
     
     if (error || !user) {

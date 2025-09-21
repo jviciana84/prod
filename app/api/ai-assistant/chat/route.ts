@@ -3,6 +3,16 @@ import OpenAI from 'openai'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 
+// Array para almacenar logs
+let debugLogs: string[] = []
+
+// Función para agregar logs
+function addLog(message: string) {
+  const timestamp = new Date().toISOString()
+  debugLogs.push(`[${timestamp}] ${message}`)
+  console.log(message) // También log normal
+}
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
@@ -99,17 +109,39 @@ export async function POST(request: NextRequest) {
     
     // Guardar la conversación en la base de datos
     let savedSessionId = sessionId
-    if (currentUser?.id) {
+    const userIdToSave = userInfo?.id || currentUser?.id
+    
+    addLog(`🔍 DEBUG GUARDADO: currentUser=${currentUser?.id}, userInfo=${userInfo?.id}, userIdToSave=${userIdToSave}, sessionId=${sessionId}`)
+    
+    if (userIdToSave) {
       try {
-        const saveResult = await saveConversation(currentUser.id, message, response, sessionId, {
+        addLog('🔄 INICIANDO GUARDADO...')
+        
+        // Crear un cliente de Supabase con service role para guardar conversaciones
+        // Las políticas RLS permiten insertar si el user_id coincide
+        const saveSupabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!
+        )
+        
+        addLog('🔄 CLIENTE SUPABASE CREADO')
+        
+        const saveResult = await saveConversation(saveSupabase, userIdToSave, message, response, sessionId, {
           timestamp: new Date().toISOString(),
-          userRole: currentUser.role
+          userRole: currentUser?.role || userInfo?.role || 'usuario'
         })
+        
+        addLog(`🔄 RESULTADO DEL GUARDADO: ${JSON.stringify(saveResult)}`)
+        
         savedSessionId = saveResult.sessionId
+        addLog(`✅ Conversación guardada exitosamente: ${saveResult.sessionId}`)
       } catch (error) {
-        console.error('Error guardando conversación:', error)
+        addLog(`❌ Error guardando conversación: ${error}`)
+        addLog(`❌ Error details: ${JSON.stringify(error, null, 2)}`)
         // No fallar si no se puede guardar la conversación
       }
+    } else {
+      addLog('⚠️ No se puede guardar conversación: no hay userId disponible')
     }
     
     // Incrementar contador de uso si hay información del usuario
@@ -117,9 +149,12 @@ export async function POST(request: NextRequest) {
       await incrementDailyUsage(userInfo.id)
     }
     
+    addLog(`📤 ENVIANDO RESPUESTA FINAL: responseLength=${response.length}, sessionId=${savedSessionId}, originalSessionId=${sessionId}`)
+    
     return NextResponse.json({ 
       response,
-      sessionId: savedSessionId
+      sessionId: savedSessionId,
+      debugLogs: debugLogs.slice(-10) // Últimos 10 logs para debug
     })
   } catch (error) {
     console.error('Error en AI Assistant:', error)
@@ -763,17 +798,14 @@ async function incrementDailyUsage(userId: string): Promise<void> {
 }
 
 // Función para guardar conversaciones
-async function saveConversation(userId: string, message: string, response: string, sessionId: string | null, contextData: any) {
+async function saveConversation(supabaseClient: any, userId: string, message: string, response: string, sessionId: string | null, contextData: any) {
   try {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
+    // Usar el cliente de Supabase que se pasa como parámetro
 
     // Si no hay sessionId, crear una nueva sesión
     let currentSessionId = sessionId
     if (!currentSessionId) {
-      const { data: newSession, error: sessionError } = await supabase
+      const { data: newSession, error: sessionError } = await supabaseClient
         .from('ai_sessions')
         .insert({
           user_id: userId,
@@ -791,7 +823,7 @@ async function saveConversation(userId: string, message: string, response: strin
     }
 
     // Guardar la conversación
-    const { data: conversation, error: conversationError } = await supabase
+    const { data: conversation, error: conversationError } = await supabaseClient
       .from('ai_conversations')
       .insert({
         user_id: userId,
@@ -809,7 +841,7 @@ async function saveConversation(userId: string, message: string, response: strin
     }
 
     // Actualizar la fecha de último mensaje de la sesión
-    await supabase
+    await supabaseClient
       .from('ai_sessions')
       .update({ last_message_at: new Date().toISOString() })
       .eq('id', currentSessionId)
