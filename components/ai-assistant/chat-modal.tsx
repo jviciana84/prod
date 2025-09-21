@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Send, Copy, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/hooks/use-auth'
 
 interface ChatModalProps {
   isOpen: boolean
@@ -18,6 +19,9 @@ export default function ChatModal({ isOpen, onClose, onInfoClick }: ChatModalPro
   const [isLoading, setIsLoading] = useState(false)
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
   const chatInputRef = useRef<HTMLInputElement>(null)
+  
+  // Obtener información del usuario autenticado
+  const { user, profile } = useAuth()
 
   // Auto-scroll al final cuando se agregan mensajes
   useEffect(() => {
@@ -57,7 +61,15 @@ export default function ChatModal({ isOpen, onClose, onInfoClick }: ChatModalPro
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message: chatInput }),
+        body: JSON.stringify({ 
+          message: chatInput,
+          userInfo: {
+            id: user?.id,
+            name: profile?.full_name || user?.email || 'Usuario CVO',
+            email: user?.email || 'usuario@cvo.com',
+            role: profile?.role || 'Usuario del Sistema'
+          }
+        }),
       })
 
       if (!response.ok) {

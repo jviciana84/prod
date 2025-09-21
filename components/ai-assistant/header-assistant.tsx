@@ -109,7 +109,15 @@ export default function HeaderAssistant() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ message: searchQuery }),
+        body: JSON.stringify({ 
+          message: searchQuery,
+          userInfo: {
+            id: user?.id,
+            name: profile?.full_name || user?.email || 'Usuario CVO',
+            email: user?.email || 'usuario@cvo.com',
+            role: profile?.role || 'Usuario del Sistema'
+          }
+        }),
       })
 
       if (!response.ok) {

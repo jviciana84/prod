@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { useAuth } from "@/hooks/use-auth"
 
 interface Message {
   id: string
@@ -24,6 +25,9 @@ export function AIAssistant() {
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const recognitionRef = useRef<any>(null)
+  
+  // Obtener información del usuario autenticado
+  const { user, profile } = useAuth()
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -109,7 +113,15 @@ export function AIAssistant() {
       const response = await fetch('/api/ai-assistant/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: input })
+        body: JSON.stringify({ 
+          message: input,
+          userInfo: {
+            id: user?.id,
+            name: profile?.full_name || user?.email || 'Usuario CVO',
+            email: user?.email || 'usuario@cvo.com',
+            role: profile?.role || 'Usuario del Sistema'
+          }
+        })
       })
 
       const data = await response.json()

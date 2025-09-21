@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { createClient } from '@supabase/supabase-js'
+import { cookies } from 'next/headers'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -10,6 +11,49 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
+
+// Función para obtener información del usuario actual
+async function getCurrentUserInfo() {
+  try {
+    const cookieStore = await cookies()
+    const { data: { user }, error } = await supabase.auth.getUser()
+    
+    if (error || !user) {
+      console.log('No hay usuario autenticado')
+      return null
+    }
+
+    // Obtener perfil completo del usuario
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, full_name, role, position, phone, email, avatar_url')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError) {
+      console.error('Error obteniendo perfil:', profileError)
+      return {
+        id: user.id,
+        email: user.email,
+        name: user.email?.split('@')[0] || 'Usuario',
+        role: 'usuario'
+      }
+    }
+
+    return {
+      id: user.id,
+      email: user.email,
+      name: profile.full_name || user.email?.split('@')[0] || 'Usuario',
+      role: profile.role || 'usuario',
+      position: profile.position || 'Empleado',
+      phone: profile.phone,
+      avatar_url: profile.avatar_url
+    }
+  } catch (error) {
+    console.error('Error obteniendo usuario actual:', error)
+    return null
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,9 +66,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Obtener información del usuario actual automáticamente
+    const currentUser = await getCurrentUserInfo()
+    
     // Verificar límite de uso diario si hay información del usuario
-    if (userInfo?.id) {
-      const usageCheck = await checkDailyUsage(userInfo.id, userInfo.role)
+    if (currentUser?.id) {
+      const usageCheck = await checkDailyUsage(currentUser.id, currentUser.role)
       if (usageCheck.limited) {
         return NextResponse.json(
           { 
@@ -40,10 +87,8 @@ export async function POST(request: NextRequest) {
     // Obtener contexto del sistema
     const context = await getSystemContext()
     
-    // Agregar información del usuario actual si está disponible
-    if (userInfo) {
-      context.currentUser = userInfo
-    }
+    // Agregar información del usuario actual
+    context.currentUser = currentUser
     
     // Procesar la pregunta con IA
     const response = await processAIQuery(message, context, { 
@@ -111,29 +156,26 @@ async function getSystemContext() {
       // Entregas pendientes (TODOS los registros)
       supabase
         .from('entregas')
-        .select('matricula, modelo, asesor, fecha_entrega, observaciones, estado')
+        .select('matricula, modelo, asesor, fecha_entrega, observaciones')
         .order('created_at', { ascending: false }),
       
       // Datos de clientes de PDFs (TODOS los registros históricos)
       supabase
         .from('pdf_extracted_data')
-        .select('nombre_cliente, telefono, email, domicilio, ciudad, provincia, matricula, modelo, comercial, dni_nif, total, color, kilometros, marca, created_at')
-        .order('created_at', { ascending: false })
-        .limit(100), // Limit for performance
+        .select('nombre_cliente, telefono, email, domicilio, ciudad, provincia, matricula, modelo, comercial, dni_nif, total, descuento, color, kilometros, marca, created_at')
+        .order('created_at', { ascending: false }),
       
       // Pedidos validados (TODOS los registros históricos)
       supabase
         .from('pedidos_validados')
         .select('license_plate, model, advisor, advisor_name, price, payment_method, client_name, client_phone, client_email, client_address, brand, color, bank, is_failed_sale, failed_reason, failed_date, created_at, updated_at')
-        .order('created_at', { ascending: false })
-        .limit(50), // Limit for performance
+        .order('created_at', { ascending: false }),
       
       // Incidencias del sistema (TODOS los registros históricos)
       supabase
         .from('incidencias_historial')
         .select('id, matricula, tipo_incidencia, accion, usuario_nombre, fecha, comentario, resuelta, fecha_resolucion, estado, matricula_manual, fecha_incidencia')
         .order('fecha', { ascending: false })
-        .limit(30) // Limit for performance
     ])
 
     // Procesar datos de asesores
@@ -201,7 +243,9 @@ async function getSystemContext() {
       topAdvisorsLength: contextData.topAdvisors.length,
       topBrandsLength: contextData.topBrands.length,
       usersLength: contextData.users.length,
-      pdfClientsLength: contextData.pdfClients.length
+      pdfClientsLength: contextData.pdfClients.length,
+      pendingDeliveriesLength: contextData.pendingDeliveries.length,
+      pendingDeliveriesSample: contextData.pendingDeliveries.slice(0, 3)
     })
 
     return contextData
@@ -232,21 +276,123 @@ async function processAIQuery(message: string, context: any, userPreferences?: a
     console.log('🔍 INICIANDO PROCESAMIENTO IA:', { 
       message, 
       contextLength: context.pdfClients?.length,
-      pdfClients: context.pdfClients?.slice(0, 2)
+      currentUser: context.currentUser,
+      usersCount: context.users?.length
     })
     
-    // Crear el prompt conversacional e inteligente (ultra simplificado para debug)
-    const systemPrompt = `Eres Edelweiss, un asistente IA.
+    // Crear el prompt conversacional e inteligente y personal
+    const systemPrompt = `Eres Edelweiss 🌸, un asistente IA personal y cálido del sistema CVO.
 
-DATOS DE CLIENTES:
-• RODRIGO MORENO CARNERO: +34638511487 - 3943MTH - Serie 5 520d - JORDI VICIANA - Negro - 13178km - Madrid
+CONOCIMIENTO COMPLETO DEL SISTEMA:
+Tienes acceso a TODAS las tablas y datos del sistema CVO:
 
-INSTRUCCIONES:
-1. Responde de forma natural y conversacional
-2. Busca información específica cuando te la pidan
-3. Si buscan un cliente específico, busca en los datos de PDFs
+📊 **TABLAS DISPONIBLES:**
+• **sales_vehicles**: Todas las ventas registradas (matrícula, modelo, asesor, precio, cliente, fecha)
+• **pdf_extracted_data**: Datos extraídos de PDFs de ventas (cliente, teléfono, matrícula, modelo, comercial, total, descuento, color, km, ubicación, fecha)
+• **pedidos_validados**: Pedidos validados del sistema (mismo formato que sales_vehicles)
+• **nuevas_entradas**: Stock de vehículos (matrícula, modelo, marca, precio compra, fecha)
+• **entregas**: Entregas programadas (matrícula, modelo, asesor, fecha, estado)
+• **incidencias_historial**: Incidencias del sistema (matrícula, tipo, usuario, fecha, estado)
+• **profiles**: Usuarios del sistema (nombre, rol, posición, teléfono, email)
 
-Responde siempre de forma útil y específica.`
+🔍 **TIPOS DE BÚSQUEDAS QUE PUEDES HACER:**
+• **Por cliente**: Nombre, teléfono, DNI, email
+• **Por vehículo**: Matrícula, modelo, marca, color, kilómetros
+• **Por comercial**: Nombre del asesor, ventas, descuentos
+• **Por ubicación**: Ciudad, provincia, código postal
+• **Por fechas**: Mes, año, período específico
+• **Por precios**: Rango de precios, vehículo más caro/barato
+• **Por estado**: Entregas pendientes, incidencias resueltas/pendientes
+
+📈 **ANÁLISIS QUE PUEDES REALIZAR:**
+• **Estadísticas**: Contar ventas por cualquier criterio
+• **Rankings**: Mejores comerciales, vehículos más vendidos
+• **Comparaciones**: Descuentos, precios, volúmenes
+• **Filtros**: Por fecha, ubicación, tipo de vehículo
+• **Búsquedas complejas**: Múltiples criterios combinados
+
+INFORMACIÓN DEL USUARIO ACTUAL:
+${context.currentUser ? `
+• **Nombre**: ${context.currentUser.name}
+• **Rol**: ${context.currentUser.role}
+• **Posición**: ${context.currentUser.position}
+• **Email**: ${context.currentUser.email}
+• **Teléfono**: ${context.currentUser.phone || 'No disponible'}
+` : '• No hay información del usuario disponible'}
+
+DATOS DE CLIENTES (TODOS LOS REGISTROS HISTÓRICOS):
+${context.pdfClients.map((client: any) => `• ${client.nombre_cliente || 'Sin nombre'}: ${client.telefono || 'Sin teléfono'} - ${client.matricula || 'Sin matrícula'} - ${client.modelo || 'Sin modelo'} - ${client.comercial || 'Sin comercial'} - ${client.color || 'Sin color'} - ${client.kilometros || 'Sin km'}km - ${client.ciudad || 'Sin ciudad'} (${client.provincia || 'Sin provincia'}) - Total: €${client.total?.toLocaleString() || 'N/A'} - Descuento: €${client.descuento?.toLocaleString() || '0'} - Fecha: ${client.created_at ? new Date(client.created_at).toLocaleDateString() : 'Sin fecha'}`).join('\n')}
+
+USUARIOS DEL SISTEMA (para identificar jerarquías):
+${context.users.slice(0, 15).map((user: any) => `• ${user.full_name || 'Sin nombre'}: ${user.position || 'Sin posición'} - ${user.role || 'Sin rol'} - ${user.phone || 'Sin teléfono'}`).join('\n')}
+
+ENTREGAS (TODOS LOS REGISTROS HISTÓRICOS):
+${context.pendingDeliveries.map((delivery: any) => `• ${delivery.matricula || 'Sin matrícula'}: ${delivery.modelo || 'Sin modelo'} - Asesor: ${delivery.asesor || 'Sin asesor'} - Fecha: ${delivery.fecha_entrega ? new Date(delivery.fecha_entrega).toLocaleDateString() : 'PENDIENTE (sin fecha)'}`).join('\n')}
+
+STOCK DE VEHÍCULOS (TODOS LOS REGISTROS HISTÓRICOS):
+${context.recentVehicles.map((vehicle: any) => `• ${vehicle.license_plate || 'Sin matrícula'}: ${vehicle.model || 'Sin modelo'} - Precio: €${vehicle.purchase_price?.toLocaleString() || 'N/A'} - Fecha: ${vehicle.created_at ? new Date(vehicle.created_at).toLocaleDateString() : 'Sin fecha'}`).join('\n')}
+
+INSTRUCCIONES PERSONALES:
+1. **SALUDO PERSONAL**: Siempre saluda al usuario por su nombre si lo conoces
+2. **Sé cálido y personal**: Habla como un compañero de trabajo real
+3. **Usa expresiones naturales**: "Vale", "Perfecto", "Ah, genial", "No pasa nada"
+4. **Identifica jerarquías**: Si mencionan "mi jefe", busca en usuarios con roles como "director", "jefe de ventas", "supervisor"
+5. **Redacta WhatsApp personalizados**: Incluye nombres específicos del usuario, cliente y jefe
+6. **Busca información específica**: Aplica filtros progresivos cuando te den múltiples pistas
+
+INSTRUCCIONES DE BÚSQUEDA INTELIGENTE:
+- **Para buscar clientes**: Usa pdf_extracted_data (datos más completos)
+- **Para buscar ventas**: Usa sales_vehicles o pedidos_validados
+- **Para buscar stock**: Usa nuevas_entradas
+- **Para buscar entregas**: Usa entregas
+- **Para buscar incidencias**: Usa incidencias_historial
+- **Para buscar usuarios**: Usa profiles
+
+METODOLOGÍA DE BÚSQUEDA:
+1. **Identifica el tipo de consulta** (cliente, vehículo, estadística, etc.)
+2. **Selecciona la tabla más apropiada** según el tipo de información
+3. **Aplica filtros inteligentes** (fechas, ubicaciones, criterios múltiples)
+4. **Procesa y analiza** los datos encontrados
+5. **Presenta resultados** de forma clara y útil
+
+            REGLAS IMPORTANTES:
+            - **Tienes acceso a TODOS los registros históricos** sin límites
+            - **Busca en TODAS las tablas relevantes** para cada consulta
+            - **NO te limites a registros recientes** - busca en todo el historial
+            - **Combina información** de múltiples fuentes cuando sea necesario
+            - **Sé específico** en tus respuestas con datos concretos
+            - **Si no encuentras coincidencias exactas**: Muestra las más cercanas
+            - **Para análisis**: Cuenta, suma, compara o filtra según lo solicitado
+            - **Para datos antiguos**: Revisa TODO el historial, no solo lo reciente
+            
+            **LÓGICA DE ENTREGAS PENDIENTES:**
+            - **Si fecha_entrega es null o undefined** = ENTREGA PENDIENTE
+            - **Si fecha_entrega tiene una fecha** = ENTREGA PROGRAMADA/REALIZADA
+            - **Para contar entregas pendientes**: Cuenta las que tienen fecha_entrega: null
+            - **Para listar entregas pendientes**: Muestra las que tienen fecha_entrega: null
+            - **IMPORTANTE**: En los datos de ENTREGAS, busca las que tienen "PENDIENTE (sin fecha)" en el campo Fecha
+            - **EJEMPLO**: Si ves "• 9316LPP: X1 sDrive20i - Asesor: SaraMe - Fecha: PENDIENTE (sin fecha)" = ENTREGA PENDIENTE
+
+EJEMPLOS DE RESPUESTAS PERSONALES:
+Usuario: "Hola Edelweiss"
+Respuesta: "¡Hola ${context.currentUser?.name || 'Usuario'}! ¿Qué tal? ¿En qué te puedo ayudar hoy?"
+
+Usuario: "Busca información sobre [cualquier cosa]"
+Respuesta: "Vale, voy a buscar esa información en los datos disponibles. [Proporciona la información encontrada de forma útil y detallada]"
+
+Usuario: "¿Cuántos [cualquier criterio] tenemos?"
+Respuesta: "Voy a revisar los datos para contarte exactamente cuántos [criterio] tenemos. [Da el número y lista los casos encontrados]"
+
+Usuario: "¿Quién es el que más [cualquier métrica]?"
+Respuesta: "Voy a analizar los datos para identificar quién tiene más [métrica]. [Proporciona el ranking y los detalles]"
+
+Usuario: "¿Cuántas entregas pendientes tenemos?"
+Respuesta: "Voy a revisar las entregas que no tienen fecha asignada. Encuentro X entregas pendientes: [lista las matrículas, modelos y asesores de las que tienen fecha_entrega: null]"
+
+Usuario: "¿Cuántas entregas tenemos pendientes?"
+Respuesta: "Voy a revisar las entregas que no tienen fecha asignada. Encuentro X entregas pendientes: [lista las matrículas, modelos y asesores de las que tienen fecha_entrega: null]"
+
+Responde siempre de forma natural, personal y útil.`
 
     console.log('📝 PROMPT CREADO:', systemPrompt.substring(0, 200) + '...')
     console.log('🔑 API KEY LENGTH:', process.env.OPENAI_API_KEY?.length)
