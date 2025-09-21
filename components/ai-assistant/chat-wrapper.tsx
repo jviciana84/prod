@@ -2,14 +2,19 @@
 
 import { useState, useCallback } from 'react'
 import ChatModal from './chat-modal'
+import { ChatMinimized } from './chat-minimized'
 
 interface ChatWrapperProps {
   isOpen: boolean
   onClose: () => void
+  initialQuery?: string
+  user?: any
+  profile?: any
 }
 
-export default function ChatWrapper({ isOpen, onClose }: ChatWrapperProps) {
+export default function ChatWrapper({ isOpen, onClose, initialQuery, user, profile }: ChatWrapperProps) {
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false)
+  const [isMinimized, setIsMinimized] = useState(false)
 
   const handleInfoClick = useCallback(() => {
     setIsInfoModalOpen(true)
@@ -19,12 +24,35 @@ export default function ChatWrapper({ isOpen, onClose }: ChatWrapperProps) {
     setIsInfoModalOpen(false)
   }, [])
 
+  const handleMinimize = useCallback(() => {
+    setIsMinimized(true)
+  }, [])
+
+  const handleMaximize = useCallback(() => {
+    setIsMinimized(false)
+  }, [])
+
+  const handleClose = useCallback(() => {
+    setIsMinimized(false)
+    onClose()
+  }, [onClose])
+
   return (
     <>
       <ChatModal 
-        isOpen={isOpen}
-        onClose={onClose}
+        isOpen={isOpen && !isMinimized}
+        onClose={handleClose}
         onInfoClick={handleInfoClick}
+        onMinimize={handleMinimize}
+        initialQuery={initialQuery}
+        user={user}
+        profile={profile}
+      />
+      
+      <ChatMinimized
+        isVisible={isMinimized}
+        onMaximize={handleMaximize}
+        messageCount={0}
       />
       
       {/* Modal de información de Edelweiss */}

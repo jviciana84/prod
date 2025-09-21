@@ -21,15 +21,23 @@ export function createClientComponentClient() {
     console.error("Error al verificar cookies:", error)
   }
 
-  // En el cliente, verificamos si ya existe una instancia
-  if (!supabaseClientInstance) {
-    supabaseClientInstance = createBrowserClient(
-      supabaseUrl,
-      supabaseAnonKey,
-    )
-  }
-
-  return supabaseClientInstance
+  // En el cliente, siempre crear una nueva instancia para evitar conflictos de sesión
+  // Esto permite múltiples sesiones simultáneas
+  return createBrowserClient(
+    supabaseUrl,
+    supabaseAnonKey,
+    {
+      auth: {
+        detectSessionInUrl: true,
+        flowType: "pkce",
+        // Permitir múltiples sesiones
+        persistSession: true,
+        autoRefreshToken: true,
+        // Usar storage local en lugar de cookies para evitar conflictos
+        storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+      }
+    }
+  )
 }
 
 export function clearSupabaseClient() {

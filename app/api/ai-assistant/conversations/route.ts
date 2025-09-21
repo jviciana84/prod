@@ -1,19 +1,61 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServerClient } from '@/lib/supabase/server'
 import { cookies } from 'next/headers'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+// Función para obtener información del usuario actual
+async function getCurrentUserInfo() {
+  try {
+    const supabase = await createServerClient()
+    const { data: { user }, error } = await supabase.auth.getUser()
+    
+    if (error || !user) {
+      console.log('No hay usuario autenticado en getCurrentUserInfo:', error?.message)
+      return null
+    }
+
+    console.log('✅ Usuario encontrado en getCurrentUserInfo:', user.id)
+
+    // Obtener perfil completo del usuario
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, full_name, role, position, phone, email, avatar_url')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError) {
+      console.error('Error obteniendo perfil en getCurrentUserInfo:', profileError)
+      // Devolver usuario básico si no se puede obtener el perfil
+      return {
+        id: user.id,
+        email: user.email,
+        name: user.email?.split('@')[0] || 'Usuario',
+        role: 'usuario'
+      }
+    }
+
+    console.log('✅ Perfil obtenido en getCurrentUserInfo:', profile.full_name, profile.role)
+
+    return {
+      id: user.id,
+      email: user.email,
+      name: profile.full_name || user.email?.split('@')[0] || 'Usuario',
+      role: profile.role || 'usuario',
+      position: profile.position,
+      phone: profile.phone,
+      avatar_url: profile.avatar_url
+    }
+  } catch (error) {
+    console.error('Error en getCurrentUserInfo:', error)
+    return null
+  }
+}
 
 // Obtener conversaciones de un usuario
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = await cookies()
-    const { data: { user }, error } = await supabase.auth.getUser()
+    const currentUser = await getCurrentUserInfo()
     
-    if (error || !user) {
+    if (!currentUser) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
@@ -22,22 +64,110 @@ export async function GET(request: NextRequest) {
     const action = searchParams.get('action')
 
     if (action === 'sessions') {
-      // Obtener todas las sesiones del usuario
-      const { data: sessions, error: sessionsError } = await supabase
-        .rpc('get_user_sessions', { user_uuid: user.id })
+      let sessions
+      let sessionsError
+
+      if (currentUser.role === 'admin') {
+        // Si es admin, obtener todas las sesiones de todos los usuarios
+        const { data: sessionsData, error: sessionsDataError } = await supabase
+          .from('ai_sessions')
+          .select('id, title, created_at, last_message_at, user_id')
+          .order('last_message_at', { ascending: false })
+
+        if (sessionsDataError) {
+          sessions = null
+          sessionsError = sessionsDataError
+        } else if (sessionsData && sessionsData.length > 0) {
+          // Obtener información de usuarios
+          const userIds = [...new Set(sessionsData.map(s => s.user_id))]
+          const { data: profiles, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, full_name, email, role, position')
+            .in('id', userIds)
+
+          if (profilesError) {
+            sessions = sessionsData
+            sessionsError = profilesError
+          } else {
+            sessions = sessionsData.map(session => ({
+              ...session,
+              profiles: profiles?.find(p => p.id === session.user_id)
+            }))
+            sessionsError = null
+          }
+        } else {
+          sessions = []
+          sessionsError = null
+        }
+      } else {
+        // Si no es admin, solo sus propias sesiones
+        const { data, error } = await supabase
+          .rpc('get_user_sessions', { user_uuid: currentUser.id })
+
+        sessions = data
+        sessionsError = error
+      }
 
       if (sessionsError) {
         console.error('Error obteniendo sesiones:', sessionsError)
-        return NextResponse.json({ error: 'Error obteniendo sesiones' }, { status: 500 })
+        console.error('User ID:', currentUser.id)
+        return NextResponse.json({ 
+          error: 'Error obteniendo sesiones',
+          details: sessionsError.message,
+          userId: currentUser.id
+        }, { status: 500 })
       }
 
-      return NextResponse.json({ sessions })
+      console.log('Sesiones obtenidas:', sessions?.length || 0)
+      return NextResponse.json({ sessions: sessions || [] })
     }
 
     if (sessionId) {
       // Obtener historial de una sesión específica
-      const { data: history, error: historyError } = await supabase
-        .rpc('get_conversation_history', { session_uuid: sessionId })
+      let history
+      let historyError
+
+      if (currentUser.role === 'admin') {
+        // Si es admin, puede ver el historial de cualquier sesión
+        const { data: conversationsData, error: conversationsDataError } = await supabase
+          .from('ai_conversations')
+          .select('id, message, response, created_at, user_id')
+          .eq('session_id', sessionId)
+          .order('created_at', { ascending: true })
+
+        if (conversationsDataError) {
+          history = null
+          historyError = conversationsDataError
+        } else if (conversationsData && conversationsData.length > 0) {
+          // Obtener información de usuarios
+          const userIds = [...new Set(conversationsData.map(c => c.user_id))]
+          const { data: profiles, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, full_name, email, role')
+            .in('id', userIds)
+
+          if (profilesError) {
+            history = conversationsData
+            historyError = profilesError
+          } else {
+            history = conversationsData.map(conversation => ({
+              ...conversation,
+              profiles: profiles?.find(p => p.id === conversation.user_id)
+            }))
+            historyError = null
+          }
+        } else {
+          history = []
+          historyError = null
+        }
+      } else {
+        // Si no es admin, solo puede ver sus propias conversaciones
+        const { data, error } = await supabase
+          .rpc('get_conversation_history', { session_uuid: sessionId })
+
+        history = data
+        historyError = error
+      }
 
       if (historyError) {
         console.error('Error obteniendo historial:', historyError)
@@ -77,7 +207,7 @@ export async function POST(request: NextRequest) {
       const { data: newSession, error: sessionError } = await supabase
         .from('ai_sessions')
         .insert({
-          user_id: user.id,
+          user_id: currentUser.id,
           title: message.substring(0, 50) + (message.length > 50 ? '...' : '')
         })
         .select('id')
@@ -95,7 +225,7 @@ export async function POST(request: NextRequest) {
     const { data: conversation, error: conversationError } = await supabase
       .from('ai_conversations')
       .insert({
-        user_id: user.id,
+        user_id: currentUser.id,
         session_id: currentSessionId,
         message,
         response,
@@ -161,7 +291,7 @@ export async function DELETE(request: NextRequest) {
         .from('ai_sessions')
         .delete()
         .eq('id', sessionId)
-        .eq('user_id', user.id)
+        .eq('user_id', currentUser.id)
 
       if (deleteError) {
         console.error('Error eliminando sesión:', deleteError)
@@ -177,7 +307,7 @@ export async function DELETE(request: NextRequest) {
         .from('ai_conversations')
         .delete()
         .eq('id', conversationId)
-        .eq('user_id', user.id)
+        .eq('user_id', currentUser.id)
 
       if (deleteError) {
         console.error('Error eliminando conversación:', deleteError)

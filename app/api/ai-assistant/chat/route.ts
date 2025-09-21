@@ -57,7 +57,7 @@ async function getCurrentUserInfo() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, userInfo } = await request.json()
+    const { message, userInfo, sessionId } = await request.json()
     
     if (!message || typeof message !== 'string') {
       return NextResponse.json(
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
 
     // Obtener información del usuario actual automáticamente
     const currentUser = await getCurrentUserInfo()
-    
+
     // Verificar límite de uso diario si hay información del usuario
     if (currentUser?.id) {
       const usageCheck = await checkDailyUsage(currentUser.id, currentUser.role)
@@ -98,22 +98,14 @@ export async function POST(request: NextRequest) {
     })
     
     // Guardar la conversación en la base de datos
+    let savedSessionId = sessionId
     if (currentUser?.id) {
       try {
-        const { sessionId } = await request.json()
-        await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/ai-assistant/conversations`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message,
-            response,
-            sessionId,
-            contextData: {
-              timestamp: new Date().toISOString(),
-              userRole: currentUser.role
-            }
-          })
+        const saveResult = await saveConversation(currentUser.id, message, response, sessionId, {
+          timestamp: new Date().toISOString(),
+          userRole: currentUser.role
         })
+        savedSessionId = saveResult.sessionId
       } catch (error) {
         console.error('Error guardando conversación:', error)
         // No fallar si no se puede guardar la conversación
@@ -125,7 +117,10 @@ export async function POST(request: NextRequest) {
       await incrementDailyUsage(userInfo.id)
     }
     
-    return NextResponse.json({ response })
+    return NextResponse.json({ 
+      response,
+      sessionId: savedSessionId
+    })
   } catch (error) {
     console.error('Error en AI Assistant:', error)
     return NextResponse.json(
@@ -367,11 +362,17 @@ ${context.recentVehicles.map((vehicle: any) => `• ${vehicle.license_plate || '
             9. **EXPLICA LIMITACIONES**: Si algo es una aproximación o estimación, explícalo claramente
             
             **ESTILO DE ESCRITURA NATURAL:**
-            - Usa negritas, emojis y listas para que sea claro y organizado
-            - Pero escribe con el tono de un humano real, no de robot
+            - **OBLIGATORIO**: Usa negritas (**texto**), emojis y listas con puntos (•) para que sea claro y organizado
+            - **NUNCA** escribas párrafos largos sin formato - siempre usa listas o negritas
+            - Escribe con el tono de un humano real, no de robot
             - Sé cálido, natural y conversacional
             - Usa expresiones como "Vale", "Perfecto", "Ah, genial", "No pasa nada"
-            - Combina claridad visual con conversación humana
+            - **DESTACA LO IMPORTANTE**: Usa negritas para nombres, teléfonos, matrículas, fechas
+            - **SÉ CONCISO**: Ve al grano, no te extiendas innecesariamente
+            - **FORMATO OBLIGATORIO**: Si das información, usa este formato:
+              • **Nombre**: [valor]
+              • **Teléfono**: [valor]  
+              • **Matrícula**: [valor]
 
 INSTRUCCIONES DE BÚSQUEDA INTELIGENTE:
 - **Para buscar clientes**: Usa pdf_extracted_data (datos más completos)
@@ -400,11 +401,28 @@ METODOLOGÍA DE BÚSQUEDA:
             
             **HONESTIDAD Y PRECISIÓN:**
             - **Si no tienes datos suficientes**: Dilo claramente y pregunta por más detalles
-            - **Si algo es una aproximación**: Explícalo (ej: "basándome en el DNI, la posibilidad de ser más joven sería...")
+            - **Si algo es una aproximación**: Explícalo brevemente (ej: "basándome en el DNI, la posibilidad de ser más joven sería **XXXXX**")
             - **Si no puedes determinar algo con certeza**: Sé transparente sobre las limitaciones
             - **Haz preguntas inteligentes**: Para obtener información más precisa
             - **No inventes datos**: Si no los tienes, dilo y pregunta
             - **Explica métodos alternativos**: Si usas aproximaciones, explica por qué y cómo
+            - **SÉ CONCISO**: No te extiendas demasiado, ve al grano
+            - **USA NEGRITAS**: Para destacar información importante como nombres, teléfonos, matrículas
+            
+            **ANÁLISIS AUTOMÁTICO DE DATOS:**
+            - **Analiza automáticamente** las columnas disponibles en cada tabla
+            - **Identifica patrones** en los datos sin que te lo pidan explícitamente
+            - **Usa métodos alternativos** cuando los datos directos no están disponibles
+            - **Para estimaciones de edad**: Analiza DNIs automáticamente si no hay fechas de nacimiento
+            - **Para búsquedas**: Combina múltiples criterios automáticamente
+            - **Para análisis**: Procesa y compara datos sin instrucciones específicas
+            - **Sé proactivo**: Ofrece alternativas y métodos cuando sea apropiado
+            
+            **INFORMACIÓN BÁSICA QUE SIEMPRE PUEDES DAR:**
+            - **Fecha y hora actual**: ${new Date().toLocaleString('es-ES')}
+            - **Información general**: Restaurantes, direcciones, horarios comerciales
+            - **Conocimiento general**: Cualquier información que no requiera datos específicos del sistema
+            - **NO digas "no puedo"** para información básica que cualquier persona puede saber
             
             **LÓGICA DE ENTREGAS PENDIENTES:**
             - **Si fecha_entrega es null o undefined** = ENTREGA PENDIENTE
@@ -434,10 +452,27 @@ Respuesta: "Voy a analizar los datos para identificar quién tiene más [métric
             Respuesta: "Perfecto, déjame ver qué entregas están pendientes. Encuentro X entregas sin fecha asignada. Aquí tienes las que están pendientes: **9316LPP** - X1 sDrive20i (Sara), **9909LKZ** - Serie 1 116d (Sara)... [combina claridad visual con conversación natural]"
             
             Usuario: "¿Quién es la clienta más joven de Javier Capellino?"
-            Respuesta: "No puedo determinar con exactitud quién es la clienta más joven porque no tengo fechas de nacimiento en los datos. Sin embargo, basándome en los números de DNI, la posibilidad de ser la más joven sería XXXXX, aunque es una forma de medir muy imprecisa. ¿Tienes algún otro dato que me pueda ayudar a identificar mejor a la persona que buscas?"
+            Respuesta: "No tengo fechas de nacimiento, pero basándome en el DNI, la posibilidad de ser más joven sería **XXXXX**, aunque es muy impreciso. ¿Tienes algún otro dato?"
+            
+            **ANÁLISIS DE DNIs PARA ESTIMACIÓN DE EDAD:**
+            - **DNI español**: Los primeros 8 dígitos indican fecha de nacimiento (YYMMDD)
+            - **DNI extranjero**: No sigue este patrón, no se puede estimar edad
+            - **Método**: Extrae año del DNI y calcula edad aproximada
+            - **Precisión**: Solo aproximado, puede variar por emisión tardía
+            - **Ejemplo**: DNI 95031512 = nacido en 1995, aproximadamente 28-29 años
+            - **Respuesta**: "Basándome en el DNI **95031512**, nació en 1995, aproximadamente **28-29 años**"
             
             Usuario: "Busca el teléfono de [cliente]"
             Respuesta: "Vale, voy a buscar ese cliente. Encuentro X coincidencias con ese nombre. ¿Podrías darme más detalles como la matrícula del vehículo, la ciudad o el comercial que lo atendió? Así podré darte la información exacta que necesitas."
+            
+            Usuario: "¿Qué hora es?"
+            Respuesta: "Son las **${new Date().toLocaleTimeString('es-ES')}** del **${new Date().toLocaleDateString('es-ES')}**."
+            
+            Usuario: "¿Qué día es hoy?"
+            Respuesta: "Hoy es **${new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}**."
+            
+            Usuario: "Recomiéndame un restaurante en Girona"
+            Respuesta: "Te recomiendo varios restaurantes en Girona: **Can Roca** (El Celler de Can Roca) - uno de los mejores del mundo, **Restaurante Massana** - especializado en cocina tradicional catalana, **Cal Sastre** - conocido por sus caracoles a la llauna."
 
 Responde siempre de forma natural, personal y útil.`
 
@@ -445,18 +480,18 @@ Responde siempre de forma natural, personal y útil.`
     console.log('🔑 API KEY LENGTH:', process.env.OPENAI_API_KEY?.length)
 
     console.log('🚀 LLAMANDO A OPENAI...')
-    
+
     const completion = await openai.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content: systemPrompt
-        },
-        {
-          role: "user", 
-          content: message
-        }
-      ],
+          messages: [
+            {
+              role: "system",
+              content: systemPrompt
+            },
+            {
+              role: "user", 
+              content: message
+            }
+          ],
       model: "gpt-4o",
       temperature: 1.2,
       max_tokens: 1500,
@@ -466,8 +501,8 @@ Responde siempre de forma natural, personal y útil.`
       response_format: {
         type: "text"
       },
-      stream: false
-    })
+          stream: false
+        })
 
     console.log('✅ OPENAI RESPONSE RECIBIDA:', completion.choices[0]?.message?.content?.substring(0, 100))
     
@@ -724,5 +759,68 @@ async function incrementDailyUsage(userId: string): Promise<void> {
     }
   } catch (error) {
     console.error('Error en incrementDailyUsage:', error)
+  }
+}
+
+// Función para guardar conversaciones
+async function saveConversation(userId: string, message: string, response: string, sessionId: string | null, contextData: any) {
+  try {
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+
+    // Si no hay sessionId, crear una nueva sesión
+    let currentSessionId = sessionId
+    if (!currentSessionId) {
+      const { data: newSession, error: sessionError } = await supabase
+        .from('ai_sessions')
+        .insert({
+          user_id: userId,
+          title: message.substring(0, 50) + (message.length > 50 ? '...' : '')
+        })
+        .select('id')
+        .single()
+
+      if (sessionError) {
+        console.error('Error creando sesión:', sessionError)
+        throw sessionError
+      }
+
+      currentSessionId = newSession.id
+    }
+
+    // Guardar la conversación
+    const { data: conversation, error: conversationError } = await supabase
+      .from('ai_conversations')
+      .insert({
+        user_id: userId,
+        session_id: currentSessionId,
+        message,
+        response,
+        context_data: contextData
+      })
+      .select('id, created_at')
+      .single()
+
+    if (conversationError) {
+      console.error('Error guardando conversación:', conversationError)
+      throw conversationError
+    }
+
+    // Actualizar la fecha de último mensaje de la sesión
+    await supabase
+      .from('ai_sessions')
+      .update({ last_message_at: new Date().toISOString() })
+      .eq('id', currentSessionId)
+
+    return {
+      conversationId: conversation.id,
+      sessionId: currentSessionId,
+      createdAt: conversation.created_at
+    }
+  } catch (error) {
+    console.error('Error en saveConversation:', error)
+    throw error
   }
 }

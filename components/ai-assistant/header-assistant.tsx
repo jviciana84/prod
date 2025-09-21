@@ -8,7 +8,7 @@ import { Search, X, Send, Loader2, User } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { createPortal } from "react-dom"
 import { useAuth } from "@/hooks/use-auth"
-import IsolatedChat from './isolated-chat'
+import ChatWrapper from './chat-wrapper'
 
 export default function HeaderAssistant() {
   const [isExpanded, setIsExpanded] = useState(false)
@@ -161,6 +161,17 @@ export default function HeaderAssistant() {
     setInitialChatQuery("") // Limpiar la consulta inicial
   }, [])
 
+  // Limpiar la consulta inicial después de que se abra el chat
+  useEffect(() => {
+    if (isChatOpen && initialChatQuery) {
+      // Limpiar la consulta después de un breve delay para que se procese
+      const timer = setTimeout(() => {
+        setInitialChatQuery("")
+      }, 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [isChatOpen, initialChatQuery])
+
 
 
 
@@ -188,10 +199,12 @@ export default function HeaderAssistant() {
       
       
       {/* Modal de Chat usando Portal */}
-      <IsolatedChat 
+      <ChatWrapper 
         isOpen={isChatOpen}
         onClose={handleCloseChat}
         initialQuery={initialChatQuery}
+        user={user}
+        profile={profile}
       />
       
       {/* Contenedor del buscador expandible */}
@@ -260,7 +273,7 @@ export default function HeaderAssistant() {
                 variant="ghost"
                 size="sm"
                 onClick={handleToggle}
-                className="edelweiss-button group relative text-sm font-black tracking-wider border border-gray-300 dark:border-gray-600 overflow-hidden transition-all duration-300 ease-in-out hover:scale-105 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/25"
+                className="edelweiss-button group relative text-sm font-black tracking-wider border border-gray-300 dark:border-gray-600 overflow-hidden transition-all duration-300 ease-in-out hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/25"
                 style={{ 
                   fontFamily: '"Times New Roman", serif', 
                   fontWeight: '900', 
@@ -268,8 +281,6 @@ export default function HeaderAssistant() {
                   textShadow: '1px 1px 2px rgba(0,0,0,0.1)'
                 }}
               >
-                {/* Efecto de fondo animado - solo en hover manual */}
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-purple-500/0 to-blue-500/0 group-hover:from-blue-500/10 group-hover:via-purple-500/10 group-hover:to-blue-500/10 transition-all duration-500 ease-in-out"></div>
                 
                 {/* Efecto de brillo que se mueve - en hover manual y automático */}
                 <div className={`absolute inset-0 -translate-x-full group-hover:translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 ease-in-out ${isAutoHover ? 'translate-x-full' : ''}`}></div>
@@ -277,8 +288,8 @@ export default function HeaderAssistant() {
                 {/* Efecto de brillo reverso - solo automático */}
                 <div className="absolute inset-0 translate-x-full reverse-shine:-translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 ease-in-out"></div>
                 
-                {/* Texto con efecto de color - solo en hover manual */}
-                <span className="relative z-10 transition-colors duration-300 group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                {/* Texto sin cambio de color en hover */}
+                <span className="relative z-10">
                   EDELWEISS
                 </span>
               </Button>
