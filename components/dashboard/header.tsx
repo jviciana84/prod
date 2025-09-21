@@ -34,10 +34,12 @@ import { getUserPreferences } from "@/lib/user-preferences"
 import type { PageInfo } from "@/types/user-preferences"
 import { clearCorruptedSession } from "@/utils/fix-auth"
 import HeaderAssistant from "@/components/ai-assistant/header-assistant"
+import { useAuth } from "@/hooks/use-auth"
 
 interface DashboardHeaderProps {
-  user: User
-  roles: string[]
+  // Props opcionales para compatibilidad con el layout existente
+  user?: User
+  roles?: string[]
 }
 
 interface UserProfile {
@@ -58,10 +60,18 @@ interface Notification {
   read_at: string | null
 }
 
-export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
+export default function DashboardHeader({ user: propUser, roles: propRoles }: DashboardHeaderProps) {
   const router = useRouter()
   const supabase = createClientComponentClient()
   const { toggleSidebar } = useSidebar()
+  
+  // Usar useAuth para obtener el estado real de autenticación
+  const { user: authUser, profile: authProfile, loading: authLoading } = useAuth()
+  
+  // Usar datos de useAuth como prioridad, fallback a props
+  const user = authUser || propUser
+  const roles = authProfile?.role ? [authProfile.role] : (propRoles || [])
+  
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isAvatarZoomed, setIsAvatarZoomed] = useState(false)
   const [isEditingPhone, setIsEditingPhone] = useState(false)
@@ -80,8 +90,8 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   const notificationsRef = useRef<HTMLDivElement>(null)
 
-  // Obtener el nombre para mostrar (nombre completo de los metadatos o email si no hay nombre)
-  const displayName = user.user_metadata.full_name || user.email
+  // Obtener el nombre para mostrar (prioridad: authProfile > user_metadata > email)
+  const displayName = authProfile?.full_name || user?.user_metadata?.full_name || user?.email || "Usuario"
 
 
 
@@ -96,10 +106,26 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
   // Cargar el perfil del usuario y sus preferencias
   useEffect(() => {
     async function loadUserData() {
+      if (!user?.id) {
+        setIsLoading(false)
+        return
+      }
+
       try {
         setIsLoading(true)
 
-        // Cargar perfil
+        // Usar authProfile si está disponible, sino cargar desde la base de datos
+        if (authProfile) {
+          setUserProfile({
+            id: authProfile.id,
+            phone: null, // Se cargará por separado
+            alias: null,
+            position: null,
+            avatar_url: authProfile.avatar_url
+          })
+        }
+
+        // Cargar perfil completo (incluyendo phone, alias, position)
         const { data: profileData, error: profileError } = await supabase
           .from("profiles")
           .select("id, phone, alias, position, avatar_url")
@@ -138,11 +164,16 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
     }
 
     loadUserData()
-  }, [supabase, user.id])
+  }, [supabase, user?.id, authProfile])
 
   // Cargar notificaciones reales
   useEffect(() => {
     const loadNotifications = async () => {
+      if (!user?.id) {
+        setLoadingNotifications(false)
+        return
+      }
+
       try {
         const { data, error } = await supabase
           .from("notification_history")
@@ -165,9 +196,7 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
       }
     }
 
-    if (user?.id) {
-      loadNotifications()
-    }
+    loadNotifications()
   }, [user?.id, supabase])
 
   // Manejar eventos de clic fuera del menú
@@ -425,6 +454,41 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
     
     // Cerrar el menú de notificaciones
     setIsNotificationsOpen(false)
+  }
+
+  // Mostrar estado de carga si la autenticación está cargando
+  if (authLoading) {
+    return (
+      <header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-14 max-w-full px-4 md:px-6 lg:px-8 xl:px-10 items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Logo size="header" linkTo="/dashboard" />
+          </div>
+          <div className="flex items-center space-x-2">
+            <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />
+            <div className="h-4 w-20 bg-muted animate-pulse rounded" />
+          </div>
+        </div>
+      </header>
+    )
+  }
+
+  // Si no hay usuario autenticado, mostrar header básico
+  if (!user) {
+    return (
+      <header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-14 max-w-full px-4 md:px-6 lg:px-8 xl:px-10 items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Logo size="header" linkTo="/dashboard" />
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button variant="outline" size="sm" onClick={() => router.push("/")}>
+              Iniciar sesión
+            </Button>
+          </div>
+        </div>
+      </header>
+    )
   }
 
   return (

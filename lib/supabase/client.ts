@@ -35,6 +35,12 @@ export function createClientComponentClient() {
         autoRefreshToken: true,
         // Usar storage local en lugar de cookies para evitar conflictos
         storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+        // Configuración adicional para producción
+        debug: process.env.NODE_ENV === 'development',
+        // Manejo de errores más robusto
+        onError: (event, session) => {
+          console.error('Supabase Auth Error:', event, session)
+        }
       }
     }
   )
