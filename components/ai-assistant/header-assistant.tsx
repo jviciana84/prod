@@ -218,46 +218,33 @@ export default function HeaderAssistant() {
           {isExpanded ? (
             <>
               {/* Overlay para ocultar el fondo rectangular del header - solo en el área de la barra */}
-              <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[500px] h-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-2xl overflow-hidden"></div>
+              <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[500px] h-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-full overflow-hidden"></div>
             <motion.div
               initial={{ width: 0, opacity: 0 }}
               animate={{ width: "500px", opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
               transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="flex items-center gap-2 bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden relative transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/20"
+              className="flex items-center gap-2 bg-white dark:bg-gray-800 rounded-full shadow-lg overflow-hidden relative transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/20 focus:outline-none"
               style={{
                 border: '2px solid',
                 borderImage: 'linear-gradient(135deg, #3b82f6, #8b5cf6, #3b82f6) 1',
-                borderRadius: '16px',
-                animation: 'gradientShift 3s ease-in-out infinite'
+                borderRadius: '9999px',
+                animation: 'gradientShift 3s ease-in-out infinite',
+                clipPath: 'inset(0 round 9999px)'
               }}
             >
               {/* Campo de búsqueda */}
               <div className="flex-1 relative">
-                <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 transition-colors duration-200 ${searchQuery ? 'text-blue-500' : 'text-gray-400'}`} />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-600 dark:text-gray-300 transition-all duration-200" />
                 <Input
                   ref={inputRef}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Pregunta a Edelweiss sobre CVO, ventas, stock, entregas..."
-                  className="pl-10 pr-12 border-0 focus:ring-0 bg-transparent focus:bg-blue-50/50 dark:focus:bg-blue-950/20 transition-all duration-200"
+                  className="pl-10 pr-4 border-0 focus:ring-0 bg-transparent focus:bg-transparent transition-all duration-200 outline-none"
                   disabled={isLoading}
                 />
-                {searchQuery && (
-                  <Button
-                    onClick={handleSearch}
-                    size="sm"
-                    disabled={isLoading}
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 bg-blue-500 hover:bg-blue-600 transition-all duration-200 hover:scale-110 hover:shadow-lg hover:shadow-blue-500/30"
-                  >
-                    {isLoading ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : (
-                      <Send className="h-3 w-3" />
-                    )}
-                  </Button>
-                )}
               </div>
               
               {/* Separador */}
@@ -279,9 +266,9 @@ export default function HeaderAssistant() {
                 onClick={handleClose}
                 size="sm"
                 variant="ghost"
-                className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
+                className="h-8 w-8 p-0 hover:bg-transparent transition-all duration-200"
               >
-                <X className="h-4 w-4" />
+                <X className="h-4 w-4 hover:scale-125 hover:font-black transition-all duration-200" />
               </Button>
             </motion.div>
             </>
