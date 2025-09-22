@@ -66,7 +66,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Comentado temporalmente para diagnosticar
-    // "/((?!_next/static|_next/image|favicon.ico|auth/reset-password|api|).*)",
+    "/((?!_next/static|_next/image|favicon.ico|auth/reset-password|api|).*)",
   ],
 }

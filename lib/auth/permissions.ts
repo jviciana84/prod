@@ -73,7 +73,7 @@ export const getUserPermissions = cache(async () => {
   try {
     // Usar una consulta SQL directa para evitar las políticas RLS
     const { data, error } = await supabase.rpc("get_user_permission_names", {
-      user_id_param: session.user.id,
+      user_id_param: user.id, // ✅ Corregido: usar 'user' en lugar de 'session'
     })
 
     if (error) {
