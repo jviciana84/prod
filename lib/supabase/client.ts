@@ -1,7 +1,8 @@
 import { createBrowserClient } from "@supabase/ssr"
 
-// Singleton para evitar múltiples instancias de Supabase
+// Singleton más robusto para evitar múltiples instancias de Supabase
 let supabaseClientInstance: any = null
+let isInitializing = false
 
 export function createClientComponentClient() {
   // Variables de entorno con valores por defecto
@@ -13,39 +14,54 @@ export function createClientComponentClient() {
     return createBrowserClient(supabaseUrl, supabaseAnonKey)
   }
 
-  // En el cliente, usar singleton para evitar múltiples instancias
-  if (!supabaseClientInstance) {
-    console.log("🔧 Creando nueva instancia de Supabase client")
-    supabaseClientInstance = createBrowserClient(
-    supabaseUrl,
-    supabaseAnonKey,
-    {
-      auth: {
-        detectSessionInUrl: true,
-        flowType: "pkce",
-        // Permitir múltiples sesiones
-        persistSession: true,
-        autoRefreshToken: true,
-        // Configuración de refresh más agresiva
-        refreshTokenThreshold: 300, // Refrescar 5 minutos antes de expirar
-        // Usar cookies para estar sincronizado con el middleware
-        storage: undefined, // Usar cookies por defecto
-        // Configuración adicional para producción
-        debug: process.env.NODE_ENV === 'development',
-        // Manejo de errores más robusto
-        onError: (event, session) => {
-          console.error('Supabase Auth Error:', event, session)
-          // Si hay error de sesión, intentar recuperar
-          if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
-            console.log('🔄 Sesión actualizada, recargando datos...')
+  // En el cliente, usar singleton más robusto
+  if (!supabaseClientInstance && !isInitializing) {
+    isInitializing = true
+    console.log("🔧 Creando nueva instancia de Supabase client (singleton)")
+    
+    try {
+      supabaseClientInstance = createBrowserClient(
+        supabaseUrl,
+        supabaseAnonKey,
+        {
+          auth: {
+            detectSessionInUrl: true,
+            flowType: "pkce",
+            persistSession: true,
+            autoRefreshToken: true,
+            refreshTokenThreshold: 300, // Refrescar 5 minutos antes de expirar
+            storage: undefined, // Usar cookies por defecto
+            debug: process.env.NODE_ENV === 'development',
+            onError: (event, session) => {
+              console.error('Supabase Auth Error:', event, session)
+              if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+                console.log('🔄 Sesión actualizada, recargando datos...')
+              }
+            }
           }
         }
+      )
+      
+      // Marcar la instancia como inicializada
+      if (supabaseClientInstance) {
+        console.log("✅ Instancia de Supabase client creada exitosamente")
       }
+    } catch (error) {
+      console.error("❌ Error creando instancia de Supabase client:", error)
+      supabaseClientInstance = null
+    } finally {
+      isInitializing = false
     }
-    )
   }
 
-  return supabaseClientInstance
+  // Si ya existe una instancia, devolverla
+  if (supabaseClientInstance) {
+    return supabaseClientInstance
+  }
+
+  // Fallback: crear una instancia básica si el singleton falla
+  console.warn("⚠️ Fallback: creando instancia básica de Supabase client")
+  return createBrowserClient(supabaseUrl, supabaseAnonKey)
 }
 
 

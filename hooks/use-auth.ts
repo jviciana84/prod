@@ -34,26 +34,13 @@ export function useAuth() {
         if (error) {
           console.warn("Error al obtener sesión:", error.message)
           
-          // Si hay error de cookies corruptas, limpiar y reintentar
+          // Solo loggear el error, no limpiar cookies automáticamente
+          // Las cookies base64 ahora se manejan con safeGetCookie en middleware
           if (error.message.includes("JSON") || 
               error.message.includes("parse") || 
               error.message.includes("base64") ||
               error.message.includes("Unexpected token")) {
-            console.log("🚨 Cookies corruptas detectadas en useAuth, limpiando...")
-            
-            // Limpiar cookies corruptas
-            document.cookie.split(";").forEach((cookie) => {
-              const [name] = cookie.trim().split("=")
-              if (name && name.startsWith("sb-")) {
-                document.cookie = `${name.trim()}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
-                document.cookie = `${name.trim()}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=localhost;`
-                document.cookie = `${name.trim()}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.localhost;`
-              }
-            })
-            
-            // Forzar recarga después de limpiar cookies
-            window.location.reload()
-            return
+            console.warn("⚠️ Error de parsing detectado, pero usando safeGetCookie para manejar cookies base64")
           }
           
           if (mounted) {
