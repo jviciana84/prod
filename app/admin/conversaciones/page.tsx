@@ -42,15 +42,20 @@ export default function AdminConversacionesPage() {
   const [selectedSession, setSelectedSession] = useState<string | null>(null)
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(false)
-  const { user } = useAuth()
+  const { user, profile, loading: authLoading } = useAuth()
   const { toast } = useToast()
 
-  // Cargar sesiones cuando el usuario esté disponible
+  // Cargar sesiones cuando el usuario y perfil estén disponibles
   useEffect(() => {
-    if (user) {
+    // Solo cargar sesiones si la autenticación ha terminado de cargar
+    console.log("🔄 useEffect triggered - authLoading:", authLoading, "user:", !!user, "profile:", !!profile)
+    if (!authLoading && user) {
+      console.log("✅ Auth loading completado, cargando sesiones de conversaciones...")
       loadSessions()
+    } else {
+      console.log("⏳ Auth aún cargando...")
     }
-  }, [user])
+  }, [user, profile, authLoading])
 
   // Cargar sesiones del usuario
   const loadSessions = async () => {
