@@ -33,6 +33,29 @@ export function useAuth() {
 
         if (error) {
           console.warn("Error al obtener sesión:", error.message)
+          
+          // Si hay error de cookies corruptas, limpiar y reintentar
+          if (error.message.includes("JSON") || 
+              error.message.includes("parse") || 
+              error.message.includes("base64") ||
+              error.message.includes("Unexpected token")) {
+            console.log("🚨 Cookies corruptas detectadas en useAuth, limpiando...")
+            
+            // Limpiar cookies corruptas
+            document.cookie.split(";").forEach((cookie) => {
+              const [name] = cookie.trim().split("=")
+              if (name && name.startsWith("sb-")) {
+                document.cookie = `${name.trim()}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
+                document.cookie = `${name.trim()}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=localhost;`
+                document.cookie = `${name.trim()}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.localhost;`
+              }
+            })
+            
+            // Forzar recarga después de limpiar cookies
+            window.location.reload()
+            return
+          }
+          
           if (mounted) {
             setAuthState({ user: null, loading: false, error: error.message, profile: null })
           }
