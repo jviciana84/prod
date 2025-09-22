@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useMemo, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { Search, X, Send, Loader2, User } from "lucide-react"
+import { Search, X, Send, Loader2, User, MessageCircle } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { createPortal } from "react-dom"
 import { useAuth } from "@/hooks/use-auth"
@@ -161,6 +161,11 @@ export default function HeaderAssistant() {
     setInitialChatQuery("") // Limpiar la consulta inicial
   }, [])
 
+  const handleOpenChatWithoutQuery = useCallback(() => {
+    setInitialChatQuery("")
+    setIsChatOpen(true)
+  }, [])
+
   // Limpiar la consulta inicial después de que se abra el chat
   useEffect(() => {
     if (isChatOpen && initialChatQuery) {
@@ -211,16 +216,19 @@ export default function HeaderAssistant() {
       <div className="hidden md:flex items-center justify-center absolute left-0 right-0 top-0 bottom-0">
         <AnimatePresence>
           {isExpanded ? (
+            <>
+              {/* Overlay para ocultar el fondo rectangular del header - solo en el área de la barra */}
+              <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[500px] h-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-2xl overflow-hidden"></div>
             <motion.div
               initial={{ width: 0, opacity: 0 }}
-              animate={{ width: "400px", opacity: 1 }}
+              animate={{ width: "500px", opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
               transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="flex items-center gap-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden relative transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/20"
+              className="flex items-center gap-2 bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden relative transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/20"
               style={{
                 border: '2px solid',
                 borderImage: 'linear-gradient(135deg, #3b82f6, #8b5cf6, #3b82f6) 1',
-                borderRadius: '8px',
+                borderRadius: '16px',
                 animation: 'gradientShift 3s ease-in-out infinite'
               }}
             >
@@ -252,6 +260,20 @@ export default function HeaderAssistant() {
                 )}
               </div>
               
+              {/* Separador */}
+              <div className="h-6 w-px bg-gray-300 dark:bg-gray-600"></div>
+              
+              {/* Botón de Chat */}
+              <Button
+                onClick={handleOpenChatWithoutQuery}
+                size="sm"
+                className="h-8 px-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 border-2 border-blue-300 hover:border-blue-400"
+                title="Abrir chat con Edelweiss"
+              >
+                <MessageCircle className="h-4 w-4 mr-2" />
+                <span className="text-sm font-semibold">Chat</span>
+              </Button>
+              
               {/* Botón de cerrar */}
               <Button
                 onClick={handleClose}
@@ -262,6 +284,7 @@ export default function HeaderAssistant() {
                 <X className="h-4 w-4" />
               </Button>
             </motion.div>
+            </>
           ) : (
             <motion.div
               initial={{ opacity: 0 }}

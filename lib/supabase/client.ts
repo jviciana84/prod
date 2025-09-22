@@ -1,5 +1,8 @@
 import { createBrowserClient } from "@supabase/ssr"
 
+// Singleton para evitar múltiples instancias de Supabase
+let supabaseClientInstance: any = null
+
 export function createClientComponentClient() {
   // Variables de entorno con valores por defecto
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://wpjmimbscfsdzcwuwctk.supabase.co"
@@ -10,11 +13,10 @@ export function createClientComponentClient() {
     return createBrowserClient(supabaseUrl, supabaseAnonKey)
   }
 
-  // Cookies se manejan automáticamente por Supabase
-
-  // En el cliente, siempre crear una nueva instancia para evitar conflictos de sesión
-  // Esto permite múltiples sesiones simultáneas
-  return createBrowserClient(
+  // En el cliente, usar singleton para evitar múltiples instancias
+  if (!supabaseClientInstance) {
+    console.log("🔧 Creando nueva instancia de Supabase client")
+    supabaseClientInstance = createBrowserClient(
     supabaseUrl,
     supabaseAnonKey,
     {
@@ -40,9 +42,20 @@ export function createClientComponentClient() {
         }
       }
     }
-  )
+    )
+  }
+
+  return supabaseClientInstance
 }
 
+
+// Función para limpiar la instancia (útil para logout)
+export function clearSupabaseClient() {
+  if (typeof window !== "undefined") {
+    console.log("🗑️ Limpiando instancia de Supabase client")
+    supabaseClientInstance = null
+  }
+}
 
 // Exportación adicional para compatibilidad
 export const createClient = createClientComponentClient

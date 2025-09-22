@@ -61,11 +61,33 @@ export async function middleware(request: NextRequest) {
     if (error) {
       console.error("Error al obtener sesión en middleware:", error)
       // Si hay error de parsing de cookies, limpiar cookies corruptas
-      if (error.message.includes("JSON") || error.message.includes("parse") || error.message.includes("Failed to parse cookie")) {
-        console.warn("Cookies corruptas detectadas en middleware, limpiando...")
-        // Limpiar cookies corruptas sin afectar otras cookies
-        response.cookies.delete("sb-access-token")
-        response.cookies.delete("sb-refresh-token")
+      if (error.message.includes("JSON") || 
+          error.message.includes("parse") || 
+          error.message.includes("Failed to parse cookie") ||
+          error.message.includes("base64") ||
+          error.message.includes("Unexpected token")) {
+        console.warn("🚨 Cookies corruptas detectadas en middleware, limpiando...")
+        // Limpiar TODAS las cookies de Supabase para evitar conflictos
+        const cookieNames = [
+          "sb-access-token",
+          "sb-refresh-token", 
+          "sb-wpjmimbscfsdzcwuwctk-auth-token",
+          "sb-wpjmimbscfsdzcwuwctk-auth-token.0",
+          "sb-wpjmimbscfsdzcwuwctk-auth-token.1",
+          "sb-wpjmimbscfsdzcwuwctk-auth-token.2",
+          "sb-wpjmimbscfsdzcwuwctk-auth-token.3",
+          "sb-wpjmimbscfsdzcwuwctk-auth-token.4",
+          "sb-wpjmimbscfsdzcwuwctk-auth-token.5",
+          "sb-wpjmimbscfsdzcwuwctk-auth-token.6",
+          "sb-wpjmimbscfsdzcwuwctk-auth-token.7",
+          "sb-wpjmimbscfsdzcwuwctk-auth-token.8",
+          "sb-wpjmimbscfsdzcwuwctk-auth-token.9"
+        ]
+        
+        cookieNames.forEach(name => {
+          response.cookies.delete(name)
+          console.log(`🗑️ Cookie eliminada: ${name}`)
+        })
       }
     } else if (session) {
       // Forzar refresh del token si está cerca de expirar

@@ -40,7 +40,22 @@ export default async function AdminLayout({
     redirect("/dashboard")
   }
 
-  const roles = ['admin'] // Simplificar para evitar problemas con getUserRoles
+  // Obtener roles usando getUserRoles como en el dashboard principal
+  let roles = ['admin']
+  try {
+    roles = await getUserRoles()
+  } catch (error) {
+    console.error('Error obteniendo roles:', error)
+    // Fallback a admin si hay error
+  }
+  
+  // Crear objeto user para el DashboardHeader
+  const user = {
+    id: session.user.id,
+    email: session.user.email || '',
+    name: session.user.user_metadata?.full_name || session.user.email || 'Usuario',
+    avatar: session.user.user_metadata?.avatar_url || null
+  }
 
   return (
     <SidebarProvider>

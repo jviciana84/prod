@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { CompactSearchWithModal } from "@/components/dashboard/compact-search-with-modal"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { FileBarChart, FileText, AlertTriangle, Clock, TrendingUp } from "lucide-react"
+import { FileBarChart, FileText, AlertTriangle, Clock, TrendingUp, Briefcase, Star, Euro } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
@@ -37,6 +37,73 @@ export default function ReportsPage() {
             <p className="text-muted-foreground">Informes y reportes del sistema</p>
           </div>
         </div>
+      </div>
+
+      {/* Card especial Plan Negocio CVO */}
+      <div className="mb-8">
+        <Card className="bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-700 text-white border-0 shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-[1.02]">
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-white/20 rounded-full">
+                  <Briefcase className="h-8 w-8 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-2xl font-bold flex items-center gap-2">
+                    Plan Negocio CVO
+                    <Star className="h-5 w-5 text-yellow-300 fill-current" />
+                  </CardTitle>
+                  <CardDescription className="text-white/90 text-lg">
+                    Análisis completo de valoración y oportunidades de mercado
+                  </CardDescription>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-3xl font-bold text-yellow-300">€350K</div>
+                <div className="text-sm text-white/80">Valoración</div>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+              <div className="flex items-center gap-3">
+                <Euro className="h-5 w-5 text-green-300" />
+                <div>
+                  <div className="font-semibold">ROI 18 meses</div>
+                  <div className="text-sm text-white/80">Beneficio proyectado</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <TrendingUp className="h-5 w-5 text-blue-300" />
+                <div>
+                  <div className="font-semibold">12.5% crecimiento</div>
+                  <div className="text-sm text-white/80">Mercado español</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <FileText className="h-5 w-5 text-purple-300" />
+                <div>
+                  <div className="font-semibold">2 Informes</div>
+                  <div className="text-sm text-white/80">Básico y detallado</div>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Link href="/dashboard/reports/plan-negocio/basico" className="flex-1">
+                <Button className="w-full bg-white/20 hover:bg-white/30 text-white border border-white/30 hover:border-white/50">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Informe Básico
+                </Button>
+              </Link>
+              <Link href="/dashboard/reports/plan-negocio" className="flex-1">
+                <Button className="w-full bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-100 border border-yellow-400/30 hover:border-yellow-400/50">
+                  <Briefcase className="mr-2 h-4 w-4" />
+                  Informe Detallado
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
