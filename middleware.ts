@@ -54,7 +54,7 @@ export async function middleware(request: NextRequest) {
     },
   )
 
-  // Refrescar la sesión del usuario si existe, pero sin modificar cookies existentes
+  // Refrescar la sesión del usuario si existe
   try {
     const { data: { session }, error } = await supabase.auth.getSession()
     
@@ -68,7 +68,16 @@ export async function middleware(request: NextRequest) {
         response.cookies.delete("sb-refresh-token")
       }
     } else if (session) {
-      console.log("✅ Sesión válida en middleware:", session.user.email)
+      // Forzar refresh del token si está cerca de expirar
+      const tokenExpiry = session.expires_at ? new Date(session.expires_at * 1000) : null
+      const now = new Date()
+      const timeUntilExpiry = tokenExpiry ? tokenExpiry.getTime() - now.getTime() : 0
+      
+      // Si el token expira en menos de 10 minutos, forzar refresh
+      if (timeUntilExpiry < 10 * 60 * 1000) {
+        console.log("🔄 Token cerca de expirar, forzando refresh...")
+        await supabase.auth.refreshSession()
+      }
     }
   } catch (error) {
     console.error("Error crítico en middleware:", error)

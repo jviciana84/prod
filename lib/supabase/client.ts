@@ -14,12 +14,7 @@ export function createClientComponentClient() {
     return createBrowserClient(supabaseUrl, supabaseAnonKey)
   }
 
-  // En el cliente, verificar cookies corruptas antes de crear la instancia
-  try {
-    fixCorruptedCookies()
-  } catch (error) {
-    console.error("Error al verificar cookies:", error)
-  }
+  // Cookies se manejan automáticamente por Supabase
 
   // En el cliente, siempre crear una nueva instancia para evitar conflictos de sesión
   // Esto permite múltiples sesiones simultáneas
@@ -34,9 +29,9 @@ export function createClientComponentClient() {
         persistSession: true,
         autoRefreshToken: true,
         // Configuración de refresh más agresiva
-        refreshTokenThreshold: 60, // Refrescar 60 segundos antes de expirar
-        // Usar storage local en lugar de cookies para evitar conflictos
-        storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+        refreshTokenThreshold: 300, // Refrescar 5 minutos antes de expirar
+        // Usar cookies para estar sincronizado con el middleware
+        storage: undefined, // Usar cookies por defecto
         // Configuración adicional para producción
         debug: process.env.NODE_ENV === 'development',
         // Manejo de errores más robusto
