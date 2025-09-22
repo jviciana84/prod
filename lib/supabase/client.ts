@@ -30,7 +30,37 @@ export function createClientComponentClient() {
             persistSession: true,
             autoRefreshToken: true,
             refreshTokenThreshold: 300, // Refrescar 5 minutos antes de expirar
-            storage: undefined, // Usar cookies por defecto
+            // Interceptar el storage para manejar cookies base64
+            storage: {
+              getItem: (key: string) => {
+                try {
+                  const value = document.cookie
+                    .split('; ')
+                    .find(row => row.startsWith(`${key}=`))
+                    ?.split('=')[1]
+                  
+                  if (!value) return null
+                  
+                  // Si es base64, limpiar la cookie corrupta y devolver null
+                  if (value.startsWith('base64-')) {
+                    console.log(`🧹 Limpiando cookie base64 corrupta: ${key}`)
+                    document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
+                    return null
+                  }
+                  
+                  return value
+                } catch (error) {
+                  console.error(`Error obteniendo cookie ${key}:`, error)
+                  return null
+                }
+              },
+              setItem: (key: string, value: string) => {
+                // No hacer nada - dejar que Supabase maneje las cookies
+              },
+              removeItem: (key: string) => {
+                document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
+              }
+            },
             debug: process.env.NODE_ENV === 'development',
             onError: (event, session) => {
               console.error('Supabase Auth Error:', event, session)
@@ -45,6 +75,18 @@ export function createClientComponentClient() {
       // Marcar la instancia como inicializada
       if (supabaseClientInstance) {
         console.log("✅ Instancia de Supabase client creada exitosamente")
+        
+        // Limpiar cookies base64 corruptas al inicializar
+        if (typeof window !== "undefined") {
+          const cookies = document.cookie.split(';')
+          cookies.forEach(cookie => {
+            const [name, value] = cookie.trim().split('=')
+            if (value && value.startsWith('base64-')) {
+              console.log(`🧹 Limpiando cookie base64 corrupta: ${name}`)
+              document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
+            }
+          })
+        }
       }
     } catch (error) {
       console.error("❌ Error creando instancia de Supabase client:", error)
