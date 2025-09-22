@@ -1,5 +1,6 @@
 import { cookies } from "next/headers"
 import { createServerClient as createServerClientOriginal, type CookieOptions } from "@supabase/ssr"
+import { safeGetCookie } from "@/lib/utils/safe-cookie-parser"
 
 export async function createServerClient(cookieStore?: any) {
   // Variables de entorno con valores por defecto
@@ -19,12 +20,7 @@ export async function createServerClient(cookieStore?: any) {
   return createServerClientOriginal(supabaseUrl, supabaseAnonKey, {
     cookies: {
       get(name: string) {
-        try {
-          return cookieStore.get(name)?.value
-        } catch (error) {
-          console.error("Error al obtener cookie:", error)
-          return undefined
-        }
+        return safeGetCookie(cookieStore, name)
       },
       set(name: string, value: string, options: CookieOptions) {
         try {

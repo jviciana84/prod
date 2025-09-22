@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
+import { safeGetCookie } from "@/lib/utils/safe-cookie-parser"
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
@@ -14,7 +15,7 @@ export async function middleware(request: NextRequest) {
     {
       cookies: {
         get(name: string) {
-          return request.cookies.get(name)?.value
+          return safeGetCookie(request.cookies, name)
         },
         set(name: string, value: string, options: CookieOptions) {
           request.cookies.set({
@@ -60,34 +61,14 @@ export async function middleware(request: NextRequest) {
     
     if (error) {
       console.error("Error al obtener sesión en middleware:", error)
-      // Si hay error de parsing de cookies, limpiar cookies corruptas
+      // Solo loggear el error, no limpiar cookies automáticamente
+      // Las cookies base64 ahora se manejan con safeGetCookie
       if (error.message.includes("JSON") || 
           error.message.includes("parse") || 
           error.message.includes("Failed to parse cookie") ||
           error.message.includes("base64") ||
           error.message.includes("Unexpected token")) {
-        console.warn("🚨 Cookies corruptas detectadas en middleware, limpiando...")
-        // Limpiar TODAS las cookies de Supabase para evitar conflictos
-        const cookieNames = [
-          "sb-access-token",
-          "sb-refresh-token", 
-          "sb-wpjmimbscfsdzcwuwctk-auth-token",
-          "sb-wpjmimbscfsdzcwuwctk-auth-token.0",
-          "sb-wpjmimbscfsdzcwuwctk-auth-token.1",
-          "sb-wpjmimbscfsdzcwuwctk-auth-token.2",
-          "sb-wpjmimbscfsdzcwuwctk-auth-token.3",
-          "sb-wpjmimbscfsdzcwuwctk-auth-token.4",
-          "sb-wpjmimbscfsdzcwuwctk-auth-token.5",
-          "sb-wpjmimbscfsdzcwuwctk-auth-token.6",
-          "sb-wpjmimbscfsdzcwuwctk-auth-token.7",
-          "sb-wpjmimbscfsdzcwuwctk-auth-token.8",
-          "sb-wpjmimbscfsdzcwuwctk-auth-token.9"
-        ]
-        
-        cookieNames.forEach(name => {
-          response.cookies.delete(name)
-          console.log(`🗑️ Cookie eliminada: ${name}`)
-        })
+        console.warn("⚠️ Error de parsing detectado, pero usando safeGetCookie para manejar cookies base64")
       }
     } else if (session) {
       // Forzar refresh del token si está cerca de expirar
