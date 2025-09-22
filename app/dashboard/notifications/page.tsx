@@ -34,8 +34,8 @@ export default function NotificationsPage() {
     try {
       setLoading(true)
       
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user) {
         toast.error("Usuario no autenticado")
         return
       }
@@ -43,7 +43,7 @@ export default function NotificationsPage() {
       const { data, error } = await supabase
         .from("notification_history")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", session.user.id)
         .order("created_at", { ascending: false })
 
       if (error) {
@@ -99,13 +99,13 @@ export default function NotificationsPage() {
 
   const markAllAsRead = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user) return
 
       const { error } = await supabase
         .from("notification_history")
         .update({ read_at: new Date().toISOString() })
-        .eq("user_id", user.id)
+        .eq("user_id", session.user.id)
         .is("read_at", null)
 
       if (error) {
