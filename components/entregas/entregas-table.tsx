@@ -130,18 +130,17 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
     async function getUser() {
       try {
         const {
-          data: { user }, // <--- CAMBIO AQUÍ: de session a user
-        } = await supabase.auth.getUser() // <--- CAMBIO AQUÍ: de getSession() a getUser()
+          data: { session },
+        } = await supabase.auth.getSession()
 
-        if (user) {
-          // <--- CAMBIO AQUÍ: de session?.user a user
-          setUser(user)
+        if (session?.user) {
+          setUser(session.user)
 
           // Obtener el perfil del usuario
           const { data: profileData, error: profileError } = await supabase
             .from("profiles")
             .select("full_name, role")
-            .eq("id", user.id) // Asegúrate de que user.id se usa aquí
+            .eq("id", session.user.id)
             .single()
 
           if (profileError) {
