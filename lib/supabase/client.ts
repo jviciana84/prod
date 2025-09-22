@@ -33,6 +33,8 @@ export function createClientComponentClient() {
         // Permitir múltiples sesiones
         persistSession: true,
         autoRefreshToken: true,
+        // Configuración de refresh más agresiva
+        refreshTokenThreshold: 60, // Refrescar 60 segundos antes de expirar
         // Usar storage local en lugar de cookies para evitar conflictos
         storage: typeof window !== 'undefined' ? window.localStorage : undefined,
         // Configuración adicional para producción
@@ -40,6 +42,10 @@ export function createClientComponentClient() {
         // Manejo de errores más robusto
         onError: (event, session) => {
           console.error('Supabase Auth Error:', event, session)
+          // Si hay error de sesión, intentar recuperar
+          if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+            console.log('🔄 Sesión actualizada, recargando datos...')
+          }
         }
       }
     }

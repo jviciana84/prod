@@ -56,9 +56,22 @@ export async function middleware(request: NextRequest) {
 
   // Refrescar la sesión del usuario si existe, pero sin modificar cookies existentes
   try {
-    await supabase.auth.getUser()
+    const { data: { session }, error } = await supabase.auth.getSession()
+    
+    if (error) {
+      console.error("Error al obtener sesión en middleware:", error)
+      // Si hay error de parsing de cookies, limpiar cookies corruptas
+      if (error.message.includes("JSON") || error.message.includes("parse") || error.message.includes("Failed to parse cookie")) {
+        console.warn("Cookies corruptas detectadas en middleware, limpiando...")
+        // Limpiar cookies corruptas sin afectar otras cookies
+        response.cookies.delete("sb-access-token")
+        response.cookies.delete("sb-refresh-token")
+      }
+    } else if (session) {
+      console.log("✅ Sesión válida en middleware:", session.user.email)
+    }
   } catch (error) {
-    console.error("Error al obtener usuario en middleware:", error)
+    console.error("Error crítico en middleware:", error)
   }
 
   return response
