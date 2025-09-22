@@ -1,6 +1,26 @@
 import { cookies } from "next/headers"
 import { createServerClient as createServerClientOriginal, type CookieOptions } from "@supabase/ssr"
-import { safeGetCookie } from "@/lib/utils/safe-cookie-parser"
+
+/**
+ * Función para obtener cookie de forma segura con parsing automático
+ */
+function safeGetCookie(cookieStore: any, name: string): string | undefined {
+  try {
+    const cookie = cookieStore.get(name)
+    if (!cookie?.value) return undefined
+    
+    // Si es base64, mantener el valor original para que Supabase lo maneje
+    // Solo loggear para debugging
+    if (cookie.value.startsWith("base64-")) {
+      console.log(`🔍 Cookie base64 detectada: ${name}`)
+    }
+    
+    return cookie.value
+  } catch (error) {
+    console.error(`Error obteniendo cookie ${name}:`, error)
+    return undefined
+  }
+}
 
 export async function createServerClient(cookieStore?: any) {
   // Variables de entorno con valores por defecto
