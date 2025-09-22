@@ -315,6 +315,10 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
   const [deleteObservations, setDeleteObservations] = useState("")
   const [isDeleting, setIsDeleting] = useState(false)
   
+  // Estados para el usuario y perfil actual
+  const [user, setUser] = useState<any>(null)
+  const [profile, setProfile] = useState<any>(null)
+  const [authLoading, setAuthLoading] = useState(true)
 
   const [isAdmin, setIsAdmin] = useState(false)
   const [orValues, setOrValues] = useState<Record<string, string>>({})
@@ -370,6 +374,41 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
 
     checkAdminStatus()
   }, [])
+
+  // Función para obtener el usuario y perfil actual
+  useEffect(() => {
+    async function getUser() {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+
+        if (session?.user) {
+          setUser(session.user)
+
+          // Obtener el perfil del usuario
+          const { data: profileData, error: profileError } = await supabase
+            .from("profiles")
+            .select("full_name, role")
+            .eq("id", session.user.id)
+            .single()
+
+          if (profileError) {
+            console.error("Error al obtener perfil:", profileError)
+          } else {
+            setProfile(profileData)
+            console.log("✅ Perfil cargado en sales-table:", profileData)
+          }
+        }
+      } catch (error) {
+        console.error("Error al obtener usuario:", error)
+      } finally {
+        setAuthLoading(false)
+      }
+    }
+
+    getUser()
+  }, [supabase])
 
   // Estado para el criterio de ordenación
   const [sortOrder, setSortOrder] = useState<"priority" | "validation_date">("validation_date")
@@ -557,32 +596,39 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
     checkEditPermissions()
   }, [])
 
-  // Cargar datos al montar el componente
+  // Cargar datos solo cuando la autenticación esté lista
   useEffect(() => {
-    loadSoldVehicles()
-    
-    // Cargar tipos de gastos
-    const fetchExpenseTypes = async () => {
-      console.log("Cargando tipos de gastos...")
-      try {
-        const { data, error } = await supabase
-          .from("expense_types")
-          .select("id, name, description")
-          .eq("is_active", true)
-          .order("name")
-        
-        if (error) {
-          console.error("Error cargando tipos de gastos:", error)
-          toast.error("Error cargando tipos de gastos")
-        } else {
-          setExpenseTypes(data || [])
+    // Solo cargar datos si la autenticación ha terminado de cargar
+    console.log("🔄 useEffect triggered - authLoading:", authLoading, "user:", !!user, "profile:", !!profile)
+    if (!authLoading) {
+      console.log("✅ Auth loading completado, cargando datos de ventas...")
+      loadSoldVehicles()
+      
+      // Cargar tipos de gastos
+      const fetchExpenseTypes = async () => {
+        console.log("Cargando tipos de gastos...")
+        try {
+          const { data, error } = await supabase
+            .from("expense_types")
+            .select("id, name, description")
+            .eq("is_active", true)
+            .order("name")
+          
+          if (error) {
+            console.error("Error cargando tipos de gastos:", error)
+            toast.error("Error cargando tipos de gastos")
+          } else {
+            setExpenseTypes(data || [])
+          }
+        } catch (err) {
+          console.error("Error en fetchExpenseTypes:", err)
         }
-      } catch (err) {
-        console.error("Error en fetchExpenseTypes:", err)
       }
+      fetchExpenseTypes()
+    } else {
+      console.log("⏳ Auth aún cargando...")
     }
-    fetchExpenseTypes()
-  }, []) // Removed dependencies to prevent constant re-execution
+  }, [user, profile, authLoading]) // Dependencias de autenticación
 
   // Focus en el buscador cuando se carga la página
   useEffect(() => {
