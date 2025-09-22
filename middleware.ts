@@ -73,8 +73,8 @@ export async function middleware(request: NextRequest) {
       const now = new Date()
       const timeUntilExpiry = tokenExpiry ? tokenExpiry.getTime() - now.getTime() : 0
       
-      // Si el token expira en menos de 10 minutos, forzar refresh
-      if (timeUntilExpiry < 10 * 60 * 1000) {
+      // Si el token expira en menos de 5 minutos, forzar refresh (sincronizado con cliente)
+      if (timeUntilExpiry < 5 * 60 * 1000) {
         console.log("🔄 Token cerca de expirar, forzando refresh...")
         await supabase.auth.refreshSession()
       }

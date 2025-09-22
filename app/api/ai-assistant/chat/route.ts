@@ -26,9 +26,9 @@ const supabase = createClient(
 async function getCurrentUserInfo() {
   try {
     const cookieStore = await cookies()
-    const { data: { user }, error } = await supabase.auth.getUser()
+    const { data: { session }, error } = await supabase.auth.getSession()
     
-    if (error || !user) {
+    if (error || !session?.user) {
       console.log('No hay usuario autenticado')
       return null
     }
@@ -37,23 +37,23 @@ async function getCurrentUserInfo() {
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('id, full_name, role, position, phone, email, avatar_url')
-      .eq('id', user.id)
+      .eq('id', session.user.id)
       .single()
 
     if (profileError) {
       console.error('Error obteniendo perfil:', profileError)
       return {
-        id: user.id,
-        email: user.email,
-        name: user.email?.split('@')[0] || 'Usuario',
+        id: session.user.id,
+        email: session.user.email,
+        name: session.user.email?.split('@')[0] || 'Usuario',
         role: 'usuario'
       }
     }
 
     return {
-      id: user.id,
-      email: user.email,
-      name: profile.full_name || user.email?.split('@')[0] || 'Usuario',
+      id: session.user.id,
+      email: session.user.email,
+      name: profile.full_name || session.user.email?.split('@')[0] || 'Usuario',
       role: profile.role || 'usuario',
       position: profile.position || 'Empleado',
       phone: profile.phone,

@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useEffect } from "react"
-import { fixCorruptedCookies } from "@/utils/fix-auth"
+// fixCorruptedCookies eliminado - función inefectiva
 import { cn } from "@/lib/utils"
 import { fontSans } from "@/lib/fonts"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -12,10 +12,8 @@ function CookieCleanup() {
   useEffect(() => {
     // Limpiar cookies corruptas al cargar la aplicación
     try {
-      const fixed = fixCorruptedCookies()
-      if (fixed) {
-        console.log("🔧 Cookies corruptas limpiadas al iniciar la aplicación")
-      }
+      // Función eliminada - era inefectiva
+      console.log("🔧 Cookie cleanup deshabilitado")
     } catch (error) {
       console.error("Error al limpiar cookies:", error)
     }

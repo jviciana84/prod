@@ -9,16 +9,16 @@ export const getUserRoles = cache(async () => {
 
   console.log("⚙️ [getUserRoles] Intentando obtener usuario del servidor...")
   const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser()
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession()
 
-  if (userError || !user) {
+  if (sessionError || !session?.user) {
     console.log("⚠️ [getUserRoles] No hay usuario autenticado en el servidor. Devolviendo roles vacíos.")
     return []
   }
 
-  console.log("✅ [getUserRoles] Usuario autenticado ID:", user.id)
+  console.log("✅ [getUserRoles] Usuario autenticado ID:", session.user.id)
 
   try {
     // Primero intentar obtener desde la tabla profiles (más rápido)
@@ -26,7 +26,7 @@ export const getUserRoles = cache(async () => {
     const { data: profileData, error: profileError } = await supabase
       .from("profiles")
       .select("role")
-      .eq("id", user.id)
+      .eq("id", session.user.id)
       .single()
 
     if (!profileError && profileData?.role) {
@@ -37,9 +37,9 @@ export const getUserRoles = cache(async () => {
     }
 
     // Si no hay rol en profiles, usar RPC como fallback
-    console.log("⚙️ [getUserRoles] Llamando a RPC 'get_user_role_names' para user_id:", user.id)
+    console.log("⚙️ [getUserRoles] Llamando a RPC 'get_user_role_names' para user_id:", session.user.id)
     const { data, error } = await supabase.rpc("get_user_role_names", {
-      user_id_param: user.id,
+      user_id_param: session.user.id,
     })
 
     if (error) {

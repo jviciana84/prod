@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Skeleton } from "@/components/ui/skeleton"
 import { Clock, AlertCircle, CheckCircle2 } from "lucide-react"
 import { createClientComponentClient } from "@/lib/supabase/client"
-import { useAuth } from "@/components/auth/auth-provider"
+import { useAuth } from "@/hooks/use-auth"
 
 // Replicating the Movement type from app/dashboard/movimientos-pendientes/page.tsx
 type Movement = {

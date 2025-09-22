@@ -6,29 +6,29 @@ import { cookies } from 'next/headers'
 async function getCurrentUserInfo() {
   try {
     const supabase = await createServerClient()
-    const { data: { user }, error } = await supabase.auth.getUser()
+    const { data: { session }, error } = await supabase.auth.getSession()
     
-    if (error || !user) {
+    if (error || !session?.user) {
       console.log('No hay usuario autenticado en getCurrentUserInfo:', error?.message)
       return null
     }
 
-    console.log('✅ Usuario encontrado en getCurrentUserInfo:', user.id)
+    console.log('✅ Usuario encontrado en getCurrentUserInfo:', session.user.id)
 
     // Obtener perfil completo del usuario
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('id, full_name, role, position, phone, email, avatar_url')
-      .eq('id', user.id)
+      .eq('id', session.user.id)
       .single()
 
     if (profileError) {
       console.error('Error obteniendo perfil en getCurrentUserInfo:', profileError)
       // Devolver usuario básico si no se puede obtener el perfil
       return {
-        id: user.id,
-        email: user.email,
-        name: user.email?.split('@')[0] || 'Usuario',
+        id: session.user.id,
+        email: session.user.email,
+        name: session.user.email?.split('@')[0] || 'Usuario',
         role: 'usuario'
       }
     }
@@ -36,9 +36,9 @@ async function getCurrentUserInfo() {
     console.log('✅ Perfil obtenido en getCurrentUserInfo:', profile.full_name, profile.role)
 
     return {
-      id: user.id,
-      email: user.email,
-      name: profile.full_name || user.email?.split('@')[0] || 'Usuario',
+      id: session.user.id,
+      email: session.user.email,
+      name: profile.full_name || session.user.email?.split('@')[0] || 'Usuario',
       role: profile.role || 'usuario',
       position: profile.position,
       phone: profile.phone,

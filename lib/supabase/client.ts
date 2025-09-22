@@ -1,8 +1,4 @@
-import { fixCorruptedCookies } from "@/utils/fix-auth"
 import { createBrowserClient } from "@supabase/ssr"
-
-// Usamos una variable global para almacenar la instancia del cliente
-let supabaseClientInstance: ReturnType<typeof createBrowserClient> | null = null // Renamed to avoid conflict with the other supabaseClient
 
 export function createClientComponentClient() {
   // Variables de entorno con valores por defecto
@@ -47,12 +43,6 @@ export function createClientComponentClient() {
   )
 }
 
-export function clearSupabaseClient() {
-  if (typeof window !== "undefined") {
-    // console.log("Limpiando instancia de Supabase cliente")
-    supabaseClientInstance = null
-  }
-}
 
 // Exportación adicional para compatibilidad
 export const createClient = createClientComponentClient

@@ -4,7 +4,7 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
-import { AuthProvider } from "@/components/auth/auth-provider"
+// AuthProvider eliminado para evitar conflictos con hooks/use-auth.ts
 import { PushProcessor } from "@/components/push-processor"
 import { PWAInstaller } from "@/components/pwa-installer"
 
@@ -86,12 +86,10 @@ export default function RootLayout({
         >
           {/* <ThemeHtmlSync /> */}
           {/* <RoundFavicon /> */}
-          <AuthProvider>
-            {children}
-            <Toaster />
-            <PushProcessor />
-            <PWAInstaller />
-          </AuthProvider>
+          {children}
+          <Toaster />
+          <PushProcessor />
+          <PWAInstaller />
         </ThemeProvider>
       </body>
     </html>

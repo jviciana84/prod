@@ -21,11 +21,11 @@ export default async function AdminLayout({
   const supabase = await createServerClient()
 
   const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser()
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession()
 
-  if (userError || !user) {
+  if (sessionError || !session?.user) {
     redirect("/")
   }
 
@@ -33,7 +33,7 @@ export default async function AdminLayout({
   const { data: profile } = await supabase
     .from('profiles')
     .select('role')
-    .eq('id', user.id)
+    .eq('id', session.user.id)
     .single()
 
   if (profile?.role !== 'admin') {

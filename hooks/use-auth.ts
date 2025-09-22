@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import type { User } from "@supabase/supabase-js"
 import { createClientComponentClient } from "@/lib/supabase/client"
-import { clearCorruptedSession } from "@/utils/fix-auth"
 
 interface AuthState {
   user: User | null
@@ -34,13 +33,6 @@ export function useAuth() {
 
         if (error) {
           console.warn("Error al obtener sesión:", error.message)
-          // Si hay error de parsing o cualquier error de autenticación, limpiar cookies
-          if (error.message.includes("JSON") || error.message.includes("parse") || error.message.includes("Failed to parse cookie")) {
-            console.warn("Error de parsing detectado, limpiando cookies corruptas...")
-            clearCorruptedSession()
-            // No establecer estado aquí, la recarga se encargará
-            return
-          }
           if (mounted) {
             setAuthState({ user: null, loading: false, error: error.message, profile: null })
           }
@@ -73,8 +65,6 @@ export function useAuth() {
         }
       } catch (err) {
         console.error("Error inesperado al obtener sesión:", err)
-        // Limpiar cookies corruptas si hay error inesperado
-        clearCorruptedSession()
         if (mounted) {
           setAuthState({
             user: null,
