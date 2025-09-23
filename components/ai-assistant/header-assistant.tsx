@@ -20,23 +20,19 @@ export default function HeaderAssistant() {
   const [initialChatQuery, setInitialChatQuery] = useState<string>("")
   const inputRef = useRef<HTMLInputElement>(null)
   
-  // Obtener información del usuario autenticado (estabilizada)
+  // Obtener información del usuario autenticado
   const authData = useAuth()
   const [stableUser, setStableUser] = useState(authData.user)
   const [stableProfile, setStableProfile] = useState(authData.profile)
   
-  // Solo actualizar cuando realmente cambien los datos importantes (una sola vez)
+  // Actualizar cuando cambien los datos de autenticación
   useEffect(() => {
-    if (authData.user && !stableUser) {
-      setStableUser(authData.user)
-    }
-  }, [authData.user, stableUser])
+    setStableUser(authData.user)
+  }, [authData.user])
   
   useEffect(() => {
-    if (authData.profile && !stableProfile) {
-      setStableProfile(authData.profile)
-    }
-  }, [authData.profile, stableProfile])
+    setStableProfile(authData.profile)
+  }, [authData.profile])
   
   const user = stableUser
   const profile = stableProfile

@@ -40,6 +40,19 @@ export default function ChatModal({ isOpen, onClose, onInfoClick, onMinimize, in
   useEffect(() => {
     console.log('ChatModal - User:', user)
     console.log('ChatModal - Profile:', profile)
+    
+    // Si tenemos user y profile, loggear que está funcionando
+    if (user && profile) {
+      console.log('✅ ChatModal - Autenticación completa:', { 
+        userId: user.id, 
+        userName: profile.full_name,
+        role: profile.role 
+      })
+    } else if (user && !profile) {
+      console.log('⚠️ ChatModal - Usuario sin perfil:', user.id)
+    } else if (!user) {
+      console.log('⚠️ ChatModal - Sin usuario autenticado')
+    }
   }, [user, profile])
 
   // Función para generar IDs únicos para mensajes
