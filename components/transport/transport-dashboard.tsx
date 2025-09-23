@@ -135,6 +135,61 @@ export default function TransportDashboard({
     fetchLastScrapingDate()
   }, [])
 
+  // Suscripción en tiempo real para actualizar automáticamente la tabla
+  useEffect(() => {
+    console.log("🔔 Configurando suscripción en tiempo real para nuevas_entradas...")
+    
+    const channel = supabase
+      .channel('nuevas_entradas_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Escuchar todos los eventos (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'nuevas_entradas'
+        },
+        async (payload) => {
+          console.log('📡 Cambio detectado en nuevas_entradas:', payload.eventType)
+          
+          // Recargar los datos cuando hay cambios
+          await fetchTransports()
+          
+          // Mostrar notificación según el tipo de evento
+          switch(payload.eventType) {
+            case 'INSERT':
+              toast({
+                title: "Transporte actualizado",
+                description: "Nuevo transporte añadido"
+              })
+              break
+            case 'UPDATE':
+              toast({
+                title: "Transporte actualizado",
+                description: "Información del transporte actualizada"
+              })
+              break
+            case 'DELETE':
+              toast({
+                title: "Transporte actualizado",
+                description: "Transporte eliminado"
+              })
+              break
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Suscripción a nuevas_entradas activa')
+        }
+      })
+
+    // Cleanup: remover el canal cuando el componente se desmonte
+    return () => {
+      console.log('🔌 Desconectando suscripción de nuevas_entradas...')
+      supabase.removeChannel(channel)
+    }
+  }, [supabase])
+
   // Manejar el evento de transporte añadido
   const handleTransportAdded = (newTransport: any) => {
     setTransports((prev) => [newTransport, ...prev])

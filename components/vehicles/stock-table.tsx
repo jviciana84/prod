@@ -150,6 +150,61 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
     fetchExpenseTypes()
   }, []) // Array de dependencias vacío para que solo se ejecute al montar
 
+  // Suscripción en tiempo real para actualizar automáticamente la tabla
+  useEffect(() => {
+    console.log("🔔 Configurando suscripción en tiempo real para stock...")
+    
+    const channel = supabase
+      .channel('stock_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Escuchar todos los eventos (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'stock'
+        },
+        async (payload) => {
+          console.log('📡 Cambio detectado en stock:', payload.eventType)
+          
+          // Recargar los datos cuando hay cambios
+          await fetchStock()
+          
+          // Mostrar notificación según el tipo de evento
+          switch(payload.eventType) {
+            case 'INSERT':
+              toast({
+                title: "Stock actualizado",
+                description: "Nuevo vehículo añadido al stock"
+              })
+              break
+            case 'UPDATE':
+              toast({
+                title: "Stock actualizado",
+                description: "Información del vehículo actualizada"
+              })
+              break
+            case 'DELETE':
+              toast({
+                title: "Stock actualizado",
+                description: "Vehículo eliminado del stock"
+              })
+              break
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Suscripción a stock activa')
+        }
+      })
+
+    // Cleanup: remover el canal cuando el componente se desmonte
+    return () => {
+      console.log('🔌 Desconectando suscripción de stock...')
+      supabase.removeChannel(channel)
+    }
+  }, [supabase])
+
   // Cargar el estado de fotografiado y pintura para cada vehículo
   useEffect(() => {
     const fetchPhotoAndPaintStatus = async () => {

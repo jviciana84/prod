@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { toast } from "sonner"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -107,6 +109,55 @@ export function IncentivosTable({
     getCurrentIncentivosConfig().then(setCurrentConfig)
     loadFilterData()
   }, [])
+
+  // Suscripción en tiempo real para actualizar automáticamente la tabla
+  useEffect(() => {
+    console.log("🔔 Configurando suscripción en tiempo real para incentivos...")
+    const supabase = createClientComponentClient()
+    
+    const channel = supabase
+      .channel('incentivos_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Escuchar todos los eventos (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'incentivos'
+        },
+        async (payload) => {
+          console.log('📡 Cambio detectado en incentivos:', payload.eventType)
+          
+          // Recargar los datos cuando hay cambios
+          if (onRefresh) {
+            onRefresh()
+          }
+          
+          // Mostrar notificación según el tipo de evento
+          switch(payload.eventType) {
+            case 'INSERT':
+              toast.success('Nuevo incentivo añadido')
+              break
+            case 'UPDATE':
+              toast.info('Incentivo actualizado')
+              break
+            case 'DELETE':
+              toast.info('Incentivo eliminado')
+              break
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Suscripción a incentivos activa')
+        }
+      })
+
+    // Cleanup: remover el canal cuando el componente se desmonte
+    return () => {
+      console.log('🔌 Desconectando suscripción de incentivos...')
+      supabase.removeChannel(channel)
+    }
+  }, [onRefresh])
 
   const loadFilterData = async () => {
     const advisors = await getUniqueAdvisors()
