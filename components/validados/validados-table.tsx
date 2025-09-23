@@ -42,6 +42,8 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { DateFilter } from "@/components/ui/date-filter"
+import { useAutoRefresh } from "@/hooks/use-auto-refresh"
+import { useDataEvents, dataEvents } from "@/hooks/use-data-events"
 
 // Tipo para los pedidos validados - ACTUALIZADO con todos los campos
 type PedidoValidado = {
@@ -176,6 +178,17 @@ export function ValidadosTable({ onRefreshRequest }: ValidadosTableProps) {
 
 
   const supabase = createClientComponentClient()
+
+  // Sistema de refresh automático y eventos
+  const { emit } = useDataEvents()
+  const { isRefreshing: autoRefreshing, lastRefresh, enabled: autoRefreshEnabled, toggleEnabled, refresh: manualRefresh } = useAutoRefresh({
+    interval: 30000, // 30 segundos
+    enabled: true,
+    onRefresh: async () => {
+      await loadPedidos()
+      emit('table-refresh-requested', 'ValidadosTable')
+    }
+  })
 
   // Inicializar filtros de fecha
   useEffect(() => {
@@ -483,6 +496,9 @@ export function ValidadosTable({ onRefreshRequest }: ValidadosTableProps) {
     if (onRefreshRequest) {
       onRefreshRequest()
     }
+
+    // Emitir evento de datos actualizados
+    emit('data-updated', 'ValidadosTable', { manual: true })
   }
 
   // Función para expandir/contraer un año
@@ -815,6 +831,24 @@ export function ValidadosTable({ onRefreshRequest }: ValidadosTableProps) {
                 title={isSimplifiedView ? "Mostrar todas las columnas" : "Vista simplificada"}
               >
                 {isSimplifiedView ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              </Button>
+
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={toggleEnabled}
+                className={cn(
+                  "h-9 w-9",
+                  autoRefreshEnabled ? "bg-green-100 text-green-800 hover:bg-green-200" : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+                )}
+                title={autoRefreshEnabled ? "Desactivar refresh automático" : "Activar refresh automático"}
+              >
+                <div className="flex items-center">
+                  {autoRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                  {autoRefreshEnabled && !autoRefreshing && (
+                    <div className="w-2 h-2 bg-green-500 rounded-full ml-1" />
+                  )}
+                </div>
               </Button>
 
               {/* Botón de filtro de fechas temporal */}
@@ -1730,6 +1764,30 @@ export function ValidadosTable({ onRefreshRequest }: ValidadosTableProps) {
             showFirstLastButtons={true}
           />
         </div>
+
+        {/* Indicador de refresh automático */}
+        {lastRefresh && (
+          <div className="fixed bottom-4 right-4 bg-background border rounded-lg shadow-lg p-3 z-50">
+            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+              <div className={cn(
+                "w-2 h-2 rounded-full",
+                autoRefreshEnabled ? "bg-green-500" : "bg-gray-400"
+              )} />
+              <span>
+                Última actualización: {format(lastRefresh, 'HH:mm:ss')}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={manualRefresh}
+                className="h-6 px-2 text-xs"
+                disabled={refreshing || autoRefreshing}
+              >
+                {refreshing || autoRefreshing ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Actualizar'}
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </TooltipProvider>
   )
