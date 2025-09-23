@@ -171,6 +171,54 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
     }
   }, [user, profile, authLoading])
 
+  // Suscripción en tiempo real para actualizar automáticamente la tabla
+  useEffect(() => {
+    if (!authLoading && user) {
+      console.log("🔔 Configurando suscripción en tiempo real para entregas...")
+      
+      const channel = supabase
+        .channel('entregas_changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*', // Escuchar todos los eventos (INSERT, UPDATE, DELETE)
+            schema: 'public',
+            table: 'entregas'
+          },
+          async (payload) => {
+            console.log('📡 Cambio detectado en entregas:', payload.eventType)
+            
+            // Recargar los datos cuando hay cambios
+            await loadEntregas()
+            
+            // Mostrar notificación según el tipo de evento
+            switch(payload.eventType) {
+              case 'INSERT':
+                toast.success('Nueva entrega añadida')
+                break
+              case 'UPDATE':
+                toast.info('Entrega actualizada')
+                break
+              case 'DELETE':
+                toast.info('Entrega eliminada')
+                break
+            }
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('✅ Suscripción a entregas activa')
+          }
+        })
+
+      // Cleanup: remover el canal cuando el componente se desmonte
+      return () => {
+        console.log('🔌 Desconectando suscripción de entregas...')
+        supabase.removeChannel(channel)
+      }
+    }
+  }, [authLoading, user, supabase])
+
   useEffect(() => {
     if (editingCell && inputRef.current) {
       inputRef.current.focus()

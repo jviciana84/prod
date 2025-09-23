@@ -166,6 +166,70 @@ export default function PhotosTable() {
     fetchData()
   }, [])
 
+  // Suscripción en tiempo real para actualizar automáticamente la tabla
+  useEffect(() => {
+    console.log("🔔 Configurando suscripción en tiempo real para fotos...")
+    
+    const channel = supabase
+      .channel('fotos_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Escuchar todos los eventos (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'fotos'
+        },
+        async (payload) => {
+          console.log('📡 Cambio detectado en fotos:', payload.eventType)
+          
+          // Recargar los datos cuando hay cambios
+          await fetchData()
+          
+          // Mostrar notificación según el tipo de evento
+          switch(payload.eventType) {
+            case 'INSERT':
+              toast.success('Nueva foto añadida')
+              break
+            case 'UPDATE':
+              toast.info('Foto actualizada')
+              break
+            case 'DELETE':
+              toast.info('Foto eliminada')
+              break
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Suscripción a fotos activa')
+        }
+      })
+
+    // También suscribirse a cambios en fotos_asignadas
+    const assignChannel = supabase
+      .channel('fotos_asignadas_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'fotos_asignadas'
+        },
+        async (payload) => {
+          console.log('📡 Cambio detectado en fotos_asignadas:', payload.eventType)
+          await fetchData()
+        }
+      )
+      .subscribe()
+
+    // Cleanup: remover los canales cuando el componente se desmonte
+    return () => {
+      console.log('🔌 Desconectando suscripciones de fotos...')
+      supabase.removeChannel(channel)
+      supabase.removeChannel(assignChannel)
+    }
+  }, [supabase])
+
   const fetchData = async () => {
     setIsLoading(true)
     try {

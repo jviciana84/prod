@@ -630,6 +630,54 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
     }
   }, [user, profile, authLoading]) // Dependencias de autenticación
 
+  // Suscripción en tiempo real para actualizar automáticamente la tabla
+  useEffect(() => {
+    if (!authLoading && user) {
+      console.log("🔔 Configurando suscripción en tiempo real para sales_vehicles...")
+      
+      const channel = supabase
+        .channel('sales_vehicles_changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*', // Escuchar todos los eventos (INSERT, UPDATE, DELETE)
+            schema: 'public',
+            table: 'sales_vehicles'
+          },
+          async (payload) => {
+            console.log('📡 Cambio detectado en sales_vehicles:', payload.eventType)
+            
+            // Recargar los datos cuando hay cambios
+            await loadSoldVehicles()
+            
+            // Mostrar notificación según el tipo de evento
+            switch(payload.eventType) {
+              case 'INSERT':
+                toast.success('Nueva venta añadida')
+                break
+              case 'UPDATE':
+                toast.info('Venta actualizada')
+                break
+              case 'DELETE':
+                toast.info('Venta eliminada')
+                break
+            }
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('✅ Suscripción a sales_vehicles activa')
+          }
+        })
+
+      // Cleanup: remover el canal cuando el componente se desmonte
+      return () => {
+        console.log('🔌 Desconectando suscripción de sales_vehicles...')
+        supabase.removeChannel(channel)
+      }
+    }
+  }, [authLoading, user, supabase])
+
   // Focus en el buscador cuando se carga la página
   useEffect(() => {
     if (searchInputRef.current) {

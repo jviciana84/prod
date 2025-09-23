@@ -203,6 +203,52 @@ export function ValidadosTable({ onRefreshRequest }: ValidadosTableProps) {
     loadPedidos()
   }, [])
 
+  // Suscripción en tiempo real para actualizar automáticamente la tabla
+  useEffect(() => {
+    console.log("🔔 Configurando suscripción en tiempo real para pedidos_validados...")
+    
+    const channel = supabase
+      .channel('pedidos_validados_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Escuchar todos los eventos (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'pedidos_validados'
+        },
+        async (payload) => {
+          console.log('📡 Cambio detectado en pedidos_validados:', payload.eventType)
+          
+          // Recargar los datos cuando hay cambios
+          await loadPedidos()
+          
+          // Mostrar notificación según el tipo de evento
+          switch(payload.eventType) {
+            case 'INSERT':
+              toast.success('Nuevo pedido validado')
+              break
+            case 'UPDATE':
+              toast.info('Pedido actualizado')
+              break
+            case 'DELETE':
+              toast.info('Pedido eliminado')
+              break
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Suscripción a pedidos_validados activa')
+        }
+      })
+
+    // Cleanup: remover el canal cuando el componente se desmonte
+    return () => {
+      console.log('🔌 Desconectando suscripción de pedidos_validados...')
+      supabase.removeChannel(channel)
+    }
+  }, [supabase])
+
   // NUEVA FUNCIÓN: Actualizar datos faltantes
   const updateMissingData = async () => {
     console.log("🔄 Iniciando actualización de datos faltantes...")

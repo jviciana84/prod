@@ -1,32 +1,8 @@
-Error: ./components/reports/mapa-ventas-espana.tsx
-Module parse failed: Identifier 'provinciaSeleccionada' has already been declared (310:10)
-|         return Math.max(baseSize, Math.min(maxSize, baseSize * factor));
-|     };
->     const provinciaSeleccionada = datos.find((d)=>d.provincia === provinciaSeleccionada);
-|     return /*#__PURE__*/ _jsxDEV("div", {
-|         className: "space-y-4",
-
-Import trace for requested module:
-./components/reports/mapa-ventas-espana.tsx
-./components/reports/informe-ventas-mensual.tsx
-    at BuildError (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/react-dev-overlay/ui/container/build-error.js:43:41)
-    at react-stack-bottom-frame (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:23950:20)
-    at renderWithHooksAgain (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:5179:20)
-    at renderWithHooks (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:5091:22)
-    at updateFunctionComponent (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:8328:19)
-    at beginWork (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:9945:18)
-    at runWithFiberInDEV (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:1511:30)
-    at performUnitOfWork (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:15120:22)
-    at workLoopSync (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14944:41)
-    at renderRootSync (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14924:11)
-    at performWorkOnRoot (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14411:13)
-    at performWorkOnRootViaSchedulerTask (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:16275:7)
-    at MessagePort.performWorkUntilDeadline (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/scheduler/cjs/scheduler.development.js:45:48)# Archivos de configuración y credenciales
+# Archivos de configuración y credenciales
 credentials.dat
 app_config.json
 schedule_config.json
 *.dat
-*.json
 
 # Archivos de descarga
 downloads/
@@ -106,7 +82,6 @@ cms-scraper/
 cvo-scraper-v1/
 background-paths/
 vehicle-incidents-portal/
-*.py
 *.spec
 *.bat
 *.sh
@@ -121,25 +96,6 @@ config_example.env
 # Archivos de configuración de scrapers
 schedule_config.pkl
 *.pkl
-
-# Archivos de test y debug
-test_*.py
-check_*.py
-verify_*.py
-simple_*.py
-temp_*.py
-edit_*.py
-fix_*.py
-insert_*.py
-clean_*.py
-analyze_*.py
-build_*.py
-convert_*.py
-monitor_*.py
-explorar_*.py
-extraer_*.py
-descarga_*.py
-import_*.py
 
 # Archivos de iconos y recursos
 *.ico

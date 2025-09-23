@@ -45,6 +45,52 @@ export function ExtornosTable() {
     loadCurrentUser()
   }, [])
 
+  // Suscripción en tiempo real para actualizar automáticamente la tabla
+  useEffect(() => {
+    console.log("🔔 Configurando suscripción en tiempo real para extornos...")
+    
+    const channel = supabase
+      .channel('extornos_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Escuchar todos los eventos (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'extornos'
+        },
+        async (payload) => {
+          console.log('📡 Cambio detectado en extornos:', payload.eventType)
+          
+          // Recargar los datos cuando hay cambios
+          await loadExtornos()
+          
+          // Mostrar notificación según el tipo de evento
+          switch(payload.eventType) {
+            case 'INSERT':
+              toast.success('Nuevo extorno añadido')
+              break
+            case 'UPDATE':
+              toast.info('Extorno actualizado')
+              break
+            case 'DELETE':
+              toast.info('Extorno eliminado')
+              break
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Suscripción a extornos activa')
+        }
+      })
+
+    // Cleanup: remover el canal cuando el componente se desmonte
+    return () => {
+      console.log('🔌 Desconectando suscripción de extornos...')
+      supabase.removeChannel(channel)
+    }
+  }, [supabase])
+
   const loadCurrentUser = async () => {
     try {
       const {
