@@ -1,77 +1,104 @@
 "use client"
 
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Settings } from 'lucide-react'
+import React from "react"
+import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Settings, RefreshCw } from "lucide-react"
+import { useAutoRefreshPreferences } from "@/hooks/use-auto-refresh-preferences"
+
+const INTERVAL_OPTIONS = [
+  { value: 10 * 1000, label: "10 segundos" },
+  { value: 30 * 1000, label: "30 segundos" },
+  { value: 60 * 1000, label: "1 minuto" },
+  { value: 2 * 60 * 1000, label: "2 minutos" },
+  { value: 5 * 60 * 1000, label: "5 minutos" },
+  { value: 10 * 60 * 1000, label: "10 minutos" },
+]
 
 interface AutoRefreshSettingsProps {
-  currentInterval: number
-  onIntervalChange: (interval: number) => void
   className?: string
 }
 
-const INTERVAL_OPTIONS = [
-  { value: 5 * 60 * 1000, label: '5 minutos' },
-  { value: 10 * 60 * 1000, label: '10 minutos' },
-  { value: 15 * 60 * 1000, label: '15 minutos' },
-  { value: 30 * 60 * 1000, label: '30 minutos' },
-  { value: 60 * 60 * 1000, label: '1 hora' },
-]
+export function AutoRefreshSettings({ className }: AutoRefreshSettingsProps) {
+  const { preferences, isLoaded, setEnabled, setInterval } = useAutoRefreshPreferences()
 
-export function AutoRefreshSettings({
-  currentInterval,
-  onIntervalChange,
-  className
-}: AutoRefreshSettingsProps) {
-  const [open, setOpen] = useState(false)
-
-  const handleIntervalChange = (value: string) => {
-    const interval = parseInt(value)
-    onIntervalChange(interval)
-    setOpen(false)
-  }
-
-  const getCurrentIntervalLabel = () => {
-    const option = INTERVAL_OPTIONS.find(opt => opt.value === currentInterval)
-    return option?.label || 'Personalizado'
+  if (!isLoaded) {
+    return null
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-8 px-2">
-          <Settings className="h-4 w-4" />
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          size="icon"
+          className={`h-9 w-9 ${className}`}
+          title="Configurar actualización automática"
+        >
+          <RefreshCw className={`h-4 w-4 ${preferences.enabled ? "text-green-600" : "text-muted-foreground"}`} />
         </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Configurar Auto Refresh</DialogTitle>
-        </DialogHeader>
+      </PopoverTrigger>
+      <PopoverContent className="w-80" align="end">
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="interval">Intervalo de actualización</Label>
-            <Select value={(currentInterval || 10 * 60 * 1000).toString()} onValueChange={handleIntervalChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Seleccionar intervalo" />
-              </SelectTrigger>
-              <SelectContent>
-                {INTERVAL_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value.toString()}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <h4 className="font-medium text-sm">Actualización automática</h4>
+            <p className="text-xs text-muted-foreground">
+              Configura cómo se actualizan automáticamente las tablas
+            </p>
           </div>
-          <div className="text-sm text-muted-foreground">
-            <p>Los datos se actualizarán automáticamente cada {getCurrentIntervalLabel().toLowerCase()}.</p>
-            <p className="mt-1">Intervalos más cortos pueden afectar el rendimiento.</p>
+          
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <label className="text-sm font-medium">Activar auto-actualización</label>
+              <p className="text-xs text-muted-foreground">
+                Las tablas se actualizarán automáticamente
+              </p>
+            </div>
+            <Switch
+              checked={preferences.enabled}
+              onCheckedChange={setEnabled}
+            />
+          </div>
+
+          {preferences.enabled && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Intervalo de actualización</label>
+              <Select
+                value={preferences.interval.toString()}
+                onValueChange={(value) => setInterval(parseInt(value))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {INTERVAL_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value.toString()}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Frecuencia con la que se actualizarán los datos
+              </p>
+            </div>
+          )}
+
+          <div className="pt-2 border-t">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className={`w-2 h-2 rounded-full ${preferences.enabled ? "bg-green-500" : "bg-gray-400"}`} />
+              <span>
+                {preferences.enabled 
+                  ? `Actualización cada ${INTERVAL_OPTIONS.find(opt => opt.value === preferences.interval)?.label || "30 segundos"}`
+                  : "Actualización manual solamente"
+                }
+              </span>
+            </div>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </PopoverContent>
+    </Popover>
   )
-} 
+}
