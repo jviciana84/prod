@@ -150,6 +150,33 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
     fetchExpenseTypes()
   }, []) // Array de dependencias vacío para que solo se ejecute al montar
 
+  // Suscripción en tiempo real y refresco al recuperar foco
+  useEffect(() => {
+    // Suscribirse a cambios en tablas relevantes
+    const channel = supabase
+      .channel("stock_table_realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "stock" }, () => {
+        fetchStock()
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "fotos" }, () => {
+        fetchStock()
+      })
+      .subscribe()
+
+    // Refrescar cuando la pestaña vuelva a estar visible
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        fetchStock()
+      }
+    }
+    document.addEventListener("visibilitychange", handleVisibility)
+
+    return () => {
+      supabase.removeChannel(channel)
+      document.removeEventListener("visibilitychange", handleVisibility)
+    }
+  }, [supabase])
+
   // Cargar el estado de fotografiado y pintura para cada vehículo
   useEffect(() => {
     const fetchPhotoAndPaintStatus = async () => {
