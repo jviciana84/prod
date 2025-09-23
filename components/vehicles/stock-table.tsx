@@ -41,6 +41,7 @@ import { formatDateForDisplay } from "@/lib/date-utils"
 import { addDays, format } from "date-fns"
 import ReusablePagination from "@/components/ui/reusable-pagination"
 import { DateFilter } from "@/components/ui/date-filter"
+import { useSupabaseRealtime } from "@/hooks/use-supabase-realtime"
 
 // Definición de prioridades
 enum Priority {
@@ -141,6 +142,48 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
   const { toast } = useToast()
   const externalProviderInputRef = useRef<HTMLInputElement>(null)
   const orInputRef = useRef<HTMLInputElement>(null)
+
+  // Suscripción realtime a 'stock' para reflejar cambios sin F5
+  useSupabaseRealtime<StockItem>({
+    table: "stock",
+    onInsert: (row) => {
+      setStock((prev) => [row, ...prev])
+    },
+    onUpdate: (row) => {
+      setStock((prev) => prev.map((item) => (item.id === (row as any).id ? { ...item, ...(row as any) } : item)))
+    },
+    onDelete: (row) => {
+      setStock((prev) => prev.filter((item) => item.id !== (row as any).id))
+    },
+  })
+
+  // Suscripción a 'fotos' para actualizar estado de fotos y pintura
+  useSupabaseRealtime<any>({
+    table: "fotos",
+    onInsert: (row) => {
+      if (!row?.license_plate) return
+      setPhotoStatus((prev) => ({ ...prev, [row.license_plate]: !!row.photos_completed }))
+      setPaintStatus((prev) => ({ ...prev, [row.license_plate]: row.estado_pintura || "" }))
+    },
+    onUpdate: (row) => {
+      if (!row?.license_plate) return
+      setPhotoStatus((prev) => ({ ...prev, [row.license_plate]: !!row.photos_completed }))
+      setPaintStatus((prev) => ({ ...prev, [row.license_plate]: row.estado_pintura || "" }))
+    },
+    onDelete: (row) => {
+      if (!row?.license_plate) return
+      setPhotoStatus((prev) => {
+        const copy = { ...prev }
+        delete (copy as any)[row.license_plate]
+        return copy
+      })
+      setPaintStatus((prev) => {
+        const copy = { ...prev }
+        delete (copy as any)[row.license_plate]
+        return copy
+      })
+    },
+  })
 
   // Añade este useEffect después de la declaración de las variables de estado
   useEffect(() => {

@@ -53,6 +53,7 @@ import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { DateFilter } from "@/components/ui/date-filter"
 import { PrintExportButton } from "./print-export-button"
+import { useSupabaseRealtime } from "@/hooks/use-supabase-realtime"
 
 // Tipo de pestaña
 type EntregaTab = "todas" | "con_incidencia" | "sin_incidencia" | "pendientes" | "docu_no_entregada"
@@ -303,6 +304,20 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
       setLoading(false)
     }
   }
+
+  // Realtime: reflejar cambios en la tabla entregas sin F5
+  useSupabaseRealtime<Entrega>({
+    table: "entregas",
+    onInsert: (row) => {
+      setEntregas((prev) => [row as Entrega, ...prev])
+    },
+    onUpdate: (row) => {
+      setEntregas((prev) => prev.map((e) => (e.id === (row as any).id ? { ...e, ...(row as any) } : e)))
+    },
+    onDelete: (row) => {
+      setEntregas((prev) => prev.filter((e) => e.id !== (row as any).id))
+    },
+  })
 
   const actualizarContadores = (data: Entrega[]) => {
     setCounts({

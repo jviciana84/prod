@@ -48,6 +48,7 @@ import { Label } from "@/components/ui/label"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useSupabaseRealtime } from "@/hooks/use-supabase-realtime"
 
 export interface PhotoVehicle {
   id: string
@@ -244,6 +245,28 @@ export default function PhotosTable() {
       setIsLoading(false)
     }
   }
+
+  // Suscripciones en tiempo real a la tabla "fotos" para reflejar cambios sin F5
+  useSupabaseRealtime<PhotoVehicle>({
+    table: "fotos",
+    onInsert: (row) => {
+      setVehicles((prev) => [row, ...prev])
+    },
+    onUpdate: (row) => {
+      setVehicles((prev) => prev.map((v) => (v.id === row.id ? { ...v, ...row } : v)))
+    },
+    onDelete: (row) => {
+      setVehicles((prev) => prev.filter((v) => v.id !== row.id))
+    },
+  })
+
+  // Si cambian asignaciones activas, refrescar conjunto (simple y seguro)
+  useSupabaseRealtime<any>({
+    table: "fotos_asignadas",
+    onInsert: () => fetchData(),
+    onUpdate: () => fetchData(),
+    onDelete: () => fetchData(),
+  })
 
   // Estados para contadores
   const [pendingCount, setPendingCount] = useState(0)
