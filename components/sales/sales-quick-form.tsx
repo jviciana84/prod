@@ -9,7 +9,7 @@ import * as z from "zod"
 import { toast } from "sonner"
 import { Check, ChevronsUpDown, Search, Loader2, AlertCircle, FileText } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createClientComponentClient } from "@/lib/supabase/client"
 import { fixCorruptedCookies, clearCorruptedSession } from "@/utils/fix-auth"
 import Link from "next/link"
 

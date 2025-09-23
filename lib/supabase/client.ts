@@ -14,89 +14,127 @@ export function createClientComponentClient() {
     return createBrowserClient(supabaseUrl, supabaseAnonKey)
   }
 
-  // En el cliente, usar singleton más robusto
-  if (!supabaseClientInstance && !isInitializing) {
-    isInitializing = true
-    console.log("🔧 Creando nueva instancia de Supabase client (singleton)")
-    
-    try {
-      supabaseClientInstance = createBrowserClient(
-        supabaseUrl,
-        supabaseAnonKey,
-        {
-          auth: {
-            detectSessionInUrl: true,
-            flowType: "pkce",
-            persistSession: true,
-            autoRefreshToken: true,
-            refreshTokenThreshold: 300, // Refrescar 5 minutos antes de expirar
-            // Interceptar el storage para manejar cookies base64
-            storage: {
-              getItem: (key: string) => {
-                try {
-                  const value = document.cookie
-                    .split('; ')
-                    .find(row => row.startsWith(`${key}=`))
-                    ?.split('=')[1]
-                  
-                  if (!value) return null
-                  
-                  // Si es base64, limpiar la cookie corrupta y devolver null
-                  if (value.startsWith('base64-')) {
-                    console.log(`🧹 Limpiando cookie base64 corrupta: ${key}`)
-                    document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
-                    return null
-                  }
-                  
-                  return value
-                } catch (error) {
-                  console.error(`Error obteniendo cookie ${key}:`, error)
-                  return null
-                }
-              },
-              setItem: (key: string, value: string) => {
-                // No hacer nada - dejar que Supabase maneje las cookies
-              },
-              removeItem: (key: string) => {
-                document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
-              }
-            },
-            debug: process.env.NODE_ENV === 'development',
-            onError: (event, session) => {
-              console.error('Supabase Auth Error:', event, session)
-              if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
-                console.log('🔄 Sesión actualizada, recargando datos...')
-              }
-            }
-          }
-        }
-      )
-      
-      // Marcar la instancia como inicializada
-      if (supabaseClientInstance) {
-        console.log("✅ Instancia de Supabase client creada exitosamente")
-        
-        // Limpiar cookies base64 corruptas al inicializar
-        if (typeof window !== "undefined") {
-          const cookies = document.cookie.split(';')
-          cookies.forEach(cookie => {
-            const [name, value] = cookie.trim().split('=')
-            if (value && value.startsWith('base64-')) {
-              console.log(`🧹 Limpiando cookie base64 corrupta: ${name}`)
-              document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
-            }
-          })
-        }
+  // Limpiar cookies base64 corruptas ANTES de cualquier operación
+  // PERO solo las que sabemos que son corruptas, no todas las cookies base64
+  if (typeof window !== "undefined") {
+    const cookies = document.cookie.split(';')
+    let cleanedCount = 0
+    cookies.forEach(cookie => {
+      const [name, value] = cookie.trim().split('=')
+      if (value && value.startsWith('base64-')) {
+        // Solo limpiar cookies base64 que sabemos que causan problemas
+        // No limpiar todas las cookies base64 automáticamente
+        console.log(`🔍 Cookie base64 detectada: ${name} - manteniendo para que Supabase la maneje`)
       }
-    } catch (error) {
-      console.error("❌ Error creando instancia de Supabase client:", error)
-      supabaseClientInstance = null
-    } finally {
-      isInitializing = false
-    }
+    })
   }
 
   // Si ya existe una instancia, devolverla
+  if (supabaseClientInstance) {
+    return supabaseClientInstance
+  }
+
+  // Si ya se está inicializando, esperar y devolver fallback
+  if (isInitializing) {
+    console.warn("⚠️ Cliente Supabase ya se está inicializando, usando fallback...")
+    return createBrowserClient(supabaseUrl, supabaseAnonKey)
+  }
+
+  // Crear nueva instancia
+  isInitializing = true
+  console.log("🔧 Creando nueva instancia de Supabase client (singleton)")
+  
+  try {
+    supabaseClientInstance = createBrowserClient(
+    supabaseUrl,
+    supabaseAnonKey,
+    {
+      auth: {
+        detectSessionInUrl: true,
+        flowType: "pkce",
+        persistSession: true,
+        autoRefreshToken: true,
+          refreshTokenThreshold: 300, // Refrescar 5 minutos antes de expirar
+          // Interceptar el storage para manejar cookies base64
+          storage: {
+            getItem: (key: string) => {
+              try {
+                const value = document.cookie
+                  .split('; ')
+                  .find(row => row.startsWith(`${key}=`))
+                  ?.split('=')[1]
+                
+                if (!value) return null
+                
+                // Intentar parsear como JSON primero
+                try {
+                  const parsed = JSON.parse(value)
+                  console.log(`✅ Cookie JSON parseada correctamente: ${key}`)
+                  return value
+                } catch (jsonError) {
+                  // Si falla el JSON, podría ser base64
+                  if (value.startsWith('base64-')) {
+                    try {
+                      // Intentar decodificar la cookie base64
+                      const decoded = atob(value.substring(6)) // Remover 'base64-' prefix
+                      const parsed = JSON.parse(decoded)
+                      console.log(`✅ Cookie base64 decodificada correctamente: ${key}`)
+                      return decoded
+                    } catch (parseError) {
+                      // Solo si falla el parsing, limpiar la cookie corrupta
+                      console.log(`🧹 Cookie base64 corrupta, limpiando: ${key}`)
+                      document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
+                      return null
+                    }
+                  } else {
+                    // Si no es base64, intentar decodificar como base64 directo
+                    try {
+                      const decoded = atob(value)
+                      const parsed = JSON.parse(decoded)
+                      console.log(`✅ Cookie base64 directa decodificada: ${key}`)
+                      return decoded
+                    } catch (base64Error) {
+                      console.log(`⚠️ Cookie no parseable, devolviendo valor original: ${key}`)
+                      return value
+                    }
+                  }
+                }
+                
+                return value
+              } catch (error) {
+                console.error(`Error obteniendo cookie ${key}:`, error)
+                return null
+              }
+            },
+            setItem: (key: string, value: string) => {
+              // No hacer nada - dejar que Supabase maneje las cookies
+            },
+            removeItem: (key: string) => {
+              document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
+            }
+          },
+        debug: process.env.NODE_ENV === 'development',
+        onError: (event, session) => {
+          console.error('Supabase Auth Error:', event, session)
+            if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+              console.log('🔄 Sesión actualizada, recargando datos...')
+            }
+          }
+        }
+      }
+    )
+    
+    // Marcar la instancia como inicializada
+    if (supabaseClientInstance) {
+      console.log("✅ Instancia de Supabase client creada exitosamente")
+    }
+  } catch (error) {
+    console.error("❌ Error creando instancia de Supabase client:", error)
+    supabaseClientInstance = null
+  } finally {
+    isInitializing = false
+  }
+
   if (supabaseClientInstance) {
     return supabaseClientInstance
   }
