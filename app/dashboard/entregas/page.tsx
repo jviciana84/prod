@@ -1,18 +1,43 @@
-import type { Metadata } from "next"
+"use client"
+
+import { useState, useCallback } from "react"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { CompactSearchWithModal } from "@/components/dashboard/compact-search-with-modal"
 import { EntregasTable } from "@/components/entregas/entregas-table"
 import { PackageOpen, BarChart3 } from "lucide-react"
 import { SyncEntregasButton } from "@/components/entregas/sync-button"
 import { Button } from "@/components/ui/button"
+import { AutoRefreshIndicator } from "@/components/ui/auto-refresh-indicator"
+import { AutoRefreshSettings } from "@/components/ui/auto-refresh-settings"
+import { AutoRefreshNotification } from "@/components/ui/auto-refresh-notification"
+import { useAutoRefresh } from "@/hooks/use-auto-refresh"
+import { useAutoRefreshPreferences } from "@/hooks/use-auto-refresh-preferences"
 import Link from "next/link"
 
-export const metadata: Metadata = {
-  title: "Entregas | Dashboard",
-  description: "Gestión de entregas de vehículos",
-}
-
 export default function EntregasPage() {
+  const [refreshKey, setRefreshKey] = useState(0)
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
+  
+  // Usar preferencias guardadas
+  const { preferences, isLoaded, setEnabled, setInterval } = useAutoRefreshPreferences()
+
+  const handleRefresh = useCallback(() => {
+    setRefreshKey((prev) => prev + 1)
+    setLastRefresh(new Date())
+  }, [])
+
+  const { isActive } = useAutoRefresh({
+    interval: preferences.interval,
+    enabled: preferences.enabled && isLoaded,
+    onRefresh: handleRefresh,
+    onError: (error) => {
+      console.error('Error en auto refresh de entregas:', error)
+    }
+  })
+
+  const toggleAutoRefresh = () => {
+    setEnabled(!preferences.enabled)
+  }
   return (
     <div className="p-4 md:p-5 space-y-4 pb-20">
       <div className="space-y-2">
@@ -37,6 +62,16 @@ export default function EntregasPage() {
             <div className="flex justify-between items-center">
               <h1 className="text-3xl font-bold tracking-tight">Entregas</h1>
               <div className="flex items-center gap-2">
+                <AutoRefreshIndicator
+                  isActive={isActive}
+                  interval={preferences.interval}
+                  onToggle={toggleAutoRefresh}
+                  lastRefresh={lastRefresh}
+                />
+                <AutoRefreshSettings
+                  currentInterval={preferences.interval}
+                  onIntervalChange={setInterval}
+                />
                 <Link href="/dashboard/entregas/informes" passHref>
                   <Button variant="outline">
                     <BarChart3 className="h-4 w-4 mr-2" />
@@ -51,7 +86,14 @@ export default function EntregasPage() {
         </div>
       </div>
 
-      <EntregasTable />
+      <EntregasTable key={refreshKey} onRefresh={handleRefresh} />
+      
+      {/* Componente de notificaciones de auto refresh */}
+      <AutoRefreshNotification
+        isActive={isActive}
+        onRefresh={handleRefresh}
+        showNotifications={preferences.enabled}
+      />
     </div>
   )
 }

@@ -14,6 +14,11 @@ import { KeyDocumentIncidencesCard } from "@/components/keys/key-document-incide
 import { Key, Search, Clock } from "lucide-react"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { CompactSearchWithModal } from "@/components/dashboard/compact-search-with-modal"
+import { AutoRefreshIndicator } from "@/components/ui/auto-refresh-indicator"
+import { AutoRefreshSettings } from "@/components/ui/auto-refresh-settings"
+import { AutoRefreshNotification } from "@/components/ui/auto-refresh-notification"
+import { useAutoRefresh } from "@/hooks/use-auto-refresh"
+import { useAutoRefreshPreferences } from "@/hooks/use-auto-refresh-preferences"
 import { toast } from "sonner"
 
 // Define SPECIAL_USERS here or import from a shared location
@@ -26,6 +31,8 @@ const SPECIAL_USERS = [
 
 export default function KeysManagementPage() {
   const [loading, setLoading] = useState(true)
+  const [refreshKey, setRefreshKey] = useState(0)
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
   const [recentMovements, setRecentMovements] = useState<any[]>([])
   const [usersForDisplay, setUsersForDisplay] = useState<any[]>([])
   const [vehiclesForDisplay, setVehiclesForDisplay] = useState<any[]>([])
@@ -35,6 +42,9 @@ export default function KeysManagementPage() {
   const [circulationPermitModalOpen, setCirculationPermitModalOpen] = useState(false);
   const [pendingCirculationPermitRequests, setPendingCirculationPermitRequests] = useState(0);
   const supabase = createClientComponentClient()
+  
+  // Usar preferencias guardadas
+  const { preferences, isLoaded, setEnabled, setInterval } = useAutoRefreshPreferences()
 
   const loadPageData = useCallback(async () => {
     setLoading(true)
@@ -107,6 +117,25 @@ export default function KeysManagementPage() {
   useEffect(() => {
     loadPageData()
   }, [loadPageData])
+
+  const handleRefresh = useCallback(() => {
+    setRefreshKey((prev) => prev + 1)
+    setLastRefresh(new Date())
+    loadPageData()
+  }, [loadPageData])
+
+  const { isActive } = useAutoRefresh({
+    interval: preferences.interval,
+    enabled: preferences.enabled && isLoaded,
+    onRefresh: handleRefresh,
+    onError: (error) => {
+      console.error('Error en auto refresh de llaves:', error)
+    }
+  })
+
+  const toggleAutoRefresh = () => {
+    setEnabled(!preferences.enabled)
+  }
 
   // Cargar solicitudes de llaves y documentos pendientes
   useEffect(() => {
@@ -181,11 +210,25 @@ export default function KeysManagementPage() {
           <Breadcrumbs className="mt-4" />
           <CompactSearchWithModal className="mt-4" />
         </div>
-        <div className="flex items-center gap-3">
-          <Key className="h-7 w-7 text-blue-500" />
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Gestión de Llaves</h1>
-            <p className="text-muted-foreground text-lg">Control y seguimiento de llaves y documentación vehicular</p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Key className="h-7 w-7 text-blue-500" />
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Gestión de Llaves</h1>
+              <p className="text-muted-foreground text-lg">Control y seguimiento de llaves y documentación vehicular</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <AutoRefreshIndicator
+              isActive={isActive}
+              interval={preferences.interval}
+              onToggle={toggleAutoRefresh}
+              lastRefresh={lastRefresh}
+            />
+            <AutoRefreshSettings
+              currentInterval={preferences.interval}
+              onIntervalChange={setInterval}
+            />
           </div>
         </div>
       </div>
@@ -294,6 +337,13 @@ export default function KeysManagementPage() {
       <CirculationPermitModal 
         open={circulationPermitModalOpen} 
         onOpenChange={setCirculationPermitModalOpen} 
+      />
+      
+      {/* Componente de notificaciones de auto refresh */}
+      <AutoRefreshNotification
+        isActive={isActive}
+        onRefresh={handleRefresh}
+        showNotifications={preferences.enabled}
       />
     </div>
   )

@@ -14,6 +14,9 @@ interface AutoRefreshSettingsProps {
 }
 
 const INTERVAL_OPTIONS = [
+  { value: 30 * 1000, label: '30 segundos' },
+  { value: 60 * 1000, label: '1 minuto' },
+  { value: 2 * 60 * 1000, label: '2 minutos' },
   { value: 5 * 60 * 1000, label: '5 minutos' },
   { value: 10 * 60 * 1000, label: '10 minutos' },
   { value: 15 * 60 * 1000, label: '15 minutos' },
@@ -53,7 +56,7 @@ export function AutoRefreshSettings({
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="interval">Intervalo de actualización</Label>
-            <Select value={(currentInterval || 10 * 60 * 1000).toString()} onValueChange={handleIntervalChange}>
+            <Select value={(currentInterval || 2 * 60 * 1000).toString()} onValueChange={handleIntervalChange}>
               <SelectTrigger>
                 <SelectValue placeholder="Seleccionar intervalo" />
               </SelectTrigger>

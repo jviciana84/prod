@@ -6,8 +6,8 @@ interface AutoRefreshPreferences {
 }
 
 const DEFAULT_PREFERENCES: AutoRefreshPreferences = {
-  enabled: false, // Deshabilitado por defecto para evitar problemas de rendimiento
-  interval: 10 * 60 * 1000 // 10 minutos
+  enabled: true, // Habilitado por defecto para mejor experiencia de usuario
+  interval: 2 * 60 * 1000 // 2 minutos (más frecuente para mejor UX)
 }
 
 const STORAGE_KEY = 'auto-refresh-preferences'
