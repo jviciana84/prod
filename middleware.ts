@@ -1,25 +1,9 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
-/**
- * Función para obtener cookie de forma segura con parsing automático
- */
-function safeGetCookie(cookieStore: any, name: string): string | undefined {
-  try {
-    const cookie = cookieStore.get(name)
-    if (!cookie?.value) return undefined
-    
-    // Si es base64, mantener el valor original para que Supabase lo maneje
-    // Solo loggear para debugging
-    if (cookie.value.startsWith("base64-")) {
-      console.log(`🔍 Cookie base64 detectada: ${name}`)
-    }
-    
-    return cookie.value
-  } catch (error) {
-    console.error(`Error obteniendo cookie ${name}:`, error)
-    return undefined
-  }
+// Función simplificada para obtener cookies - Supabase maneja internamente el parsing
+function getCookie(cookieStore: any, name: string): string | undefined {
+  return cookieStore.get(name)?.value
 }
 
 export async function middleware(request: NextRequest) {
@@ -35,7 +19,7 @@ export async function middleware(request: NextRequest) {
     {
       cookies: {
         get(name: string) {
-          return safeGetCookie(request.cookies, name)
+          return getCookie(request.cookies, name)
         },
         set(name: string, value: string, options: CookieOptions) {
           request.cookies.set({
@@ -75,35 +59,11 @@ export async function middleware(request: NextRequest) {
     },
   )
 
-  // Refrescar la sesión del usuario si existe
+  // Simplificar - dejar que Supabase maneje la sesión automáticamente
   try {
-    const { data: { session }, error } = await supabase.auth.getSession()
-    
-    if (error) {
-      console.error("Error al obtener sesión en middleware:", error)
-      // Solo loggear el error, no limpiar cookies automáticamente
-      // Las cookies base64 ahora se manejan con safeGetCookie
-      if (error.message.includes("JSON") || 
-          error.message.includes("parse") || 
-          error.message.includes("Failed to parse cookie") ||
-          error.message.includes("base64") ||
-          error.message.includes("Unexpected token")) {
-        console.warn("⚠️ Error de parsing detectado, pero usando safeGetCookie para manejar cookies base64")
-      }
-    } else if (session) {
-      // Forzar refresh del token si está cerca de expirar
-      const tokenExpiry = session.expires_at ? new Date(session.expires_at * 1000) : null
-      const now = new Date()
-      const timeUntilExpiry = tokenExpiry ? tokenExpiry.getTime() - now.getTime() : 0
-      
-      // Si el token expira en menos de 5 minutos, forzar refresh (sincronizado con cliente)
-      if (timeUntilExpiry < 5 * 60 * 1000) {
-        console.log("🔄 Token cerca de expirar, forzando refresh...")
-        await supabase.auth.refreshSession()
-      }
-    }
+    await supabase.auth.getUser()
   } catch (error) {
-    console.error("Error crítico en middleware:", error)
+    console.error("Error en middleware:", error)
   }
 
   return response

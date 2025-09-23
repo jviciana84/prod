@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import type { User } from "@supabase/supabase-js"
-import { createClientComponentClient } from "@/lib/supabase/client"
+import { createClient } from "@/utils/supabase/client"
 
 interface AuthState {
   user: User | null
@@ -19,7 +19,7 @@ export function useAuth() {
     profile: null, // Inicializar perfil como null
   })
 
-  const supabase = createClientComponentClient()
+  const supabase = createClient()
 
   useEffect(() => {
     let mounted = true

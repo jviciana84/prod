@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { createClientComponentClient } from "@/lib/supabase/client"
+import { createClient } from "@/utils/supabase/client"
 import { VersionBadge } from "@/components/version-badge"
 import { AnimatedGridBackground } from "@/components/ui/animated-grid-background"
 import { Logo } from "@/components/ui/logo"
@@ -34,7 +34,7 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      const supabase = createClientComponentClient()
+      const supabase = createClient()
 
       console.log("Intentando iniciar sesión con:", email)
 
@@ -55,8 +55,8 @@ export default function LoginPage() {
         description: "Redirigiendo al dashboard...",
       })
 
-      router.refresh()
-      router.push("/dashboard")
+      // Usar window.location.href para forzar recarga completa y evitar problemas con Service Worker
+      window.location.href = "/dashboard"
     } catch (error: any) {
       console.error("Error capturado:", error)
 
