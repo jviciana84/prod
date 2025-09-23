@@ -578,6 +578,28 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
     }
   }
 
+  // Suscripción en tiempo real y refresco al recuperar foco
+  useEffect(() => {
+    const channel = supabase
+      .channel("sales_vehicles_realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "sales_vehicles" }, () => {
+        loadSoldVehicles()
+      })
+      .subscribe()
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        loadSoldVehicles()
+      }
+    }
+    document.addEventListener("visibilitychange", handleVisibility)
+
+    return () => {
+      supabase.removeChannel(channel)
+      document.removeEventListener("visibilitychange", handleVisibility)
+    }
+  }, [supabase])
+
   // Verificar permisos de edición
   useEffect(() => {
     const checkEditPermissions = async () => {
