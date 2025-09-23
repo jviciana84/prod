@@ -53,6 +53,10 @@ import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { DateFilter } from "@/components/ui/date-filter"
 import { PrintExportButton } from "./print-export-button"
+import { useAutoRefresh } from "@/hooks/use-auto-refresh"
+import { useAutoRefreshPreferences } from "@/hooks/use-auto-refresh-preferences"
+import { AutoRefreshSettings } from "@/components/ui/auto-refresh-settings"
+import { useRealtimeUpdates } from "@/hooks/use-realtime-updates"
 
 // Tipo de pestaña
 type EntregaTab = "todas" | "con_incidencia" | "sin_incidencia" | "pendientes" | "docu_no_entregada"
@@ -121,6 +125,27 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
   const supabase = createClientComponentClient()
   const router = useRouter() // Inicializar useRouter
 
+  // Auto-refresh configuration
+  const { preferences, isLoaded: preferencesLoaded } = useAutoRefreshPreferences()
+  
+  // Auto-refresh hook
+  const { startInterval, stopInterval, restartInterval } = useAutoRefresh({
+    interval: preferences.interval,
+    enabled: preferences.enabled && !loading && !authLoading,
+    onRefresh: loadEntregas,
+    onError: (error) => {
+      console.error('Error en auto-refresh:', error)
+      // No mostrar toast en errores de auto-refresh para no molestar al usuario
+    }
+  })
+
+  // Realtime updates hook
+  useRealtimeUpdates({
+    table: 'entregas',
+    onUpdate: loadEntregas,
+    enabled: !loading && !authLoading
+  })
+
   const formatDateDisplay = (dateString: string | undefined | null) => {
     return formatDateForDisplay(dateString)
   }
@@ -170,6 +195,21 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
       console.log("⏳ Auth aún cargando...")
     }
   }, [user, profile, authLoading])
+
+  // Effect para manejar auto-refresh cuando cambie el estado de carga
+  useEffect(() => {
+    if (preferences.enabled && !loading && !authLoading && preferencesLoaded) {
+      console.log("🔄 Iniciando auto-refresh con intervalo:", preferences.interval / 1000, "segundos")
+      startInterval()
+    } else {
+      console.log("⏸️ Deteniendo auto-refresh - enabled:", preferences.enabled, "loading:", loading, "authLoading:", authLoading)
+      stopInterval()
+    }
+
+    return () => {
+      stopInterval()
+    }
+  }, [preferences.enabled, preferences.interval, loading, authLoading, preferencesLoaded, startInterval, stopInterval])
 
   useEffect(() => {
     if (editingCell && inputRef.current) {
@@ -319,9 +359,26 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
 
   const handleRefresh = async () => {
     setRefreshing(true)
-    await loadEntregas()
-    setRefreshing(false)
-    if (onRefreshRequest) onRefreshRequest()
+    console.log("🔄 Refresh manual iniciado")
+    
+    // Detener auto-refresh durante la actualización manual
+    stopInterval()
+    
+    try {
+      await loadEntregas()
+      console.log("✅ Refresh manual completado")
+    } finally {
+      setRefreshing(false)
+      if (onRefreshRequest) onRefreshRequest()
+      
+      // Reiniciar auto-refresh después del refresh manual
+      if (preferences.enabled && !authLoading) {
+        setTimeout(() => {
+          console.log("🔄 Reiniciando auto-refresh después de refresh manual")
+          startInterval()
+        }, 1000) // Esperar 1 segundo antes de reiniciar
+      }
+    }
   }
 
   const toggleTipoIncidencia = async (entregaId: string, tipo: TipoIncidencia) => {
@@ -688,6 +745,8 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
                   >
                     {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                   </Button>
+
+                  <AutoRefreshSettings />
 
                   <PrintExportButton
                     entregas={filteredEntregas}

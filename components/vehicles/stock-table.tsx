@@ -41,6 +41,10 @@ import { formatDateForDisplay } from "@/lib/date-utils"
 import { addDays, format } from "date-fns"
 import ReusablePagination from "@/components/ui/reusable-pagination"
 import { DateFilter } from "@/components/ui/date-filter"
+import { useAutoRefresh } from "@/hooks/use-auto-refresh"
+import { useAutoRefreshPreferences } from "@/hooks/use-auto-refresh-preferences"
+import { AutoRefreshSettings } from "@/components/ui/auto-refresh-settings"
+import { useRealtimeUpdates } from "@/hooks/use-realtime-updates"
 
 // Definición de prioridades
 enum Priority {
@@ -142,6 +146,27 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
   const externalProviderInputRef = useRef<HTMLInputElement>(null)
   const orInputRef = useRef<HTMLInputElement>(null)
 
+  // Auto-refresh configuration
+  const { preferences, isLoaded: preferencesLoaded } = useAutoRefreshPreferences()
+  
+  // Auto-refresh hook
+  const { startInterval, stopInterval, restartInterval } = useAutoRefresh({
+    interval: preferences.interval,
+    enabled: preferences.enabled && !isLoading,
+    onRefresh: fetchStock,
+    onError: (error) => {
+      console.error('Error en auto-refresh de stock:', error)
+      // No mostrar toast en errores de auto-refresh para no molestar al usuario
+    }
+  })
+
+  // Realtime updates hook
+  useRealtimeUpdates({
+    table: 'stock',
+    onUpdate: fetchStock,
+    enabled: !isLoading
+  })
+
   // Añade este useEffect después de la declaración de las variables de estado
   useEffect(() => {
     console.log("🔄 useEffect inicial - Componente montado, iniciando carga de datos...")
@@ -149,6 +174,21 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
     fetchStock()
     fetchExpenseTypes()
   }, []) // Array de dependencias vacío para que solo se ejecute al montar
+
+  // Effect para manejar auto-refresh
+  useEffect(() => {
+    if (preferences.enabled && !isLoading && preferencesLoaded) {
+      console.log("🔄 Iniciando auto-refresh de stock con intervalo:", preferences.interval / 1000, "segundos")
+      startInterval()
+    } else {
+      console.log("⏸️ Deteniendo auto-refresh de stock - enabled:", preferences.enabled, "loading:", isLoading)
+      stopInterval()
+    }
+
+    return () => {
+      stopInterval()
+    }
+  }, [preferences.enabled, preferences.interval, isLoading, preferencesLoaded, startInterval, stopInterval])
 
   // Cargar el estado de fotografiado y pintura para cada vehículo
   useEffect(() => {
@@ -873,6 +913,41 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
   }
 
   // Función para actualizar el estado de inspección
+  const handleRefreshStock = async () => {
+    console.log("🔄 Refresh manual de stock iniciado")
+    
+    // Detener auto-refresh durante la actualización manual
+    stopInterval()
+    
+    try {
+      await fetchStock()
+      console.log("✅ Refresh manual de stock completado")
+      toast({
+        title: "Datos actualizados",
+        description: "Los datos del stock se han actualizado correctamente",
+      })
+    } catch (error: any) {
+      console.error("❌ Error en refresh manual de stock:", error)
+      toast({
+        title: "Error al actualizar",
+        description: error.message || "No se pudieron actualizar los datos",
+        variant: "destructive",
+      })
+    } finally {
+      // Reiniciar auto-refresh después del refresh manual
+      if (preferences.enabled && preferencesLoaded) {
+        setTimeout(() => {
+          console.log("🔄 Reiniciando auto-refresh de stock después de refresh manual")
+          startInterval()
+        }, 1000) // Esperar 1 segundo antes de reiniciar
+      }
+      
+      if (onRefresh) {
+        onRefresh()
+      }
+    }
+  }
+
   const handleInspectionToggle = async (item: StockItem) => {
     try {
       setPendingUpdates((prev) => new Set(prev).add(item.id))
@@ -1444,6 +1519,17 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
                 title="Filtrar por fecha de recepción"
                 description="Selecciona un rango de fechas para filtrar por fecha de recepción"
               />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleRefreshStock}
+                disabled={isLoading}
+                className="h-9 w-9"
+                title="Actualizar datos"
+              >
+                <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+              </Button>
+              <AutoRefreshSettings />
               <Button
                 variant="outline"
                 size="icon"
