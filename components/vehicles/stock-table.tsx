@@ -41,6 +41,8 @@ import { formatDateForDisplay } from "@/lib/date-utils"
 import { addDays, format } from "date-fns"
 import ReusablePagination from "@/components/ui/reusable-pagination"
 import { DateFilter } from "@/components/ui/date-filter"
+import { useAutoRefresh } from "@/hooks/use-auto-refresh"
+import { useDataEvents, dataEvents } from "@/hooks/use-data-events"
 
 // Definición de prioridades
 enum Priority {
@@ -141,6 +143,17 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
   const { toast } = useToast()
   const externalProviderInputRef = useRef<HTMLInputElement>(null)
   const orInputRef = useRef<HTMLInputElement>(null)
+
+  // Sistema de refresh automático y eventos
+  const { emit } = useDataEvents()
+  const { isRefreshing: autoRefreshing, lastRefresh, enabled: autoRefreshEnabled, toggleEnabled, refresh: manualRefresh } = useAutoRefresh({
+    interval: 30000, // 30 segundos
+    enabled: true,
+    onRefresh: async () => {
+      await fetchStock()
+      emit('table-refresh-requested', 'StockTable')
+    }
+  })
 
   // Añade este useEffect después de la declaración de las variables de estado
   useEffect(() => {
@@ -658,6 +671,9 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
       console.log("✅ Datos cargados exitosamente:", data?.length || 0, "registros")
       console.log("🔍 Primeros 3 registros:", data?.slice(0, 3))
       setStock(data || [])
+
+      // Emitir evento de datos actualizados
+      emit('data-updated', 'StockTable', { count: data?.length || 0 })
       
     } catch (err) {
       console.error("💥 Excepción en fetchStock:", err)
@@ -1452,6 +1468,24 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
                 title="Ordenar"
               >
                 <ArrowUpDown className="h-4 w-4" />
+              </Button>
+
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={toggleEnabled}
+                className={cn(
+                  "h-9 w-9",
+                  autoRefreshEnabled ? "bg-green-100 text-green-800 hover:bg-green-200" : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+                )}
+                title={autoRefreshEnabled ? "Desactivar refresh automático" : "Activar refresh automático"}
+              >
+                <div className="flex items-center">
+                  {autoRefreshing ? <BMWMSpinner size={16} /> : <RefreshCw className="h-4 w-4" />}
+                  {autoRefreshEnabled && !autoRefreshing && (
+                    <div className="w-2 h-2 bg-green-500 rounded-full ml-1" />
+                  )}
+                </div>
               </Button>
             </div>
           </div>
@@ -3721,6 +3755,29 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
         </TabsContent>
       </Tabs>
 
+      {/* Indicador de refresh automático */}
+      {lastRefresh && (
+        <div className="fixed bottom-4 right-4 bg-background border rounded-lg shadow-lg p-3 z-50">
+          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+            <div className={cn(
+              "w-2 h-2 rounded-full",
+              autoRefreshEnabled ? "bg-green-500" : "bg-gray-400"
+            )} />
+            <span>
+              Última actualización: {format(lastRefresh, 'HH:mm:ss')}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={manualRefresh}
+              className="h-6 px-2 text-xs"
+              disabled={isLoading || autoRefreshing}
+            >
+              {isLoading || autoRefreshing ? <BMWMSpinner size={12} /> : 'Actualizar'}
+            </Button>
+          </div>
+        </div>
+      )}
 
     </div>
   )
