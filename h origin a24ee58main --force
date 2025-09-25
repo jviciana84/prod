@@ -1,0 +1,153 @@
+[33me9ea217[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{0}: reset: moving to e9ea217d9765780c85a30986995a7258c08f3b4a
+[33me9ea217[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{1}: reset: moving to e9ea217d9765780c85a30986995a7258c08f3b4a
+[33ma24ee58[m[33m ([m[1;31morigin/cursor/investigar-problema-de-carga-de-tablas-supabase-2663[m[33m)[m HEAD@{2}: reset: moving to HEAD
+[33ma24ee58[m[33m ([m[1;31morigin/cursor/investigar-problema-de-carga-de-tablas-supabase-2663[m[33m)[m HEAD@{3}: reset: moving to a24ee58
+[33m6533a1b[m HEAD@{4}: commit: Cleanup: Eliminar conflictos y archivos obsoletos
+[33m4d57e0b[m HEAD@{5}: commit: Fix: Implementar mejores prácticas de Supabase para autenticación
+[33m04ca8b6[m HEAD@{6}: commit: BACKUP: Antes de correcciones de autenticación siguiendo mejores prácticas de Supabase
+[33ma24ee58[m[33m ([m[1;31morigin/cursor/investigar-problema-de-carga-de-tablas-supabase-2663[m[33m)[m HEAD@{7}: reset: moving to a24ee58
+[33me808189[m HEAD@{8}: checkout: moving from a24ee580e3cc372105d6209dc15d63110843bfdf to main
+[33ma24ee58[m[33m ([m[1;31morigin/cursor/investigar-problema-de-carga-de-tablas-supabase-2663[m[33m)[m HEAD@{9}: checkout: moving from main to a24ee58
+[33me808189[m HEAD@{10}: reset: moving to e808189
+[33ma24ee58[m[33m ([m[1;31morigin/cursor/investigar-problema-de-carga-de-tablas-supabase-2663[m[33m)[m HEAD@{11}: commit: Fix: Corregir error de Service Worker en PWA
+[33md6dbbb0[m HEAD@{12}: commit: Fix: Corregir problemas de autenticacion en Chat de IA
+[33m264dfe3[m HEAD@{13}: commit: Fix: Solucionar problemas de autenticacion y multiples instancias de Supabase
+[33mda47970[m HEAD@{14}: commit: Fix: Limpiar cookies base64 corruptas al inicializar Supabase client
+[33m187f984[m HEAD@{15}: commit: Fix: Solucionar error React #418 de hidratación
+[33m9b2f5be[m HEAD@{16}: commit: Modificación en header-assistant.tsx
+[33me46a724[m HEAD@{17}: commit: Fix: Mover función safeGetCookie a archivos locales
+[33mcd0cf9f[m HEAD@{18}: commit: Fix: Implementar parsing seguro de cookies base64
+[33mfaca2fa[m HEAD@{19}: reset: moving to HEAD~1
+[33m6aa505c[m HEAD@{20}: commit: URGENT: Limpieza inmediata de cookies corruptas al cargar useAuth
+[33mfaca2fa[m HEAD@{21}: commit: Fix: Limpieza automática de cookies corruptas en useAuth
+[33m5a22142[m HEAD@{22}: commit: Fix: Solucionar cookies corruptas y múltiples instancias de Supabase
+[33mbe18274[m HEAD@{23}: reset: moving to HEAD~1
+[33me1f14c9[m HEAD@{24}: commit: Fix: Solucionar cookies corruptas y múltiples instancias de Supabase
+[33mbe18274[m HEAD@{25}: commit: Fix: Unificar sistema de autenticación - Eliminar conflictos entre hooks y usar getSession() consistentemente
+[33m83e5bb6[m HEAD@{26}: reset: moving to HEAD~1
+[33m933da37[m HEAD@{27}: commit: Fix: Unificar sistema de autenticación - Eliminar conflictos entre hooks y usar getSession() consistentemente
+[33m83e5bb6[m HEAD@{28}: commit: fix: SOLUCION DEFINITIVA - Corregir conflicto de storage y mejorar refresh de sesión
+[33me48f50a[m HEAD@{29}: commit: fix: Improve session timeout handling to prevent slow database operations
+[33m038a899[m HEAD@{30}: commit: fix: Apply authentication fix to notifications page to eliminate F5 loading issue
+[33mfd79d1e[m HEAD@{31}: commit: fix: Apply authentication fix to conversations page to eliminate F5 loading issue
+[33mf0d6d0e[m HEAD@{32}: commit: fix: Apply authentication fix to sales-table to eliminate F5 loading issue
+[33mb4e3dc1[m HEAD@{33}: commit: fix: Restore getSession() in entregas-table to fix F5 loading issue
+[33mb9ab056[m HEAD@{34}: commit: fix: Restore middleware matcher and fix critical permissions error
+[33mf99d8f9[m HEAD@{35}: commit: feat: Mejoras en el modal de chat de EDELWEISS
+[33m9b1f1b9[m HEAD@{36}: reset: moving to HEAD~1
+[33m432d00d[m HEAD@{37}: commit: feat: Mejoras en el modal de chat de EDELWEISS
+[33m9b1f1b9[m HEAD@{38}: commit: Fix: Sincronizar DashboardHeader con useAuth
+[33m96d0984[m HEAD@{39}: reset: moving to HEAD~1
+[33m4f1fab2[m HEAD@{40}: commit: Fix: Sincronizar DashboardHeader con useAuth
+[33m96d0984[m HEAD@{41}: commit: fix: Arreglar problemas de autenticación y sesiones múltiples
+[33mffe86b4[m HEAD@{42}: commit: feat: Mejora de honestidad y precisión en Edelweiss AI
+[33m26d85a7[m HEAD@{43}: commit: feat: Sistema completo de conversaciones persistentes para Edelweiss AI
+[33mf1fc2e8[m HEAD@{44}: reset: moving to HEAD~1
+[33m978cfd1[m HEAD@{45}: commit: feat: Sistema completo de conversaciones persistentes para Edelweiss AI
+[33mf1fc2e8[m HEAD@{46}: commit: feat: Mejora del estilo de escritura de Edelweiss AI
+[33m2b88b2c[m HEAD@{47}: commit: feat: Mejoras significativas en Edelweiss AI Assistant
+[33mbfc8440[m HEAD@{48}: commit: Fix AI Assistant: Corregir búsqueda inteligente y funcionalidad de copiar
+[33mf144e77[m HEAD@{49}: reset: moving to HEAD~1
+[33m2268b76[m HEAD@{50}: commit: Fix AI Assistant: Corregir búsqueda inteligente y funcionalidad de copiar
+[33mf144e77[m HEAD@{51}: commit: Fix: Corregir acceso a datos del sistema en Edelweiss - Usar tablas correctas de Supabase (sales_vehicles, nuevas_entradas, entregas, profiles) - Agregar logging para debug - Mejorar prompt con datos reales
+[33m909854d[m HEAD@{52}: reset: moving to HEAD~1
+[33m11609b0[m HEAD@{53}: commit: Fix: Corregir acceso a datos del sistema en Edelweiss - Usar tablas correctas de Supabase (sales_vehicles, nuevas_entradas, entregas, profiles) - Agregar logging para debug - Mejorar prompt con datos reales
+[33m909854d[m HEAD@{54}: commit: fix: Configurar GROQ_API_KEY para desarrollo local y corregir errores de Edelweiss
+[33mbcba44d[m HEAD@{55}: commit: feat: Mejorar Edelweiss - IA completa con datos específicos y respuestas organizadas
+[33m2cd08ee[m HEAD@{56}: commit: Fix: Corregir importación de APP_VERSION en footer para mostrar versión correcta
+[33m00f43e0[m HEAD@{57}: commit: Fix: Corregir alineación del sidebar - mantener siempre alineado a la izquierda
+[33m03e4c00[m HEAD@{58}: commit: feat: Implementar asistente IA Edelweiss con chat modal completo
+[33me9ea217[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{59}: reset: moving to HEAD~2
+[33m1f79927[m HEAD@{60}: commit: fix: Remover API key hardcodeada de Groq para seguridad
+[33mde3d5cc[m HEAD@{61}: commit: feat: Implementar asistente IA Edelweiss con chat modal completo
+[33me9ea217[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{62}: commit: fix: corregir bucle infinito en modal de permisos de circulación
+[33me808189[m HEAD@{63}: commit: feat: Add compact search bar to all dashboard pages and fix z-index issues
+[33mcec7a65[m HEAD@{64}: commit: feat: Implementar buscador global moderno con modal de resultados
+[33mb43b0b7[m HEAD@{65}: commit: feat: agregar botones imprimir/exportar en entregas y permisos director
+[33me72870f[m HEAD@{66}: commit: Fix syntax error and improve tooltip positioning in mapa-espana-svg-real.tsx
+[33m537d602[m HEAD@{67}: commit: feat: normalizar nombres de provincias - función de normalización con primera letra mayúscula - casos especiales para provincias compuestas - script SQL para actualizar base de datos - aplicado en informe ventas mensual
+[33m263a4d3[m HEAD@{68}: commit: feat: mejorar layout de geografía en informe ventas mensual - mapa ocupa 2/3 y ventas por provincia 1/3 - aumentar altura de cards en 20%
+[33m8a76bfd[m HEAD@{69}: commit: feat: implementar mapa de España con SVG real y datos de la base de datos
+[33mf41757f[m HEAD@{70}: commit: feat: implementar mapa de España con datos reales de la base de datos
+[33m6da950a[m HEAD@{71}: commit: fix: reemplazar mapa GeoJSON con mapa funcional en informe de ventas mensual
+[33m40c4f32[m HEAD@{72}: commit: feat: añadir mapa con contorno de España y puntos de provincias
+[33m35218dc[m HEAD@{73}: commit: feat: añadir informe de ventas mensual con mapa funcional y componentes de prueba
+[33mcfb9201[m HEAD@{74}: commit: Fix OCR scanner - reduce corner guides position and improve license plate detection patterns for better letter recognition
+[33m9346a44[m HEAD@{75}: commit: Fix OCR scanner - adjust corner guides position and improve license plate detection patterns
+[33ma35a6a1[m HEAD@{76}: commit: Add text selection and license plate training features to OCR scanner - mobile and desktop versions
+[33m46c8096[m HEAD@{77}: commit: Add professional camera overlay with centering guides and status indicators to OCR scanner
+[33m8426cc1[m HEAD@{78}: commit: Fix OCR scanner mobile - remove debug logs, improve button colors, camera pause during processing, and remove alert dialogs
+[33m8ab70ee[m HEAD@{79}: commit: Fix OCR scanner - improve button colors, camera pause during processing, and remove alert dialogs
+[33m2c8b17b[m HEAD@{80}: commit: Fix OCR scanner desktop page - remove debug logs and improve functionality
+[33m643d102[m HEAD@{81}: commit: fix: agregar manifest.json para PWA
+[33m036f724[m HEAD@{82}: commit: feat: implementar PWA para desktop y móvil con banner personalizado
+[33mf4505ea[m HEAD@{83}: commit: instalador pc
+[33m00d9091[m HEAD@{84}: commit: camara
+[33m0f96999[m HEAD@{85}: commit: nueva interface foto mas localizacion
+[33m29a465f[m HEAD@{86}: commit: Añadir geolocalización con dirección completa usando OpenStreetMap
+[33m5b76027[m HEAD@{87}: commit: Añadir página OCR Test para PC
+[33m84410b6[m HEAD@{88}: commit: no lo se
+[33mcdf059a[m HEAD@{89}: commit: OCR autodetectar
+[33m2dcec3e[m HEAD@{90}: commit: optimicar version smartphone
+[33m9354df3[m HEAD@{91}: commit: Optimizar OCR móvil: detectar → recortar → procesar con OCR.Space por defecto
+[33m2292858[m HEAD@{92}: commit: OCR mejorado tipo DocuWare: preprocesamiento avanzado y análisis de contexto inteligente
+[33m3185b66[m HEAD@{93}: commit: Mejoras OCR: configuración optimizada para texto general y correcciones de caracteres
+[33mfc4e5d0[m HEAD@{94}: commit: OCR móvil actualizado: 15 intentos completos igual que PC para máxima precisión
+[33m1ae6eb9[m HEAD@{95}: commit: Efectos visuales de detección OCR: recuadro animado, vibración móvil y partículas de éxito
+[33mfd9eb9b[m HEAD@{96}: commit: Optimización OCR móvil: 5 intentos, preprocesamiento avanzado y corrección inteligente para códigos alfanuméricos
+[33m5c82fea[m HEAD@{97}: commit: Optimización OCR: 15 intentos, preprocesamiento avanzado y corrección inteligente para códigos alfanuméricos
+[33mbafb377[m HEAD@{98}: commit: Fix: Optimizaciones globales para tablets iOS - Prevenir zoom automático y mejorar experiencia táctil
+[33m972e5e1[m HEAD@{99}: commit: Deploy: Forzar deploy en Vercel - Versión 159 estable
+[33m420c302[m HEAD@{100}: reset: moving to 420c302
+[33m53a0a10[m HEAD@{101}: commit: Fix: Cambiar Building2 por Building en about page
+[33m6069d08[m HEAD@{102}: commit: Fix: Arreglar icono Building2 en about page
+[33m650cc00[m HEAD@{103}: reset: moving to 650cc00
+[33mf1329b0[m HEAD@{104}: reset: moving to f1329b0
+[33m650cc00[m HEAD@{105}: commit: Fix: Corregir error de reasignación de variable const en circulation-permit-modal
+[33mbf6990b[m HEAD@{106}: commit: Revertir a Next.js 14.2.5 - Volver a versión estable que funcionaba
+[33m2ea7bee[m HEAD@{107}: commit: Fix: Actualizar tipos de params para Next.js 15 en todas las APIs de rutas dinámicas
+[33mb0e7e15[m HEAD@{108}: commit: Fix: Actualizar tipos de params para Next.js 15 en photo-assignments API
+[33ma78e066[m HEAD@{109}: commit: Forzar despliegue - Fix imágenes y OCR Scanner
+[33mb610aed[m HEAD@{110}: commit: Fix: Añadir hostname img.icons8.com a next.config.js para resolver error de imágenes de iconos
+[33m362d2c2[m HEAD@{111}: commit: Fix: Configurar hostname de Vercel Blob en next.config.js para resolver error de imágenes
+[33mbeba726[m HEAD@{112}: commit: Añadir geolocalización al OCR Scanner: permisos de ubicación, captura automática de coordenadas y registro de datos completos
+[33mf1329b0[m HEAD@{113}: commit: Arreglar configuración HTTPS: limpiar next.config.js y añadir script de configuración de certificados
+[33m4b79271[m HEAD@{114}: commit: Mejoras en página móvil OCR: footer arreglado, texto detectado en recuadro verde, indicador azul, y configuración HTTPS para permisos
+[33m420c302[m HEAD@{115}: commit: Nueva página móvil para OCR Scanner: pantalla completa, apertura automática de cámara, OCR en tiempo real y solo 2 botones
+[33mc1aa787[m HEAD@{116}: commit: Mejoras en OCR Scanner: botón Forzar Captura, mejor manejo de overlay de carga, y debugging mejorado
+[33mb3bb7a9[m HEAD@{117}: commit: fix: Improve camera handling - prioritize rear camera, fix loading overlay, add camera switch button
+[33m1017e5c[m HEAD@{118}: commit: feat: Add OCR Scanner functionality with admin access control and coming soon page
+[33m0805d31[m HEAD@{119}: commit: incicendias datos reales
+[33ma393ddd[m HEAD@{120}: commit: Fix: Corregir edición en modal PDF y valor por defecto para BANCO - Corregir renderField para usar editedFields en modo edición - Establecer 'Contado' por defecto cuando BANCO o TIPO FINANCIACIÓN están vacíos - Mejorar handleSaveData para combinar campos originales con editados
+[33m9a80be9[m HEAD@{121}: commit: Fix: Corregir detección de concesionario en save-pdf-extraction - Añadir búsqueda de números de tomo específicos (10038, 46544) como en el frontend - Mejorar logging y fallback para detección de concesionario - Asegurar que dealership_code se guarde correctamente en ambas tablas
+[33m668b28d[m HEAD@{122}: commit: copiado de datos correcto
+[33m0bbe4f9[m HEAD@{123}: commit: Añadir 'motorrad' a palabras clave para detectar motos BMW Motorrad
+[33me1b57e6[m HEAD@{124}: commit: Arreglar filtros de fecha en incentivos - ahora funcionan en modo pending y historical
+[33m9f434c0[m HEAD@{125}: commit: Actualizar .gitignore y tipos de Supabase
+[33m724a268[m HEAD@{126}: reset: moving to HEAD
+[33m724a268[m HEAD@{127}: commit: mejoras incentivos
+[33m58a8ab2[m HEAD@{128}: commit: iconos e incentivos
+[33m3ad235b[m HEAD@{129}: commit: icono incentivos
+[33md80db64[m HEAD@{130}: commit: Fix: Sistema de notificaciones push funcionando2
+[33m69b843d[m HEAD@{131}: commit: Fix: Sistema de notificaciones push funcionando
+[33m5beea29[m HEAD@{132}: commit: notificaions push no termina funcionar
+[33m4f3fe78[m HEAD@{133}: commit: notificaciones real
+[33macda19c[m HEAD@{134}: commit: notificaciones
+[33m8a539cb[m HEAD@{135}: commit: logo y contandor motorrad
+[33mfa736ee[m HEAD@{136}: commit: ventas
+[33m32986e2[m HEAD@{137}: commit: colores y datos del card dashboard
+[33m0a26d55[m HEAD@{138}: commit: mejora scroll
+[33me02c602[m HEAD@{139}: commit: mejora smartphone
+[33m26476d7[m HEAD@{140}: commit: varios
+[33m6cd22a9[m HEAD@{141}: commit: incentivos solucionado
+[33mced0493[m HEAD@{142}: commit: mejora visula gestion venta
+[33m2e76ec9[m HEAD@{143}: commit: incapaz
+[33m4645456[m HEAD@{144}: commit: estetisca fotos
+[33m11a1b05[m HEAD@{145}: commit: about incomleto y cambio delos datefilters
+[33mddbc24a[m HEAD@{146}: commit: precio compra
+[33m3ce40d4[m HEAD@{147}: commit: problemas carga edicion metodo de pago asesor de ventas formulario
+[33mfa97981[m HEAD@{148}: commit: permisos
+[33mb47be80[m HEAD@{149}: commit: fallo usuario avatar carga botones antes datos
+[33mbeee038[m HEAD@{150}: commit: Fix: Restaurar limpieza segura de cookies corruptas - Solo limpia cookies que empiecen con 'base64-' (corruptas) - Mejora manejo de errores de parsing de cookies - Soluciona problemas de avatar inconsistente y estado de autenticación
+[33m9f57520[m HEAD@{151}: commit: Fix: Corregir error de columna duc_scraper - Cambiar 'estado' por 'Estado' en consultas de duc_scraper - Eliminar error 42703 al obtener vehículos reservados
+[33mcabf91a[m HEAD@{152}: commit: Fix: Corregir cálculo de porcentaje total en asignaciones de fotógrafos - Agregar logs de depuración para identificar problemas de carga - Mostrar alerta cuando no hay fotógrafos activos - Calcular porcentaje total después de cargar datos desde fetchData
