@@ -30,7 +30,12 @@ export async function POST(request: NextRequest) {
       if (monthNumber) {
         const currentYear = year && year !== "all" ? year : new Date().getFullYear().toString()
         const startDate = `${currentYear}-${monthNumber.toString().padStart(2, "0")}-01`
-        const endDate = `${currentYear}-${monthNumber.toString().padStart(2, "0")}-31`
+        
+        // Calcular el último día del mes correctamente
+        const lastDayOfMonth = new Date(parseInt(currentYear), monthNumber, 0).getDate()
+        const endDate = `${currentYear}-${monthNumber.toString().padStart(2, "0")}-${lastDayOfMonth.toString().padStart(2, "0")}`
+        
+        console.log(`Filtro por mes: ${monthNumber}, año: ${currentYear}, rango: ${startDate} a ${endDate}`)
         query = query.gte("fecha_entrega", startDate).lte("fecha_entrega", endDate)
       }
     }

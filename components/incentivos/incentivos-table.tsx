@@ -152,16 +152,47 @@ export function IncentivosTable({
     if (selectedMonth !== "all" && selectedYear !== "all") {
       filtered = filtered.filter((incentivo) => {
         if (!incentivo.fecha_entrega) return false
-        const date = new Date(incentivo.fecha_entrega)
-        return (
-          date.getMonth() + 1 === Number.parseInt(selectedMonth) && date.getFullYear() === Number.parseInt(selectedYear)
-        )
+        
+        // Manejo más robusto de fechas
+        let date: Date
+        try {
+          // Intentar parsear la fecha directamente
+          date = new Date(incentivo.fecha_entrega)
+          
+          // Verificar si la fecha es válida
+          if (isNaN(date.getTime())) {
+            console.warn(`Fecha inválida para incentivo ${incentivo.id}: ${incentivo.fecha_entrega}`)
+            return false
+          }
+          
+          const month = date.getMonth() + 1
+          const year = date.getFullYear()
+          const targetMonth = Number.parseInt(selectedMonth)
+          const targetYear = Number.parseInt(selectedYear)
+          
+          // Log de depuración removido - problema resuelto en el API
+          
+          return month === targetMonth && year === targetYear
+        } catch (error) {
+          console.error(`Error parseando fecha para incentivo ${incentivo.id}: ${incentivo.fecha_entrega}`, error)
+          return false
+        }
       })
     } else if (selectedYear !== "all") {
       filtered = filtered.filter((incentivo) => {
         if (!incentivo.fecha_entrega) return false
-        const date = new Date(incentivo.fecha_entrega)
-        return date.getFullYear() === Number.parseInt(selectedYear)
+        
+        try {
+          const date = new Date(incentivo.fecha_entrega)
+          if (isNaN(date.getTime())) {
+            console.warn(`Fecha inválida para incentivo ${incentivo.id}: ${incentivo.fecha_entrega}`)
+            return false
+          }
+          return date.getFullYear() === Number.parseInt(selectedYear)
+        } catch (error) {
+          console.error(`Error parseando fecha para incentivo ${incentivo.id}: ${incentivo.fecha_entrega}`, error)
+          return false
+        }
       })
     }
 
