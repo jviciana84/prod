@@ -11,6 +11,7 @@ import { FinancingRanking } from "@/components/dashboard/financing-ranking"
 import { SalesRanking } from "@/components/dashboard/sales-ranking"
 import { WorkshopDaysCard } from "@/components/dashboard/workshop-days-card"
 import { SearchWithModal } from "@/components/dashboard/search-with-modal"
+import { CompactSearchWithModal } from "@/components/dashboard/compact-search-with-modal"
 import { BMWLogo, MINILogo, BMWMotorradLogo } from "@/components/ui/brand-logos"
 
 interface DashboardContentProps {
@@ -94,8 +95,14 @@ export function DashboardContent({
         </div>
       </div>
 
-      {/* Buscador moderno - posicionado correctamente */}
-      <div className="fixed top-20 z-40" style={{ left: 'calc(100% - 27rem)', right: '1rem' }}>
+      {/* Buscador responsive - móvil: alineado con el contenido, desktop: fijo */}
+      <div className="flex justify-between items-center md:hidden mb-4">
+        <div className="flex-1" />
+        <CompactSearchWithModal />
+      </div>
+
+      {/* Buscador fijo solo visible en desktop */}
+      <div className="hidden md:block fixed top-20 z-40" style={{ left: 'calc(100% - 27rem)', right: '1rem' }}>
         <SearchWithModal 
           placeholder="Buscar vehículos, clientes, ventas..."
           className="max-w-sm"
