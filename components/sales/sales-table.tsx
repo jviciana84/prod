@@ -1597,7 +1597,6 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
       if (pedidosError) {
         console.error("Error al marcar como venta caída:", pedidosError)
         toast.error("Error al marcar como venta caída")
-        return
       }
 
       // 2. Eliminar de sales_vehicles
@@ -1609,7 +1608,6 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
       if (salesError) {
         console.error("Error al eliminar de sales_vehicles:", salesError)
         toast.error("Error al eliminar la venta")
-        return
       }
 
       // 3. Eliminar de entregas si existe
@@ -1642,6 +1640,10 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
       toast.error("Error inesperado al eliminar la venta")
     } finally {
       setIsDeleting(false)
+      // Limpiar modal siempre, incluso con errores
+      setShowDeleteDialog(false)
+      setDeleteVehicleId(null)
+      setDeleteObservations("")
     }
   }
 

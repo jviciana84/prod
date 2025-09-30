@@ -239,7 +239,7 @@ export function PerformanceMonitor() {
         onClick={() => setIsVisible(true)}
         variant="outline"
         size="icon"
-        className="h-6 w-6 rounded-full shadow-sm bg-background/80 backdrop-blur-sm border hover:bg-background/90 transition-all duration-200"
+        className="h-6 w-6 rounded-full shadow-sm bg-background/80 backdrop-blur-sm border-2 border-gray-300 dark:border-gray-600 hover:bg-background/90 transition-all duration-200"
       >
         <Activity className={`h-3 w-3 ${getPerformanceIconColor()}`} />
       </Button>

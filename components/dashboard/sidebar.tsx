@@ -39,6 +39,7 @@ import {
 import { AddCarIcon, CarFrontDoubleIcon } from "@/components/ui/icons"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { ScrollIndicator } from "@/components/ui/scroll-indicator"
 
 interface SidebarItemProps {
   href: string
@@ -110,7 +111,7 @@ export default function DashboardSidebar({ roles }: DashboardSidebarProps) {
   return (
     <aside
       className={cn(
-        "dashboard-sidebar transition-all duration-300 ease-in-out",
+        "dashboard-sidebar transition-all duration-300 ease-in-out relative",
         isExpanded ? "expanded" : "",
       )}
       style={{
@@ -120,7 +121,7 @@ export default function DashboardSidebar({ roles }: DashboardSidebarProps) {
       onMouseEnter={() => setIsExpanded(true)}
       onMouseLeave={() => setIsExpanded(false)}
     >
-      <nav className={cn("flex flex-col gap-2 p-4", !isExpanded && "items-center")}>
+      <nav className={cn("flex flex-col gap-2 p-4 overflow-y-auto", !isExpanded && "items-center")}>
         <SidebarItem
           href="/dashboard"
           icon={<LayoutDashboard className="h-5 w-5" />}
@@ -374,6 +375,7 @@ export default function DashboardSidebar({ roles }: DashboardSidebarProps) {
           isExpanded={isExpanded}
         />
       </nav>
+      <ScrollIndicator isExpanded={isExpanded} />
     </aside>
   )
 }

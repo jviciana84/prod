@@ -34,36 +34,33 @@ export function DashboardFooter() {
   useEffect(() => {
     // Obtener mensaje del footer desde la base de datos
     const fetchFooterMessage = async () => {
-      const supabase = createClientComponentClient()
-      const now = new Date().toISOString()
-
       try {
-        // Primero obtenemos la configuración
-        const { data: settingsData, error: settingsError } = await supabase
-          .from("settings")
-          .select("*")
-          .eq("key", "footer_settings")
-          .single()
+        // Obtener configuración y mensaje usando API
+        const [settingsResponse, messageResponse] = await Promise.all([
+          fetch("/api/settings/footer", {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+          }),
+          fetch("/api/footer/message", {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+          })
+        ])
 
-        if (!settingsError && settingsData) {
-          setSettings(settingsData.value)
+        // Procesar configuración
+        if (settingsResponse.ok) {
+          const settingsData = await settingsResponse.json()
+          if (settingsData) {
+            setSettings(settingsData)
+          }
         }
 
-        // Luego obtenemos el mensaje activo más reciente
-        const { data, error } = await supabase
-          .from("footer_messages")
-          .select("*")
-          .gt("expiry_date", now)
-          .order("created_at", { ascending: false })
-          .limit(1)
-
-        if (error) {
-          console.error("Error al obtener mensaje del footer:", error)
-          return
-        }
-
-        if (data && data.length > 0) {
-          setMessage(data[0].message)
+        // Procesar mensaje
+        if (messageResponse.ok) {
+          const messageData = await messageResponse.json()
+          if (messageData && messageData.message) {
+            setMessage(messageData.message)
+          }
         }
       } catch (err) {
         console.error("Error al procesar mensaje del footer:", err)
