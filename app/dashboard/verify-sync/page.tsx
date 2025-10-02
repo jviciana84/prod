@@ -31,7 +31,7 @@ export default async function VerifySyncPage() {
   } = await supabase.auth.getUser()
 
   if (!user) {
-    redirect("/login")
+    redirect("/")
   }
 
   const userRoles = await getUserRoles(user.id)

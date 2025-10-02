@@ -64,6 +64,22 @@ export function useAuth() {
         }
 
         if (mounted) {
+          console.log("🔍 Verificando sesión:", {
+            hasSession: !!session,
+            hasUser: !!session?.user,
+            userEmail: session?.user?.email,
+            forcePasswordChange: session?.user?.user_metadata?.force_password_change
+          })
+
+          // Verificar si el usuario necesita cambiar su contraseña
+          if (session?.user?.user_metadata?.force_password_change) {
+            console.log("🔒 Usuario necesita cambiar contraseña, redirigiendo...")
+            // Redirigir a la página de cambio de contraseña
+            window.location.href = "/force-password-change"
+            return
+          }
+
+          console.log("✅ Usuario autenticado correctamente, estableciendo estado...")
           setAuthState({
             user: session?.user ?? null,
             loading: false,
@@ -109,6 +125,23 @@ export function useAuth() {
           }
         }
 
+        console.log("🔄 Cambio de estado de autenticación:", {
+          event,
+          hasSession: !!session,
+          hasUser: !!session?.user,
+          userEmail: session?.user?.email,
+          forcePasswordChange: session?.user?.user_metadata?.force_password_change
+        })
+
+        // Verificar si el usuario necesita cambiar su contraseña
+        if (session?.user?.user_metadata?.force_password_change) {
+          console.log("🔒 Usuario necesita cambiar contraseña, redirigiendo...")
+          // Redirigir a la página de cambio de contraseña
+          window.location.href = "/force-password-change"
+          return
+        }
+
+        console.log("✅ Estado de autenticación actualizado correctamente")
         setAuthState({
           user: session?.user ?? null,
           loading: false,

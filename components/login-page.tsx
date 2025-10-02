@@ -50,6 +50,19 @@ export default function LoginPage() {
         throw error
       }
 
+      // Verificar si el usuario necesita cambiar su contraseña
+      const forcePasswordChange = data.user?.user_metadata?.force_password_change
+      console.log("Force password change flag:", forcePasswordChange)
+
+      if (forcePasswordChange) {
+        toast({
+          title: "Cambio de contraseña requerido",
+          description: "Debes cambiar tu contraseña antes de continuar...",
+        })
+        router.push("/force-password-change")
+        return
+      }
+
       toast({
         title: "Inicio de sesión exitoso",
         description: "Redirigiendo al dashboard...",

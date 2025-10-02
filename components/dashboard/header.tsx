@@ -33,6 +33,7 @@ import { toast } from "@/hooks/use-toast"
 import { getUserPreferences } from "@/lib/user-preferences"
 import type { PageInfo } from "@/types/user-preferences"
 import { clearCorruptedSession } from "@/utils/fix-auth"
+import { useChat } from "@/contexts/chat-context"
 
 interface DashboardHeaderProps {
   user: User
@@ -78,9 +79,60 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
   const [loadingNotifications, setLoadingNotifications] = useState(true)
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   const notificationsRef = useRef<HTMLDivElement>(null)
+  const [isReflectionActive, setIsReflectionActive] = useState(false)
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false)
+  const [searchValue, setSearchValue] = useState("")
+  const { openChat } = useChat()
 
-  // Obtener el nombre para mostrar (nombre completo de los metadatos o email si no hay nombre)
-  const displayName = user.user_metadata.full_name || user.email
+  // Obtener el nombre para mostrar (priorizar perfil de la base de datos, luego metadatos, luego email)
+  const displayName = userProfile?.full_name || user.user_metadata.full_name || user.email
+
+  // Efecto automático de reflejo cada 8 segundos
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIsReflectionActive(true)
+      setTimeout(() => {
+        setIsReflectionActive(false)
+      }, 500) // Duración del efecto
+    }, 8000) // Cada 8 segundos
+
+    return () => clearInterval(interval)
+  }, [])
+
+  // Manejar clic del botón Edelweiss
+  const handleEdelweissClick = () => {
+    setIsSearchExpanded(!isSearchExpanded)
+    if (!isSearchExpanded) {
+      setSearchValue("")
+    }
+  }
+
+  // Manejar búsqueda (intro o botón)
+  const handleSearch = () => {
+    if (searchValue.trim()) {
+      // Abrir chat con el texto
+      openChat()
+      // Pasar el texto al chat usando un evento personalizado
+      const event = new CustomEvent('chatMessage', { 
+        detail: { message: searchValue.trim() } 
+      })
+      window.dispatchEvent(event)
+      setIsSearchExpanded(false)
+      setSearchValue("")
+    }
+  }
+
+  // Manejar historial
+  const handleHistory = () => {
+    // Abrir chat primero
+    openChat()
+    // Abrir el historial del chat usando un evento personalizado
+    setTimeout(() => {
+      const event = new CustomEvent('openChatHistory')
+      window.dispatchEvent(event)
+    }, 100) // Pequeño delay para asegurar que el chat esté abierto
+    setIsSearchExpanded(false)
+  }
 
 
 
@@ -488,6 +540,79 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
                 {role}
               </Badge>
             ))}
+          </div>
+        </div>
+        
+        {/* Botón central Edelweiss que se transforma en buscador */}
+        <div className="absolute left-1/2 transform -translate-x-1/2">
+          <div className={`transition-all duration-700 ease-out ${
+            isSearchExpanded ? 'w-[34rem]' : 'w-auto'
+          }`}>
+            {!isSearchExpanded ? (
+              <Button
+                onClick={handleEdelweissClick}
+                variant="ghost"
+                className="px-6 py-1 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-transparent relative overflow-hidden group hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] dark:hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] transition-all duration-700 ease-out"
+              >
+                <span className="text-sm font-black relative z-10" style={{ fontFamily: 'serif', letterSpacing: '0.2em' }}>
+                  EDELWEISS
+                </span>
+                {/* Efecto de reflejo diagonal */}
+                <div className={`absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent transform -skew-x-12 -translate-x-full transition-transform duration-500 ease-in-out ${
+                  isReflectionActive ? 'translate-x-full' : ''
+                } group-hover:translate-x-full`}></div>
+              </Button>
+            ) : (
+              <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-full px-2 py-1 flex items-center gap-2 w-full transition-all duration-700 ease-out">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    value={searchValue}
+                    onChange={(e) => setSearchValue(e.target.value)}
+                    placeholder="Pregunta a Edelweiss"
+                    className="w-full pl-6 pr-8 py-1 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent text-sm"
+                    autoFocus
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        handleSearch()
+                      }
+                    }}
+                  />
+                  <div className="absolute left-2 top-1/2 transform -translate-y-1/2">
+                    <svg className="h-3 w-3 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  <div 
+                    onClick={handleSearch}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 cursor-pointer hover:bg-white/10 rounded p-1"
+                    title="Buscar (Enter)"
+                  >
+                    <svg className="h-3 w-3 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                </div>
+                <div 
+                  onClick={handleHistory}
+                  className="flex items-center justify-center cursor-pointer hover:bg-white/10 rounded p-1 border border-white/30"
+                  title="Historial"
+                >
+                  <svg className="h-3 w-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div 
+                  onClick={handleEdelweissClick}
+                  className="flex items-center justify-center cursor-pointer hover:bg-white/10 rounded-full p-1"
+                  title="Cerrar"
+                >
+                  <svg className="h-3 w-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </div>
+              </div>
+            )}
           </div>
         </div>
         <div className="flex items-center">

@@ -58,6 +58,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ avatars })
   } catch (error) {
     console.error("Error listing avatars:", error)
-    return NextResponse.json({ error: "Error al listar los avatares" }, { status: 500 })
+    // En lugar de fallar, devolver una lista vacía para que el sistema continúe funcionando
+    return NextResponse.json({ avatars: [] })
   }
 }

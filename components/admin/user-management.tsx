@@ -169,7 +169,8 @@ export default function UserManagement() {
     try {
       const response = await fetch("/api/admin/avatars/list")
       if (!response.ok) {
-        throw new Error("Error al cargar avatares")
+        console.warn("⚠️ No se pudieron cargar avatares, continuando sin avatar")
+        return
       }
       const data = await response.json()
 
@@ -178,9 +179,12 @@ export default function UserManagement() {
         const randomIndex = Math.floor(Math.random() * data.avatars.length)
         setNewUserAvatarUrl(data.avatars[randomIndex].url)
         setAvailableAvatars(data.avatars)
+      } else {
+        console.warn("⚠️ No hay avatares disponibles")
       }
     } catch (error) {
-      console.error("Error al cargar avatar aleatorio:", error)
+      console.warn("⚠️ Error al cargar avatar aleatorio (continuando sin avatar):", error)
+      // No fallar, simplemente continuar sin avatar
     }
   }
 

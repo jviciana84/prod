@@ -30,19 +30,31 @@ async function sendCustomWelcomeEmail({
   try {
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
-      port: Number.parseInt(process.env.SMTP_PORT || "587", 10),
-      secure: Number.parseInt(process.env.SMTP_PORT || "587", 10) === 465,
+      port: Number.parseInt(process.env.SMTP_PORT || "465"),
+      secure: true,
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASSWORD,
       },
-      // เพิ่มการตั้งค่า timeout
-      connectionTimeout: 10000, // 10 วินาที
-      greetingTimeout: 10000, // 10 วินาที
-      socketTimeout: 10000, // 10 วินาที
+      tls: {
+        rejectUnauthorized: false,
+      },
+      connectionTimeout: 10000, // 10 segundos
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
     })
 
     console.log("[Email Sender] Nodemailer transporter configured.")
+    
+    // Verificar conexión SMTP
+    console.log("[Email Sender] Verificando conexión SMTP...")
+    try {
+      await transporter.verify()
+      console.log("[Email Sender] Conexión SMTP verificada exitosamente.")
+    } catch (verifyError) {
+      console.error("[Email Sender] Error verificando conexión SMTP:", verifyError)
+      throw new Error(`Error de conexión SMTP: ${verifyError}`)
+    }
 
     const templatePath = path.resolve(process.cwd(), "lib/email-templates/invitation-template.html")
     console.log(`[Email Sender] Reading email template from: ${templatePath}`)
@@ -57,8 +69,15 @@ async function sendCustomWelcomeEmail({
     htmlTemplate = htmlTemplate.replace(/{{APP_URL}}/g, requestOrigin)
     console.log("[Email Sender] Placeholders replaced in template.")
 
+    // Usar el mismo formato FROM que los otros emails del sistema
+    const fromEmail = process.env.SMTP_USER || "material@controlvo.ovh"
+    const fromName = "Sistema CVO - Usuarios"
+    
+    console.log(`[Email Sender] Using FROM email: ${fromEmail}`)
+    console.log(`[Email Sender] Using FROM name: ${fromName}`)
+    
     const mailOptions = {
-      from: `"${process.env.SMTP_FROM_NAME || APP_CONFIG.name}" <${process.env.SMTP_FROM_EMAIL}>`,
+      from: `${fromName} <${fromEmail}>`,
       to: email,
       subject: `Invitación para unirte a ${APP_CONFIG.name}`,
       html: htmlTemplate,

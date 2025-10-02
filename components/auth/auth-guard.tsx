@@ -17,7 +17,7 @@ interface AuthGuardProps {
   redirectTo?: string
 }
 
-export function AuthGuard({ children, redirectTo = "/login" }: AuthGuardProps) {
+export function AuthGuard({ children, redirectTo = "/" }: AuthGuardProps) {
   const { user, loading } = useAuth()
   const [showLoginForm, setShowLoginForm] = useState(false)
   const [loginLoading, setLoginLoading] = useState(false)
@@ -31,6 +31,13 @@ export function AuthGuard({ children, redirectTo = "/login" }: AuthGuardProps) {
     if (!loading && !user) {
       // Mostrar formulario de login en lugar de redirigir
       setShowLoginForm(true)
+    } else if (!loading && user) {
+      // Verificar si el usuario autenticado necesita cambiar su contraseña
+      const forcePasswordChange = user.user_metadata?.force_password_change
+      if (forcePasswordChange) {
+        router.push("/force-password-change")
+        return
+      }
     }
   }, [user, loading, router, redirectTo])
 
@@ -49,6 +56,16 @@ export function AuthGuard({ children, redirectTo = "/login" }: AuthGuardProps) {
         setLoginError(error.message)
       } else {
         console.log("Login exitoso:", data)
+        
+        // Verificar si el usuario necesita cambiar su contraseña
+        const forcePasswordChange = data.user?.user_metadata?.force_password_change
+        console.log("Force password change flag:", forcePasswordChange)
+
+        if (forcePasswordChange) {
+          router.push("/force-password-change")
+          return
+        }
+
         setShowLoginForm(false)
         // El hook useAuth debería detectar automáticamente el cambio
       }

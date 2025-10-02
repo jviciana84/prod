@@ -13,8 +13,8 @@ console.log("🔧 Configuración Supabase:", {
   anonKey: supabaseAnonKey ? "Definida" : "No definida"
 })
 
-// Temporalmente usar anon key para pruebas
-const supabaseAdmin = createClient(supabaseUrl, supabaseAnonKey, {
+// Usar service role key para operaciones de administración
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   auth: {
     autoRefreshToken: false,
     persistSession: false,
@@ -176,15 +176,37 @@ export async function POST(request: Request) {
       )
     }
 
-    // PASO 2: Verificar si el usuario ya existe en auth.users
+    // PASO 2: Verificar si el usuario ya existe en auth.users (opcional)
+    let existingAuthUser = null
+    try {
+      console.log("🔍 Verificando usuarios existentes en auth...")
+      console.log("🔧 Usando service key:", supabaseServiceKey ? "✅ Presente" : "❌ Ausente")
+      
     const { data: authUsers, error: authListError } = await supabaseAdmin.auth.admin.listUsers()
 
     if (authListError) {
-      console.error("Error listing auth users:", authListError)
-      return NextResponse.json({ message: "Error checking existing users" }, { status: 500 })
+        console.error("❌ Error listando usuarios en auth:", authListError)
+        console.error("❌ Error details:", {
+          message: authListError.message,
+          status: authListError.status,
+          code: authListError.code
+        })
+        console.warn("⚠️ No se pudo verificar usuarios existentes (continuando):", authListError.message)
+        // No fallar aquí, continuar con la creación
+      } else {
+        console.log("✅ Lista de usuarios obtenida:", authUsers?.users?.length || 0, "usuarios")
+        existingAuthUser = authUsers?.users?.find((user) => user.email === email)
+        if (existingAuthUser) {
+          console.log("⚠️ Usuario encontrado en auth.users:", existingAuthUser.id)
+        } else {
+          console.log("✅ Email no encontrado en auth.users, continuando con creación")
+        }
+      }
+    } catch (error) {
+      console.error("❌ Error inesperado en verificación de auth users:", error)
+      console.warn("⚠️ Continuando con la creación...")
+      // No fallar aquí, continuar con la creación
     }
-
-    const existingAuthUser = authUsers?.users?.find((user) => user.email === email)
 
     if (existingAuthUser) {
       console.log("⚠️ Usuario ya existe en auth.users:", existingAuthUser.id)
@@ -237,9 +259,13 @@ export async function POST(request: Request) {
 
     console.log("🔐 PASO 3: Creando usuario en auth.users...")
     console.log("📝 Datos para auth:", { email, fullName, alias, phone, position, avatarUrl })
+    console.log("🔧 Service key length:", supabaseServiceKey?.length || 0)
     
     // PASO 3: Crear nuevo usuario en auth.users
-    const { data: newUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    let newUser
+    try {
+      console.log("🔄 Llamando a createUser...")
+      const { data: userData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       email_confirm: true,
       user_metadata: {
@@ -251,6 +277,10 @@ export async function POST(request: Request) {
       },
     })
 
+      console.log("📊 Respuesta de createUser:")
+      console.log("- userData:", userData)
+      console.log("- authError:", authError)
+
     if (authError) {
       console.error("❌ Error creating user in auth:", authError)
       console.error("❌ Error details:", {
@@ -260,32 +290,37 @@ export async function POST(request: Request) {
         name: authError.name
       })
       return NextResponse.json({ 
-        message: "Database error creating new user",
+          message: "Error creando usuario en el sistema de autenticación",
         details: authError.message,
-        error_code: authError.code
+          error_code: "AUTH_ERROR"
       }, { status: 500 })
     }
 
-    if (!newUser?.user?.id) {
+      if (!userData?.user?.id) {
       console.error("❌ Error creating user: No user data returned")
       return NextResponse.json({ message: "Failed to create user" }, { status: 500 })
     }
 
+      newUser = userData
     console.log("✅ Usuario creado en auth:", newUser.user.id)
+    } catch (error: any) {
+      console.error("❌ Error inesperado en createUser:", error)
+      console.error("❌ Error stack:", error.stack)
+      return NextResponse.json({ 
+        message: "Error inesperado creando usuario",
+        details: error.message,
+        error_code: "UNEXPECTED_ERROR"
+      }, { status: 500 })
+    }
 
-    // PASO 4: Crear profile con retry en caso de conflicto
-    let profileCreated = false
-    let retryCount = 0
-    const maxRetries = 3
-
-    while (!profileCreated && retryCount < maxRetries) {
-      try {
+    // PASO 4: Crear profile
+    console.log("👤 PASO 4: Creando profile...")
+    
         // Obtener el nombre del rol si se proporcionó roleId
         let roleName = null
         if (roleId) {
           try {
             const { data: roleData } = await supabaseAdmin.from("roles").select("name").eq("id", roleId).single()
-
             roleName = roleData?.name || null
           } catch (error) {
             console.error("Error fetching role name:", error)
@@ -309,58 +344,47 @@ export async function POST(request: Request) {
         const { error: profileError } = await supabaseAdmin.from("profiles").insert([profileData])
 
         if (profileError) {
-          if (profileError.code === "23505") {
-            // Duplicate key error
-            console.log(`⚠️ Intento ${retryCount + 1}: Profile ya existe, verificando...`)
-
-            // Verificar si el profile existe
-            const { data: existingProfileCheck } = await supabaseAdmin
-              .from("profiles")
-              .select("id")
-              .eq("id", newUser.user.id)
-              .single()
-
-            if (existingProfileCheck) {
-              console.log("✅ Profile ya existe, continuando...")
-              profileCreated = true
-            } else {
-              throw profileError
-            }
-          } else {
-            throw profileError
-          }
-        } else {
-          console.log("✅ Profile creado exitosamente")
-          profileCreated = true
-        }
-      } catch (error: any) {
-        retryCount++
-        console.error(`❌ Error en intento ${retryCount}:`, error)
-
-        if (retryCount >= maxRetries) {
-          // Eliminar el usuario de auth.users si falla la creación del perfil
+      console.error("❌ Error creating profile:", profileError)
+      // Limpiar usuario de auth si falla el profile
           await supabaseAdmin.auth.admin.deleteUser(newUser.user.id)
-          return NextResponse.json({ message: error.message }, { status: 500 })
-        }
-
-        // Esperar un poco antes del siguiente intento
-        await new Promise((resolve) => setTimeout(resolve, 1000))
-      }
+      return NextResponse.json({ 
+        message: "Error creando perfil del usuario",
+        details: profileError.message,
+        error_code: "PROFILE_ERROR"
+      }, { status: 500 })
     }
+
+    console.log("✅ Profile creado exitosamente")
 
     // PASO 5: Enviar correo de bienvenida si es necesario
     if (!skipWelcomeEmail) {
       try {
-        const { error: emailError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email)
+        console.log("📧 Enviando correo de bienvenida personalizado...")
+        
+        // Usar el endpoint personalizado para enviar email de bienvenida
+        const emailResponse = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/admin/users/send-welcome-email`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseServiceKey}`, // Usar service key para autenticación
+          },
+          body: JSON.stringify({
+            userId: newUser.user.id,
+            email: email
+          })
+        })
 
-        if (emailError) {
-          console.error("⚠️ Error sending welcome email:", emailError)
+        if (!emailResponse.ok) {
+          const errorData = await emailResponse.json()
+          console.error("⚠️ Error sending welcome email:", errorData.message)
         } else {
-          console.log("✅ Correo de bienvenida enviado")
+          console.log("✅ Correo de bienvenida enviado exitosamente")
         }
       } catch (emailErr) {
         console.error("⚠️ Error sending welcome email:", emailErr)
       }
+    } else {
+      console.log("⏭️ Saltando envío de correo de bienvenida (skipWelcomeEmail = true)")
     }
 
     console.log("✅ Usuario creado exitosamente:", newUser.user.id)

@@ -72,3 +72,42 @@ export async function PUT(request: Request, { params }: { params: { userId: stri
     return NextResponse.json({ message: error.message || "Internal Server Error" }, { status: 500 })
   }
 }
+
+export async function DELETE(request: Request, { params }: { params: { userId: string } }) {
+  try {
+    console.log("🗑️ Eliminando usuario:", params.userId)
+
+    // PASO 1: Eliminar de la tabla user_roles
+    console.log("🔄 Eliminando roles del usuario...")
+    const { error: userRolesError } = await supabaseAdmin.from("user_roles").delete().eq("user_id", params.userId)
+
+    if (userRolesError) {
+      console.error("Error al eliminar roles del usuario:", userRolesError)
+      return NextResponse.json({ message: userRolesError.message }, { status: 500 })
+    }
+
+    // PASO 2: Eliminar de la tabla profiles
+    console.log("🔄 Eliminando perfil del usuario...")
+    const { error: profileError } = await supabaseAdmin.from("profiles").delete().eq("id", params.userId)
+
+    if (profileError) {
+      console.error("Error al eliminar perfil:", profileError)
+      return NextResponse.json({ message: profileError.message }, { status: 500 })
+    }
+
+    // PASO 3: Eliminar de auth.users
+    console.log("🔄 Eliminando usuario de auth.users...")
+    const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(params.userId)
+
+    if (authError) {
+      console.error("Error al eliminar usuario de auth:", authError)
+      return NextResponse.json({ message: authError.message }, { status: 500 })
+    }
+
+    console.log("✅ Usuario eliminado exitosamente")
+    return NextResponse.json({ message: "User deleted successfully" })
+  } catch (error: any) {
+    console.error("Unexpected error:", error)
+    return NextResponse.json({ message: error.message || "Internal Server Error" }, { status: 500 })
+  }
+}

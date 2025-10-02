@@ -4,6 +4,7 @@ import { VersionBadge } from "@/components/version-badge"
 import { useEffect, useState } from "react"
 import { createClientComponentClient } from "@/lib/supabase/client"
 import { PerformanceMonitor } from "@/components/ui/performance-monitor"
+import { GothicEIcon } from "@/components/ui/gothic-e-icon"
 
 // Definir la versión actual de la aplicación
 const APP_VERSION = "1.0.0"
@@ -113,6 +114,7 @@ export function DashboardFooter() {
           <div className="relative">
             <PerformanceMonitor />
           </div>
+          <GothicEIcon />
         </div>
       </div>
     </footer>
