@@ -217,16 +217,21 @@ export async function POST(request: Request) {
         let roleName = null
         if (roleId) {
           try {
-            const { data: roleData } = await supabaseAdmin.from("roles").select("name").eq("id", roleId).single()
-
-            roleName = roleData?.name || null
+            console.log("🔍 Obteniendo nombre del rol para ID:", roleId)
+            const { data: roleData, error: roleError } = await supabaseAdmin.from("roles").select("name").eq("id", roleId).single()
+            
+            if (roleError) {
+              console.error("❌ Error obteniendo rol:", roleError)
+            } else {
+              roleName = roleData?.name || null
+              console.log("✅ Nombre del rol obtenido:", roleName)
+            }
           } catch (error) {
-            console.error("Error fetching role name:", error)
+            console.error("❌ Error inesperado obteniendo rol:", error)
           }
         }
 
         const profileData = {
-          id: existingAuthUser.id,
           email,
           full_name: fullName,
           alias: alias,
@@ -237,9 +242,12 @@ export async function POST(request: Request) {
           welcome_email_sent: skipWelcomeEmail,
         }
 
-        console.log("📝 Datos que se van a insertar en profiles:", profileData)
+        console.log("📝 Datos que se van a actualizar en profiles:", profileData)
 
-        const { error: profileError } = await supabaseAdmin.from("profiles").insert([profileData])
+        const { error: profileError } = await supabaseAdmin
+          .from("profiles")
+          .update(profileData)
+          .eq("id", existingAuthUser.id)
 
         if (profileError) {
           console.error("❌ Error creating profile for existing auth user:", profileError)
@@ -313,22 +321,28 @@ export async function POST(request: Request) {
       }, { status: 500 })
     }
 
-    // PASO 4: Crear profile
-    console.log("👤 PASO 4: Creando profile...")
+    // PASO 4: Actualizar profile (el trigger ya lo creó automáticamente)
+    console.log("👤 PASO 4: Actualizando profile...")
     
         // Obtener el nombre del rol si se proporcionó roleId
         let roleName = null
         if (roleId) {
           try {
-            const { data: roleData } = await supabaseAdmin.from("roles").select("name").eq("id", roleId).single()
-            roleName = roleData?.name || null
+            console.log("🔍 Obteniendo nombre del rol para ID:", roleId)
+            const { data: roleData, error: roleError } = await supabaseAdmin.from("roles").select("name").eq("id", roleId).single()
+            
+            if (roleError) {
+              console.error("❌ Error obteniendo rol:", roleError)
+            } else {
+              roleName = roleData?.name || null
+              console.log("✅ Nombre del rol obtenido:", roleName)
+            }
           } catch (error) {
-            console.error("Error fetching role name:", error)
+            console.error("❌ Error inesperado obteniendo rol:", error)
           }
         }
 
         const profileData = {
-          id: newUser.user.id,
           email,
           full_name: fullName,
           alias: alias,
@@ -339,22 +353,25 @@ export async function POST(request: Request) {
           welcome_email_sent: skipWelcomeEmail,
         }
 
-        console.log("📝 Datos que se van a insertar en profiles:", profileData)
+        console.log("📝 Datos que se van a actualizar en profiles:", profileData)
 
-        const { error: profileError } = await supabaseAdmin.from("profiles").insert([profileData])
+        const { error: profileError } = await supabaseAdmin
+          .from("profiles")
+          .update(profileData)
+          .eq("id", newUser.user.id)
 
         if (profileError) {
-      console.error("❌ Error creating profile:", profileError)
+      console.error("❌ Error updating profile:", profileError)
       // Limpiar usuario de auth si falla el profile
           await supabaseAdmin.auth.admin.deleteUser(newUser.user.id)
       return NextResponse.json({ 
-        message: "Error creando perfil del usuario",
+        message: "Error actualizando perfil del usuario",
         details: profileError.message,
         error_code: "PROFILE_ERROR"
       }, { status: 500 })
     }
 
-    console.log("✅ Profile creado exitosamente")
+    console.log("✅ Profile actualizado exitosamente")
 
     // PASO 5: Enviar correo de bienvenida si es necesario
     if (!skipWelcomeEmail) {
