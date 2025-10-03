@@ -30,10 +30,14 @@ export interface Database {
           alias: string | null
           avatar_url: string | null
           created_at: string
+          email: string
           full_name: string | null
           id: string
+          motivational_quote: string | null
           phone: string | null
+          photo_assignment_percentage: number | null
           position: string | null
+          role: string | null
           updated_at: string
           welcome_email_sent: boolean | null
         }
@@ -41,10 +45,14 @@ export interface Database {
           alias?: string | null
           avatar_url?: string | null
           created_at?: string
+          email: string
           full_name?: string | null
           id: string
+          motivational_quote?: string | null
           phone?: string | null
+          photo_assignment_percentage?: number | null
           position?: string | null
+          role?: string | null
           updated_at?: string
           welcome_email_sent?: boolean | null
         }
@@ -52,10 +60,14 @@ export interface Database {
           alias?: string | null
           avatar_url?: string | null
           created_at?: string
+          email?: string
           full_name?: string | null
           id?: string
+          motivational_quote?: string | null
           phone?: string | null
+          photo_assignment_percentage?: number | null
           position?: string | null
+          role?: string | null
           updated_at?: string
           welcome_email_sent?: boolean | null
         }
