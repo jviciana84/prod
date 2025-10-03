@@ -10,10 +10,11 @@ export const metadata: Metadata = {
 }
 
 async function getStockData() {
-  // Obtener todos los registros de stock para las estadísticas
+  // Obtener registros de stock para las estadísticas (excluyendo entregados)
   const { data: stockData, error: stockError } = await supabaseAdmin
     .from("stock")
     .select("*")
+    .neq('estado', 'entregado') // Excluir vehículos entregados del stock
     .order("reception_date", { ascending: false })
 
   if (stockError) {

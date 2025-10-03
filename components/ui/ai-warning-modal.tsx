@@ -13,12 +13,15 @@ export function AIWarningModal({ isVisible, onClose }: AIWarningModalProps) {
   useEffect(() => {
     if (isVisible) {
       setShow(true)
+      // Cerrar automáticamente después de 4 segundos
       const timer = setTimeout(() => {
         setShow(false)
         setTimeout(onClose, 300) // Esperar a que termine la animación
-      }, 4000) // 4 segundos
+      }, 4000)
 
       return () => clearTimeout(timer)
+    } else {
+      setShow(false)
     }
   }, [isVisible, onClose])
 

@@ -10,6 +10,7 @@ import { TypingIndicator } from "@/components/ui/typing-indicator"
 import { AIWarningModal } from "@/components/ui/ai-warning-modal"
 import { CopyButton } from "@/components/ui/copy-button"
 import { FeedbackButtons } from "@/components/ui/feedback-buttons"
+import { MarkdownRenderer } from "@/components/ui/markdown-renderer"
 
 interface ChatMessage {
   id: string
@@ -32,7 +33,7 @@ interface CompactChatWindowProps {
 }
 
 export function CompactChatWindow({ isOpen, onClose }: CompactChatWindowProps) {
-  const { messages, sendMessage, clearMessages, isLoading, isTyping, showAIWarning, closeAIWarning } = useAIChatSimple()
+  const { messages, sendMessage, clearMessages, isLoading, isTyping, showAIWarning, closeAIWarning, resetSession } = useAIChatSimple()
   const [isMinimized, setIsMinimized] = useState(false)
   const [isMaximized, setIsMaximized] = useState(false)
   const [isHistoryOpen, setIsHistoryOpen] = useState(false)
@@ -71,6 +72,13 @@ export function CompactChatWindow({ isOpen, onClose }: CompactChatWindowProps) {
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  // Resetear sesión cuando se abre el chat
+  useEffect(() => {
+    if (isOpen) {
+      resetSession()
+    }
+  }, [isOpen, resetSession])
 
   // Carrusel automático de tarjetas de información
   useEffect(() => {
@@ -360,7 +368,14 @@ export function CompactChatWindow({ isOpen, onClose }: CompactChatWindowProps) {
                     }`}
                   >
                     <div className="flex items-start">
-                      <span>{message.text}</span>
+                      {message.isUser ? (
+                        <span>{message.text}</span>
+                      ) : (
+                        <MarkdownRenderer 
+                          content={message.text} 
+                          className="text-xs leading-relaxed"
+                        />
+                      )}
                     </div>
                   </div>
                   

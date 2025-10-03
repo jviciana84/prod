@@ -636,11 +636,12 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
         return
       }
       
-      // Test 2: Consulta completa
-      console.log("🔍 Test 2: Consulta completa...")
+      // Test 2: Consulta completa (excluyendo vehículos entregados)
+      console.log("🔍 Test 2: Consulta completa (excluyendo entregados)...")
       const { data, error } = await supabase
         .from('stock')
         .select('*')
+        .neq('estado', 'entregado') // Excluir vehículos entregados del stock
         .order('created_at', { ascending: false })
       
       console.log("📊 Test 2 resultado:", data?.length || 0, "error:", error)

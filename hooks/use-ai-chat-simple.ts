@@ -11,6 +11,26 @@ export function useAIChatSimple() {
   const [isLoading, setIsLoading] = useState(false)
   const [isTyping, setIsTyping] = useState(false)
   const [showAIWarning, setShowAIWarning] = useState(false)
+  const [hasShownWarning, setHasShownWarning] = useState(false)
+  const [conversationCount, setConversationCount] = useState(() => {
+    // Obtener contador del localStorage o inicializar en 0
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('edelweiss_conversation_count')
+      const count = stored ? parseInt(stored, 10) : 0
+      console.log(`🔢 Contador de conversaciones inicializado: ${count}`)
+      return count
+    }
+    return 0
+  })
+  
+  // Estado para controlar si es la primera vez que se abre el chat
+  const [isFirstTime, setIsFirstTime] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const hasOpened = localStorage.getItem('edelweiss_has_opened')
+      return !hasOpened
+    }
+    return true
+  })
   const [messages, setMessages] = useState<AIMessage[]>([
     {
       id: "welcome",
@@ -20,13 +40,40 @@ export function useAIChatSimple() {
     }
   ])
 
+  // El modal maneja su propio cierre automático, no necesitamos timer aquí
+
   const sendMessage = useCallback(async (message: string) => {
     if (!message.trim()) return
 
     console.log('Enviando mensaje:', message)
+    console.log(`🔢 Contador actual: ${conversationCount}`)
 
-    // Mostrar advertencia de IA
-    setShowAIWarning(true)
+    // Incrementar contador de conversaciones
+    const newCount = conversationCount + 1
+    setConversationCount(newCount)
+    console.log(`🔢 Nuevo contador: ${newCount}`)
+    
+    // Guardar en localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('edelweiss_conversation_count', newCount.toString())
+    }
+
+    // Mostrar modal en primera interacción o cada 3 conversaciones
+    const shouldShowModal = isFirstTime || newCount % 3 === 1
+    
+    if (shouldShowModal) {
+      console.log(`🔔 Mostrando modal - Primera vez: ${isFirstTime}, Conversación: ${newCount}`)
+      setShowAIWarning(true)
+      setHasShownWarning(true)
+      
+      // Marcar que ya se abrió el chat
+      if (isFirstTime) {
+        setIsFirstTime(false)
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('edelweiss_has_opened', 'true')
+        }
+      }
+    }
     
     setIsLoading(true)
     setIsTyping(true)
@@ -41,7 +88,7 @@ export function useAIChatSimple() {
     setMessages(prev => [...prev, userMessage])
 
     try {
-      console.log('Haciendo fetch a /api/chat/simple')
+      console.log('Haciendo fetch a /api/chat/complete')
       
       // Enviar mensaje a la IA completa
       const response = await fetch('/api/chat/complete', {
@@ -99,7 +146,54 @@ export function useAIChatSimple() {
         timestamp: new Date()
       }
     ])
+    // Resetear el estado de advertencia para nueva sesión
+    setHasShownWarning(false)
+    setShowAIWarning(false)
   }, [])
+
+  const resetSession = useCallback(() => {
+    // Función para resetear la sesión (cuando se cierra y abre el chat)
+    // NO reseteamos el contador de conversaciones, debe persistir
+    setHasShownWarning(false)
+    setShowAIWarning(false)
+  }, [])
+
+  const resetConversationCount = useCallback(() => {
+    // Función para resetear manualmente el contador de conversaciones
+    console.log('🔄 Reseteando contador de conversaciones a 0')
+    setConversationCount(0)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('edelweiss_conversation_count', '0')
+    }
+  }, [])
+
+  const forceShowModal = useCallback(() => {
+    // Función para forzar que aparezca el modal
+    console.log('🔔 Forzando aparición del modal')
+    setShowAIWarning(true)
+    setHasShownWarning(true)
+  }, [])
+
+  const resetModalState = useCallback(() => {
+    // Función para resetear completamente el estado del modal
+    console.log('🔄 Reseteando estado completo del modal')
+    setConversationCount(0)
+    setIsFirstTime(true)
+    setHasShownWarning(false)
+    setShowAIWarning(false)
+    
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('edelweiss_conversation_count')
+      localStorage.removeItem('edelweiss_has_opened')
+    }
+  }, [])
+
+  const getNextModalConversation = useCallback(() => {
+    // Función para calcular cuándo aparecerá el próximo modal
+    if (conversationCount === 0) return 1 // Primera interacción
+    const next = Math.ceil((conversationCount + 1) / 3) * 3 + 1
+    return next
+  }, [conversationCount])
 
   return {
     messages,
@@ -108,6 +202,13 @@ export function useAIChatSimple() {
     isLoading,
     isTyping,
     showAIWarning,
-    closeAIWarning
+    closeAIWarning,
+    resetSession,
+    conversationCount,
+    resetConversationCount,
+    getNextModalConversation,
+    forceShowModal,
+    resetModalState,
+    isFirstTime
   }
 }
