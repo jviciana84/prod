@@ -788,6 +788,7 @@ export default async function Dashboard() {
       averagePaintDays={averagePaintDays}
       averageMechanicalDays={averageMechanicalDays}
       workshopDaysData={workshopDaysData}
+      allWorkshopDaysData={allWorkshopDaysData}
       incidentPercentage={incidentPercentage}
       stats={stats}
     />

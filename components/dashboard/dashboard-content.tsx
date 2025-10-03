@@ -30,6 +30,7 @@ interface DashboardContentProps {
   averagePaintDays: string
   averageMechanicalDays: string
   workshopDaysData: any[]
+  allWorkshopDaysData: any[]
   incidentPercentage: string
   stats: {
     vehiclesInStock: number
@@ -75,6 +76,7 @@ export function DashboardContent({
   averagePaintDays,
   averageMechanicalDays,
   workshopDaysData,
+  allWorkshopDaysData,
   incidentPercentage,
   stats
 }: DashboardContentProps) {
@@ -124,6 +126,7 @@ export function DashboardContent({
         averagePaintDays={averagePaintDays}
         averageWorkshopDays={averageMechanicalDays}
         chartData={workshopDaysData}
+        allChartData={allWorkshopDaysData}
         incidentPercentage={incidentPercentage}
       />
 

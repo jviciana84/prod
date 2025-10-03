@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { TrendingUp, TrendingDown, Car, Paintbrush, Wrench, Clock, CircleAlert } from "lucide-react"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts"
 import { useState } from "react"
@@ -21,6 +22,7 @@ interface WorkshopDaysCardProps {
   averagePaintDays: string
   averageWorkshopDays: string
   chartData: { unit: string; days: number; saturation: number; matricula?: string }[]
+  allChartData: { unit: string; days: number; saturation: number; matricula?: string }[] // Todos los datos disponibles
   incidentPercentage: string // New prop for incident percentage
 }
 
@@ -83,9 +85,32 @@ export function WorkshopDaysCard({
   averagePaintDays,
   averageWorkshopDays,
   chartData,
+  allChartData,
   incidentPercentage, // Destructure new prop
 }: WorkshopDaysCardProps) {
   const [hoveredData, setHoveredData] = useState<{ matricula: string; days: number } | null>(null)
+  const [selectedCount, setSelectedCount] = useState<number>(15)
+
+  // Función para obtener los datos según la cantidad seleccionada
+  const getFilteredChartData = () => {
+    if (selectedCount === 0) {
+      // Mostrar todos los datos
+      return allChartData.map((item, index) => ({
+        ...item,
+        unit: `${index + 1}`,
+        matricula: item.matricula
+      }))
+    } else {
+      // Mostrar solo la cantidad seleccionada
+      return allChartData.slice(0, selectedCount).map((item, index) => ({
+        ...item,
+        unit: `${index + 1}`,
+        matricula: item.matricula
+      }))
+    }
+  }
+
+  const filteredChartData = getFilteredChartData()
 
   const metrics: MetricItem[] = [
     {
@@ -193,10 +218,25 @@ export function WorkshopDaysCard({
 
           {/* Subcard 2 - Gráfico */}
           <Card className="border">
-            <CardContent className="p-2 h-full flex flex-col">
+            <CardContent className="p-2 h-full flex flex-col relative">
+              {/* Botones para seleccionar cantidad de vehículos - Posicionados dentro del gráfico */}
+              <div className="absolute top-2 right-2 z-10 flex gap-1">
+                {[15, 30, 50, 100, 0].map((count) => (
+                  <Button
+                    key={count}
+                    variant={selectedCount === count ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedCount(count)}
+                    className="text-xs px-2 py-1 h-6 bg-background/90 backdrop-blur-sm border"
+                  >
+                    {count === 0 ? "Total" : count}
+                  </Button>
+                ))}
+              </div>
+              
               <div className="flex-1 w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData} margin={{ top: 2, right: 5, left: -36, bottom: -23 }}>
+                  <LineChart data={filteredChartData} margin={{ top: 2, right: 5, left: -36, bottom: -23 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground) / 0.7)" />
                     <XAxis dataKey="unit" axisLine={false} tickLine={false} tick={false} />
                     <YAxis
@@ -227,7 +267,12 @@ export function WorkshopDaysCard({
                     {hoveredData.matricula} - {hoveredData.days} días
                   </span>
                 ) : (
-                  <span className="text-muted-foreground">Últimos {chartData.length} vehículos completados</span>
+                  <span className="text-muted-foreground">
+                    {selectedCount === 0 
+                      ? `Todos los ${filteredChartData.length} vehículos completados`
+                      : `Últimos ${filteredChartData.length} vehículos completados`
+                    }
+                  </span>
                 )}
               </div>
             </CardContent>
