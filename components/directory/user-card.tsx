@@ -1,79 +1,50 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import type { UserWithRoles } from "@/lib/auth/types"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Calendar, Mail, Phone, Clock, Activity } from "lucide-react"
+import { Calendar, Mail, Phone, Clock, Activity, CreditCard, Banknote, CheckCircle, Plus } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
 import { cn } from "@/lib/utils"
+import { userActivityService, type UserActivity } from "@/lib/user-activity-service"
 
 interface UserCardProps {
   user: UserWithRoles
 }
 
-interface UserActivity {
-  id: string
-  user_id: string
-  action: string
-  resource: string
-  created_at: string
-  details?: string
-}
-
 export function UserCard({ user }: UserCardProps) {
-  const router = useRouter()
   const [activities, setActivities] = useState<UserActivity[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     const fetchActivities = async () => {
       try {
-        // Simulamos obtener las actividades del usuario
-        // En una implementación real, esto sería una llamada a la API
-        setIsLoading(false)
-
-        // Datos de ejemplo para mostrar
-        const mockActivities: UserActivity[] = [
-          {
-            id: "1",
-            user_id: user.id,
-            action: "login",
-            resource: "auth",
-            created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 minutos atrás
-            details: "Inicio de sesión exitoso",
-          },
-          {
-            id: "2",
-            user_id: user.id,
-            action: "view",
-            resource: "transport",
-            created_at: new Date(Date.now() - 1000 * 60 * 120).toISOString(), // 2 horas atrás
-            details: "Visualizó la lista de transportes",
-          },
-          {
-            id: "3",
-            user_id: user.id,
-            action: "update",
-            resource: "profile",
-            created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(), // 2 días atrás
-            details: "Actualizó su perfil",
-          },
-        ]
-
-        setActivities(mockActivities)
+        setIsLoading(true)
+        console.log(`🔍 Cargando actividades reales para: ${user.full_name || user.email}`)
+        
+        // Obtener actividades reales del usuario
+        const realActivities = await userActivityService.getUserActivities(
+          user.id, 
+          user.email, 
+          user.full_name || user.email
+        )
+        
+        setActivities(realActivities)
+        console.log(`✅ Actividades cargadas para ${user.full_name}:`, realActivities.length)
       } catch (error) {
         console.error("Error al cargar actividades:", error)
+        setActivities([])
+      } finally {
         setIsLoading(false)
       }
     }
 
     fetchActivities()
-  }, [user.id])
+  }, [user.id, user.email, user.full_name])
 
   // Función para obtener el color del badge según el rol
   const getRoleBadgeColor = (roleName: string) => {
@@ -90,8 +61,16 @@ export function UserCard({ user }: UserCardProps) {
   }
 
   // Función para obtener el icono según el tipo de actividad
-  const getActivityIcon = (action: string) => {
+  const getActivityIcon = (action: string, paymentMethod?: string) => {
     switch (action) {
+      case "sale":
+        return paymentMethod === "Financiado" 
+          ? <CreditCard className="h-4 w-4 text-blue-500" />
+          : <Banknote className="h-4 w-4 text-green-500" />
+      case "create":
+        return <Plus className="h-4 w-4 text-purple-500" />
+      case "process":
+        return <Activity className="h-4 w-4 text-orange-500" />
       case "login":
         return <Activity className="h-4 w-4 text-green-500" />
       case "logout":
@@ -100,8 +79,6 @@ export function UserCard({ user }: UserCardProps) {
         return <Activity className="h-4 w-4 text-blue-500" />
       case "update":
         return <Activity className="h-4 w-4 text-yellow-500" />
-      case "create":
-        return <Activity className="h-4 w-4 text-purple-500" />
       case "delete":
         return <Activity className="h-4 w-4 text-red-500" />
       default:
@@ -109,14 +86,9 @@ export function UserCard({ user }: UserCardProps) {
     }
   }
 
-  const handleCardClick = () => {
-    router.push(`/dashboard/directory/${user.id}`)
-  }
-
   return (
     <Card
-      className={cn("overflow-hidden transition-all cursor-pointer hover:shadow-md bmw-m-hover-border")}
-      onClick={handleCardClick}
+      className={cn("overflow-hidden transition-all hover:shadow-md bmw-m-hover-border")}
     >
       <CardHeader className="p-4 pb-0">
         <div className="flex items-start justify-between">
@@ -187,6 +159,7 @@ export function UserCard({ user }: UserCardProps) {
           <div className="w-full space-y-2">
             <div className="h-4 bg-muted rounded animate-pulse"></div>
             <div className="h-4 bg-muted rounded animate-pulse"></div>
+            <div className="h-4 bg-muted rounded animate-pulse"></div>
           </div>
         ) : activities.length > 0 ? (
           <div className="w-full space-y-1">
@@ -195,10 +168,15 @@ export function UserCard({ user }: UserCardProps) {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <div className="flex items-center text-xs text-muted-foreground py-1">
-                      {getActivityIcon(activity.action)}
+                      {getActivityIcon(activity.action, activity.payment_method)}
                       <span className="ml-2 truncate flex-1">
                         {activity.details || `${activity.action} en ${activity.resource}`}
                       </span>
+                      {activity.price && (
+                        <span className="text-xs font-mono text-green-600 dark:text-green-400 mr-2">
+                          {activity.price.toLocaleString()}€
+                        </span>
+                      )}
                       <span className="text-xs text-muted-foreground whitespace-nowrap">
                         {formatDistanceToNow(new Date(activity.created_at), {
                           addSuffix: true,
@@ -210,6 +188,9 @@ export function UserCard({ user }: UserCardProps) {
                   <TooltipContent>
                     <p>{activity.details || `${activity.action} en ${activity.resource}`}</p>
                     <p className="text-xs text-muted-foreground">{new Date(activity.created_at).toLocaleString()}</p>
+                    {activity.badge && (
+                      <p className="text-xs text-blue-600 dark:text-blue-400">Tipo: {activity.badge}</p>
+                    )}
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>

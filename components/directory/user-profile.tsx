@@ -7,21 +7,13 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { ArrowLeft, Phone, Calendar, Clock, Activity, Building, User } from "lucide-react"
+import { ArrowLeft, Phone, Calendar, Clock, Activity, Building, User, CreditCard, Banknote, Plus, CheckCircle } from "lucide-react"
 import { formatDistanceToNow, format } from "date-fns"
 import { es } from "date-fns/locale"
+import { userActivityService, type UserActivity } from "@/lib/user-activity-service"
 
 interface UserProfileProps {
   user: any // Usamos any temporalmente para evitar problemas con la estructura de datos
-}
-
-interface UserActivity {
-  id: string
-  user_id: string
-  action: string
-  resource: string
-  created_at: string
-  details?: string
 }
 
 export default function UserProfile({ user }: UserProfileProps) {
@@ -32,63 +24,28 @@ export default function UserProfile({ user }: UserProfileProps) {
   useEffect(() => {
     const fetchActivities = async () => {
       try {
-        // Simulamos obtener las actividades del usuario
-        // En una implementación real, esto sería una llamada a la API
-        setIsLoading(false)
-
-        // Datos de ejemplo para mostrar
-        const mockActivities: UserActivity[] = [
-          {
-            id: "1",
-            user_id: user.id,
-            action: "login",
-            resource: "auth",
-            created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 minutos atrás
-            details: "Inicio de sesión exitoso",
-          },
-          {
-            id: "2",
-            user_id: user.id,
-            action: "view",
-            resource: "transport",
-            created_at: new Date(Date.now() - 1000 * 60 * 120).toISOString(), // 2 horas atrás
-            details: "Visualizó la lista de transportes",
-          },
-          {
-            id: "3",
-            user_id: user.id,
-            action: "update",
-            resource: "profile",
-            created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(), // 2 días atrás
-            details: "Actualizó su perfil",
-          },
-          {
-            id: "4",
-            user_id: user.id,
-            action: "create",
-            resource: "transport",
-            created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(), // 3 días atrás
-            details: "Creó un nuevo registro de transporte",
-          },
-          {
-            id: "5",
-            user_id: user.id,
-            action: "view",
-            resource: "settings",
-            created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(), // 5 días atrás
-            details: "Accedió a la configuración",
-          },
-        ]
-
-        setActivities(mockActivities)
+        setIsLoading(true)
+        console.log(`🔍 Cargando actividades reales para perfil de: ${user.full_name || user.email}`)
+        
+        // Obtener actividades reales del usuario
+        const realActivities = await userActivityService.getUserActivities(
+          user.id, 
+          user.email, 
+          user.full_name || user.email
+        )
+        
+        setActivities(realActivities)
+        console.log(`✅ Actividades cargadas para perfil ${user.full_name}:`, realActivities.length)
       } catch (error) {
         console.error("Error al cargar actividades:", error)
+        setActivities([])
+      } finally {
         setIsLoading(false)
       }
     }
 
     fetchActivities()
-  }, [user.id])
+  }, [user.id, user.email, user.full_name])
 
   // Función para obtener el color del badge según el rol
   const getRoleBadgeColor = (roleName: string) => {
@@ -105,8 +62,16 @@ export default function UserProfile({ user }: UserProfileProps) {
   }
 
   // Función para obtener el icono según el tipo de actividad
-  const getActivityIcon = (action: string) => {
+  const getActivityIcon = (action: string, paymentMethod?: string) => {
     switch (action) {
+      case "sale":
+        return paymentMethod === "Financiado" 
+          ? <CreditCard className="h-4 w-4 text-blue-500" />
+          : <Banknote className="h-4 w-4 text-green-500" />
+      case "create":
+        return <Plus className="h-4 w-4 text-purple-500" />
+      case "process":
+        return <Activity className="h-4 w-4 text-orange-500" />
       case "login":
         return <Activity className="h-4 w-4 text-green-500" />
       case "logout":
@@ -115,8 +80,6 @@ export default function UserProfile({ user }: UserProfileProps) {
         return <Activity className="h-4 w-4 text-blue-500" />
       case "update":
         return <Activity className="h-4 w-4 text-yellow-500" />
-      case "create":
-        return <Activity className="h-4 w-4 text-purple-500" />
       case "delete":
         return <Activity className="h-4 w-4 text-red-500" />
       default:
@@ -229,11 +192,30 @@ export default function UserProfile({ user }: UserProfileProps) {
                 {activities.map((activity) => (
                   <div key={activity.id} className="border-b pb-4 last:border-0 last:pb-0">
                     <div className="flex items-start">
-                      <div className="bg-muted rounded-full p-2 mr-3">{getActivityIcon(activity.action)}</div>
+                      <div className="bg-muted rounded-full p-2 mr-3">{getActivityIcon(activity.action, activity.payment_method)}</div>
                       <div className="flex-1">
-                        <p className="font-medium">
-                          {activity.details || `${activity.action} en ${activity.resource}`}
-                        </p>
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-medium">
+                            {activity.details || `${activity.action} en ${activity.resource}`}
+                          </p>
+                          {activity.badge && (
+                            <Badge variant="secondary" className="text-xs">
+                              {activity.badge}
+                            </Badge>
+                          )}
+                        </div>
+                        {activity.price && (
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-sm font-mono text-green-600 dark:text-green-400">
+                              {activity.price.toLocaleString()}€
+                            </span>
+                            {activity.payment_method && (
+                              <span className="text-xs text-muted-foreground">
+                                ({activity.payment_method})
+                              </span>
+                            )}
+                          </div>
+                        )}
                         <div className="flex items-center mt-1 text-sm text-muted-foreground">
                           <time dateTime={activity.created_at}>
                             {format(new Date(activity.created_at), "dd/MM/yyyy HH:mm", {

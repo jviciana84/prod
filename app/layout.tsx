@@ -79,7 +79,7 @@ export default function RootLayout({
         {/* <ThemeInitializer /> */}
         <ThemeProvider 
           attribute="class" 
-          defaultTheme="light" 
+          defaultTheme="dark" 
           enableSystem 
           disableTransitionOnChange
           storageKey="theme"
