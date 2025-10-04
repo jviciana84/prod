@@ -265,6 +265,13 @@ export default function DashboardSidebar({ roles }: DashboardSidebarProps) {
                 isExpanded={isExpanded}
               />
             )}
+            <SidebarItem
+              href="/dashboard/admin/conversaciones"
+              icon={<MessageSquare className="h-5 w-5" />}
+              title="Conversaciones AI"
+              isActive={pathname === "/dashboard/admin/conversaciones"}
+              isExpanded={isExpanded}
+            />
           </SidebarGroup>
         )}
 
