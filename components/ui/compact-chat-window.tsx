@@ -11,6 +11,7 @@ import { AIWarningModal } from "@/components/ui/ai-warning-modal"
 import { CopyButton } from "@/components/ui/copy-button"
 import { FeedbackButtons } from "@/components/ui/feedback-buttons"
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer"
+import { SmartContentDetector } from "@/components/ui/smart-content-detector"
 import { toast } from "@/hooks/use-toast"
 
 interface ChatMessage {
@@ -18,6 +19,7 @@ interface ChatMessage {
   text: string
   isUser: boolean
   timestamp: Date
+  conversationId?: string
 }
 
 interface ChatConversation {
@@ -425,9 +427,9 @@ export function CompactChatWindow({ isOpen, onClose }: CompactChatWindowProps) {
                   >
                     <div className="flex items-start">
                       {message.isUser ? (
-                        <span>{message.text}</span>
+                      <span>{message.text}</span>
                       ) : (
-                        <MarkdownRenderer 
+                        <SmartContentDetector 
                           content={message.text} 
                           className="text-xs leading-relaxed"
                         />
@@ -452,9 +454,44 @@ export function CompactChatWindow({ isOpen, onClose }: CompactChatWindowProps) {
                         />
                         <FeedbackButtons 
                           messageId={message.id}
-                          onFeedback={(messageId, feedback) => {
-                            console.log(`Feedback para mensaje ${messageId}: ${feedback}`)
-                            // Aquí puedes agregar lógica para guardar el feedback
+                          conversationId={message.conversationId}
+                          onFeedback={async (messageId, feedback, feedbackText) => {
+                            try {
+                              const response = await fetch('/api/feedback', {
+                                method: 'POST',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                  conversationId: message.conversationId,
+                                  messageId: messageId,
+                                  feedbackType: feedback,
+                                  feedbackText: feedbackText
+                                })
+                              })
+
+                              const data = await response.json()
+
+                              if (!response.ok) {
+                                throw new Error(data.message || 'Error enviando feedback')
+                              }
+
+                              toast({
+                                title: feedback === 'positive' ? "¡Gracias!" : "Feedback recibido",
+                                description: feedback === 'positive' 
+                                  ? "Tu feedback positivo ha sido registrado" 
+                                  : "Tu comentario nos ayudará a mejorar",
+                                variant: feedback === 'positive' ? 'default' : 'default'
+                              })
+
+                            } catch (error) {
+                              console.error('Error enviando feedback:', error)
+                              toast({
+                                title: "Error",
+                                description: "No se pudo enviar el feedback. Inténtalo de nuevo.",
+                                variant: "destructive"
+                              })
+                            }
                           }}
                         />
                       </div>
