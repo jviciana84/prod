@@ -186,9 +186,9 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
       console.log("🔍 Cargando TODAS las entregas (diagnóstico)...")
       let query = supabase.from("entregas").select("*").order("fecha_venta", { ascending: false })
 
-      // Determinar si el usuario es administrador
+      // Determinar si el usuario es administrador o supervisor
       const userRole = profile?.role?.toLowerCase() || ""
-      const isAdmin = ["admin", "administrador", "director"].includes(userRole)
+      const isAdmin = ["admin", "administrador", "director", "supervisor"].includes(userRole)
       const isAsesor = ["asesor", "asesor ventas", "asesor comercial"].includes(userRole)
 
       console.log("🔍 Debug info:")
@@ -200,9 +200,9 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
 
       // Aplicar filtros según el rol del usuario
       if (isAdmin) {
-        // Admin ve todas las entregas
-        console.log("👑 Modo administrador - mostrando todas las entregas")
-        toast.info("Mostrando todas las entregas (modo administrador)")
+        // Admin y Supervisor ven todas las entregas
+        console.log("👑 Modo administrador/supervisor - mostrando todas las entregas")
+        toast.info("Mostrando todas las entregas (modo administrador/supervisor)")
       } else if (isAsesor && profile?.full_name) {
         // Asesor ve solo sus entregas - usar mapeo de nombres
         console.log("🔍 Buscando mapeo para asesor...")

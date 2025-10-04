@@ -163,20 +163,22 @@ export async function checkUserRole(supabase: any, roleName: string): Promise<bo
   }
 }
 
-// Añadir función para verificar si el usuario es administrador (cualquier tipo)
+// Añadir función para verificar si el usuario es administrador o supervisor (cualquier tipo)
 export async function isUserAdmin(): Promise<boolean> {
   try {
-    console.log("⚙️ [isUserAdmin] Verificando si el usuario es administrador...")
+    console.log("⚙️ [isUserAdmin] Verificando si el usuario es administrador o supervisor...")
     const roles = await getUserRoles()
     console.log("✅ [isUserAdmin] Roles obtenidos para verificación de admin:", roles)
     
-    // Verificar cualquier rol de administrador (considerando mayúsculas/minúsculas)
+    // Verificar cualquier rol de administrador o supervisor (considerando mayúsculas/minúsculas)
     const isAdmin = roles.some((role) => {
       const lowerRole = role.toLowerCase()
       return lowerRole === "admin" || 
              lowerRole === "administrador" || 
              lowerRole === "administración" ||
-             lowerRole.includes("admin")
+             lowerRole === "supervisor" ||
+             lowerRole.includes("admin") ||
+             lowerRole.includes("supervisor")
     })
     
     console.log("🛡️ [isUserAdmin] Resultado de verificación de admin:", isAdmin)
