@@ -4,6 +4,8 @@ import { createServerClient } from '@/lib/supabase/server'
 import { cookies } from 'next/headers'
 
 export async function POST(request: NextRequest) {
+  let contextData = null;
+  
   try {
     const { message } = await request.json()
 
@@ -68,33 +70,36 @@ export async function POST(request: NextRequest) {
       console.log('✅ Cliente de Supabase creado correctamente')
       
       // Obtener contexto de la base de datos
-      let contextData = null
       const query = message.toLowerCase()
       
       // Detectar si es una consulta específica de CVO
-    const isCVOQuery = (
-      query.includes('cuantos') || query.includes('cuántos') || 
-      query.includes('ha vendido') || query.includes('vendido') || 
-      query.includes('realizado') || query.includes('asesor') ||
-      query.includes('ventas') || query.includes('stock') ||
-      query.includes('vehículo') || query.includes('vehiculo') ||
-      query.includes('matrícula') || query.includes('matricula') ||
-      query.includes('cliente') || query.includes('pedido') ||
-      query.includes('entrega') || query.includes('foto') ||
-      query.includes('incentivo') || query.includes('extorno') ||
-      query.includes('garantía') || query.includes('garantia') ||
-      query.includes('jordi') || query.includes('pol') || query.includes('viciana') ||
-      query.includes('capellino') || query.includes('bmw') || query.includes('mercedes') ||
-      query.includes('serie 5') || query.includes('serie5') || query.includes('serie 1') || query.includes('serie1') || 
-      query.includes('serie 3') || query.includes('serie3') || query.includes('negro') ||
-      query.includes('madrid') || query.includes('chico') || query.includes('contacto') ||
-      query.includes('datos') || query.includes('tiempo') || query.includes('buscar') ||
-      query.includes('1250') || query.includes('gs') || query.includes('adventure') || 
-      query.includes('adventura') || query.includes('poblacion') || query.includes('población') || 
-      query.includes('ultima') || query.includes('última') || query.includes('gasolina') ||
-      query.includes('diesel') || query.includes('320d') || query.includes('320D') ||
-      query.includes('118i') || query.includes('118d') || query.includes('520d') || query.includes('520D')
-    )
+      // Primero verificar si contiene una matrícula
+      const matriculaMatch = message.match(/\b[A-Z0-9]{4,8}[A-Z]{2,3}\b/g);
+      const hasMatricula = matriculaMatch && matriculaMatch.length > 0;
+      
+      const isCVOQuery = hasMatricula || (
+        query.includes('cuantos') || query.includes('cuántos') || 
+        query.includes('ha vendido') || query.includes('vendido') || 
+        query.includes('realizado') || query.includes('asesor') ||
+        query.includes('ventas') || query.includes('stock') ||
+        query.includes('vehículo') || query.includes('vehiculo') ||
+        query.includes('matrícula') || query.includes('matricula') ||
+        query.includes('cliente') || query.includes('pedido') ||
+        query.includes('entrega') || query.includes('foto') ||
+        query.includes('incentivo') || query.includes('extorno') ||
+        query.includes('garantía') || query.includes('garantia') ||
+        query.includes('jordi') || query.includes('pol') || query.includes('viciana') ||
+        query.includes('capellino') || query.includes('bmw') || query.includes('mercedes') ||
+        query.includes('serie 5') || query.includes('serie5') || query.includes('serie 1') || query.includes('serie1') || 
+        query.includes('serie 3') || query.includes('serie3') || query.includes('negro') ||
+        query.includes('madrid') || query.includes('chico') || query.includes('contacto') ||
+        query.includes('datos') || query.includes('tiempo') || query.includes('buscar') ||
+        query.includes('1250') || query.includes('gs') || query.includes('adventure') || 
+        query.includes('adventura') || query.includes('poblacion') || query.includes('población') || 
+        query.includes('ultima') || query.includes('última') || query.includes('gasolina') ||
+        query.includes('diesel') || query.includes('320d') || query.includes('320D') ||
+        query.includes('118i') || query.includes('118d') || query.includes('520d') || query.includes('520D')
+      )
       
       console.log('🔍 Tipo de consulta detectada:', isCVOQuery ? 'CVO específica' : 'General')
       
@@ -103,8 +108,7 @@ export async function POST(request: NextRequest) {
         console.log('🔍 Intentando acceder a datos de CVO...')
         
         // PRIORIDAD MÁXIMA: Detectar búsqueda por matrícula específica
-        const matriculaMatch = message.match(/\b[A-Z0-9]{4,8}[A-Z]{2,3}\b/g);
-        if (matriculaMatch && matriculaMatch.length > 0) {
+        if (hasMatricula) {
           const matricula = matriculaMatch[0];
           console.log('🔍 Búsqueda por matrícula detectada:', matricula);
           
@@ -392,6 +396,17 @@ export async function POST(request: NextRequest) {
         }
       }
       
+      // Si es una consulta CVO pero no se encontraron datos específicos, marcar para preguntar
+      if (isCVOQuery && (!contextData || contextData.query_type === 'general')) {
+        console.log('🔍 Consulta CVO sin datos específicos - marcando para preguntar al usuario')
+        contextData = {
+          query_type: 'ambiguous_cvo_query',
+          message: message,
+          should_ask_user: true,
+          note: 'Consulta CVO detectada pero sin datos específicos - debe preguntar al usuario si quiere datos de CVO o información general'
+        }
+      }
+      
       // Detectar consultas de contactos (solo si es consulta CVO)
       if (isCVOQuery && (query.includes('telefono') || query.includes('teléfono') || query.includes('contacto'))) {
         console.log('🔍 Búsqueda de contactos...')
@@ -676,12 +691,12 @@ export async function POST(request: NextRequest) {
       response = `Lo siento, hubo un error al acceder a la base de datos: ${dbError.message}. Inténtalo de nuevo.`
     }
 
-    return NextResponse.json({ response })
+    return NextResponse.json({ response, contextData })
 
   } catch (error) {
     console.error('Error en API de chat:', error)
     
     const fallbackResponse = `Lo siento, hubo un error al procesar tu mensaje. Inténtalo de nuevo.`
-    return NextResponse.json({ response: fallbackResponse })
+    return NextResponse.json({ response: fallbackResponse, contextData: null })
   }
 }
