@@ -96,6 +96,10 @@ export default function ConversationsClient() {
   const [feedbackPage, setFeedbackPage] = useState(1)
   const [feedbackTotalPages, setFeedbackTotalPages] = useState(1)
   const [feedbackType, setFeedbackType] = useState<string>('all')
+  
+  // Estados para insights
+  const [insightsLoading, setInsightsLoading] = useState(false)
+  const [insightsData, setInsightsData] = useState<any>(null)
 
   const supabase = createClientComponentClient()
 
@@ -274,6 +278,113 @@ export default function ConversationsClient() {
       }
     } finally {
       setFeedbackLoading(false)
+    }
+  }
+
+  // Función para analizar feedback reciente
+  const analyzeRecentFeedback = async () => {
+    setInsightsLoading(true)
+    try {
+      const response = await fetch('/api/feedback/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error analizando feedback')
+      }
+
+      setInsightsData(data)
+      toast({
+        title: "Análisis completado",
+        description: `Analizados ${data.totalNegativeFeedback} casos de feedback negativo`,
+        variant: "default"
+      })
+
+    } catch (error) {
+      console.error('Error analizando feedback:', error)
+      toast({
+        title: "Error",
+        description: "Error al analizar el feedback. Inténtalo de nuevo.",
+        variant: "destructive"
+      })
+    } finally {
+      setInsightsLoading(false)
+    }
+  }
+
+  // Función para ver reporte completo
+  const viewFullReport = async () => {
+    setInsightsLoading(true)
+    try {
+      const response = await fetch('/api/feedback/insights', {
+        method: 'GET'
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error obteniendo insights')
+      }
+
+      setInsightsData(data)
+      toast({
+        title: "Reporte completo",
+        description: "Insights detallados cargados correctamente",
+        variant: "default"
+      })
+
+    } catch (error) {
+      console.error('Error obteniendo reporte:', error)
+      toast({
+        title: "Error",
+        description: "Error al obtener el reporte completo. Inténtalo de nuevo.",
+        variant: "destructive"
+      })
+    } finally {
+      setInsightsLoading(false)
+    }
+  }
+
+  // Función para aplicar todas las mejoras
+  const applyAllImprovements = async () => {
+    setInsightsLoading(true)
+    try {
+      const response = await fetch('/api/ai/improve-prompt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          improvements: ['accuracy', 'completeness', 'clarity']
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error aplicando mejoras')
+      }
+
+      toast({
+        title: "Mejoras aplicadas",
+        description: "Las mejoras automáticas han sido aplicadas al sistema",
+        variant: "default"
+      })
+
+    } catch (error) {
+      console.error('Error aplicando mejoras:', error)
+      toast({
+        title: "Error",
+        description: "Error al aplicar las mejoras. Inténtalo de nuevo.",
+        variant: "destructive"
+      })
+    } finally {
+      setInsightsLoading(false)
     }
   }
 
@@ -922,58 +1033,110 @@ export default function ConversationsClient() {
                          <CardTitle>Análisis de Patrones</CardTitle>
                        </CardHeader>
                        <CardContent>
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                           <div>
-                             <h4 className="font-medium mb-2">Problemas Más Comunes</h4>
-                             <div className="space-y-2">
-                               <div className="flex justify-between text-sm">
-                                 <span>Información incorrecta</span>
-                                 <span className="font-medium">3 casos</span>
+                         {insightsData ? (
+                           <div className="space-y-4">
+                             <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                               <h4 className="font-medium text-green-800 dark:text-green-200 mb-2">
+                                 ✅ Análisis Reciente Disponible
+                               </h4>
+                               <p className="text-sm text-green-700 dark:text-green-300">
+                                 Analizados {insightsData.totalNegativeFeedback} casos de feedback negativo
+                               </p>
+                             </div>
+                             
+                             {insightsData.analysis && (
+                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                 <div>
+                                   <h4 className="font-medium mb-2">Problemas Detectados</h4>
+                                   <div className="space-y-2">
+                                     {Object.entries(insightsData.analysis.commonIssues || {}).map(([issue, count]) => (
+                                       <div key={issue} className="flex justify-between text-sm">
+                                         <span>{issue}</span>
+                                         <span className="font-medium">{count} casos</span>
+                                       </div>
+                                     ))}
+                                   </div>
+                                 </div>
+                                 
+                                 <div>
+                                   <h4 className="font-medium mb-2">Sugerencias Generadas</h4>
+                                   <div className="space-y-2">
+                                     {insightsData.suggestions?.slice(0, 3).map((suggestion: string, index: number) => (
+                                       <div key={index} className="text-sm p-2 bg-blue-50 dark:bg-blue-950/20 rounded">
+                                         {suggestion}
+                                       </div>
+                                     ))}
+                                   </div>
+                                 </div>
                                </div>
-                               <div className="flex justify-between text-sm">
-                                 <span>Respuesta incompleta</span>
-                                 <span className="font-medium">5 casos</span>
+                             )}
+                           </div>
+                         ) : (
+                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                             <div>
+                               <h4 className="font-medium mb-2">Problemas Más Comunes</h4>
+                               <div className="space-y-2">
+                                 <div className="flex justify-between text-sm">
+                                   <span>Información incorrecta</span>
+                                   <span className="font-medium">3 casos</span>
+                                 </div>
+                                 <div className="flex justify-between text-sm">
+                                   <span>Respuesta incompleta</span>
+                                   <span className="font-medium">5 casos</span>
+                                 </div>
+                                 <div className="flex justify-between text-sm">
+                                   <span>Lenguaje confuso</span>
+                                   <span className="font-medium">2 casos</span>
+                                 </div>
                                </div>
-                               <div className="flex justify-between text-sm">
-                                 <span>Lenguaje confuso</span>
-                                 <span className="font-medium">2 casos</span>
+                             </div>
+                             
+                             <div>
+                               <h4 className="font-medium mb-2">Horarios Problemáticos</h4>
+                               <div className="space-y-2">
+                                 <div className="flex justify-between text-sm">
+                                   <span>Mañana (9-12h)</span>
+                                   <span className="font-medium">40% problemas</span>
+                                 </div>
+                                 <div className="flex justify-between text-sm">
+                                   <span>Tarde (14-17h)</span>
+                                   <span className="font-medium">35% problemas</span>
+                                 </div>
+                                 <div className="flex justify-between text-sm">
+                                   <span>Noche (18-21h)</span>
+                                   <span className="font-medium">25% problemas</span>
+                                 </div>
                                </div>
                              </div>
                            </div>
-                           
-                           <div>
-                             <h4 className="font-medium mb-2">Horarios Problemáticos</h4>
-                             <div className="space-y-2">
-                               <div className="flex justify-between text-sm">
-                                 <span>Mañana (9-12h)</span>
-                                 <span className="font-medium">40% problemas</span>
-                               </div>
-                               <div className="flex justify-between text-sm">
-                                 <span>Tarde (14-17h)</span>
-                                 <span className="font-medium">35% problemas</span>
-                               </div>
-                               <div className="flex justify-between text-sm">
-                                 <span>Noche (18-21h)</span>
-                                 <span className="font-medium">25% problemas</span>
-                               </div>
-                             </div>
-                           </div>
-                         </div>
+                         )}
                        </CardContent>
                      </Card>
 
                      {/* Botones de acción */}
                      <div className="flex gap-3">
-                       <Button className="bg-blue-600 hover:bg-blue-700">
+                       <Button 
+                         className="bg-blue-600 hover:bg-blue-700"
+                         onClick={analyzeRecentFeedback}
+                         disabled={insightsLoading}
+                       >
                          <TrendingUp className="h-4 w-4 mr-2" />
-                         Analizar Feedback Reciente
+                         {insightsLoading ? 'Analizando...' : 'Analizar Feedback Reciente'}
                        </Button>
-                       <Button variant="outline">
+                       <Button 
+                         variant="outline"
+                         onClick={viewFullReport}
+                         disabled={insightsLoading}
+                       >
                          <TrendingDown className="h-4 w-4 mr-2" />
-                         Ver Reporte Completo
+                         {insightsLoading ? 'Cargando...' : 'Ver Reporte Completo'}
                        </Button>
-                       <Button variant="outline">
-                         🔄 Aplicar Todas las Mejoras
+                       <Button 
+                         variant="outline"
+                         onClick={applyAllImprovements}
+                         disabled={insightsLoading}
+                       >
+                         🔄 {insightsLoading ? 'Aplicando...' : 'Aplicar Todas las Mejoras'}
                        </Button>
                      </div>
                    </TabsContent>
