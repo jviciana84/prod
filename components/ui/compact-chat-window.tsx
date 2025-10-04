@@ -340,7 +340,7 @@ export function CompactChatWindow({ isOpen, onClose }: CompactChatWindowProps) {
     <Card 
       data-chat-window
       className={`fixed right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-2xl flex flex-col !border-0 rounded-xl transition-all duration-300 ${
-        isMinimized ? 'h-12 w-1/5' : isMaximized ? 'h-[80%] w-[23%]' : 'h-[50%] w-1/5'
+        isMinimized ? 'h-12 w-1/5' : isMaximized ? 'h-[80%] w-[25%]' : 'h-[50%] w-1/4'
       }`} 
       style={{ bottom: '33px' }}
     >
@@ -537,10 +537,10 @@ export function CompactChatWindow({ isOpen, onClose }: CompactChatWindowProps) {
     {isHistoryOpen && (
       <Card 
         data-history-window
-        className="fixed z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-2xl flex flex-col !border-0 rounded-xl transition-all duration-500 h-[80%] w-[23%] animate-in slide-in-from-bottom-4 fade-in"
+        className="fixed z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-2xl flex flex-col !border-0 rounded-xl transition-all duration-500 h-[80%] w-[25%] animate-in slide-in-from-bottom-4 fade-in"
         style={{ 
           bottom: '33px',
-          right: 'calc(23% + 16px)' // Separado del chat principal
+          right: 'calc(25% + 16px)' // Separado del chat principal
         }}
       >
         <CardHeader className="pb-2 pt-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-t-xl">
@@ -628,10 +628,10 @@ export function CompactChatWindow({ isOpen, onClose }: CompactChatWindowProps) {
     {isInfoOpen && (
       <Card 
         data-info-window
-        className="fixed z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-2xl !border-0 rounded-xl transition-all duration-500 h-[80%] w-[23%] animate-in slide-in-from-bottom-4 fade-in"
+        className="fixed z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-2xl !border-0 rounded-xl transition-all duration-500 h-[80%] w-[25%] animate-in slide-in-from-bottom-4 fade-in"
         style={{ 
           bottom: '33px',
-          right: 'calc(23% + 23% + 32px)' // A la izquierda del historial
+          right: 'calc(25% + 25% + 32px)' // A la izquierda del historial
         }}
       >
         <CardContent 
