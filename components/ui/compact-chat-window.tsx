@@ -11,6 +11,7 @@ import { AIWarningModal } from "@/components/ui/ai-warning-modal"
 import { CopyButton } from "@/components/ui/copy-button"
 import { FeedbackButtons } from "@/components/ui/feedback-buttons"
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer"
+import { toast } from "@/hooks/use-toast"
 
 interface ChatMessage {
   id: string
@@ -25,6 +26,7 @@ interface ChatConversation {
   lastMessage: string
   timestamp: Date
   messageCount: number
+  is_hidden?: boolean
 }
 
 interface CompactChatWindowProps {
@@ -40,29 +42,8 @@ export function CompactChatWindow({ isOpen, onClose }: CompactChatWindowProps) {
   const [isInfoOpen, setIsInfoOpen] = useState(false)
   const [currentCardIndex, setCurrentCardIndex] = useState(0)
   const [inputValue, setInputValue] = useState("")
-  const [conversations, setConversations] = useState<ChatConversation[]>([
-    {
-      id: "1",
-      title: "Conversación actual",
-      lastMessage: "¡Hola! Soy tu asistente virtual...",
-      timestamp: new Date(),
-      messageCount: 7
-    },
-    {
-      id: "2", 
-      title: "Consulta sobre vehículos",
-      lastMessage: "¿Tienes algún BMW disponible?",
-      timestamp: new Date(Date.now() - 86400000), // 1 día atrás
-      messageCount: 12
-    },
-    {
-      id: "3",
-      title: "Soporte técnico",
-      lastMessage: "El sistema funciona correctamente",
-      timestamp: new Date(Date.now() - 172800000), // 2 días atrás
-      messageCount: 5
-    }
-  ])
+  const [conversations, setConversations] = useState<ChatConversation[]>([])
+  const [loadingConversations, setLoadingConversations] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
@@ -245,9 +226,10 @@ export function CompactChatWindow({ isOpen, onClose }: CompactChatWindowProps) {
 
   const handleHistoryToggle = () => {
     if (!isHistoryOpen) {
-      // Al abrir historial, expandir el chat
+      // Al abrir historial, expandir el chat y cargar conversaciones
       setIsMinimized(false)
       setIsMaximized(true)
+      loadUserConversations()
     } else {
       // Al cerrar historial, también cerrar el chat
       setIsMinimized(true)
@@ -255,8 +237,82 @@ export function CompactChatWindow({ isOpen, onClose }: CompactChatWindowProps) {
     setIsHistoryOpen(!isHistoryOpen)
   }
 
-  const handleDeleteConversation = (conversationId: string) => {
-    setConversations(prev => prev.filter(conv => conv.id !== conversationId))
+  // Cargar conversaciones del usuario
+  const loadUserConversations = async () => {
+    try {
+      setLoadingConversations(true)
+      
+      const params = new URLSearchParams({
+        page: '1',
+        limit: '50',
+        includeHidden: 'false' // Los usuarios solo ven sus conversaciones "activas"
+      })
+
+      const response = await fetch(`/api/conversations/user?${params}`)
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error cargando conversaciones')
+      }
+
+      // Convertir las conversaciones de la API al formato del componente
+      const formattedConversations: ChatConversation[] = data.conversations.map((conv: any) => ({
+        id: conv.id,
+        title: conv.message.length > 30 ? conv.message.substring(0, 30) + '...' : conv.message,
+        lastMessage: conv.response.length > 50 ? conv.response.substring(0, 50) + '...' : conv.response,
+        timestamp: new Date(conv.created_at),
+        messageCount: 1, // Cada conversación tiene al menos 1 mensaje
+        is_hidden: conv.is_hidden
+      }))
+
+      setConversations(formattedConversations)
+    } catch (error) {
+      console.error('Error cargando conversaciones:', error)
+      toast({
+        title: "Error",
+        description: "Error cargando el historial de conversaciones",
+        variant: "destructive"
+      })
+    } finally {
+      setLoadingConversations(false)
+    }
+  }
+
+  // Eliminar conversación (ocultar para el usuario)
+  const handleDeleteConversation = async (conversationId: string) => {
+    try {
+      const response = await fetch('/api/conversations/toggle-visibility', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          conversationId,
+          isHidden: true // Marcar como "eliminada" para el usuario
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error eliminando conversación')
+      }
+
+      toast({
+        title: "Conversación eliminada",
+        description: "La conversación ha sido eliminada"
+      })
+
+      // Recargar conversaciones para que desaparezca de la lista
+      loadUserConversations()
+    } catch (error) {
+      console.error('Error eliminando conversación:', error)
+      toast({
+        title: "Error",
+        description: "Error eliminando la conversación",
+        variant: "destructive"
+      })
+    }
   }
 
   const handleNewConversation = () => {
@@ -478,8 +534,20 @@ export function CompactChatWindow({ isOpen, onClose }: CompactChatWindowProps) {
         </CardHeader>
 
         <CardContent className="flex-1 flex flex-col p-3 min-h-0">
+          {/* Indicador de carga */}
+          {loadingConversations && (
+            <div className="mb-3 flex justify-center">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            </div>
+          )}
+          
           <div className="flex-1 chat-scroll space-y-2">
-            {conversations.map((conversation) => (
+            {conversations.length === 0 && !loadingConversations ? (
+              <div className="text-center text-white/60 text-xs py-4">
+                No hay conversaciones disponibles
+              </div>
+            ) : (
+              conversations.map((conversation) => (
               <div
                 key={conversation.id}
                 className="flex items-center justify-between p-2 rounded-lg bg-muted/50 hover:bg-muted/80 transition-colors"
@@ -498,7 +566,11 @@ export function CompactChatWindow({ isOpen, onClose }: CompactChatWindowProps) {
                 </div>
                 <div className="flex items-center gap-1 ml-2">
                   <Button
-                    onClick={() => handleDeleteConversation(conversation.id)}
+                    onClick={() => {
+                      if (confirm("¿Estás seguro de que quieres eliminar esta conversación?")) {
+                        handleDeleteConversation(conversation.id)
+                      }
+                    }}
                     variant="ghost"
                     size="sm"
                     className="h-6 w-6 p-0 text-red-500 hover:bg-red-500/20"
@@ -506,17 +578,10 @@ export function CompactChatWindow({ isOpen, onClose }: CompactChatWindowProps) {
                   >
                     <Trash2 className="h-3 w-3" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0 text-muted-foreground hover:bg-muted"
-                    title="Más opciones"
-                  >
-                    <MoreVertical className="h-3 w-3" />
-                  </Button>
                 </div>
               </div>
-            ))}
+              ))
+            )}
           </div>
         </CardContent>
       </Card>
