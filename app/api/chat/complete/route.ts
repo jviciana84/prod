@@ -697,15 +697,21 @@ export async function POST(request: NextRequest) {
         console.log('✅ Conversación guardada correctamente')
       }
 
-      // Actualizar última actividad de la sesión
-      await supabase
-        .from('ai_sessions')
-        .upsert({
-          id: 'ai-session',
-          user_id: userId,
-          title: 'Chat con Edelweiss',
-          last_message_at: new Date().toISOString()
-        })
+      // Actualizar última actividad de la sesión (solo si hay userId)
+      if (userId) {
+        try {
+          await supabase
+            .from('ai_sessions')
+            .upsert({
+              id: '00000000-0000-0000-0000-000000000000', // UUID válido para sesión genérica
+              user_id: userId,
+              title: 'Chat con Edelweiss',
+              last_message_at: new Date().toISOString()
+            })
+        } catch (sessionError) {
+          console.warn('⚠️ Error actualizando sesión (no crítico):', sessionError.message)
+        }
+      }
 
     } catch (dbError) {
       console.error('❌ Error en base de datos:', dbError)
