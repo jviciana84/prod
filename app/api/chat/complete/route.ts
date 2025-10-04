@@ -77,7 +77,9 @@ export async function POST(request: NextRequest) {
       const matriculaMatch = message.match(/\b[A-Z0-9]{4,8}[A-Z]{2,3}\b/g);
       const hasMatricula = matriculaMatch && matriculaMatch.length > 0;
       
+      // Detección más inteligente de consultas CVO
       const isCVOQuery = hasMatricula || (
+        // Palabras relacionadas con el negocio
         query.includes('cuantos') || query.includes('cuántos') || 
         query.includes('ha vendido') || query.includes('vendido') || 
         query.includes('realizado') || query.includes('asesor') ||
@@ -88,8 +90,14 @@ export async function POST(request: NextRequest) {
         query.includes('entrega') || query.includes('foto') ||
         query.includes('incentivo') || query.includes('extorno') ||
         query.includes('garantía') || query.includes('garantia') ||
+        query.includes('telefono') || query.includes('teléfono') || query.includes('contacto') ||
+        
+        // Nombres de asesores conocidos
         query.includes('jordi') || query.includes('pol') || query.includes('viciana') ||
-        query.includes('capellino') || query.includes('bmw') || query.includes('mercedes') ||
+        query.includes('capellino') || query.includes('rodrigo') || query.includes('carrasco') ||
+        
+        // Marcas y modelos
+        query.includes('bmw') || query.includes('mercedes') || query.includes('mini') ||
         query.includes('serie 5') || query.includes('serie5') || query.includes('serie 1') || query.includes('serie1') || 
         query.includes('serie 3') || query.includes('serie3') || query.includes('negro') ||
         query.includes('madrid') || query.includes('chico') || query.includes('contacto') ||
@@ -565,17 +573,30 @@ export async function POST(request: NextRequest) {
       }
       
       // Detectar consultas de entregas
-      else if (isCVOQuery && (query.includes('entrega') || query.includes('delivery') || query.includes('entregar'))) {
+      else if (isCVOQuery && (query.includes('entrega') || query.includes('delivery') || query.includes('entregar') || query.includes('pendiente'))) {
         console.log('🔍 Consulta de entregas...')
         
-        const { data: deliveries } = await supabase
+        // Buscar entregas pendientes (sin fecha de entrega completada)
+        const { data: pendingDeliveries, count: pendingCount } = await supabase
           .from('entregas')
+          .select('*', { count: 'exact' })
+          .is('fecha_entrega', null)
+          .order('fecha_venta', { ascending: false })
+        
+        // Buscar también vehículos vendidos sin entrega programada
+        const { data: soldWithoutDelivery } = await supabase
+          .from('sales_vehicles')
           .select('*')
-          .limit(10)
+          .not('license_plate', 'in', `(${pendingDeliveries?.map(d => d.matricula).join(',') || 'null'})`)
+          .order('sale_date', { ascending: false })
+          .limit(20)
         
         contextData = {
           query_type: 'deliveries',
-          deliveries: deliveries || []
+          pending_deliveries: pendingDeliveries || [],
+          pending_count: pendingCount || 0,
+          sold_without_delivery: soldWithoutDelivery || [],
+          total_pending: (pendingCount || 0) + (soldWithoutDelivery?.length || 0)
         }
       }
       
