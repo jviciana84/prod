@@ -450,7 +450,7 @@ export function CompactChatWindow({ isOpen, onClose }: CompactChatWindowProps) {
                       <div className="flex gap-1">
                         <CopyButton 
                           text={message.text} 
-                          className="h-5 w-5 p-0"
+                          className="h-5 w-5 p-0 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/20"
                         />
                         <FeedbackButtons 
                           messageId={message.id}

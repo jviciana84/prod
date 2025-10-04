@@ -162,7 +162,7 @@ export function SmartContentDetector({ content, className = '' }: SmartContentDe
             <Button
               size="sm"
               variant="ghost"
-              className="h-6 w-6 p-0"
+              className="h-6 w-6 p-0 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/20"
               onClick={() => copyToClipboard(element.match, getTypeLabel(element.type))}
               title={`Copiar ${getTypeLabel(element.type)}`}
             >
@@ -173,7 +173,7 @@ export function SmartContentDetector({ content, className = '' }: SmartContentDe
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-6 w-6 p-0"
+                className="h-6 w-6 p-0 text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/20"
                 onClick={() => copyToClipboard(element.match, 'fórmula de Excel')}
                 title="Copiar fórmula"
               >
@@ -185,7 +185,7 @@ export function SmartContentDetector({ content, className = '' }: SmartContentDe
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-6 w-6 p-0"
+                className="h-6 w-6 p-0 text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/20"
                 onClick={() => makeCall(element.match)}
                 title="Llamar"
               >
@@ -197,7 +197,7 @@ export function SmartContentDetector({ content, className = '' }: SmartContentDe
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-6 w-6 p-0"
+                className="h-6 w-6 p-0 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/20"
                 onClick={() => sendEmail(element.match)}
                 title="Enviar email"
               >
@@ -209,7 +209,7 @@ export function SmartContentDetector({ content, className = '' }: SmartContentDe
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-6 w-6 p-0"
+                className="h-6 w-6 p-0 text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/20"
                 onClick={() => openUrl(element.match)}
                 title="Abrir enlace"
               >
