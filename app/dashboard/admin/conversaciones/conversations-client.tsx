@@ -202,21 +202,76 @@ export default function ConversationsClient() {
       }
 
       const response = await fetch(`/api/feedback?${params}`)
+      
+      // Verificar si la respuesta es válida
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error(`API Error ${response.status}:`, errorText)
+        throw new Error(`Error ${response.status}: ${response.statusText}`)
+      }
+
+      // Verificar content-type
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        const responseText = await response.text()
+        console.error('Response is not JSON:', responseText)
+        throw new Error('La respuesta no es JSON válido')
+      }
+
       const data = await response.json()
 
-      if (!response.ok) {
-        throw new Error(data.message || 'Error cargando feedback')
+      if (!data) {
+        throw new Error('Respuesta vacía del servidor')
       }
 
       setFeedbackData(data.feedback || [])
       setFeedbackTotalPages(data.totalPages || 1)
     } catch (error) {
       console.error("Error loading feedback:", error)
-      toast({
-        title: "Error",
-        description: "Error al cargar el feedback.",
-        variant: "destructive"
-      })
+      
+      // Si es un error de JSON, probablemente la API no existe
+      if (error instanceof SyntaxError) {
+        toast({
+          title: "API no disponible",
+          description: "La API de feedback no está disponible en local. Usando datos de ejemplo.",
+          variant: "destructive"
+        })
+        
+        // Datos de ejemplo para desarrollo local
+        setFeedbackData([
+          {
+            id: 'demo-1',
+            feedback_type: 'positive',
+            feedback_text: null,
+            created_at: new Date().toISOString(),
+            profiles: { full_name: 'Usuario Demo', email: 'demo@example.com' },
+            ai_conversations: { 
+              message: '¿Cuántos coches hay en stock?', 
+              response: 'Hay 113 vehículos disponibles en stock.' 
+            }
+          },
+          {
+            id: 'demo-2',
+            feedback_type: 'negative',
+            feedback_text: 'La respuesta fue muy confusa',
+            created_at: new Date(Date.now() - 86400000).toISOString(),
+            profiles: { full_name: 'Usuario Demo 2', email: 'demo2@example.com' },
+            ai_conversations: { 
+              message: '¿Qué modelos de BMW tienes?', 
+              response: 'Tenemos varios modelos disponibles.' 
+            }
+          }
+        ])
+        setFeedbackTotalPages(1)
+      } else {
+        toast({
+          title: "Error",
+          description: "Error al cargar el feedback.",
+          variant: "destructive"
+        })
+        setFeedbackData([])
+        setFeedbackTotalPages(1)
+      }
     } finally {
       setFeedbackLoading(false)
     }
