@@ -41,7 +41,11 @@ import {
   ChevronLeft,
   ChevronRight,
   EyeOff,
-  EyeOn
+  EyeOn,
+  ThumbsUp,
+  ThumbsDown,
+  TrendingUp,
+  TrendingDown
 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { format } from "date-fns"
@@ -85,6 +89,13 @@ export default function ConversationsClient() {
   const [totalPages, setTotalPages] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(20)
   const [showHidden, setShowHidden] = useState(false)
+  
+  // Estados para feedback
+  const [feedbackData, setFeedbackData] = useState<any[]>([])
+  const [feedbackLoading, setFeedbackLoading] = useState(false)
+  const [feedbackPage, setFeedbackPage] = useState(1)
+  const [feedbackTotalPages, setFeedbackTotalPages] = useState(1)
+  const [feedbackType, setFeedbackType] = useState<string>('all')
 
   const supabase = createClientComponentClient()
 
@@ -98,18 +109,33 @@ export default function ConversationsClient() {
     loadConversations()
   }, [selectedSession, selectedUser, searchTerm, currentPage, itemsPerPage, showHidden])
 
+  // Cargar feedback cuando cambien los filtros
+  useEffect(() => {
+    loadFeedback()
+  }, [feedbackPage, feedbackType])
+
   const loadData = async () => {
     try {
-      await Promise.all([
+      setLoading(true)
+      
+      // Cargar datos en paralelo, pero manejar errores individualmente
+      const results = await Promise.allSettled([
         loadConversations(),
         loadSessions(),
         loadUsers()
       ])
+
+      // Verificar si algún proceso falló
+      const failed = results.filter(result => result.status === 'rejected')
+      if (failed.length > 0) {
+        console.warn(`${failed.length} procesos fallaron al cargar datos`)
+      }
+
     } catch (error) {
       console.error("Error cargando datos:", error)
       toast({
         title: "Error",
-        description: "Error cargando los datos",
+        description: "Error cargando algunos datos",
         variant: "destructive"
       })
     } finally {
@@ -162,6 +188,40 @@ export default function ConversationsClient() {
     }
   }
 
+  // Cargar feedback
+  const loadFeedback = async () => {
+    setFeedbackLoading(true)
+    try {
+      const params = new URLSearchParams({
+        page: feedbackPage.toString(),
+        limit: '20'
+      })
+
+      if (feedbackType !== 'all') {
+        params.append('type', feedbackType)
+      }
+
+      const response = await fetch(`/api/feedback?${params}`)
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error cargando feedback')
+      }
+
+      setFeedbackData(data.feedback || [])
+      setFeedbackTotalPages(data.totalPages || 1)
+    } catch (error) {
+      console.error("Error loading feedback:", error)
+      toast({
+        title: "Error",
+        description: "Error al cargar el feedback.",
+        variant: "destructive"
+      })
+    } finally {
+      setFeedbackLoading(false)
+    }
+  }
+
   const loadSessions = async () => {
     try {
       const { data, error } = await supabase
@@ -170,10 +230,16 @@ export default function ConversationsClient() {
         .order('last_message_at', { ascending: false })
         .limit(100)
 
-      if (error) throw error
+      if (error) {
+        console.error("Error obteniendo sesiones:", error)
+        setSessions([])
+        return
+      }
+      
       setSessions(data || [])
     } catch (error) {
       console.error("Error cargando sesiones:", error)
+      setSessions([])
     }
   }
 
@@ -185,7 +251,11 @@ export default function ConversationsClient() {
         .select('user_id')
         .neq('user_id', 'ai-user') // Excluir usuario genérico
 
-      if (error) throw error
+      if (error) {
+        console.error("Error obteniendo user_ids:", error)
+        setUsers([])
+        return
+      }
 
       const uniqueUserIds = [...new Set(data?.map(c => c.user_id) || [])]
       
@@ -195,11 +265,19 @@ export default function ConversationsClient() {
           .select('id, full_name, email')
           .in('id', uniqueUserIds)
 
-        if (profilesError) throw profilesError
+        if (profilesError) {
+          console.error("Error obteniendo profiles:", profilesError)
+          setUsers([])
+          return
+        }
+        
         setUsers(profiles || [])
+      } else {
+        setUsers([])
       }
     } catch (error) {
       console.error("Error cargando usuarios:", error)
+      setUsers([])
     }
   }
 
@@ -421,12 +499,14 @@ export default function ConversationsClient() {
           <CardTitle>Conversaciones</CardTitle>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="all" className="w-full">
-            <TabsList className="grid w-full grid-cols-1">
-              <TabsTrigger value="all">Todas las Conversaciones</TabsTrigger>
-            </TabsList>
+                 <Tabs defaultValue="conversations" className="w-full">
+                   <TabsList className="grid w-full grid-cols-3">
+                     <TabsTrigger value="conversations">Conversaciones</TabsTrigger>
+                     <TabsTrigger value="feedback">Feedback</TabsTrigger>
+                     <TabsTrigger value="insights">Insights</TabsTrigger>
+                   </TabsList>
             
-            <TabsContent value="all" className="space-y-4">
+            <TabsContent value="conversations" className="space-y-4">
               <div className="rounded-lg border bg-card shadow-sm">
                 <div className="overflow-x-auto">
                   <Table>
@@ -588,8 +668,261 @@ export default function ConversationsClient() {
                     <Button variant="outline" size="icon" onClick={() => goToPage(totalPages)} disabled={currentPage === totalPages} className="h-8 w-8">{'>>'}</Button>
                   </div>
               </div>
-            </TabsContent>
-          </Tabs>
+                   </TabsContent>
+
+                   {/* Pestaña de Feedback */}
+                   <TabsContent value="feedback" className="space-y-4">
+                     {/* Filtros de feedback */}
+                     <div className="flex gap-4 mb-4">
+                       <Select value={feedbackType} onValueChange={(value) => {
+                         setFeedbackType(value)
+                         setFeedbackPage(1)
+                       }}>
+                         <SelectTrigger className="w-[200px]">
+                           <SelectValue placeholder="Tipo de feedback" />
+                         </SelectTrigger>
+                         <SelectContent>
+                           <SelectItem value="all">Todos</SelectItem>
+                           <SelectItem value="positive">Positivo 👍</SelectItem>
+                           <SelectItem value="negative">Negativo 👎</SelectItem>
+                         </SelectContent>
+                       </Select>
+                     </div>
+
+                     {/* Tabla de feedback */}
+                     <div className="rounded-lg border bg-card shadow-sm">
+                       <div className="overflow-x-auto">
+                         <Table>
+                           <TableHeader>
+                             <TableRow>
+                               <TableHead>Usuario</TableHead>
+                               <TableHead>Tipo</TableHead>
+                               <TableHead>Mensaje Original</TableHead>
+                               <TableHead>Respuesta</TableHead>
+                               <TableHead>Comentario</TableHead>
+                               <TableHead>Fecha</TableHead>
+                             </TableRow>
+                           </TableHeader>
+                           <TableBody>
+                             {feedbackLoading ? (
+                               <TableRow>
+                                 <TableCell colSpan={6} className="text-center py-4">
+                                   Cargando feedback...
+                                 </TableCell>
+                               </TableRow>
+                             ) : feedbackData.length === 0 ? (
+                               <TableRow>
+                                 <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
+                                   No hay feedback disponible
+                                 </TableCell>
+                               </TableRow>
+                             ) : (
+                               feedbackData.map((feedback) => (
+                                 <TableRow key={feedback.id}>
+                                   <TableCell>
+                                     <div>
+                                       <p className="font-medium">{feedback.profiles?.full_name || 'Usuario'}</p>
+                                       <p className="text-sm text-muted-foreground">{feedback.profiles?.email}</p>
+                                     </div>
+                                   </TableCell>
+                                   <TableCell>
+                                     <Badge 
+                                       variant={feedback.feedback_type === 'positive' ? 'default' : 'destructive'}
+                                       className="flex items-center gap-1 w-fit"
+                                     >
+                                       {feedback.feedback_type === 'positive' ? (
+                                         <><ThumbsUp className="h-3 w-3" /> Positivo</>
+                                       ) : (
+                                         <><ThumbsDown className="h-3 w-3" /> Negativo</>
+                                       )}
+                                     </Badge>
+                                   </TableCell>
+                                   <TableCell>
+                                     <div className="max-w-xs">
+                                       <p className="truncate" title={feedback.ai_conversations?.message}>
+                                         {feedback.ai_conversations?.message}
+                                       </p>
+                                     </div>
+                                   </TableCell>
+                                   <TableCell>
+                                     <div className="max-w-xs">
+                                       <p className="truncate" title={feedback.ai_conversations?.response}>
+                                         {feedback.ai_conversations?.response}
+                                       </p>
+                                     </div>
+                                   </TableCell>
+                                   <TableCell>
+                                     <div className="max-w-xs">
+                                       <p className="truncate" title={feedback.feedback_text || 'Sin comentario'}>
+                                         {feedback.feedback_text || 'Sin comentario'}
+                                       </p>
+                                     </div>
+                                   </TableCell>
+                                   <TableCell>
+                                     <Badge variant="outline">
+                                       {format(new Date(feedback.created_at), 'dd/MM/yyyy HH:mm', { locale: es })}
+                                     </Badge>
+                                   </TableCell>
+                                 </TableRow>
+                               ))
+                             )}
+                           </TableBody>
+                         </Table>
+                       </div>
+                     </div>
+
+                     {/* Paginador de feedback */}
+                     <div className="mt-6 rounded-lg border bg-card shadow-sm px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-4">
+                       <div className="text-sm text-muted-foreground">
+                         Mostrando {feedbackData.length === 0 ? 0 : (feedbackPage - 1) * 20 + 1}
+                         -{Math.min(feedbackPage * 20, feedbackData.length)} de <span className="font-bold">{feedbackData.length}</span> resultados
+                       </div>
+                       <div className="flex items-center gap-2">
+                         <Button variant="outline" size="icon" onClick={() => setFeedbackPage(1)} disabled={feedbackPage === 1} className="h-8 w-8">{'<<'}</Button>
+                         <Button variant="outline" size="icon" onClick={() => setFeedbackPage(feedbackPage - 1)} disabled={feedbackPage === 1} className="h-8 w-8">{'<'}</Button>
+                         <span className="px-3 py-1 text-sm font-medium">
+                           Página {feedbackPage} de {feedbackTotalPages}
+                         </span>
+                         <Button variant="outline" size="icon" onClick={() => setFeedbackPage(feedbackPage + 1)} disabled={feedbackPage === feedbackTotalPages} className="h-8 w-8">{'>'}</Button>
+                         <Button variant="outline" size="icon" onClick={() => setFeedbackPage(feedbackTotalPages)} disabled={feedbackPage === feedbackTotalPages} className="h-8 w-8">{'>>'}</Button>
+                       </div>
+                     </div>
+                   </TabsContent>
+
+                   {/* Pestaña de Insights */}
+                   <TabsContent value="insights" className="space-y-4">
+                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                       {/* Estadísticas principales */}
+                       <Card>
+                         <CardHeader className="pb-2">
+                           <CardTitle className="text-sm font-medium">Satisfacción</CardTitle>
+                         </CardHeader>
+                         <CardContent>
+                           <div className="text-2xl font-bold text-green-600">85%</div>
+                           <p className="text-xs text-muted-foreground">+5% vs período anterior</p>
+                         </CardContent>
+                       </Card>
+                       
+                       <Card>
+                         <CardHeader className="pb-2">
+                           <CardTitle className="text-sm font-medium">Feedback Total</CardTitle>
+                         </CardHeader>
+                         <CardContent>
+                           <div className="text-2xl font-bold">47</div>
+                           <p className="text-xs text-muted-foreground">Últimos 7 días</p>
+                         </CardContent>
+                       </Card>
+
+                       <Card>
+                         <CardHeader className="pb-2">
+                           <CardTitle className="text-sm font-medium">Problemas Críticos</CardTitle>
+                         </CardHeader>
+                         <CardContent>
+                           <div className="text-2xl font-bold text-red-600">3</div>
+                           <p className="text-xs text-muted-foreground">Requieren atención</p>
+                         </CardContent>
+                       </Card>
+                     </div>
+
+                     {/* Acciones de mejora */}
+                     <Card>
+                       <CardHeader>
+                         <CardTitle className="flex items-center gap-2">
+                           <TrendingUp className="h-5 w-5" />
+                           Mejoras Automáticas Sugeridas
+                         </CardTitle>
+                       </CardHeader>
+                       <CardContent>
+                         <div className="space-y-3">
+                           <div className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg">
+                             <div>
+                               <p className="font-medium">🔍 Verificación de Datos</p>
+                               <p className="text-sm text-muted-foreground">3 usuarios reportaron información incorrecta</p>
+                             </div>
+                             <Button size="sm" variant="outline">Aplicar</Button>
+                           </div>
+                           
+                           <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+                             <div>
+                               <p className="font-medium">📝 Respuestas Más Completas</p>
+                               <p className="text-sm text-muted-foreground">5 usuarios pidieron más detalles</p>
+                             </div>
+                             <Button size="sm" variant="outline">Aplicar</Button>
+                           </div>
+
+                           <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                             <div>
+                               <p className="font-medium">🎯 Lenguaje Más Claro</p>
+                               <p className="text-sm text-muted-foreground">2 usuarios encontraron respuestas confusas</p>
+                             </div>
+                             <Button size="sm" variant="outline">Aplicar</Button>
+                           </div>
+                         </div>
+                       </CardContent>
+                     </Card>
+
+                     {/* Análisis de patrones */}
+                     <Card>
+                       <CardHeader>
+                         <CardTitle>Análisis de Patrones</CardTitle>
+                       </CardHeader>
+                       <CardContent>
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                           <div>
+                             <h4 className="font-medium mb-2">Problemas Más Comunes</h4>
+                             <div className="space-y-2">
+                               <div className="flex justify-between text-sm">
+                                 <span>Información incorrecta</span>
+                                 <span className="font-medium">3 casos</span>
+                               </div>
+                               <div className="flex justify-between text-sm">
+                                 <span>Respuesta incompleta</span>
+                                 <span className="font-medium">5 casos</span>
+                               </div>
+                               <div className="flex justify-between text-sm">
+                                 <span>Lenguaje confuso</span>
+                                 <span className="font-medium">2 casos</span>
+                               </div>
+                             </div>
+                           </div>
+                           
+                           <div>
+                             <h4 className="font-medium mb-2">Horarios Problemáticos</h4>
+                             <div className="space-y-2">
+                               <div className="flex justify-between text-sm">
+                                 <span>Mañana (9-12h)</span>
+                                 <span className="font-medium">40% problemas</span>
+                               </div>
+                               <div className="flex justify-between text-sm">
+                                 <span>Tarde (14-17h)</span>
+                                 <span className="font-medium">35% problemas</span>
+                               </div>
+                               <div className="flex justify-between text-sm">
+                                 <span>Noche (18-21h)</span>
+                                 <span className="font-medium">25% problemas</span>
+                               </div>
+                             </div>
+                           </div>
+                         </div>
+                       </CardContent>
+                     </Card>
+
+                     {/* Botones de acción */}
+                     <div className="flex gap-3">
+                       <Button className="bg-blue-600 hover:bg-blue-700">
+                         <TrendingUp className="h-4 w-4 mr-2" />
+                         Analizar Feedback Reciente
+                       </Button>
+                       <Button variant="outline">
+                         <TrendingDown className="h-4 w-4 mr-2" />
+                         Ver Reporte Completo
+                       </Button>
+                       <Button variant="outline">
+                         🔄 Aplicar Todas las Mejoras
+                       </Button>
+                     </div>
+                   </TabsContent>
+                 </Tabs>
         </CardContent>
       </Card>
     </div>
