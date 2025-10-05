@@ -58,8 +58,9 @@ export function useAIChatSimple() {
       localStorage.setItem('edelweiss_conversation_count', newCount.toString())
     }
 
-    // Mostrar modal en primera interacción o cada 3 conversaciones
-    const shouldShowModal = isFirstTime || newCount % 3 === 1
+    // Mostrar modal cada 3 respuestas de Edelweiss (no del usuario)
+    // El modal se muestra al abrir el chat y luego cada 3 respuestas de la IA
+    const shouldShowModal = isFirstTime || (newCount > 0 && newCount % 3 === 0)
     
     if (shouldShowModal) {
       console.log(`🔔 Mostrando modal - Primera vez: ${isFirstTime}, Conversación: ${newCount}`)
@@ -88,10 +89,10 @@ export function useAIChatSimple() {
     setMessages(prev => [...prev, userMessage])
 
     try {
-      console.log('Haciendo fetch a /api/chat/complete')
+      console.log('Haciendo fetch a /api/chat/test')
       
-      // Enviar mensaje a la IA completa
-      const response = await fetch('/api/chat/complete', {
+      // Enviar mensaje a la IA optimizada
+      const response = await fetch('/api/chat/test', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -146,16 +147,15 @@ export function useAIChatSimple() {
         timestamp: new Date()
       }
     ])
-    // Resetear el estado de advertencia para nueva sesión
-    setHasShownWarning(false)
-    setShowAIWarning(false)
+    // NO cerrar el modal aquí, se maneja en resetSession
   }, [])
 
   const resetSession = useCallback(() => {
     // Función para resetear la sesión (cuando se cierra y abre el chat)
     // NO reseteamos el contador de conversaciones, debe persistir
     setHasShownWarning(false)
-    setShowAIWarning(false)
+    // Mostrar modal de advertencia al abrir el chat
+    setShowAIWarning(true)
   }, [])
 
   const resetConversationCount = useCallback(() => {

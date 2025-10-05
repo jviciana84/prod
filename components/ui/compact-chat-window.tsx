@@ -340,7 +340,7 @@ export function CompactChatWindow({ isOpen, onClose }: CompactChatWindowProps) {
     <Card 
       data-chat-window
       className={`fixed right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-2xl flex flex-col !border-0 rounded-xl transition-all duration-300 ${
-        isMinimized ? 'h-12 w-1/5' : isMaximized ? 'h-[80%] w-[25%]' : 'h-[50%] w-1/4'
+        isMinimized ? 'h-12 w-1/5' : isMaximized ? 'h-[80%] w-[27%]' : 'h-[50%] w-[25%]'
       }`} 
       style={{ bottom: '33px' }}
     >
@@ -427,12 +427,14 @@ export function CompactChatWindow({ isOpen, onClose }: CompactChatWindowProps) {
                   >
                     <div className="flex items-start">
                       {message.isUser ? (
-                      <span>{message.text}</span>
+                      <span className="break-words">{message.text}</span>
                       ) : (
-                        <SmartContentDetector 
-                          content={message.text} 
-                          className="text-xs leading-relaxed"
-                        />
+                        <div className="w-full">
+                          <SmartContentDetector 
+                            content={message.text} 
+                            className="text-xs leading-relaxed break-words"
+                          />
+                        </div>
                       )}
                     </div>
                   </div>
@@ -540,7 +542,7 @@ export function CompactChatWindow({ isOpen, onClose }: CompactChatWindowProps) {
         className="fixed z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-2xl flex flex-col !border-0 rounded-xl transition-all duration-500 h-[80%] w-[25%] animate-in slide-in-from-bottom-4 fade-in"
         style={{ 
           bottom: '33px',
-          right: 'calc(25% + 16px)' // Separado del chat principal
+          right: isMaximized ? 'calc(27% + 15px)' : 'calc(25% + 15px)' // Separado del chat principal
         }}
       >
         <CardHeader className="pb-2 pt-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-t-xl">
@@ -631,7 +633,7 @@ export function CompactChatWindow({ isOpen, onClose }: CompactChatWindowProps) {
         className="fixed z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-2xl !border-0 rounded-xl transition-all duration-500 h-[80%] w-[25%] animate-in slide-in-from-bottom-4 fade-in"
         style={{ 
           bottom: '33px',
-          right: 'calc(25% + 25% + 32px)' // A la izquierda del historial
+          right: isMaximized ? 'calc(27% + 25% + 15px + 15px)' : 'calc(25% + 25% + 15px + 15px)' // A la izquierda del historial con la misma distancia
         }}
       >
         <CardContent 

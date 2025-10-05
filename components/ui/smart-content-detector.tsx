@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Copy, Phone, Mail, ExternalLink, Calculator } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
+import { MarkdownRenderer } from './markdown-renderer'
 
 interface SmartContentDetectorProps {
   content: string
@@ -31,15 +32,15 @@ export function SmartContentDetector({ content, className = '' }: SmartContentDe
 
   // Detectar teléfonos (formato español)
   const detectPhones = (text: string): Array<{match: string, start: number, end: number}> => {
-    const phonePattern = /(\+?34\s?)?[6-9]\d{2}\s?\d{3}\s?\d{3}|[6-9]\d{2}\s?\d{3}\s?\d{3}/g
+    const phonePattern = /(\+?34\s?)?[6-9]\d{2}\s?\d{3}\s?\d{3}|[6-9]\d{2}\s?\d{3}\s?\d{3}|\d{9}/g
     const matches = []
     let match
     
     while ((match = phonePattern.exec(text)) !== null) {
       matches.push({
-        match: match[1] || match[0],
+        match: match[0],
         start: match.index,
-        end: match.index + (match[1] || match[0]).length
+        end: match.index + match[0].length
       })
     }
     return matches
@@ -134,18 +135,20 @@ export function SmartContentDetector({ content, className = '' }: SmartContentDe
     ].sort((a, b) => a.start - b.start)
 
     if (allElements.length === 0) {
-      return <span>{content}</span>
+      // Si no hay elementos interactivos, renderizar markdown básico
+      return <MarkdownRenderer content={content} className={className} />
     }
 
     const elements = []
     let lastIndex = 0
 
     allElements.forEach((element, index) => {
-      // Agregar texto antes del elemento
+      // Agregar texto antes del elemento con markdown
       if (element.start > lastIndex) {
+        const textBefore = content.slice(lastIndex, element.start)
         elements.push(
           <span key={`text-${index}`}>
-            {content.slice(lastIndex, element.start)}
+            <MarkdownRenderer content={textBefore} className={className} />
           </span>
         )
       }
@@ -223,11 +226,12 @@ export function SmartContentDetector({ content, className = '' }: SmartContentDe
       lastIndex = element.end
     })
 
-    // Agregar texto restante
+    // Agregar texto restante con markdown
     if (lastIndex < content.length) {
+      const textAfter = content.slice(lastIndex)
       elements.push(
         <span key="text-end">
-          {content.slice(lastIndex)}
+          <MarkdownRenderer content={textAfter} className={className} />
         </span>
       )
     }

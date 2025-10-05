@@ -38,7 +38,9 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
       dangerouslySetInnerHTML={{ __html: htmlContent }}
       style={{
         lineHeight: '1.4',
-        wordBreak: 'break-word'
+        wordBreak: 'break-word',
+        overflowWrap: 'break-word',
+        whiteSpace: 'pre-wrap'
       }}
     />
   )
