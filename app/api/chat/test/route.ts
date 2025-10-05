@@ -4,9 +4,10 @@ import { createClient } from '@/utils/supabase/server'
 
 export async function POST(request: NextRequest) {
   try {
-    const { message } = await request.json()
+    const { message, conversationHistory = [] } = await request.json()
 
     console.log('📝 Mensaje recibido:', message)
+    console.log('📚 Historial de conversación:', conversationHistory.length, 'mensajes')
 
     if (!message) {
       return NextResponse.json(
@@ -150,7 +151,7 @@ Jordi Viciana - jordi.viciana@quadis.es`
 
     // Generar respuesta con OpenAI
     console.log('🤖 Generando respuesta con OpenAI...')
-    const response = await generateEdelweissResponse(message, [], contextData)
+    const response = await generateEdelweissResponse(message, conversationHistory, contextData)
 
     console.log('✅ Respuesta generada exitosamente')
     return NextResponse.json({ response })

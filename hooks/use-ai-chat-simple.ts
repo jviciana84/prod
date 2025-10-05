@@ -91,14 +91,23 @@ export function useAIChatSimple() {
     try {
       console.log('Haciendo fetch a /api/chat/test')
       
-      // Enviar mensaje a la IA optimizada
+      // Preparar historial de conversación para la IA
+      const conversationHistory = messages
+        .filter(msg => msg.id !== "welcome") // Excluir mensaje de bienvenida
+        .map(msg => ({
+          role: msg.isUser ? 'user' as const : 'assistant' as const,
+          content: msg.text
+        }))
+
+      // Enviar mensaje a la IA optimizada con historial
       const response = await fetch('/api/chat/test', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: message
+          message: message,
+          conversationHistory: conversationHistory
         })
       })
 
