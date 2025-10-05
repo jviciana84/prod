@@ -82,6 +82,11 @@ if (typeof global !== 'undefined') {
 export const EDELWEISS_SYSTEM_PROMPT = `
 Eres Edelweiss, un asistente de IA súper inteligente especializado en gestión de concesionarios BMW/MINI del Munich Group.
 
+**🚨 INSTRUCCIÓN CRÍTICA:**
+- Para consultas sobre DEPORTES (F1, MotoGP, fútbol), NOTICIAS, TECNOLOGÍA o cualquier tema fuera del concesionario, SIEMPRE usa la función web_search
+- NUNCA respondas con "recomiendo consultar fuentes oficiales" - USA web_search automáticamente
+- SIEMPRE que veas palabras como "MotoGP", "F1", "fútbol", "noticias", "tecnología" → USA web_search INMEDIATAMENTE
+
 **🧠 INTELIGENCIA Y RAZONAMIENTO:**
 - **Analiza profundamente** cada consulta antes de responder
 - **Usa razonamiento lógico** para entender el contexto y la intención
@@ -124,8 +129,23 @@ Eres Edelweiss, un asistente de IA súper inteligente especializado en gestión 
 - **analyze_sales_performance**: Análisis automático de rendimiento con métricas y comparaciones
 - **calculate_metrics**: Calcula métricas automáticas (totales, promedios, porcentajes, tendencias)
 - **web_search**: Búsqueda web para consultas generales que requieren información actualizada
-- **USA ESTAS FUNCIONES** cuando detectes consultas específicas que requieran búsquedas en la base de datos
-- **USA web_search** para consultas generales sobre deportes, noticias, tecnología, etc.
+
+**🎯 CUÁNDO USAR CADA FUNCIÓN:**
+- **USA search_vehicles, search_contacts, get_sales_data, search_combined** para consultas del concesionario BMW/MINI
+- **USA web_search OBLIGATORIAMENTE** para:
+  * Deportes (F1, MotoGP, fútbol, etc.)
+  * Noticias actuales
+  * Tecnología
+  * Cualquier tema fuera del concesionario
+  * Información que cambia frecuentemente
+
+**📋 EJEMPLOS DE USO:**
+- "¿Cuál es la clasificación del MotoGP?" → USA web_search
+- "¿Qué vehículos BMW X3 hay disponibles?" → USA search_vehicles
+- "¿Cuáles son las últimas noticias de tecnología?" → USA web_search
+- "Dame los contactos de clientes" → USA search_contacts
+- "¿Cómo van las ventas este mes?" → USA get_sales_data
+
 - **Sé natural** y conversacional en todas las respuestas
 
 **🔍 BÚSQUEDA INTELIGENTE:**
@@ -229,13 +249,13 @@ export async function generateEdelweissResponse(
     const functions = [
       {
         name: 'search_vehicles',
-        description: 'Buscar vehículos en la base de datos',
+        description: 'Buscar vehículos en la base de datos. USA ESTA FUNCIÓN cuando el usuario pregunte por vehículos BMW, MINI, Motorrad, modelos específicos (X3, X5, Serie 3, etc.), colores, matrículas o stock disponible.',
         parameters: {
           type: 'object',
           properties: {
             query: {
               type: 'string',
-              description: 'Término de búsqueda para vehículos'
+              description: 'Término de búsqueda para vehículos (marca, modelo, color, matrícula, etc.)'
             },
             limit: {
               type: 'number',
@@ -372,13 +392,13 @@ export async function generateEdelweissResponse(
       },
       {
         name: 'web_search',
-        description: 'Búsqueda web para consultas generales que requieren información actualizada',
+        description: 'Búsqueda web para consultas generales que requieren información actualizada. USA ESTA FUNCIÓN OBLIGATORIAMENTE cuando el usuario pregunte por: deportes (F1, MotoGP, fútbol), noticias actuales, tecnología, o cualquier tema fuera del concesionario BMW/MINI. NUNCA respondas con "recomiendo consultar fuentes" - USA ESTA FUNCIÓN SIEMPRE.',
         parameters: {
           type: 'object',
           properties: {
             query: {
               type: 'string',
-              description: 'Consulta para buscar en la web'
+              description: 'Consulta para buscar en la web (deportes, noticias, tecnología, etc.)'
             },
             max_results: {
               type: 'number',
@@ -390,6 +410,12 @@ export async function generateEdelweissResponse(
       }
     ]
 
+    // Convertir functions a tools (nueva API de OpenAI)
+    const tools = functions.map(func => ({
+      type: 'function' as const,
+      function: func
+    }))
+
     console.log('📤 Enviando request a OpenAI...')
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
@@ -400,18 +426,19 @@ export async function generateEdelweissResponse(
       frequency_penalty: 0.1, // Evita repeticiones excesivas
       presence_penalty: 0.1, // Fomenta diversidad en el contenido
       stream: false, // Respuesta completa de una vez
-      functions: functions,
-      function_call: 'auto', // La IA decide cuándo usar funciones
+      tools: tools,
+      tool_choice: 'auto', // La IA decide cuándo usar funciones
     })
 
     const message = completion.choices[0]?.message
     
-    // Si la IA quiere llamar una función
-    if (message?.function_call) {
-      console.log('🔧 IA quiere llamar función:', message.function_call.name)
+    // Si la IA quiere llamar una función (nueva API con tool_calls)
+    if (message?.tool_calls && message.tool_calls.length > 0) {
+      const toolCall = message.tool_calls[0] // Tomamos la primera tool call
+      console.log('🔧 IA quiere llamar función:', toolCall.function.name)
       
-      const functionName = message.function_call.name
-      const functionArgs = JSON.parse(message.function_call.arguments || '{}')
+      const functionName = toolCall.function.name
+      const functionArgs = JSON.parse(toolCall.function.arguments || '{}')
       
       let functionResult = null
       
@@ -446,19 +473,21 @@ export async function generateEdelweissResponse(
           functionResult = { error: 'Función no encontrada' }
       }
       
-      // Agregar el resultado de la función al contexto
-      const functionMessage = {
-        role: 'function' as const,
-        name: functionName,
+      // Agregar el resultado de la función al contexto (nueva API con tool)
+      const toolMessage = {
+        role: 'tool' as const,
+        tool_call_id: toolCall.id,
         content: JSON.stringify(functionResult)
       }
       
       // Hacer una segunda llamada con el resultado de la función
       const secondCompletion = await openai.chat.completions.create({
         model: 'gpt-4o',
-        messages: [...messages, message, functionMessage],
+        messages: [...messages, message, toolMessage],
         temperature: 0.7,
         max_tokens: 3000,
+        tools: tools,
+        tool_choice: 'auto',
         top_p: 0.9,
         frequency_penalty: 0.1,
         presence_penalty: 0.1,
