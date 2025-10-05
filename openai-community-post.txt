@@ -1,0 +1,107 @@
+Title: Function Calling Not Working - GPT-4o tool_calls always empty
+
+Category: API / Bug Reports
+
+Content:
+
+Hi OpenAI Community,
+
+I'm experiencing a critical issue with function calling in GPT-4o. The model is not calling any functions despite proper configuration.
+
+## Problem
+- Model: gpt-4o
+- Issue: `message.tool_calls` is always empty/undefined
+- Expected: Model should call functions based on user queries
+- Actual: Model responds with generic text instead
+
+## Configuration
+I'm using the latest tools API (not the deprecated functions API):
+
+```javascript
+const tools = [
+  {
+    type: 'function',
+    function: {
+      name: 'web_search',
+      description: 'Búsqueda web para consultas generales que requieren información actualizada. USA ESTA FUNCIÓN OBLIGATORIAMENTE cuando el usuario pregunte por: deportes (F1, MotoGP, fútbol), noticias actuales, tecnología, o cualquier tema fuera del concesionario BMW/MINI. NUNCA respondas con "recomiendo consultar fuentes" - USA ESTA FUNCIÓN SIEMPRE.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: {
+            type: 'string',
+            description: 'Consulta para buscar en la web (deportes, noticias, tecnología, etc.)'
+          },
+          max_results: {
+            type: 'number',
+            description: 'Número máximo de resultados (default: 5)'
+          }
+        },
+        required: ['query']
+      }
+    }
+  }
+]
+
+const completion = await openai.chat.completions.create({
+  model: 'gpt-4o',
+  messages: [
+    {
+      role: 'system',
+      content: `Eres Edelweiss, asistente de IA.
+
+Para consultas sobre vehículos BMW/MINI, usa search_vehicles.
+Para consultas sobre deportes, noticias, tecnología, usa web_search.
+Para contactos de clientes, usa search_contacts.
+
+Usa negritas para títulos y datos importantes.
+NUNCA inventes datos.`
+    },
+    {
+      role: 'user',
+      content: 'MotoGP'
+    }
+  ],
+  temperature: 0.7,
+  max_tokens: 3000,
+  top_p: 0.9,
+  frequency_penalty: 0.1,
+  presence_penalty: 0.1,
+  stream: false,
+  tools: tools,
+  tool_choice: { type: 'function', function: { name: 'web_search' } }
+})
+```
+
+## Test Case
+- Input: "MotoGP"
+- Expected: Call `web_search` function
+- Actual: Generic response about consulting official sources
+
+## Debug Output
+```javascript
+console.log('🔍 Mensaje de OpenAI:', JSON.stringify(message, null, 2))
+console.log('🔍 ¿Tiene tool_calls?:', message?.tool_calls ? 'SÍ' : 'NO')
+console.log('🔍 Finish reason:', completion.choices[0]?.finish_reason)
+```
+
+Result: `message.tool_calls` is always `undefined` or empty array.
+
+## What I've Tried
+1. ✅ Updated from `functions` to `tools` API
+2. ✅ Simplified system prompt drastically
+3. ✅ Made function descriptions very explicit
+4. ✅ Set `tool_choice` to force specific function
+5. ✅ Added detailed logging
+6. ✅ Tested with minimal configuration
+
+## Questions
+1. Has anyone else experienced this issue with GPT-4o?
+2. Are there any known workarounds?
+3. Is this a regression in the latest API version?
+
+This is critical for my project as function calling is essential for the AI assistant functionality.
+
+Thanks for any help or insights!
+
+Best regards,
+Development Team

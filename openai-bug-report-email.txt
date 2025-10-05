@@ -1,0 +1,118 @@
+To: support@openai.com
+Subject: Bug Report: Function Calling Not Working with GPT-4o - tool_calls always empty
+
+Dear OpenAI Support Team,
+
+I am reporting a critical bug with function calling in GPT-4o. The model is not calling any functions despite proper configuration.
+
+## Summary
+Function calling is not working with GPT-4o. The model is not calling any functions despite proper configuration. `message.tool_calls` is always empty/undefined.
+
+## Environment
+- Model: gpt-4o
+- API Version: Latest (using tools instead of functions)
+- Node.js: Latest
+- OpenAI SDK: Latest
+
+## Configuration
+```javascript
+const tools = [
+  {
+    type: 'function',
+    function: {
+      name: 'web_search',
+      description: 'Búsqueda web para consultas generales que requieren información actualizada. USA ESTA FUNCIÓN OBLIGATORIAMENTE cuando el usuario pregunte por: deportes (F1, MotoGP, fútbol), noticias actuales, tecnología, o cualquier tema fuera del concesionario BMW/MINI. NUNCA respondas con "recomiendo consultar fuentes" - USA ESTA FUNCIÓN SIEMPRE.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: {
+            type: 'string',
+            description: 'Consulta para buscar en la web (deportes, noticias, tecnología, etc.)'
+          },
+          max_results: {
+            type: 'number',
+            description: 'Número máximo de resultados (default: 5)'
+          }
+        },
+        required: ['query']
+      }
+    }
+  }
+]
+
+const completion = await openai.chat.completions.create({
+  model: 'gpt-4o',
+  messages: [
+    {
+      role: 'system',
+      content: `Eres Edelweiss, asistente de IA.
+
+Para consultas sobre vehículos BMW/MINI, usa search_vehicles.
+Para consultas sobre deportes, noticias, tecnología, usa web_search.
+Para contactos de clientes, usa search_contacts.
+
+Usa negritas para títulos y datos importantes.
+NUNCA inventes datos.`
+    },
+    {
+      role: 'user',
+      content: 'MotoGP'
+    }
+  ],
+  temperature: 0.7,
+  max_tokens: 3000,
+  top_p: 0.9,
+  frequency_penalty: 0.1,
+  presence_penalty: 0.1,
+  stream: false,
+  tools: tools,
+  tool_choice: { type: 'function', function: { name: 'web_search' } }
+})
+```
+
+## Expected Behavior
+The model should call the `web_search` function when asked about "MotoGP" since:
+1. The system prompt explicitly instructs to use `web_search` for sports queries
+2. The function description is very explicit about when to use it
+3. `tool_choice` is set to force the `web_search` function
+
+## Actual Behavior
+The model responds with generic text instead of calling the function:
+```
+"La información más reciente sobre **MotoGP** está disponible. Para obtener detalles específicos o en tiempo real, te recomiendo consultar fuentes oficiales de MotoGP."
+```
+
+## Debug Information
+```javascript
+console.log('🔍 Mensaje de OpenAI:', JSON.stringify(message, null, 2))
+console.log('🔍 ¿Tiene tool_calls?:', message?.tool_calls ? 'SÍ' : 'NO')
+console.log('🔍 Finish reason:', completion.choices[0]?.finish_reason)
+```
+
+**Result**: `message.tool_calls` is always `undefined` or empty array.
+
+## What We've Tried
+1. ✅ Updated from `functions` to `tools` API
+2. ✅ Simplified system prompt drastically
+3. ✅ Made function descriptions very explicit
+4. ✅ Set `tool_choice` to force specific function
+5. ✅ Added detailed logging
+6. ✅ Tested with minimal configuration
+
+## Test Cases
+- Input: "MotoGP" → Expected: Call `web_search` → Actual: No function call
+- Input: "BMW X3" → Expected: Call `search_vehicles` → Actual: No function call
+- Input: "¿Cuál es la clasificación del MotoGP?" → Expected: Call `web_search` → Actual: No function call
+
+## Request
+Please investigate why GPT-4o is not calling functions despite proper configuration. This appears to be a regression or bug in the function calling system.
+
+## Contact
+- Project: CVO Dashboard (BMW/MINI Concessionaire Management System)
+- Issue: Critical - Function calling is essential for the AI assistant functionality
+- Date: October 5, 2025
+
+Thank you for your attention to this matter.
+
+Best regards,
+Development Team
