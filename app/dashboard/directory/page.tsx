@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import DirectoryPage from "@/components/directory/directory-page"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
+import { Users } from "lucide-react"
 
 export const metadata: Metadata = {
   title: "Directorio de Usuarios | CVO",
@@ -13,8 +14,7 @@ export default function Directory() {
       <div className="space-y-2">
         <Breadcrumbs className="mt-4" />
         <div className="flex items-center gap-3">
-          {/* Puedes poner aquí el icono y título que desees para la sección Directory */}
-          <span className="h-8 w-8 bg-muted rounded-full flex items-center justify-center">D</span>
+          <Users className="h-8 w-8 text-blue-600" />
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Directorio</h1>
             <p className="text-muted-foreground">Gestión de usuarios y contactos</p>

@@ -9,6 +9,14 @@ export interface UserActivity {
   user_id: string
   user_email: string
   user_name: string
+  // Campos adicionales para compatibilidad con UserCard
+  action?: string
+  details?: string
+  resource?: string
+  price?: number
+  payment_method?: string
+  badge?: string
+  created_at?: string
 }
 
 class UserActivityService {
@@ -21,92 +29,157 @@ class UserActivityService {
     limit: number = 10
   ): Promise<UserActivity[]> {
     try {
-      // Obtener actividades reales de la base de datos
-      const { data: activities, error } = await this.supabase
-        .from('user_activities')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(limit)
-
-      if (error) {
-        console.error('Error al obtener actividades:', error)
-        return this.generateMockActivities(userId, userEmail, userName, limit)
-      }
-
-      // Convertir a formato UserActivity
-      return activities.map(activity => ({
-        id: activity.id,
-        type: activity.type || 'system',
-        description: activity.description || 'Actividad del sistema',
-        timestamp: new Date(activity.created_at),
-        metadata: activity.metadata || {},
-        user_id: userId,
-        user_email: userEmail,
-        user_name: userName
-      }))
+      // Solo obtener actividades reales de la base de datos
+      const activities = await this.getRealUserActivities(userId, userEmail, userName, limit)
+      
+      // Si no hay actividades reales, devolver array vacío
+      return activities
     } catch (error) {
       console.error('Error en getUserActivities:', error)
-      return this.generateMockActivities(userId, userEmail, userName, limit)
+      // No generar actividades falsas, devolver array vacío
+      return []
     }
   }
 
-  private generateMockActivities(
+  private async getRealUserActivities(
     userId: string, 
     userEmail: string, 
     userName: string,
     limit: number
-  ): UserActivity[] {
-    const mockActivities: UserActivity[] = [
-      {
-        id: '1',
-        type: 'login',
-        description: 'Inicio de sesión exitoso',
-        timestamp: new Date(Date.now() - 1000 * 60 * 5), // 5 minutos atrás
-        user_id: userId,
-        user_email: userEmail,
-        user_name: userName
-      },
-      {
-        id: '2',
-        type: 'vehicle_view',
-        description: 'Consultó información de vehículo BMW X3',
-        timestamp: new Date(Date.now() - 1000 * 60 * 15), // 15 minutos atrás
-        user_id: userId,
-        user_email: userEmail,
-        user_name: userName
-      },
-      {
-        id: '3',
-        type: 'search',
-        description: 'Realizó búsqueda de contactos de clientes',
-        timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutos atrás
-        user_id: userId,
-        user_email: userEmail,
-        user_name: userName
-      },
-      {
-        id: '4',
-        type: 'sale',
-        description: 'Registró nueva venta de vehículo',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60), // 1 hora atrás
-        user_id: userId,
-        user_email: userEmail,
-        user_name: userName
-      },
-      {
-        id: '5',
-        type: 'contact',
-        description: 'Actualizó datos de contacto de cliente',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 horas atrás
-        user_id: userId,
-        user_email: userEmail,
-        user_name: userName
-      }
-    ]
+  ): Promise<UserActivity[]> {
+    try {
+      const activities: UserActivity[] = []
 
-    return mockActivities.slice(0, limit)
+      console.log(`🔍 Buscando último acceso para: ${userName} (${userEmail})`)
+
+      // 1. Buscar en la tabla profiles para obtener información de último acceso
+      const { data: profile } = await this.supabase
+        .from('profiles')
+        .select('id, full_name, email, created_at, updated_at, last_sign_in_at')
+        .eq('id', userId)
+        .single()
+
+      console.log('👤 Perfil del usuario:', profile)
+
+      if (profile) {
+        // Usar last_sign_in_at si está disponible, sino usar updated_at
+        const lastAccess = profile.last_sign_in_at || profile.updated_at || profile.created_at
+        
+        if (lastAccess) {
+          activities.push({
+            id: `access-${userId}`,
+            type: 'login',
+            description: 'Último acceso al sistema',
+            timestamp: new Date(lastAccess),
+            user_id: userId,
+            user_email: userEmail,
+            user_name: userName,
+            action: 'login',
+            details: 'Último acceso al sistema',
+            resource: 'Sistema',
+            badge: 'Acceso',
+            created_at: lastAccess
+          })
+        }
+
+        // Si el usuario se registró recientemente, mostrar esa información
+        const registrationDate = new Date(profile.created_at)
+        const now = new Date()
+        const daysSinceRegistration = Math.floor((now.getTime() - registrationDate.getTime()) / (1000 * 60 * 60 * 24))
+
+        if (daysSinceRegistration <= 7) {
+          activities.push({
+            id: `registration-${userId}`,
+            type: 'system',
+            description: `Usuario registrado hace ${daysSinceRegistration} días`,
+            timestamp: registrationDate,
+            user_id: userId,
+            user_email: userEmail,
+            user_name: userName,
+            action: 'create',
+            details: `Usuario registrado hace ${daysSinceRegistration} días`,
+            resource: 'Sistema',
+            badge: 'Registro',
+            created_at: profile.created_at
+          })
+        }
+      }
+
+      // 2. Buscar en auth.users para obtener información de autenticación
+      const { data: authUser } = await this.supabase.auth.getUser()
+      
+      if (authUser.user) {
+        const lastSignIn = authUser.user.last_sign_in_at
+        if (lastSignIn) {
+          // Solo agregar si es diferente al último acceso del perfil
+          const profileLastAccess = profile?.last_sign_in_at
+          if (!profileLastAccess || new Date(lastSignIn) > new Date(profileLastAccess)) {
+            activities.push({
+              id: `auth-${userId}`,
+              type: 'login',
+              description: 'Sesión activa en el sistema',
+              timestamp: new Date(lastSignIn),
+              user_id: userId,
+              user_email: userEmail,
+              user_name: userName,
+              action: 'login',
+              details: 'Sesión activa en el sistema',
+              resource: 'Autenticación',
+              badge: 'Sesión',
+              created_at: lastSignIn
+            })
+          }
+        }
+      }
+
+      // 3. Buscar en logs de actividad si existe la tabla
+      try {
+        const { data: activityLogs } = await this.supabase
+          .from('user_activities')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(2)
+
+        if (activityLogs && activityLogs.length > 0) {
+          activityLogs.forEach((log) => {
+            activities.push({
+              id: `log-${log.id}`,
+              type: log.type || 'system',
+              description: log.description || 'Actividad del sistema',
+              timestamp: new Date(log.created_at),
+              user_id: userId,
+              user_email: userEmail,
+              user_name: userName,
+              action: log.type || 'system',
+              details: log.description || 'Actividad del sistema',
+              resource: 'Logs',
+              badge: 'Actividad',
+              created_at: log.created_at
+            })
+          })
+        }
+      } catch (error) {
+        console.log('ℹ️ Tabla user_activities no disponible')
+      }
+
+      // Ordenar todas las actividades por fecha y limitar
+      const sortedActivities = activities
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .slice(0, limit)
+
+      console.log(`✅ Total actividades de acceso encontradas para ${userName}: ${sortedActivities.length}`)
+      if (sortedActivities.length > 0) {
+        console.log('📋 Actividades de acceso:', sortedActivities.map(a => ({ tipo: a.type, descripcion: a.description, fecha: a.timestamp })))
+      }
+
+      return sortedActivities
+    } catch (error) {
+      console.error('Error obteniendo actividades de acceso:', error)
+      return []
+    }
   }
+
 
   async logActivity(
     userId: string,

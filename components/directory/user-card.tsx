@@ -1,50 +1,17 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import type { UserWithRoles } from "@/lib/auth/types"
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Calendar, Mail, Phone, Clock, Activity, CreditCard, Banknote, CheckCircle, Plus } from "lucide-react"
-import { formatDistanceToNow } from "date-fns"
-import { es } from "date-fns/locale"
+import { Calendar, Mail, Phone } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { userActivityService, type UserActivity } from "@/lib/user-activity-service"
 
 interface UserCardProps {
   user: UserWithRoles
 }
 
 export function UserCard({ user }: UserCardProps) {
-  const [activities, setActivities] = useState<UserActivity[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    const fetchActivities = async () => {
-      try {
-        setIsLoading(true)
-        console.log(`🔍 Cargando actividades reales para: ${user.full_name || user.email}`)
-        
-        // Obtener actividades reales del usuario
-        const realActivities = await userActivityService.getUserActivities(
-          user.id, 
-          user.email, 
-          user.full_name || user.email
-        )
-        
-        setActivities(realActivities)
-        console.log(`✅ Actividades cargadas para ${user.full_name}:`, realActivities.length)
-      } catch (error) {
-        console.error("Error al cargar actividades:", error)
-        setActivities([])
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchActivities()
-  }, [user.id, user.email, user.full_name])
 
   // Función para obtener el color del badge según el rol
   const getRoleBadgeColor = (roleName: string) => {
@@ -58,32 +25,6 @@ export function UserCard({ user }: UserCardProps) {
     }
 
     return roleColors[roleName.toLowerCase()] || "bg-gray-100 text-gray-800 hover:bg-gray-200"
-  }
-
-  // Función para obtener el icono según el tipo de actividad
-  const getActivityIcon = (action: string, paymentMethod?: string) => {
-    switch (action) {
-      case "sale":
-        return paymentMethod === "Financiado" 
-          ? <CreditCard className="h-4 w-4 text-blue-500" />
-          : <Banknote className="h-4 w-4 text-green-500" />
-      case "create":
-        return <Plus className="h-4 w-4 text-purple-500" />
-      case "process":
-        return <Activity className="h-4 w-4 text-orange-500" />
-      case "login":
-        return <Activity className="h-4 w-4 text-green-500" />
-      case "logout":
-        return <Activity className="h-4 w-4 text-red-500" />
-      case "view":
-        return <Activity className="h-4 w-4 text-blue-500" />
-      case "update":
-        return <Activity className="h-4 w-4 text-yellow-500" />
-      case "delete":
-        return <Activity className="h-4 w-4 text-red-500" />
-      default:
-        return <Activity className="h-4 w-4 text-gray-500" />
-    }
   }
 
   return (
@@ -149,57 +90,6 @@ export function UserCard({ user }: UserCardProps) {
         </div>
       </CardContent>
 
-      <CardFooter className="p-4 pt-0 flex flex-col items-start">
-        <h4 className="text-sm font-medium mb-2 flex items-center">
-          <Clock className="h-4 w-4 mr-1" />
-          Actividad reciente
-        </h4>
-
-        {isLoading ? (
-          <div className="w-full space-y-2">
-            <div className="h-4 bg-muted rounded animate-pulse"></div>
-            <div className="h-4 bg-muted rounded animate-pulse"></div>
-            <div className="h-4 bg-muted rounded animate-pulse"></div>
-          </div>
-        ) : activities.length > 0 ? (
-          <div className="w-full space-y-1">
-            {activities.slice(0, 3).map((activity) => (
-              <TooltipProvider key={activity.id}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex items-center text-xs text-muted-foreground py-1">
-                      {getActivityIcon(activity.action, activity.payment_method)}
-                      <span className="ml-2 truncate flex-1">
-                        {activity.details || `${activity.action} en ${activity.resource}`}
-                      </span>
-                      {activity.price && (
-                        <span className="text-xs font-mono text-green-600 dark:text-green-400 mr-2">
-                          {activity.price.toLocaleString()}€
-                        </span>
-                      )}
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">
-                        {formatDistanceToNow(new Date(activity.created_at), {
-                          addSuffix: true,
-                          locale: es,
-                        })}
-                      </span>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{activity.details || `${activity.action} en ${activity.resource}`}</p>
-                    <p className="text-xs text-muted-foreground">{new Date(activity.created_at).toLocaleString()}</p>
-                    {activity.badge && (
-                      <p className="text-xs text-blue-600 dark:text-blue-400">Tipo: {activity.badge}</p>
-                    )}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            ))}
-          </div>
-        ) : (
-          <p className="text-xs text-muted-foreground">No hay actividad reciente</p>
-        )}
-      </CardFooter>
     </Card>
   )
 }

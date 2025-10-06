@@ -25,6 +25,14 @@ export async function GET(request: Request) {
   try {
     console.log("🔄 Iniciando carga de usuarios...")
     
+    // Verificar configuración de Supabase
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error("❌ Variables de entorno de Supabase no configuradas")
+      return NextResponse.json({ 
+        error: "Configuración de base de datos no disponible. Contacta al administrador." 
+      }, { status: 500 })
+    }
+    
     // Verificar autenticación (temporalmente deshabilitado para debug)
     const authHeader = request.headers.get('authorization')
     console.log("🔍 Auth header:", authHeader ? "Presente" : "Ausente")
@@ -73,6 +81,12 @@ export async function GET(request: Request) {
     }
 
     console.log("✅ Consulta exitosa, usuarios obtenidos:", users?.length || 0)
+    
+    // Si no hay usuarios, devolver array vacío
+    if (!users || users.length === 0) {
+      console.log("ℹ️ No se encontraron usuarios en la base de datos")
+      return NextResponse.json([])
+    }
 
     // Procesar los usuarios y sus roles
     const usersWithRoles = await Promise.all(
@@ -120,8 +134,6 @@ export async function GET(request: Request) {
         }
       }),
     )
-
-
 
     const endTime = Date.now()
     console.log(`✅ Usuarios cargados en ${endTime - startTime}ms. Total: ${usersWithRoles.length}`)

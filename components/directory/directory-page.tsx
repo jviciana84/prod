@@ -66,7 +66,6 @@ export default function DirectoryPage() {
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Directorio de Usuarios</h1>
           <p className="text-muted-foreground">Consulta información sobre todos los usuarios de la plataforma</p>
         </div>
 
