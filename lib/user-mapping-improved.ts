@@ -63,6 +63,7 @@ export async function getUserAsesorAlias(userId: string, profileName: string, em
     // 4. CUARTO: MAPEO HARDCODEADO CORRECTO (BACKUP)
     const correctMappings: Record<string, string> = {
       "jordi.viciana@munichgroup.es": "JordiVi",
+      "jordi.viciana@quadis.es": "JordiVi",
       "viciana84@gmail.com": "RCDE",
       "Jordi Viciana Sánchez": "JordiVi",
       // Puedes añadir más mapeos hardcodeados aquí si es necesario

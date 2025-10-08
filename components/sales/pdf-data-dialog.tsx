@@ -55,10 +55,12 @@ function getDealershipName(code: string | null): string {
   if (!code) return "Sin especificar"
 
   switch (code.toUpperCase()) {
+    case "QM":
+      return "Quadis Munich"
     case "MM":
-      return "Motor Munich"
+      return "Motor Munich (histórico)"
     case "MMC":
-      return "Motor Munich Cadí"
+      return "Motor Munich Cadí (histórico)"
     default:
       return code
   }
@@ -69,6 +71,8 @@ function getDealershipCode(name: string | null): string | null {
   if (!name) return null
 
   switch (name) {
+    case "Quadis Munich":
+      return "QM"
     case "Motor Munich":
       return "MM"
     case "Motor Munich Cadí":
@@ -79,6 +83,7 @@ function getDealershipCode(name: string | null): string | null {
 }
 
 const dealershipOptions = [
+  { code: "QM", name: "Quadis Munich" },
   { code: "MM", name: "Motor Munich" },
   { code: "MMC", name: "Motor Munich Cadí" },
 ]
@@ -419,6 +424,7 @@ export function PdfDataDialog({ vehicleId, licensePlate }: PdfDataDialogProps) {
               <SelectValue placeholder="Seleccionar concesionario" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="QM">Quadis Munich (QM)</SelectItem>
               <SelectItem value="MM">Motor Munich (MM)</SelectItem>
               <SelectItem value="MMC">Motor Munich Cadí (MMC)</SelectItem>
             </SelectContent>

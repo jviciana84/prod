@@ -39,8 +39,7 @@ interface ConcesionarioObjectives {
 export function ObjetivosSimpleManager() {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear())
   const [data, setData] = useState<ConcesionarioObjectives>({
-    "Motor Munich": { sales: [], financial: null },
-    "Motor Munich Cadí": { sales: [], financial: null },
+    "Quadis Munich": { sales: [], financial: null },
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -48,7 +47,7 @@ export function ObjetivosSimpleManager() {
   const supabase = createClientComponentClient()
   const { toast } = useToast()
 
-  const concesionarios = ["Motor Munich", "Motor Munich Cadí"]
+  const concesionarios = ["Quadis Munich"]
   const marcas = ["BMW", "MINI"]
   const basePeriodos = [
     { label: "Q1 (Ene-Mar)", months: [0, 1, 2] },
@@ -88,8 +87,7 @@ export function ObjetivosSimpleManager() {
       if (financialError) throw financialError
 
       const initialData: ConcesionarioObjectives = {
-        "Motor Munich": { sales: [], financial: null },
-        "Motor Munich Cadí": { sales: [], financial: null },
+        "Quadis Munich": { sales: [], financial: null },
       }
 
       concesionarios.forEach((concesionario) => {

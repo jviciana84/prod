@@ -42,6 +42,7 @@ export async function getUserAsesorName(userId: string, profileName: string, ema
     const manualMappings: Record<string, string> = {
       JordiVi: "Jordi Viciana",
       "jordi.viciana@munichgroup.es": "Jordi Viciana",
+      "jordi.viciana@quadis.es": "Jordi Viciana",
       // Añadir más mapeos según sea necesario
     }
 

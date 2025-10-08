@@ -19,16 +19,19 @@ function getDealershipCodeFromTomo(extractedFields: any): string | null {
   const tomoStr = tomo.toString().toUpperCase()
 
   // Lógica de detección por TOMO - incluyendo números específicos como en el frontend
+  // NOTA: Ahora todo se detecta como QM (Quadis Munich) - Motor Munich cambió de nombre
   if (
     tomoStr.includes("TERRASSA") || 
     tomoStr.includes("MOTOR MUNICH") || 
+    tomoStr.includes("QUADIS") ||
     tomoStr === "MM" ||
+    tomoStr === "QM" ||
     tomoStr.includes("10038") ||
     tomoStr.includes("TOMO 10038") ||
     tomoStr.includes("TOMO10038")
   ) {
-    console.log("✅ Detectado Motor Munich (MM) por TOMO")
-    return "MM"
+    console.log("✅ Detectado Quadis Munich (QM) por TOMO")
+    return "QM"
   } else if (
     tomoStr.includes("CORNELLÀ") || 
     tomoStr.includes("CORNELLA") || 
@@ -37,8 +40,8 @@ function getDealershipCodeFromTomo(extractedFields: any): string | null {
     tomoStr.includes("TOMO 46544") ||
     tomoStr.includes("TOMO46544")
   ) {
-    console.log("✅ Detectado Motor Munich Cornellà (MMC) por TOMO")
-    return "MMC"
+    console.log("✅ Detectado Quadis Munich Cadí (QM) por TOMO - antes Motor Munich Cadí")
+    return "QM"
   }
 
   console.log("⚠️ TOMO no reconocido:", tomo)
@@ -51,12 +54,21 @@ function getDealershipCodeFromSelection(selectedDealership: string | null): stri
 
   console.log("🏢 Usando selección manual para concesionario:", selectedDealership)
 
+  // Nuevo código principal: Quadis Munich (QM)
+  if (selectedDealership.includes("Quadis Munich (QM)") || selectedDealership.includes("QM")) {
+    console.log("✅ Detectado Quadis Munich (QM) por selección manual")
+    return "QM"
+  }
+  
+  // Mantener compatibilidad con códigos antiguos (por si hay PDFs en proceso)
   if (selectedDealership.includes("Motor Munich (MM)") || selectedDealership.includes("MM")) {
-    console.log("✅ Detectado Motor Munich (MM) por selección manual")
-    return "MM"
-  } else if (selectedDealership.includes("Motor Munich Cornellà (MMC)") || selectedDealership.includes("MMC")) {
-    console.log("✅ Detectado Motor Munich Cornellà (MMC) por selección manual")
-    return "MMC"
+    console.log("✅ Detectado Motor Munich (MM) por selección manual - convirtiendo a QM")
+    return "QM"
+  } else if (selectedDealership.includes("Motor Munich Cornellà (MMC)") || 
+             selectedDealership.includes("Motor Munich Cadí (MMC)") || 
+             selectedDealership.includes("MMC")) {
+    console.log("✅ Detectado Motor Munich Cadí (MMC) por selección manual - convirtiendo a QM")
+    return "QM"
   }
 
   console.log("⚠️ Selección manual no reconocida:", selectedDealership)
@@ -390,8 +402,8 @@ export async function POST(request: NextRequest) {
     if (dealershipCode) {
       console.log("✅ Concesionario detectado:", dealershipCode)
     } else {
-      console.log("⚠️ No se pudo detectar concesionario, usando MM por defecto")
-      dealershipCode = "MM" // Fallback por defecto
+      console.log("⚠️ No se pudo detectar concesionario, usando QM (Quadis Munich) por defecto")
+      dealershipCode = "QM" // Fallback por defecto - Quadis Munich
     }
 
     let marca = extractedFields["MARCA"]

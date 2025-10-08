@@ -38,7 +38,7 @@ export function ObjetivosManager() {
   const supabase = createClientComponentClient()
   const { toast } = useToast()
 
-  const concesionarios = ["Motor Munich", "Motor Munich Cadí"]
+  const concesionarios = ["Quadis Munich"]
   const marcas = ["BMW", "MINI"]
   const meses = [
     "Enero",

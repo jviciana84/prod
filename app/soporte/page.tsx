@@ -446,7 +446,7 @@ export default function SoportePage() {
             animate={{ opacity: 1 }}
             transition={{ duration: 1, delay: 1 }}
           >
-            Motor Munich - Dept. Vehículo de Ocasión
+            Quadis Munich - Dept. Vehículo de Ocasión
           </motion.p>
         </motion.div>
       </div>

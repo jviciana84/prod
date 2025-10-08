@@ -43,9 +43,10 @@ import { cn } from "@/lib/utils"
 
 // Actualizar la función detectDealershipFromText para incluir los números de tomo
 const detectDealershipFromText = (text: string): string => {
-  if (!text) return "Motor Munich (MM)" // Default
+  if (!text) return "Quadis Munich (QM)" // Default - Motor Munich ahora es Quadis Munich
 
   // Buscar los CIFs o números de tomo del concesionario en el texto del PDF
+  // Todo ahora se detecta como Quadis Munich (QM)
   if (
     text.includes("58800111") ||
     text.includes("A-58800111") ||
@@ -53,7 +54,7 @@ const detectDealershipFromText = (text: string): string => {
     text.includes("Tomo 10038") ||
     text.includes("TOMO 10038")
   ) {
-    return "Motor Munich (MM)"
+    return "Quadis Munich (QM)"
   } else if (
     text.includes("67276543") ||
     text.includes("B-67276543") ||
@@ -61,16 +62,17 @@ const detectDealershipFromText = (text: string): string => {
     text.includes("Tomo 46544") ||
     text.includes("TOMO 46544")
   ) {
-    return "Motor Munich Cadí (MMC)"
+    return "Quadis Munich (QM)"
   }
 
-  // Si no encuentra ningún identificador específico, usar MM como default
-  return "Motor Munich (MM)"
+  // Si no encuentra ningún identificador específico, usar QM como default
+  return "Quadis Munich (QM)"
 }
 
 const dealershipOptions = [
-  { value: "Motor Munich Cadí (MMC)", label: "Motor Munich Cadí (MMC)" },
+  { value: "Quadis Munich (QM)", label: "Quadis Munich (QM)" },
   { value: "Motor Munich (MM)", label: "Motor Munich (MM)" },
+  { value: "Motor Munich Cadí (MMC)", label: "Motor Munich Cadí (MMC)" },
 ]
 
 const fieldDisplayConfig: Record<

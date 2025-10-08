@@ -12,8 +12,9 @@ import { createClientComponentClient } from "@/lib/supabase/client"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 // Mapeo de nombres de concesionario en objetivos a dealership_code en sales_vehicles
-// Confirmado por el usuario: "Motor Munich" -> "MM", "Motor Munich Cadí" -> "MMC"
+// Actualizado: Quadis Munich (nuevo nombre) -> "QM", manteniendo compatibilidad con códigos históricos
 const CONCESIONARIO_MAP: { [key: string]: string } = {
+  "Quadis Munich": "QM",
   "Motor Munich": "MM",
   "Motor Munich Cadí": "MMC",
 }
@@ -285,28 +286,19 @@ export function ObjetivosCard() {
         return { bmwSales, miniSales, penetration }
       }
 
-      const motorMunichActuals = calculateActuals("Motor Munich")
-      const motorMunichCadiActuals = calculateActuals("Motor Munich Cadí")
+      const quadisMunichActuals = calculateActuals("Quadis Munich")
 
       // Assign actuals to the finalObjetivos structure (immutable update)
+      // Ahora solo tenemos Quadis Munich
       finalObjetivos = {
         ...finalObjetivos,
         motorMunich: {
           ...finalObjetivos.motorMunich,
-          ventaBMW: { ...finalObjetivos.motorMunich.ventaBMW, actual: motorMunichActuals.bmwSales },
-          ventaMINI: { ...finalObjetivos.motorMunich.ventaMINI, actual: motorMunichActuals.miniSales },
+          ventaBMW: { ...finalObjetivos.motorMunich.ventaBMW, actual: quadisMunichActuals.bmwSales },
+          ventaMINI: { ...finalObjetivos.motorMunich.ventaMINI, actual: quadisMunichActuals.miniSales },
           penetracionFinanciera: {
             ...finalObjetivos.motorMunich.penetracionFinanciera,
-            actual: motorMunichActuals.penetration,
-          },
-        },
-        motorMunichCadi: {
-          ...finalObjetivos.motorMunichCadi,
-          ventaBMW: { ...finalObjetivos.motorMunichCadi.ventaBMW, actual: motorMunichCadiActuals.bmwSales },
-          ventaMINI: { ...finalObjetivos.motorMunichCadi.ventaMINI, actual: motorMunichCadiActuals.miniSales },
-          penetracionFinanciera: {
-            ...finalObjetivos.motorMunichCadi.penetracionFinanciera,
-            actual: motorMunichCadiActuals.penetration,
+            actual: quadisMunichActuals.penetration,
           },
         },
       }
@@ -501,9 +493,8 @@ export function ObjetivosCard() {
               "DEBUG: Objetivos object structure before rendering concesiones (JSON):",
               JSON.stringify(objetivos, null, 2),
             )}
-            <div className="grid grid-cols-2 gap-4">
-              {objetivos.motorMunich && renderConcesion("Motor Munich", objetivos.motorMunich)}
-              {objetivos.motorMunichCadi && renderConcesion("Motor Munich Cadí", objetivos.motorMunichCadi)}
+            <div className="grid grid-cols-1 gap-4">
+              {objetivos.motorMunich && renderConcesion("Quadis Munich", objetivos.motorMunich)}
             </div>
           </>
         )}
