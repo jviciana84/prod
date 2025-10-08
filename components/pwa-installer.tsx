@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
-import { X, Download, Smartphone, Share2 } from 'lucide-react'
+import { Download, Smartphone, Share2 } from 'lucide-react'
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[]
@@ -17,6 +17,13 @@ export function PWAInstaller() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [showInstallPrompt, setShowInstallPrompt] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const [countdown, setCountdown] = useState(5)
+
+  // Función para cerrar el modal
+  const handleDismiss = useCallback(() => {
+    setShowInstallPrompt(false)
+    setCountdown(5) // Reiniciar para la próxima vez
+  }, [])
 
   useEffect(() => {
     // Detectar si es móvil
@@ -45,6 +52,7 @@ export function PWAInstaller() {
       e.preventDefault()
       setDeferredPrompt(e as BeforeInstallPromptEvent)
       setShowInstallPrompt(true)
+      setCountdown(5) // Reiniciar countdown al mostrar
     }
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
@@ -54,6 +62,22 @@ export function PWAInstaller() {
       window.removeEventListener('resize', checkMobile)
     }
   }, [])
+
+  // Countdown timer
+  useEffect(() => {
+    if (!showInstallPrompt) return
+
+    if (countdown === 0) {
+      handleDismiss()
+      return
+    }
+
+    const timer = setInterval(() => {
+      setCountdown((prev) => prev - 1)
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [showInstallPrompt, countdown, handleDismiss])
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return
@@ -68,10 +92,6 @@ export function PWAInstaller() {
     }
 
     setDeferredPrompt(null)
-    setShowInstallPrompt(false)
-  }
-
-  const handleDismiss = () => {
     setShowInstallPrompt(false)
   }
 
@@ -95,20 +115,54 @@ export function PWAInstaller() {
 
   if (!showInstallPrompt) return null
 
+  // Calcular progreso del círculo (0 a 100)
+  const progress = ((5 - countdown) / 5) * 100
+
   return (
     <div className="fixed bottom-4 right-4 z-50 bg-background border rounded-lg shadow-lg p-4 max-w-sm">
       <div className="flex items-center justify-between mb-2">
         <h3 className="font-semibold text-sm">
           {isMobile ? 'Instalar CVO en tu teléfono' : 'Instalar CVO Dashboard'}
         </h3>
-        <Button
-          variant="ghost"
-          size="sm"
+        
+        {/* Botón de cerrar con countdown circular */}
+        <button
           onClick={handleDismiss}
-          className="h-6 w-6 p-0"
+          className="relative h-8 w-8 flex items-center justify-center hover:opacity-80 transition-opacity"
+          aria-label="Cerrar"
         >
-          <X className="h-4 w-4" />
-        </Button>
+          {/* Círculo de fondo */}
+          <svg className="absolute inset-0 w-8 h-8 -rotate-90" viewBox="0 0 36 36">
+            {/* Círculo gris de fondo */}
+            <circle
+              cx="18"
+              cy="18"
+              r="16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              className="text-muted-foreground/20"
+            />
+            {/* Círculo de progreso */}
+            <circle
+              cx="18"
+              cy="18"
+              r="16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeDasharray="100"
+              strokeDashoffset={100 - progress}
+              className="text-primary transition-all duration-1000 ease-linear"
+              strokeLinecap="round"
+            />
+          </svg>
+          
+          {/* Número del countdown */}
+          <span className="relative z-10 text-sm font-semibold text-foreground">
+            {countdown}
+          </span>
+        </button>
       </div>
       <p className="text-xs text-muted-foreground mb-3">
         {isMobile 
