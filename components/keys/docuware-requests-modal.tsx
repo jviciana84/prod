@@ -77,7 +77,7 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
   const [activeTab, setActiveTab] = useState("second_keys")
   const [secondKeySubTab, setSecondKeySubTab] = useState("pending")
   const [technicalSheetSubTab, setTechnicalSheetSubTab] = useState("pending")
-  const [receiverProfiles, setReceiverProfiles] = useState<Record<string, any>>({})
+  const [receiverProfiles, setReceiverProfiles] = useState<Record<string, { id: string, full_name: string, avatar_url: string, email: string }>>({})
   const [refreshing, setRefreshing] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [searchSuggestions, setSearchSuggestions] = useState<DocuwareRequest[]>([])
@@ -188,20 +188,21 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
       
       if (aliasSet.size === 0) return;
 
-      const profilesMap: Record<string, { id: string, full_name: string, avatar_url: string }> = {};
+      const profilesMap: Record<string, { id: string, full_name: string, avatar_url: string, email: string }> = {};
 
       for (const alias of aliasSet) {
         // Primero: buscar por nombre completo exacto (case-insensitive)
         const { data, error } = await supabase
           .from("profiles")
-          .select("id, alias, full_name, avatar_url")
+          .select("id, alias, full_name, avatar_url, email")
           .ilike("full_name", alias);
 
         if (!error && data && data.length > 0) {
           profilesMap[alias] = {
             id: data[0].id,
             full_name: data[0].full_name,
-            avatar_url: data[0].avatar_url
+            avatar_url: data[0].avatar_url,
+            email: data[0].email
           };
           continue;
         }
@@ -209,14 +210,15 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
         // Segundo: buscar por alias exacto (case-insensitive)
         const { data: aliasData, error: aliasError } = await supabase
           .from("profiles")
-          .select("id, alias, full_name, avatar_url")
+          .select("id, alias, full_name, avatar_url, email")
           .ilike("alias", alias);
 
         if (!aliasError && aliasData && aliasData.length > 0) {
           profilesMap[alias] = {
             id: aliasData[0].id,
             full_name: aliasData[0].full_name,
-            avatar_url: aliasData[0].avatar_url
+            avatar_url: aliasData[0].avatar_url,
+            email: aliasData[0].email
           };
           continue;
         }
@@ -224,14 +226,15 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
         // Tercero: buscar por similitud en nombre completo
         const { data: similarData, error: similarError } = await supabase
           .from("profiles")
-          .select("id, alias, full_name, avatar_url")
+          .select("id, alias, full_name, avatar_url, email")
           .ilike("full_name", `%${alias}%`);
 
         if (!similarError && similarData && similarData.length > 0) {
           profilesMap[alias] = {
             id: similarData[0].id,
             full_name: similarData[0].full_name,
-            avatar_url: similarData[0].avatar_url
+            avatar_url: similarData[0].avatar_url,
+            email: similarData[0].email
           };
           continue;
         }
@@ -239,14 +242,15 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
         // Cuarto: buscar por similitud en alias
         const { data: aliasSimilarData, error: aliasSimilarError } = await supabase
           .from("profiles")
-          .select("id, alias, full_name, avatar_url")
+          .select("id, alias, full_name, avatar_url, email")
           .ilike("alias", `%${alias}%`);
 
         if (!aliasSimilarError && aliasSimilarData && aliasSimilarData.length > 0) {
           profilesMap[alias] = {
             id: aliasSimilarData[0].id,
             full_name: aliasSimilarData[0].full_name,
-            avatar_url: aliasSimilarData[0].avatar_url
+            avatar_url: aliasSimilarData[0].avatar_url,
+            email: aliasSimilarData[0].email
           };
           continue;
         }
@@ -254,14 +258,15 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
         // Quinto: buscar por email que contenga el alias
         const { data: emailData, error: emailError } = await supabase
           .from("profiles")
-          .select("id, alias, full_name, avatar_url")
+          .select("id, alias, full_name, avatar_url, email")
           .ilike("email", `%${alias}%`);
 
         if (!emailError && emailData && emailData.length > 0) {
           profilesMap[alias] = {
             id: emailData[0].id,
             full_name: emailData[0].full_name,
-            avatar_url: emailData[0].avatar_url
+            avatar_url: emailData[0].avatar_url,
+            email: emailData[0].email
           };
           continue;
         }
@@ -299,25 +304,6 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
         setLoading(false)
       }
     }
-  }
-
-  // Función para actualizar el estado local después de registrar movimientos
-  const updateRequestsAfterRegistration = (registeredMaterialIds: string[]) => {
-    setRequests(prev => {
-      const updatedRequests = prev.map(request => ({
-        ...request,
-        key_document_materials: request.key_document_materials?.map(material => 
-          registeredMaterialIds.includes(material.id)
-            ? { ...material, selected: true }
-            : material
-        ) || []
-      }));
-      
-      return updatedRequests;
-    })
-    
-    // Limpiar materiales seleccionados
-    setSelectedMaterials([])
   }
 
   // Esta función ya no se usa, se eliminó la selección de solicitudes completas
@@ -421,13 +407,6 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
     }
 
     setConfirming(true);
-    
-    // Timeout de seguridad para evitar que se quede pillado
-    const timeoutId = setTimeout(() => {
-      console.error("⏰ TIMEOUT: Proceso tardó más de 60 segundos");
-      setConfirming(false);
-      toast.error("El proceso tardó demasiado tiempo. Inténtalo de nuevo.");
-    }, 60000);
 
     try {
       // Obtener los materiales seleccionados con sus solicitudes
@@ -745,43 +724,54 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
         toast.warning("⚠️ Error enviando email, pero movimientos registrados");
       }
 
-      // Marcar materiales como procesados en la base de datos
-      for (const materialId of processedMaterials) {
-        try {
-          const response = await fetch("/api/docuware/update-material", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              materialId,
-              selected: true
-            })
-          });
+      // Marcar materiales como procesados directamente en la base de datos
+      if (processedMaterials.length > 0) {
+        const { error: updateError } = await supabase
+          .from("key_document_materials")
+          .update({ selected: true })
+          .in("id", processedMaterials);
 
-          if (!response.ok) {
-            // Error silencioso al marcar procesado
-          }
-        } catch (error) {
-          // Error silencioso al marcar material
+        if (updateError) {
+          console.error("❌ Error actualizando materiales:", updateError);
+          toast.warning("⚠️ Movimientos registrados pero error al actualizar estado");
         }
       }
 
-      toast.success("Todos los movimientos han sido registrados correctamente");
+      // Actualizar estado de solicitudes a "completed"
+      const requestIds = [...new Set(selectedMaterialsData.map(item => item.request.id))];
+      if (requestIds.length > 0) {
+        for (const requestId of requestIds) {
+          // Verificar si todos los materiales de esta solicitud están seleccionados
+          const request = requests.find(r => r.id === requestId);
+          if (request) {
+            const allMaterialsSelected = request.key_document_materials.every(m => 
+              processedMaterials.includes(m.id) || m.selected
+            );
+
+            if (allMaterialsSelected) {
+              const { error: statusError } = await supabase
+                .from("key_document_requests")
+                .update({ status: "completed" })
+                .eq("id", requestId);
+
+              if (statusError) {
+                console.error("❌ Error actualizando solicitud:", statusError);
+              }
+            }
+          }
+        }
+      }
+
+      toast.success(`✅ ${processedMaterials.length} materiales procesados correctamente`);
       
-      // Actualizar estado local con materiales procesados
-      updateRequestsAfterRegistration(processedMaterials);
-      
-      // Recargar datos en segundo plano para sincronizar con la base de datos
-      setTimeout(() => {
-        loadRequests(true);
-      }, 1000);
+      // Limpiar selección y recargar datos
+      setSelectedMaterials([]);
+      await loadRequests();
       
     } catch (err: any) {
       console.error("❌ Error general:", err.message);
       toast.error(err.message || "Error al registrar movimientos");
     } finally {
-      clearTimeout(timeoutId);
       setConfirming(false);
     }
   };
