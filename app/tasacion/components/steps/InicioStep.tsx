@@ -12,6 +12,7 @@ interface InicioStepProps {
 
 export default function InicioStep({ onComplete }: InicioStepProps) {
   const [permisosAceptados, setPermisosAceptados] = useState(false)
+  const [politicaAceptada, setPoliticaAceptada] = useState(false)
 
   const handleCheckboxChange = (checked: boolean) => {
     setPermisosAceptados(checked)
@@ -28,7 +29,7 @@ export default function InicioStep({ onComplete }: InicioStepProps) {
   }
 
   const handleContinue = () => {
-    if (permisosAceptados) {
+    if (permisosAceptados && politicaAceptada) {
       // Generar un token simulado para mantener la compatibilidad
       onComplete('tasacion-token-' + Date.now())
     }
@@ -131,6 +132,39 @@ export default function InicioStep({ onComplete }: InicioStepProps) {
                 Acepto proporcionar acceso a la cámara y geolocalización para completar la tasación
               </span>
             </label>
+
+            {/* Checkbox de política de privacidad */}
+            <label className="flex items-start gap-2 mt-3 p-3 rounded-xl bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-purple-200 cursor-pointer hover:border-purple-400 transition-all group">
+              <div className="relative flex items-center justify-center pt-0.5">
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={politicaAceptada}
+                    onChange={(e) => setPoliticaAceptada(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-6 h-6 rounded-md border-2 border-purple-400 bg-white cursor-pointer peer-checked:bg-gradient-to-br peer-checked:from-blue-500 peer-checked:to-purple-600 peer-checked:border-purple-600 peer-focus:ring-2 peer-focus:ring-purple-500 peer-focus:ring-offset-2 transition-all flex items-center justify-center">
+                    {politicaAceptada && (
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <span className="text-xs text-gray-800 font-medium group-hover:text-purple-900 transition-colors flex-1">
+                He leído y acepto la{' '}
+                <a 
+                  href="/politica-privacidad" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-purple-600 hover:text-purple-800 underline font-semibold"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Política de Privacidad
+                </a>
+              </span>
+            </label>
           </div>
 
           {/* Verificación de seguridad */}
@@ -155,7 +189,7 @@ export default function InicioStep({ onComplete }: InicioStepProps) {
           {/* Botón continuar */}
           <Button
             onClick={handleContinue}
-            disabled={!permisosAceptados}
+            disabled={!permisosAceptados || !politicaAceptada}
             className="w-full h-11 text-sm font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-lg"
           >
             Comenzar Tasación

@@ -539,6 +539,44 @@ const TasacionPDF = ({ data, metadata }: TasacionPDFProps) => {
           </View>
         </View>
 
+        {/* Cláusula de Descargo de Responsabilidad */}
+        <View style={{ 
+          marginTop: 30, 
+          padding: 20, 
+          backgroundColor: '#fef3c7',
+          borderRadius: 8,
+          border: '2 solid #f59e0b'
+        }}>
+          <Text style={{ 
+            fontSize: 12, 
+            fontWeight: 'bold', 
+            color: '#92400e', 
+            marginBottom: 10,
+            textAlign: 'center'
+          }}>
+            Protección de Datos y Descargo de Responsabilidad (CVO)
+          </Text>
+          
+          <Text style={{ fontSize: 9, color: '#78350f', lineHeight: 1.6, marginBottom: 8 }}>
+            El tratamiento de los datos (nombre del titular y documentación del vehículo) se ha 
+            realizado por CVO con la única y exclusiva finalidad de elaborar esta tasación, basándose 
+            en su consentimiento y en los datos facilitados de forma voluntaria.
+          </Text>
+          
+          <Text style={{ fontSize: 9, color: '#78350f', lineHeight: 1.6, marginBottom: 8 }}>
+            Le recordamos que, de acuerdo con nuestra Política de Privacidad, sus datos personales y 
+            la documentación del vehículo serán borrados y eliminados automáticamente de nuestros 
+            sistemas al cumplirse <Text style={{ fontWeight: 'bold' }}>tres (3) meses</Text> desde la 
+            fecha de emisión de este informe.
+          </Text>
+          
+          <Text style={{ fontSize: 9, color: '#78350f', lineHeight: 1.6 }}>
+            Usted puede ejercer sus derechos de Acceso, Rectificación, Supresión, Oposición y Limitación 
+            del tratamiento, así como solicitar la baja de sus datos, contactando con CVO en el correo 
+            electrónico <Text style={{ fontWeight: 'bold' }}>hola@controlvo.ovh</Text>.
+          </Text>
+        </View>
+
         <View style={styles.certificateFooter}>
           <Text>Portal de Tasaciones © 2025</Text>
           <Text style={{ marginTop: 5 }}>
