@@ -1,14 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Client from 'ssh2-sftp-client'
-
-const sftp = new Client()
-
-const SFTP_CONFIG = {
-  host: 'ftp.cluster100.hosting.ovh.net',
-  port: 22,
-  username: 'controt',
-  password: process.env.SFTP_PASSWORD || 'eVCNt5hMjc3.9M$',
-}
+import { createClient } from '@/utils/supabase/server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,45 +13,40 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const supabase = createClient()
+
     // Convertir base64 a buffer
     const base64Data = image.replace(/^data:image\/\w+;base64,/, '')
     const buffer = Buffer.from(base64Data, 'base64')
 
-    // Conectar via SFTP
-    await sftp.connect(SFTP_CONFIG)
+    // Determinar extensión
+    const extension = image.match(/^data:image\/(\w+);base64,/)?.[1] || 'jpg'
+    const filePath = `${tasacionId}/${fileName}.${extension}`
 
-    // Crear directorio si no existe
-    const remoteDir = `/home/controt/tasaciones/${tasacionId}`
-    try {
-      await sftp.mkdir(remoteDir, true)
-    } catch (err) {
-      // Directorio ya existe, continuar
+    // Subir a Supabase Storage
+    const { data, error } = await supabase.storage
+      .from('tasacion-fotos')
+      .upload(filePath, buffer, {
+        contentType: `image/${extension}`,
+        upsert: true
+      })
+
+    if (error) {
+      throw error
     }
 
-    // Subir archivo
-    const remotePath = `${remoteDir}/${fileName}`
-    await sftp.put(buffer, remotePath)
-
-    // Cerrar conexión
-    await sftp.end()
-
-    // Construir URL pública (ajusta según tu dominio)
-    const publicUrl = `https://tudominio.com/tasaciones/${tasacionId}/${fileName}`
+    // Obtener URL pública
+    const { data: publicUrlData } = supabase.storage
+      .from('tasacion-fotos')
+      .getPublicUrl(filePath)
 
     return NextResponse.json({ 
       success: true, 
-      url: publicUrl,
-      path: remotePath
+      url: publicUrlData.publicUrl,
+      path: filePath
     })
   } catch (error) {
     console.error('Error al subir imagen:', error)
-    
-    // Asegurar que cerramos la conexión
-    try {
-      await sftp.end()
-    } catch (endError) {
-      // Ignorar error al cerrar
-    }
 
     return NextResponse.json(
       { 

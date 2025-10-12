@@ -1,5 +1,15 @@
 # 🔧 Configuración OVH para Tasaciones
 
+> ⚠️ **NOTA IMPORTANTE**: Esta configuración ha sido reemplazada por **Supabase Storage**.  
+> Ver: [`SUPABASE_STORAGE_SETUP.md`](./SUPABASE_STORAGE_SETUP.md)
+> 
+> Razón del cambio: `ssh2-sftp-client` usa módulos nativos incompatibles con Vercel.
+> Supabase Storage es más simple, compatible y funciona perfectamente en producción.
+
+---
+
+# 🔧 Configuración OVH para Tasaciones (DEPRECADO)
+
 ## 📋 Variables de Entorno Necesarias
 
 Agrega estas variables a tu archivo `.env.local`:

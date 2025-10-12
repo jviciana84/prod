@@ -133,7 +133,7 @@ export async function saveTasacion(data: TasacionFormData, advisorSlug: string) 
 
     console.log('✅ Tasación guardada en Supabase:', tasacion.id)
 
-    // 3. Subir imágenes a OVH via SFTP
+    // 3. Subir imágenes a Supabase Storage
     if (imagesToUpload.length > 0) {
       try {
         const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/upload-tasacion-images`, {
@@ -150,9 +150,9 @@ export async function saveTasacion(data: TasacionFormData, advisorSlug: string) 
         const uploadResult = await uploadResponse.json()
 
         if (uploadResult.success && uploadResult.uploadedUrls) {
-          console.log(`✅ Subidas ${uploadResult.totalUploaded} imágenes a OVH`)
+          console.log(`✅ Subidas ${uploadResult.totalUploaded} imágenes a Supabase Storage`)
 
-          // 4. Guardar URLs de fotos en Supabase
+          // 4. Guardar URLs de fotos en tabla tasacion_fotos
           const fotosToInsert = Object.entries(uploadResult.uploadedUrls).map(([key, url]) => {
             const image = imagesToUpload.find(img => img.key === key)
             return {
@@ -160,7 +160,7 @@ export async function saveTasacion(data: TasacionFormData, advisorSlug: string) 
               categoria: image?.category || 'otras',
               foto_key: key,
               url: url as string,
-              sftp_path: `/home/controt/tasaciones/${tasacion.id}/${image?.category}/${key}`,
+              sftp_path: `${tasacion.id}/${image?.category}/${key}`,
               mime_type: 'image/jpeg'
             }
           })
