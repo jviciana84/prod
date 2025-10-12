@@ -74,7 +74,7 @@ export default function TasacionPage() {
     setCurrentStep(prev => Math.max(0, prev - 1))
   }
 
-  const handleFinish = (finalData: any) => {
+  const handleFinish = async (finalData: any) => {
     console.log('handleFinish llamado con:', finalData)
     console.log('formData actual:', formData)
     
@@ -86,8 +86,7 @@ export default function TasacionPage() {
     console.log('Tasación completada:', completedData)
     
     try {
-      // TODO: Aquí se enviará a Supabase cuando conectemos la BD
-      // Guardar en localStorage temporalmente para acceso desde página de confirmación
+      // Guardar en localStorage como respaldo
       localStorage.setItem('lastTasacion', JSON.stringify(completedData))
       console.log('Datos guardados en localStorage')
       
@@ -97,11 +96,27 @@ export default function TasacionPage() {
         console.log('Metadata guardada en localStorage')
       }
       
+      // Guardar en Supabase + Subir fotos a OVH
+      console.log('🚀 Guardando en Supabase y subiendo fotos a OVH...')
+      
+      const { saveTasacion } = await import('@/server-actions/saveTasacion')
+      const result = await saveTasacion(completedData, advisorSlug)
+      
+      if (result.success) {
+        console.log('✅ Tasación guardada con ID:', result.tasacionId)
+        localStorage.setItem('lastTasacionId', result.tasacionId)
+      } else {
+        console.error('❌ Error al guardar:', result.error)
+        // Continuamos de todas formas, los datos están en localStorage
+      }
+      
       // Redirigir a la página de confirmación
       console.log('Redirigiendo a /tasacion/completada')
       router.push('/tasacion/completada')
     } catch (error) {
       console.error('Error al guardar o redirigir:', error)
+      // En caso de error, al menos redirigimos con los datos en localStorage
+      router.push('/tasacion/completada')
     }
   }
 

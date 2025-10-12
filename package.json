@@ -96,6 +96,7 @@
     "recharts": "latest",
     "sharp": "^0.34.2",
     "sonner": "latest",
+    "ssh2-sftp-client": "^12.0.1",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "tesseract.js": "^6.0.1",
