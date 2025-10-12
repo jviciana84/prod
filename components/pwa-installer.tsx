@@ -18,6 +18,7 @@ export function PWAInstaller() {
   const [showInstallPrompt, setShowInstallPrompt] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [countdown, setCountdown] = useState(5)
+  const [isTaskacionRoute, setIsTaskacionRoute] = useState(false)
 
   // Función para cerrar el modal
   const handleDismiss = useCallback(() => {
@@ -26,6 +27,15 @@ export function PWAInstaller() {
   }, [])
 
   useEffect(() => {
+    // Detectar si estamos en ruta de tasaciones
+    const checkRoute = () => {
+      const path = window.location.pathname
+      const isTasacion = path.startsWith('/tasacion') || path.includes('/backoffice/tasaciones')
+      setIsTaskacionRoute(isTasacion)
+    }
+    
+    checkRoute()
+    
     // Detectar si es móvil
     const checkMobile = () => {
       const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
@@ -113,7 +123,8 @@ export function PWAInstaller() {
     }
   }
 
-  if (!showInstallPrompt) return null
+  // No mostrar en rutas de tasaciones
+  if (!showInstallPrompt || isTaskacionRoute) return null
 
   // Calcular progreso del círculo (0 a 100)
   const progress = ((5 - countdown) / 5) * 100
