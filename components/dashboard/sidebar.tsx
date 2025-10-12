@@ -300,10 +300,10 @@ export default function DashboardSidebar({ roles }: DashboardSidebarProps) {
         />
 
         <SidebarItem
-          href="/backoffice/tasaciones"
+          href="/dashboard/tasaciones"
           icon={<FileCheck className="h-5 w-5" />}
           title="Tasaciones"
-          isActive={pathname.startsWith("/backoffice/tasaciones")}
+          isActive={pathname.startsWith("/dashboard/tasaciones")}
           isExpanded={isExpanded}
         />
 

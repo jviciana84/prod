@@ -207,12 +207,12 @@ export default function MobileSidebar({ roles }: MobileSidebarProps) {
         isActive={pathname.startsWith("/dashboard/nuevas-entradas")}
       />
 
-      <SidebarItem
-        href="/backoffice/tasaciones"
-        icon={<FileCheck className="h-5 w-5" />}
-        title="Tasaciones"
-        isActive={pathname.startsWith("/backoffice/tasaciones")}
-      />
+        <SidebarItem
+          href="/dashboard/tasaciones"
+          icon={<FileCheck className="h-5 w-5" />}
+          title="Tasaciones"
+          isActive={pathname.startsWith("/dashboard/tasaciones")}
+        />
 
       <SidebarItem
         href="/dashboard/photos"
