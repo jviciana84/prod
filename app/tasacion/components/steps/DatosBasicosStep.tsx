@@ -184,6 +184,7 @@ export default function DatosBasicosStep({ onComplete, onBack }: DatosBasicosSte
             <Input
               id="matricula"
               type="text"
+              inputMode="text"
               placeholder="Ej: 1234ABC"
               value={matricula}
               onChange={(e) => handleMatriculaChange(e.target.value)}
@@ -205,6 +206,7 @@ export default function DatosBasicosStep({ onComplete, onBack }: DatosBasicosSte
             <Input
               id="km"
               type="number"
+              inputMode="numeric"
               placeholder="150000"
               value={kmActuales}
               onChange={(e) => setKmActuales(e.target.value)}
