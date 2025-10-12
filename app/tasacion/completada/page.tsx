@@ -26,30 +26,42 @@ export default function TasacionCompletadaPage() {
   }, [])
 
   const handleDescargarPDF = async () => {
+    console.log('Iniciando descarga de PDF...')
+    
     if (!tasacionData) {
+      console.error('No hay datos de tasación')
       alert('No se encontraron datos de la tasación')
       return
     }
 
+    console.log('Datos de tasación encontrados:', tasacionData)
     setIsGeneratingPDF(true)
     
     try {
       // Recuperar metadata si existe
       const savedMetadata = localStorage.getItem('tasacionMetadata')
       const metadata = savedMetadata ? JSON.parse(savedMetadata) : undefined
+      
+      console.log('Metadata:', metadata)
 
+      console.log('Llamando a generateAndDownloadPDF...')
       const result = await generateAndDownloadPDF({
         data: tasacionData,
         metadata,
         filename: `tasacion_${tasacionData.matricula || 'vehiculo'}_${Date.now()}.pdf`
       })
 
+      console.log('Resultado de generateAndDownloadPDF:', result)
+
       if (!result.success) {
-        alert('Error al generar el PDF. Por favor, inténtelo de nuevo.')
+        console.error('Error en la generación:', result.error)
+        alert(`Error al generar el PDF: ${result.message}`)
+      } else {
+        console.log('PDF generado exitosamente')
       }
     } catch (error) {
-      console.error('Error:', error)
-      alert('Error al generar el PDF')
+      console.error('Error en handleDescargarPDF:', error)
+      alert(`Error al generar el PDF: ${error}`)
     } finally {
       setIsGeneratingPDF(false)
     }
