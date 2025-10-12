@@ -1,6 +1,9 @@
+'use client'
+
 import { pdf } from '@react-pdf/renderer'
 import TasacionPDF from '../components/pdf/TasacionPDF'
 import type { TasacionFormData } from '@/types/tasacion'
+import React from 'react'
 
 interface GeneratePDFOptions {
   data: TasacionFormData

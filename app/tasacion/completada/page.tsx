@@ -56,7 +56,13 @@ export default function TasacionCompletadaPage() {
   }
 
   const handleVolver = () => {
-    router.push('/')
+    // Limpiar localStorage
+    localStorage.removeItem('lastTasacion')
+    localStorage.removeItem('tasacionMetadata')
+    localStorage.removeItem('lastTasacionId')
+    
+    // Volver a la página de inicio de tasaciones
+    router.push('/tasacion/test-advisor')
   }
 
   return (

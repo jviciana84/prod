@@ -226,7 +226,20 @@ export default function PoliticaPrivacidadPage() {
             Última actualización: Enero 2025
           </p>
           <Button
-            onClick={() => router.back()}
+            onClick={() => {
+              // Si viene desde tasaciones, volver ahí
+              if (document.referrer.includes('/tasacion/')) {
+                window.close()
+                // Si no se puede cerrar la pestaña, volver con router
+                setTimeout(() => {
+                  if (!window.closed) {
+                    router.back()
+                  }
+                }, 100)
+              } else {
+                router.back()
+              }
+            }}
             variant="outline"
             className="border-2 border-purple-200 hover:border-purple-400 hover:bg-purple-50"
           >
