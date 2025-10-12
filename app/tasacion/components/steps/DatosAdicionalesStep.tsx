@@ -108,7 +108,7 @@ export default function DatosAdicionalesStep({ onComplete, onBack }: DatosAdicio
 
   const handleContinue = () => {
     if (origenVehiculo && documentosKm && comproNuevo !== null && color && movilidad && 
-        servicioPublico && etiquetaMedioambiental && itvEnVigor !== null) {
+        servicioPublico && etiquetaMedioambiental && itvEnVigor !== null && proximaITV) {
       onComplete({
         origenVehiculo,
         documentosKm,
@@ -118,15 +118,14 @@ export default function DatosAdicionalesStep({ onComplete, onBack }: DatosAdicio
         servicioPublico,
         etiquetaMedioambiental,
         itvEnVigor,
-        proximaITV: !itvEnVigor ? proximaITV : undefined,
+        proximaITV,
         observaciones: observaciones || undefined,
       })
     }
   }
 
   const isValid = origenVehiculo && documentosKm && comproNuevo !== null && color && movilidad && 
-    servicioPublico && etiquetaMedioambiental && itvEnVigor !== null && 
-    (itvEnVigor || proximaITV)
+    servicioPublico && etiquetaMedioambiental && itvEnVigor !== null && proximaITV
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50 pt-6 pb-24 px-4">
@@ -534,9 +533,18 @@ export default function DatosAdicionalesStep({ onComplete, onBack }: DatosAdicio
                 <Calendar className="w-4 h-4" />
                 ITV en vigor
               </Label>
-              <div className="grid grid-cols-2 gap-3 mb-3">
+              <div className="grid grid-cols-2 gap-3 mb-4">
                 <button
-                  onClick={() => setItvEnVigor(true)}
+                  onClick={() => {
+                    setItvEnVigor(true)
+                    // Auto-scroll al siguiente elemento
+                    setTimeout(() => {
+                      const nextElement = document.getElementById('proxima-itv-field')
+                      if (nextElement) {
+                        nextElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                      }
+                    }, 300)
+                  }}
                   className={`p-4 rounded-lg border-2 transition-all font-semibold ${
                     itvEnVigor === true
                       ? 'border-green-500 bg-green-50 text-green-700'
@@ -546,7 +554,16 @@ export default function DatosAdicionalesStep({ onComplete, onBack }: DatosAdicio
                   ✓ Sí
                 </button>
                 <button
-                  onClick={() => setItvEnVigor(false)}
+                  onClick={() => {
+                    setItvEnVigor(false)
+                    // Auto-scroll al siguiente elemento
+                    setTimeout(() => {
+                      const nextElement = document.getElementById('proxima-itv-field')
+                      if (nextElement) {
+                        nextElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                      }
+                    }, 300)
+                  }}
                   className={`p-4 rounded-lg border-2 transition-all font-semibold ${
                     itvEnVigor === false
                       ? 'border-red-500 bg-red-50 text-red-700'
@@ -557,24 +574,30 @@ export default function DatosAdicionalesStep({ onComplete, onBack }: DatosAdicio
                 </button>
               </div>
 
-              {itvEnVigor === false && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                >
-                  <Label htmlFor="proxima-itv" className="text-sm font-medium text-gray-700 mb-2 block">
-                    Próxima ITV (DD/MM/AAAA)
-                  </Label>
-                  <Input
-                    id="proxima-itv"
-                    type="text"
-                    placeholder="15/06/2025"
-                    value={proximaITV}
-                    onChange={(e) => setProximaITV(e.target.value)}
-                    className="h-12 text-center bg-white text-gray-900"
-                  />
-                </motion.div>
-              )}
+              {/* Campo de próxima ITV siempre visible */}
+              <div id="proxima-itv-field">
+                <Label htmlFor="proxima-itv" className="text-sm font-medium text-gray-700 mb-2 block">
+                  Próxima ITV (MM/AAAA) *
+                </Label>
+                <Input
+                  id="proxima-itv"
+                  type="text"
+                  placeholder="06/2025"
+                  value={proximaITV}
+                  onChange={(e) => {
+                    let value = e.target.value.replace(/\D/g, '') // Solo números
+                    
+                    // Formatear como MM/AAAA
+                    if (value.length >= 3) {
+                      value = value.substring(0, 2) + '/' + value.substring(2, 6)
+                    }
+                    
+                    setProximaITV(value)
+                  }}
+                  className="h-12 text-center bg-white text-gray-900"
+                  maxLength={7}
+                />
+              </div>
             </motion.div>
           )}
 
