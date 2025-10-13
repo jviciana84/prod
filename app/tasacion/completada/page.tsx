@@ -5,7 +5,7 @@ import { CheckCircle2, Download, Home, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { generateAndDownloadPDF } from '../utils/generatePDF'
+import { generateAndDownloadPDFSimple } from '../utils/generatePDFSimple'
 import type { TasacionFormData } from '@/types/tasacion'
 
 export default function TasacionCompletadaPage() {
@@ -15,12 +15,24 @@ export default function TasacionCompletadaPage() {
 
   useEffect(() => {
     // Recuperar datos de localStorage
+    console.log('🔍 Iniciando carga de datos desde localStorage...')
     const savedData = localStorage.getItem('lastTasacion')
+    console.log('📦 Datos guardados en localStorage:', savedData)
+    
     if (savedData) {
       try {
-        setTasacionData(JSON.parse(savedData))
+        const parsedData = JSON.parse(savedData)
+        console.log('✅ Datos parseados correctamente:', parsedData)
+        setTasacionData(parsedData)
       } catch (error) {
-        console.error('Error al recuperar datos de tasación:', error)
+        console.error('❌ Error al recuperar datos de tasación:', error)
+      }
+    } else {
+      console.warn('⚠️ No se encontraron datos en localStorage con la clave "lastTasacion"')
+      console.log('🔍 Claves disponibles en localStorage:')
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        console.log(`  - ${key}: ${localStorage.getItem(key)?.substring(0, 100)}...`)
       }
     }
   }, [])
@@ -44,20 +56,20 @@ export default function TasacionCompletadaPage() {
       
       console.log('Metadata:', metadata)
 
-      console.log('Llamando a generateAndDownloadPDF...')
-      const result = await generateAndDownloadPDF({
+      console.log('Llamando a generateAndDownloadPDFSimple...')
+      const result = await generateAndDownloadPDFSimple({
         data: tasacionData,
         metadata,
-        filename: `tasacion_${tasacionData.matricula || 'vehiculo'}_${Date.now()}.pdf`
+        filename: `tasacion_${tasacionData.matricula || 'vehiculo'}_${Date.now()}.html`
       })
 
-      console.log('Resultado de generateAndDownloadPDF:', result)
+      console.log('Resultado de generateAndDownloadPDFSimple:', result)
 
       if (!result.success) {
         console.error('Error en la generación:', result.error)
-        alert(`Error al generar el PDF: ${result.message}`)
+        alert(`Error al generar el archivo: ${result.message}`)
       } else {
-        console.log('PDF generado exitosamente')
+        console.log('Archivo generado exitosamente')
       }
     } catch (error) {
       console.error('Error en handleDescargarPDF:', error)
@@ -168,16 +180,22 @@ export default function TasacionCompletadaPage() {
             disabled={isGeneratingPDF || !tasacionData}
             size="lg"
             className="flex-1 h-14 text-lg bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            title={!tasacionData ? "No se encontraron datos de la tasación" : "Descargar informe"}
           >
             {isGeneratingPDF ? (
               <>
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                 Generando PDF...
               </>
+            ) : !tasacionData ? (
+              <>
+                <Download className="w-5 h-5 mr-2" />
+                Sin datos de tasación
+              </>
             ) : (
               <>
                 <Download className="w-5 h-5 mr-2" />
-                Descargar PDF
+                Descargar Informe
               </>
             )}
           </Button>
