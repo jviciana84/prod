@@ -1,3 +1,13 @@
+// Polyfill para DOMMatrix en Node.js (requerido por canvas/pdf-parse)
+if (typeof DOMMatrix === 'undefined') {
+  (global as any).DOMMatrix = class DOMMatrix {
+    constructor() {}
+  }
+  (global as any).DOMPoint = class DOMPoint {
+    constructor() {}
+  }
+}
+
 export async function extractTextFromPDF(pdfBuffer: Buffer) {
   try {
     console.log("Iniciando extracción de texto del PDF...")
