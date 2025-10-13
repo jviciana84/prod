@@ -1,8 +1,5 @@
-// Importar y configurar DOMMatrix ANTES de cualquier otra cosa
-import DOMMatrix from 'dommatrix'
-if (typeof global !== 'undefined') {
-  (global as any).DOMMatrix = DOMMatrix
-}
+// Cargar polyfills globales PRIMERO
+import '../lib/polyfills'
 
 export async function extractTextFromPDF(pdfBuffer: Buffer) {
   try {
