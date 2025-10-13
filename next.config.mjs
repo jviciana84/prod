@@ -9,23 +9,17 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  serverExternalPackages: ['pdf-parse'],
-  // Configuración de webpack para pdf-parse (sin canvas)
+  serverExternalPackages: [],
+  // Configuración de webpack para pdfjs-dist
   webpack: (config, { isServer }) => {
-    if (isServer) {
-      config.externals = config.externals || []
-      config.externals.push({
-        'pdf-parse': 'commonjs pdf-parse',
-        'canvas': false, // Deshabilitar canvas completamente
-      })
-    }
-    
-    // Configuración para manejar dependencias nativas
-    config.resolve.fallback = {
-      ...config.resolve.fallback,
-      fs: false,
-      path: false,
-      canvas: false, // Forzar que canvas no se use
+    if (!isServer) {
+      // Cliente: deshabilitar módulos de Node.js
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        path: false,
+        canvas: false,
+      }
     }
     
     return config

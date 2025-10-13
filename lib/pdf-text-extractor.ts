@@ -1,37 +1,50 @@
 export async function extractTextFromPDF(pdfBuffer: Buffer) {
   try {
-    console.log("Iniciando extracción de texto del PDF...")
+    console.log("Iniciando extracción de texto del PDF con pdfjs-dist...")
     console.log("Tamaño del buffer:", pdfBuffer.length)
 
-    // Importar pdf-parse dinámicamente solo en runtime
-    const pdfParse = (await import("pdf-parse")).default
+    // Importar pdfjs-dist dinámicamente
+    const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs")
 
-    console.log("pdf-parse importado correctamente")
+    console.log("pdfjs-dist importado correctamente")
 
-    // Configuración específica para evitar problemas con archivos de prueba
-    // pagerender deshabilitado para evitar dependencia de canvas/DOMMatrix
-    const data = await pdfParse(pdfBuffer, {
-      max: 0,
-      version: "v1.10.100",
-      pagerender: async () => '', // Deshabilitar renderizado de páginas (solo extraer texto)
+    // Cargar el documento PDF
+    const loadingTask = pdfjsLib.getDocument({
+      data: new Uint8Array(pdfBuffer),
+      useSystemFonts: true,
+      standardFontDataUrl: undefined,
     })
 
-    console.log("Texto extraído directamente del PDF:", data.text.substring(0, 200) + "...")
+    const pdfDocument = await loadingTask.promise
+    console.log(`PDF cargado: ${pdfDocument.numPages} páginas`)
 
-    if (data.text && data.text.trim().length > 0) {
-      console.log("Extracción exitosa con pdf-parse")
+    // Extraer texto de todas las páginas
+    let fullText = ""
+    for (let pageNum = 1; pageNum <= pdfDocument.numPages; pageNum++) {
+      const page = await pdfDocument.getPage(pageNum)
+      const textContent = await page.getTextContent()
+      const pageText = textContent.items
+        .map((item: any) => item.str)
+        .join(" ")
+      fullText += pageText + "\n"
+    }
+
+    console.log("Texto extraído con pdfjs-dist:", fullText.substring(0, 200) + "...")
+
+    if (fullText && fullText.trim().length > 0) {
+      console.log("Extracción exitosa con pdfjs-dist")
       return {
-        text: data.text,
-        method: "direct",
-        pages: data.numpages,
-        info: data.info,
+        text: fullText,
+        method: "pdfjs-dist",
+        pages: pdfDocument.numPages,
+        info: {},
       }
     }
 
     console.error("No se extrajo texto del PDF")
     return null
   } catch (error) {
-    console.error("Error extrayendo texto directamente del PDF:", error)
+    console.error("Error extrayendo texto con pdfjs-dist:", error)
     return null
   }
 }
