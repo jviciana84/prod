@@ -242,44 +242,22 @@ export function extractDataFromText(text: string) {
       }
     }
 
-    if (fieldName === "BANCO" && value) {
-      // MEJORADO: Limpiar y normalizar el campo BANCO - detectar FINANCIADA/FINANCIADO
-      const cleanedBank = value.replace(/^BANCO\s*/i, "").trim()
+    if (fieldName === "BANCO") {
+      // Limpiar y normalizar el campo BANCO
+      const cleanedBank = value ? value.replace(/^BANCO\s*/i, "").trim() : ""
 
-      // Normalizar valores comunes
-      if (cleanedBank.toLowerCase().includes("contado") || cleanedBank.toLowerCase().includes("efectivo")) {
+      // LÓGICA SIMPLE:
+      // 1. Si está VACÍO → CONTADO
+      // 2. Si dice "CONTADO" o "EFECTIVO" → CONTADO
+      // 3. TODO LO DEMÁS (incluido "FINANCIACIÓN") → FINANCIADO
+      
+      if (!cleanedBank || cleanedBank === "") {
         fields[fieldName] = "CONTADO"
-      } else if (
-        cleanedBank
-          .toLowerCase()
-          .includes("financiad") || // FINANCIADA/FINANCIADO
-        cleanedBank.toLowerCase().includes("financiacion")
-      ) {
-        fields[fieldName] = "FINANCIADO"
-      } else if (cleanedBank.toLowerCase().includes("bmw") || cleanedBank.toLowerCase().includes("select")) {
-        if (cleanedBank.toLowerCase().includes("select")) {
-          fields[fieldName] = "SELECT"
-        } else {
-          fields[fieldName] = "BMW BANK"
-        }
-      } else if (cleanedBank.toLowerCase().includes("lineal")) {
-        fields[fieldName] = "LINEAL"
-      } else if (cleanedBank.toLowerCase().includes("balloon")) {
-        fields[fieldName] = "BALLOON"
-      } else if (cleanedBank.toLowerCase().includes("triple")) {
-        fields[fieldName] = "TRIPLE 0"
-      } else if (cleanedBank.toLowerCase().includes("bbva")) {
-        fields[fieldName] = "BBVA"
-      } else if (cleanedBank.toLowerCase().includes("caixabank") || cleanedBank.toLowerCase().includes("caixa")) {
-        fields[fieldName] = "CAIXABANK"
-      } else if (cleanedBank.toLowerCase().includes("santander")) {
-        fields[fieldName] = "SANTANDER"
-      } else if (cleanedBank.toLowerCase().includes("sabadell")) {
-        fields[fieldName] = "SABADELL"
-      } else if (cleanedBank === "" || cleanedBank.toLowerCase() === "contado") {
+      } else if (cleanedBank.toLowerCase().includes("contado") || cleanedBank.toLowerCase().includes("efectivo")) {
         fields[fieldName] = "CONTADO"
       } else {
-        fields[fieldName] = cleanedBank.toUpperCase()
+        // TODO lo demás es financiación (FINANCIACIÓN, BMW BANK, BBVA, etc.)
+        fields[fieldName] = "FINANCIADO"
       }
     }
 
