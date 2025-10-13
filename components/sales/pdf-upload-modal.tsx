@@ -217,12 +217,20 @@ export default function PdfUploadModal({ isOpen, onClose }: PdfUploadModalProps)
       console.log(`Tipo: ${file.type}`)
       console.log(`Última modificación: ${new Date(file.lastModified).toISOString()}`)
       
-      const formData = new FormData()
-      formData.append("file", file)
+      // NUEVO: Extraer texto en el CLIENTE (navegador)
+      console.log(`📄 Extrayendo texto del PDF en el navegador...`)
+      const { extractTextFromPDFClient } = await import("@/lib/pdf-client-extractor")
+      const extractedText = await extractTextFromPDFClient(file)
+      console.log(`✅ Texto extraído (${extractedText.length} caracteres)`)
       
-      console.log(`Enviando archivo a la API...`)
+      // Enviar solo el TEXTO al servidor
+      console.log(`Enviando texto a la API...`)
       const startTime = Date.now()
-      const response = await fetch("/api/test-pdf-extract", { method: "POST", body: formData })
+      const response = await fetch("/api/test-pdf-extract", { 
+        method: "POST", 
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: extractedText })
+      })
       const endTime = Date.now()
       
       console.log(`=== DEBUG: Respuesta de la API ===`)

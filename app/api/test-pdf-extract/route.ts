@@ -31,52 +31,27 @@ export async function POST(request: NextRequest) {
   console.log("=== API DEBUG: Iniciando procesamiento de PDF ===")
   
   try {
-    const formData = await request.formData()
-    const file = formData.get("file") as File
+    // Recibir texto extraído desde el cliente
+    const body = await request.json()
+    const extractedText = body.text as string
 
-    if (!file) {
-      console.error("=== API DEBUG: No se proporcionó ningún archivo ===")
-      return NextResponse.json({ error: "No se proporcionó ningún archivo" }, { status: 400 })
+    if (!extractedText) {
+      console.error("=== API DEBUG: No se proporcionó texto ===")
+      return NextResponse.json({ error: "No se proporcionó texto del PDF" }, { status: 400 })
     }
 
-    // Verificar que sea un PDF
-    if (!file.type.includes("pdf") && !file.name.toLowerCase().endsWith(".pdf")) {
-      console.error("=== API DEBUG: El archivo no es un PDF ===")
-      return NextResponse.json({ error: "El archivo debe ser un PDF" }, { status: 400 })
-    }
-
-    console.log(`=== API DEBUG: Procesando archivo ===`)
-    console.log(`Nombre: ${file.name}`)
-    console.log(`Tamaño: ${file.size} bytes`)
-    console.log(`Tipo: ${file.type}`)
-
-    // Convertir el archivo a un ArrayBuffer
-    const arrayBuffer = await file.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
-
-    console.log("=== API DEBUG: Archivo convertido a Buffer, iniciando extracción... ===")
-
-    // Extraer texto del PDF
-    let extractedText = ""
-    try {
-      extractedText = await extractTextFromPdf(buffer)
-      console.log(`=== API DEBUG: Texto extraído: ${extractedText.length} caracteres ===`)
-      console.log(`=== API DEBUG: Primeros 200 caracteres: ${extractedText.substring(0, 200)} ===`)
-    } catch (extractError) {
-      console.error("=== API DEBUG: Error extrayendo texto ===", extractError)
-      return NextResponse.json({ 
-        error: `Error extrayendo texto del PDF: ${(extractError as Error).message}` 
-      }, { status: 400 })
-    }
+    console.log(`=== API DEBUG: Texto recibido del cliente ===`)
+    console.log(`Tamaño: ${extractedText.length} caracteres`)
+    console.log(`Primeros 200 caracteres: ${extractedText.substring(0, 200)}`)
     
-    if (!extractedText || extractedText.trim().length === 0) {
-      console.error("=== API DEBUG: No se pudo extraer texto del PDF ===")
+    if (extractedText.trim().length === 0) {
+      console.error("=== API DEBUG: El texto está vacío ===")
       return NextResponse.json({ 
-        error: "No se pudo extraer texto del PDF. El archivo puede estar corrupto, protegido o ser una imagen escaneada." 
+        error: "El texto extraído está vacío. El PDF puede estar corrupto o ser una imagen escaneada." 
       }, { status: 400 })
     }
 
-    console.log("=== API DEBUG: Texto extraído, procesando campos... ===")
+    console.log("=== API DEBUG: Texto válido, procesando campos... ===")
 
     // Procesar el texto extraído para obtener los campos
     let extractedFields = {}
@@ -103,8 +78,8 @@ export async function POST(request: NextRequest) {
     const response = {
       text: extractedText,
       extractedFields,
-      method: "pdf-text-extraction",
-      pages: "1", // Por ahora asumimos 1 página
+      method: "client-extraction",
+      pages: "unknown", // El cliente no envía número de páginas
     }
 
     console.log("=== API DEBUG: Enviando respuesta exitosa ===")
