@@ -59,7 +59,6 @@ export async function POST(request: NextRequest) {
       .from('stock')
       .select('id, license_plate, model, is_sold, estado, created_at, updated_at')
       .eq('is_sold', true)
-      .neq('estado', 'entregado')
       .order('updated_at', { ascending: false })
     
     if (soldError) {
@@ -157,7 +156,6 @@ export async function POST(request: NextRequest) {
       .from('stock')
       .select('id, license_plate, model')
       .eq('is_sold', true)
-      .neq('estado', 'entregado')
     
     if (remainingError) {
       console.error("❌ Error verificando:", remainingError)

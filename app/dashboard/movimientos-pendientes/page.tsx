@@ -120,8 +120,7 @@ export default function PendingMovementsPage() {
           }
 
           if (Object.keys(vehiclesMapTemp).length === 0) {
-            const { data: stockVehicles, error: stockError } = await supabase.from("stock").select("id, license_plate").neq('estado', 'entregado')
-
+            const { data: stockVehicles, error: stockError } = await supabase.from("stock").select("id, license_plate")
             if (stockError) {
               console.error("Error al cargar stock:", stockError)
               throw stockError

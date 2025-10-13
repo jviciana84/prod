@@ -43,8 +43,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Asesores de stock (excluyendo entregados)
-    const { data: stock } = await supabase.from("stock").select("asesor").not("asesor", "is", null).neq("asesor", "").neq('estado', 'entregado')
-
+    const { data: stock } = await supabase.from("stock").select("asesor").not("asesor", "is", null).neq("asesor", "")
     stock?.forEach((item: any) => {
       if (item.asesor) allAsesores.add(item.asesor)
     })
