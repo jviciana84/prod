@@ -94,10 +94,28 @@ export async function GET(request: NextRequest) {
       Array.from(matriculaMap.values()).map(item => item.matricula)
     )
 
-    // Encontrar vehículos que están en la BD pero no en el CSV
+    // Obtener vehículos en sales_vehicles (ventas)
+    const { data: salesData, error: salesError } = await supabase
+      .from('sales_vehicles')
+      .select('license_plate')
+
+    if (salesError) {
+      console.error('Error obteniendo datos de ventas:', salesError)
+      return NextResponse.json({ error: 'Error obteniendo datos de ventas' }, { status: 500 })
+    }
+
+    // Crear set de matrículas vendidas
+    const salesMatriculas = new Set(
+      (salesData || []).map(v => v.license_plate?.toUpperCase().trim()).filter(Boolean)
+    )
+
+    // Encontrar vehículos AUSENTES:
+    // - Están en la BD (stock o nuevas_entradas)
+    // - NO están en el CSV
+    // - NO están en sales_vehicles (ventas)
     const removedVehicles = allVehicles.filter(vehicle => {
       const matricula = vehicle.license_plate?.toUpperCase().trim()
-      return matricula && !csvMatriculas.has(matricula)
+      return matricula && !csvMatriculas.has(matricula) && !salesMatriculas.has(matricula)
     })
 
     return NextResponse.json({
@@ -107,6 +125,7 @@ export async function GET(request: NextRequest) {
       message: 'Comparación completada',
       csvMatriculasCount: csvMatriculas.size,
       bdMatriculasCount: allVehicles.length,
+      salesMatriculasCount: salesMatriculas.size,
       classifiedVehiclesCount: classifiedVehicles?.length || 0
     })
 
