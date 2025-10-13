@@ -38,7 +38,7 @@ export function extractDataFromText(text: string) {
     // Patrones existentes
     BANCO:
       /(?:BANCO|FINANCIACIÓN|ENTIDAD FINANCIERA)[:\s]*([A-Z\s\d]+?)(?=\s*(?:SELECT|TIPO|PERMANENCIA|CUOTA|PLAZO|ENTRADA|$|\n|\r))/i,
-    Comercial: /Comercial:\s*([^\n\r]+)/i,
+    Comercial: /Comercial:\s*([A-Za-zÀ-ÿ\s]+?)(?=\s+AUTOMÓVIL|$)/i,
     TOTAL: /TOTAL\s*([\d.,]+)\s*EUROS/i,
     "Nº DE MATRÍCULA": /N[°º]\s*DE\s*MATRÍCULA\s*([A-Z0-9]+(?:-[A-Z0-9]+)?)/i,
     PROVINCIA: /PROVINCIA\s*([A-Za-z\s]+?)(?=\s*TFNO|$)/i,
@@ -49,9 +49,9 @@ export function extractDataFromText(text: string) {
     EMAIL: /(?:EMAIL\s*)?([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i,
     "TFNO. PARTICULAR": /TFNO\.\s*PARTICULAR\s*(\+34\d{9}|\d{9})/i,
     "D.N.I. Ó N.I.F.": /D\.N\.I\.\s*(?:[ÓO]\s*N\.I\.F\.\s*)?([A-Z0-9][A-Z0-9-]{6,10}[A-Z0-9]?)/i,
-    DOMICILIO: /DOMICILIO\s*([^\n\r]+)/i,
-    "PORTAL ORIGEN": /PORTAL\s*ORIGEN\s*([^\n\r]+)/i,
-    "NOMBRE Y APELLIDOS O EMPRESA": /NOMBRE\s*Y\s*APELLIDOS\s*O\s*EMPRESA\s*([^\n\r]+)/i,
+    DOMICILIO: /DOMICILIO\s*([A-ZÀ-ÿ0-9\s.,]+?)(?=\s+TFNO\.|$)/i,
+    "PORTAL ORIGEN": /PORTAL\s*ORIGEN\s*([A-Za-zÀ-ÿ\s]+?)(?=\s+DOMICILIO|$)/i,
+    "NOMBRE Y APELLIDOS O EMPRESA": /NOMBRE\s*Y\s*APELLIDOS\s*O\s*EMPRESA\s*([A-ZÀ-ÿ\s]+?)(?=\s+D\.N\.I\.|$)/i,
     "FECHA DE PEDIDO": /FECHA\s*DE\s*PEDIDO\s*(\d{2}[-/]\d{2}[-/]\d{4}|\w+\s+\d{1,2}\s+de\s+\w+\s+del\s+\d{4})/i,
     "Nº BASTIDOR": /N[°º]\s*BASTIDOR\s*([A-Z0-9]{17})/i,
     // PATRÓN MEJORADO PARA MODELO - Más flexible para capturar modelos completos

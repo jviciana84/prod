@@ -222,6 +222,7 @@ export default function PdfUploadModal({ isOpen, onClose }: PdfUploadModalProps)
       const { extractTextFromPDFClient } = await import("@/lib/pdf-client-extractor")
       const extractedText = await extractTextFromPDFClient(file)
       console.log(`✅ Texto extraído (${extractedText.length} caracteres)`)
+      console.log(`📝 Primeros 500 caracteres del texto:`, extractedText.substring(0, 500))
       
       // Enviar solo el TEXTO al servidor
       console.log(`Enviando texto a la API...`)
