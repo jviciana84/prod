@@ -1,6 +1,3 @@
-// Cargar polyfills globales PRIMERO
-import '../lib/polyfills'
-
 export async function extractTextFromPDF(pdfBuffer: Buffer) {
   try {
     console.log("Iniciando extracción de texto del PDF con pdfjs-dist...")
