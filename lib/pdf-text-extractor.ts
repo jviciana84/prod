@@ -1,3 +1,9 @@
+// Importar y configurar DOMMatrix ANTES de cualquier otra cosa
+import DOMMatrix from 'dommatrix'
+if (typeof global !== 'undefined') {
+  (global as any).DOMMatrix = DOMMatrix
+}
+
 export async function extractTextFromPDF(pdfBuffer: Buffer) {
   try {
     console.log("Iniciando extracción de texto del PDF con pdfjs-dist...")

@@ -61,6 +61,7 @@
     "cmdk": "latest",
     "crypto": "latest",
     "date-fns": "latest",
+    "dommatrix": "^0.1.1",
     "dotenv": "^17.2.3",
     "embla-carousel-react": "8.5.1",
     "exceljs": "latest",
