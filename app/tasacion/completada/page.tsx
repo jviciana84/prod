@@ -5,7 +5,7 @@ import { CheckCircle2, Download, Home, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { generateAndDownloadPDFSimple } from '../utils/generatePDFSimple'
+import { generateAndDownloadPDF } from '../utils/generatePDF'
 import type { TasacionFormData } from '@/types/tasacion'
 
 export default function TasacionCompletadaPage() {
@@ -56,14 +56,14 @@ export default function TasacionCompletadaPage() {
       
       console.log('Metadata:', metadata)
 
-      console.log('Llamando a generateAndDownloadPDFSimple...')
-      const result = await generateAndDownloadPDFSimple({
+      console.log('Llamando a generateAndDownloadPDF...')
+      const result = await generateAndDownloadPDF({
         data: tasacionData,
         metadata,
-        filename: `tasacion_${tasacionData.matricula || 'vehiculo'}_${Date.now()}.html`
+        filename: `tasacion_${tasacionData.matricula || 'vehiculo'}_${Date.now()}.pdf`
       })
 
-      console.log('Resultado de generateAndDownloadPDFSimple:', result)
+      console.log('Resultado de generateAndDownloadPDF:', result)
 
       if (!result.success) {
         console.error('Error en la generación:', result.error)
