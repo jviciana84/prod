@@ -64,28 +64,51 @@ export async function assignVehiclesToPhotographers(): Promise<AssignmentResult>
       percentage: photographer.percentage,
     }))
 
-    // 4. Asignar vehículos a los fotógrafos
+    // 4. Asignar vehículos a los fotógrafos según porcentajes (algoritmo de déficit)
     let assignedVehicles = 0
-    vehicles.forEach((vehicle, index) => {
-      // Calcular el índice del fotógrafo al que se debe asignar este vehículo
-      const photographerIndex = index % photographers.length
-      const photographerId = photographers[photographerIndex].user_id
+    
+    for (const vehicle of vehicles) {
+      // Encontrar el fotógrafo con mayor déficit
+      let bestPhotographer = null
+      let bestPhotographerIndex = -1
+      let bestDeficit = -Infinity
 
-      // Actualizar la base de datos con la asignación
-      supabase
-        .from("fotos")
-        .update({ assigned_to: photographerId })
-        .eq("id", vehicle.id)
-        .then(({ error }) => {
-          if (error) {
-            console.error(`Error al asignar vehículo ${vehicle.id} al fotógrafo ${photographerId}:`, error)
-          }
-        })
+      for (let i = 0; i < photographers.length; i++) {
+        const photographer = photographers[i]
+        const assignment = photographerAssignments[i]
+        
+        // Calcular cuántos debería tener según su porcentaje
+        const targetCount = (photographer.percentage / 100) * totalVehicles
+        
+        // Calcular cuántos tiene actualmente
+        const currentCount = assignment.assignedCount
+        
+        // Calcular el déficit
+        const deficit = targetCount - currentCount
+        
+        if (deficit > bestDeficit) {
+          bestDeficit = deficit
+          bestPhotographer = photographer
+          bestPhotographerIndex = i
+        }
+      }
 
-      // Actualizar el contador de vehículos asignados al fotógrafo
-      photographerAssignments[photographerIndex].assignedCount++
-      assignedVehicles++
-    })
+      if (bestPhotographer && bestPhotographerIndex >= 0) {
+        // Actualizar la base de datos con la asignación
+        const { error } = await supabase
+          .from("fotos")
+          .update({ assigned_to: bestPhotographer.user_id })
+          .eq("id", vehicle.id)
+
+        if (error) {
+          console.error(`Error al asignar vehículo ${vehicle.id} al fotógrafo ${bestPhotographer.user_id}:`, error)
+        } else {
+          // Actualizar el contador de vehículos asignados al fotógrafo
+          photographerAssignments[bestPhotographerIndex].assignedCount++
+          assignedVehicles++
+        }
+      }
+    }
 
     // 5. Devolver resultados
     return {

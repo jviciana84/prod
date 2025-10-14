@@ -1093,44 +1093,20 @@ export default function PhotographerAssignments() {
         return
       }
 
-      // Crear array de fotógrafos con sus pesos para asignación
+      // Crear array de fotógrafos con contadores reseteados a 0 (RESET TOTAL)
       const photographersWithWeights = photographers.map(p => ({
         user_id: p.user_id,
         percentage: p.percentage,
         is_locked: p.is_locked,
-        current_assignments: 0
+        current_assignments: 0  // ← Empezar desde CERO
       }))
 
-      // Contar asignaciones actuales de cada fotógrafo (solo pendientes)
-      pendingVehicles.forEach(vehicle => {
-        if (vehicle.assigned_to) {
-          const photographer = photographersWithWeights.find(p => p.user_id === vehicle.assigned_to)
-          if (photographer) {
-            photographer.current_assignments++
-          }
-        }
-      })
+      // NO contar asignaciones actuales - empezamos desde cero
 
-      // Obtener fotos completadas por fotógrafo para calcular el déficit de sufrimiento
-      const { data: completedPhotosData, error: completedError } = await supabase
-        .from("fotos")
-        .select("assigned_to")
-        .eq("photos_completed", true)
-
-      if (completedError) throw completedError
-
-      // Contar fotos completadas por fotógrafo
-      const completedPhotosByPhotographer: { [key: string]: number } = {}
-      completedPhotosData?.forEach(photo => {
-        if (photo.assigned_to) {
-          completedPhotosByPhotographer[photo.assigned_to] = (completedPhotosByPhotographer[photo.assigned_to] || 0) + 1
-        }
-      })
-
-      // Reasignar TODOS los vehículos pendientes según los porcentajes
+      // Reasignar TODOS los vehículos pendientes desde CERO según los porcentajes
       let reassignedCount = 0
       for (const vehicle of pendingVehicles) {
-        // Encontrar el fotógrafo con mayor déficit de sufrimiento (quien menos ha trabajado)
+        // Encontrar el fotógrafo con mayor déficit
         let bestPhotographer = null
         let bestDeficit = -Infinity
 
@@ -1139,11 +1115,11 @@ export default function PhotographerAssignments() {
             // Calcular cuántos coches debería tener este fotógrafo según su porcentaje
             const targetAssignments = (photographer.percentage / 100) * pendingVehicles.length
             
-            // Calcular cuántos coches ya ha hecho (menos trabajo = más déficit de sufrimiento)
-            const completedPhotos = completedPhotosByPhotographer[photographer.user_id] || 0
+            // Calcular cuántos tiene actualmente asignados EN ESTE CICLO (empezó en 0)
+            const currentAssignments = photographer.current_assignments
             
-            // El déficit de sufrimiento es: cuántos coches le faltan por sufrir
-            const deficit = targetAssignments - completedPhotos
+            // El déficit es cuántos le faltan según su porcentaje
+            const deficit = targetAssignments - currentAssignments
             
             if (deficit > bestDeficit) {
               bestDeficit = deficit
@@ -1152,8 +1128,8 @@ export default function PhotographerAssignments() {
           }
         }
 
-        if (bestPhotographer && bestPhotographer.user_id !== vehicle.assigned_to) {
-          // Solo reasignar si es diferente al fotógrafo actual
+        if (bestPhotographer) {
+          // Reasignar (sin importar si ya estaba asignado)
           const { error: updateError } = await supabase
             .from("fotos")
             .update({ 
@@ -1165,16 +1141,9 @@ export default function PhotographerAssignments() {
 
           if (updateError) throw updateError
 
-          // Actualizar contadores
-          if (vehicle.assigned_to) {
-            const oldPhotographer = photographersWithWeights.find(p => p.user_id === vehicle.assigned_to)
-            if (oldPhotographer) oldPhotographer.current_assignments--
-          }
+          // Incrementar el contador del fotógrafo
           bestPhotographer.current_assignments++
           reassignedCount++
-        } else if (bestPhotographer) {
-          // Si ya está asignado al fotógrafo correcto, solo actualizar contador
-          bestPhotographer.current_assignments++
         }
       }
 
