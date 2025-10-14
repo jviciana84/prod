@@ -5,7 +5,7 @@ import { CommandEmpty } from "@/components/ui/command"
 import type React from "react"
 
 import { useState, useRef, useEffect } from "react"
-import { createClientComponentClient } from "@/lib/supabase/client"
+import { getSupabaseClient } from "@/lib/supabase/singleton"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -49,7 +49,7 @@ export default function TransportQuickForm({
   const originLocationInputRef = useRef<HTMLInputElement>(null)
   const expenseTypeInputRef = useRef<HTMLInputElement>(null)
 
-  const supabase = createClientComponentClient()
+  const supabase = getSupabaseClient()
   const { toast } = useToast()
 
   // Cargar tipos de gastos
@@ -59,7 +59,7 @@ export default function TransportQuickForm({
       if (data) setExpenseTypes(data)
     }
     fetchExpenseTypes()
-  }, [supabase])
+  }, [])
 
   // Formatear fecha para mostrar
   useEffect(() => {

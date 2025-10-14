@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { createClientComponentClient } from "@/lib/supabase/client"
+import { getSupabaseClient } from "@/lib/supabase/singleton"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -40,7 +40,7 @@ export default function TransportForm({ transport, locations }: TransportFormPro
   const [isLoading, setIsLoading] = useState(false)
   const [expenseTypes, setExpenseTypes] = useState<ExpenseType[]>([])
   const router = useRouter()
-  const supabase = createClientComponentClient()
+  const supabase = getSupabaseClient()
   const { toast } = useToast()
 
   // Añadir logging para depuración
@@ -63,7 +63,7 @@ export default function TransportForm({ transport, locations }: TransportFormPro
     }
 
     fetchExpenseTypes()
-  }, [supabase])
+  }, [])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target

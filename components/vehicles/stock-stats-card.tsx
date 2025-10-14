@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { createClientComponentClient } from "@/lib/supabase/client"
+import { getSupabaseClient } from "@/lib/supabase/singleton"
 import { differenceInDays } from "date-fns"
 import type { StockItem } from "@/lib/types/stock"
 import { Separator } from "@/components/ui/separator"
@@ -39,7 +39,7 @@ export default function StockStatsCard({ initialStock }: StockStatsCardProps) {
   })
   const [isLoading, setIsLoading] = useState(true)
 
-  const supabase = createClientComponentClient()
+  const supabase = getSupabaseClient()
 
   useEffect(() => {
     async function calculateStats() {
@@ -125,7 +125,7 @@ export default function StockStatsCard({ initialStock }: StockStatsCardProps) {
     }
 
     calculateStats()
-  }, [initialStock, supabase])
+  }, [initialStock])
 
   // Calcular porcentajes
   const highPriorityPercentage = stats.total > 0 ? Math.round((stats.highPriority / stats.total) * 100) : 0

@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { createClientComponentClient } from "@/lib/supabase/client"
+import { getSupabaseClient } from "@/lib/supabase/singleton"
 import { useToast } from "@/hooks/use-toast"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
@@ -136,7 +136,7 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
   })
   const [expenseTypes, setExpenseTypes] = useState<Array<{ value: string; label: string }>>([])
 
-  const supabase = createClientComponentClient()
+  const supabase = getSupabaseClient()
   console.log("🔌 Supabase client inicializado:", !!supabase)
   const { toast } = useToast()
   const externalProviderInputRef = useRef<HTMLInputElement>(null)

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { createClientComponentClient } from "@/lib/supabase/client"
+import { getSupabaseClient } from "@/lib/supabase/singleton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { DollarSign, Tag, AlertCircle } from "lucide-react"
@@ -28,7 +28,7 @@ export default function ExpenseTypeDisplay() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const supabase = createClientComponentClient()
+  const supabase = getSupabaseClient()
 
   useEffect(() => {
     async function fetchStockWithExpenseTypes() {
@@ -61,7 +61,7 @@ export default function ExpenseTypeDisplay() {
     }
 
     fetchStockWithExpenseTypes()
-  }, [supabase])
+  }, [])
 
   // Agrupar vehículos por tipo de gasto
   const groupedByExpenseType: Record<string, StockWithExpenseType[]> = {}

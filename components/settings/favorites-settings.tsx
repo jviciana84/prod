@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Star, Crown, Plus, X, Check } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { createClientComponentClient } from "@/lib/supabase/client"
+import { getSupabaseClient } from "@/lib/supabase/singleton"
 import { availablePages, addToFavorites, removeFromFavorites, getUserPreferences } from "@/lib/user-preferences"
 import type { PageInfo, UserPreferences } from "@/types/user-preferences"
 import { toast } from "@/hooks/use-toast"
@@ -16,7 +16,7 @@ export function FavoritesSettings() {
   const [userId, setUserId] = useState<string | null>(null)
   const [userPreferences, setUserPreferences] = useState<UserPreferences | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const supabase = createClientComponentClient()
+  const supabase = getSupabaseClient()
 
   // Obtener el ID del usuario actual y sus preferencias
   useEffect(() => {
@@ -40,7 +40,7 @@ export function FavoritesSettings() {
     }
 
     fetchUserAndPreferences()
-  }, [supabase])
+  }, [])
 
   const handleAddToFavorites = async (page: PageInfo) => {
     if (!userId) return

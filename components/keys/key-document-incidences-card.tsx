@@ -6,7 +6,7 @@ import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { AlertTriangle, KeyRound, CreditCard, FileText, Car } from "lucide-react"
-import { createClientComponentClient } from "@/lib/supabase/client"
+import { getSupabaseClient } from "@/lib/supabase/singleton"
 
 // Tipos de incidencia relevantes para llaves y documentos
 const RELEVANT_INCIDENCE_TYPES = ["2ª llave", "CardKey", "Ficha técnica", "Permiso circulación"]
@@ -28,7 +28,7 @@ export function KeyDocumentIncidencesCard() {
     permisoCirculacion: 0,
   })
   const [loading, setLoading] = useState(true)
-  const supabase = createClientComponentClient()
+  const supabase = getSupabaseClient()
 
   useEffect(() => {
     async function fetchIncidenceCounts() {
@@ -103,7 +103,7 @@ export function KeyDocumentIncidencesCard() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [supabase])
+  }, [])
 
   const StatItem = ({ label, value, icon: Icon }: { label: string; value: number; icon: React.ElementType }) => (
     <div className="flex items-center justify-between p-3 bg-muted/60 hover:bg-muted/90 transition-colors rounded-md">

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { getSupabaseClient } from "@/lib/supabase/singleton"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -25,7 +25,7 @@ interface MovementHistoryProps {
 }
 
 export function MovementHistory({ vehicleId }: MovementHistoryProps) {
-  const supabase = createClientComponentClient()
+  const supabase = getSupabaseClient()
   const [movements, setMovements] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -54,7 +54,7 @@ export function MovementHistory({ vehicleId }: MovementHistoryProps) {
     }
 
     fetchCurrentUser()
-  }, [supabase])
+  }, [])
 
   // Cargar historial de movimientos
   useEffect(() => {

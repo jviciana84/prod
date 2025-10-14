@@ -159,7 +159,7 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
     }
 
     getUser()
-  }, [supabase])
+  }, [])
 
   useEffect(() => {
     // Solo cargar entregas si la autenticación ha terminado de cargar
