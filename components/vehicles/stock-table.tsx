@@ -184,7 +184,7 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
     }
 
     fetchPhotoAndPaintStatus()
-  }, [stock, supabase])
+  }, [stock])
 
   // Inicializar valores OR
   useEffect(() => {
