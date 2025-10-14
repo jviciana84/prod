@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { getSupabaseClient } from "@/lib/supabase/singleton"
+import { createClientComponentClient } from "@/lib/supabase/client"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { DollarSign } from "lucide-react"
@@ -31,7 +31,7 @@ export default function ExpenseTypeSelector({
   const [expenseTypes, setExpenseTypes] = useState<ExpenseType[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
-  const supabase = getSupabaseClient()
+  const supabase = createClientComponentClient()
 
   useEffect(() => {
     async function fetchExpenseTypes() {

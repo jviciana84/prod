@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { getSupabaseClient } from "@/lib/supabase/singleton"
+import { createClientComponentClient } from "@/lib/supabase/client"
 import { differenceInDays } from "date-fns"
 import type { StockItem } from "@/lib/types/stock"
 import { Separator } from "@/components/ui/separator"
@@ -39,7 +39,7 @@ export default function StockStatsCard({ initialStock }: StockStatsCardProps) {
   })
   const [isLoading, setIsLoading] = useState(true)
 
-  const supabase = getSupabaseClient()
+  const supabase = createClientComponentClient()
 
   useEffect(() => {
     async function calculateStats() {

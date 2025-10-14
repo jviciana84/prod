@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { getSupabaseClient } from "@/lib/supabase/singleton"
+import { createClientComponentClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { DollarSign, Tag, AlertCircle } from "lucide-react"
@@ -28,7 +28,7 @@ export default function ExpenseTypeDisplay() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const supabase = getSupabaseClient()
+  const supabase = createClientComponentClient()
 
   useEffect(() => {
     async function fetchStockWithExpenseTypes() {

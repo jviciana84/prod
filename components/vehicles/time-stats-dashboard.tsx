@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { getSupabaseClient } from "@/lib/supabase/singleton"
+import { createClientComponentClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Clock, Wrench } from "lucide-react"
@@ -44,7 +44,7 @@ export default function TimeStatsDashboard() {
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("body")
 
-  const supabase = getSupabaseClient()
+  const supabase = createClientComponentClient()
 
   useEffect(() => {
     const fetchStats = async () => {
