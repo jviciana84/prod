@@ -33,7 +33,7 @@ import {
   RotateCcw,
   CheckCircle2,
 } from "lucide-react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { getSupabaseClient } from "@/lib/supabase/singleton"
 import { differenceInDays } from "date-fns"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/use-auth"
@@ -122,7 +122,7 @@ export default function PhotosTable() {
   
   // Usar el hook de autenticación
   const { user, profile, loading: authLoading } = useAuth()
-  const supabase = createClientComponentClient()
+  const supabase = getSupabaseClient()
   const { toast } = useToast()
 
   // Función para generar claves únicas ultra-robustas
@@ -393,7 +393,7 @@ export default function PhotosTable() {
       }
 
       fetchSoldVehicles()
-  }, [vehicles])
+  }, [])
 
   // Calcular datos filtrados y paginados
   useEffect(() => {
