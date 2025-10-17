@@ -1361,11 +1361,16 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
   }, [canEditPaymentMethods])
 
   // Guardar el valor editado
-  const handleCellSave = useCallback(async (id: string, field: string) => {
+  const handleCellSave = useCallback(async (id: string, field: string, overrideValue?: any) => {
     setUpdatingId(id)
 
     try {
-      let valueToSave: any = editingValue
+      // FIX: Llamar a getSession() primero para despertar el cliente de autenticación
+      await supabase.auth.getSession()
+
+      let valueToSave: any = overrideValue !== undefined ? overrideValue : editingValue
+
+      console.log(`🔧 [handleCellSave] Guardando ${field}:`, { id, field, editingValue, overrideValue, valueToSave })
 
       // Convertir el valor según el tipo de campo
       if (field === "price" || field === "mileage") {
@@ -1389,11 +1394,16 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
         }
       }
 
+      console.log(`🔧 [handleCellSave] Valor convertido:`, valueToSave)
+
       // Actualizar en la base de datos
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("sales_vehicles")
         .update({ [field]: valueToSave, updated_at: new Date().toISOString() })
         .eq("id", id)
+        .select()
+
+      console.log(`🔧 [handleCellSave] Respuesta de Supabase:`, { data, error })
 
       // Si es expense_charge, sincronizar con otras tablas
       if (field === "expense_charge" && !error) {
@@ -2069,7 +2079,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                                                                                 onSelect={() => {
                                       setEditingValue(et.name)
                                       setExpensePopoverOpen(false)
-                                      handleCellSave(vehicle.id, "expense_charge")
+                                      handleCellSave(vehicle.id, "expense_charge", et.name)
                                     }}
                                           >
                                             <Check className={cn("mr-2 h-4 w-4", editingValue === et.name ? "opacity-100" : "opacity-0")} />
