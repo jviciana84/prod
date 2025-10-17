@@ -12,6 +12,7 @@ import { createServerClient } from "@/lib/supabase/server"
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { ChatProvider } from "@/contexts/chat-context"
 import { GlobalChat } from "@/components/global-chat"
+import { NewsToastContainer } from "@/components/noticias/news-toast"
 import "@/styles/dashboard-layout.css"
 
 export default async function DashboardLayout({
@@ -78,6 +79,9 @@ export default async function DashboardLayout({
           
           {/* Chat global */}
           <GlobalChat />
+
+          {/* Notificaciones de noticias BMW */}
+          <NewsToastContainer />
         </div>
       </SidebarProvider>
     </ChatProvider>

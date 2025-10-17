@@ -23,6 +23,7 @@ import {
   Menu,
   Trash2,
   ScanLine,
+  Newspaper,
 } from "lucide-react"
 import { createClientComponentClient } from "@/lib/supabase/client"
 import { Badge } from "@/components/ui/badge"
@@ -34,6 +35,7 @@ import { getUserPreferences } from "@/lib/user-preferences"
 import type { PageInfo } from "@/types/user-preferences"
 import { clearCorruptedSession } from "@/utils/fix-auth"
 import { useChat } from "@/contexts/chat-context"
+import { NewsDropdown } from "./news-dropdown"
 
 interface DashboardHeaderProps {
   user: User
@@ -82,6 +84,8 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
   const [isReflectionActive, setIsReflectionActive] = useState(false)
   const [isSearchExpanded, setIsSearchExpanded] = useState(false)
   const [searchValue, setSearchValue] = useState("")
+  const [isNewsDropdownOpen, setIsNewsDropdownOpen] = useState(false)
+  const newsButtonRef = useRef<HTMLButtonElement>(null)
   const { openChat } = useChat()
 
   // Obtener el nombre para mostrar (priorizar perfil de la base de datos, luego metadatos, luego email)
@@ -638,6 +642,26 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
           >
                             <ScanLine className="h-5 w-5" />
           </Button>
+
+          {/* Botón de Noticias Quadis */}
+          <div className="relative">
+            <Button
+              ref={newsButtonRef}
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsNewsDropdownOpen(!isNewsDropdownOpen)}
+              title="Noticias Quadis Munich"
+              className="relative"
+            >
+              <Newspaper className="h-5 w-5" />
+            </Button>
+
+            <NewsDropdown
+              isOpen={isNewsDropdownOpen}
+              onClose={() => setIsNewsDropdownOpen(false)}
+              triggerRef={newsButtonRef}
+            />
+          </div>
 
           {/* Campana de notificaciones */}
           <div className="relative">

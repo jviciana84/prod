@@ -1,0 +1,11 @@
+# Configuración para el sistema de noticias BMW
+# Añade esta variable a tu archivo .env existente
+
+# News API Key (obtener en: https://newsapi.org/register)
+# Plan gratuito: 100 requests/día (suficiente para ~11 ejecuciones diarias)
+NEWS_API_KEY=tu_api_key_aqui
+
+# Variables de Supabase (ya deberías tenerlas configuradas)
+# NEXT_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co
+# SUPABASE_SERVICE_ROLE_KEY=tu_service_role_key_aqui
+
