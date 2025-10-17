@@ -45,7 +45,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Crear una notificación de prueba en el historial
-    const supabase = createRouteHandlerClient({ cookies })
+    const cookieStore2 = await cookies()
+    const supabase = await createRouteHandlerClient(cookieStore2)
     const { error: insertError } = await supabase
       .from("notification_history")
       .insert({
