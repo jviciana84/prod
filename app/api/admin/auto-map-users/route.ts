@@ -1,11 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
+import { createRouteHandlerClient } from "@/lib/supabase/server"
 import { cookies } from "next/headers"
 
 export async function POST(request: NextRequest) {
   try {
     const cookieStore = await cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    const supabase = await createRouteHandlerClient(cookieStore)
 
     // Verificar que el usuario es admin
     const {
