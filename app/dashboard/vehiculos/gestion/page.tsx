@@ -1,10 +1,11 @@
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createServerComponentClient } from "@/lib/supabase/server"
 import { cookies } from "next/headers"
 import { notFound } from "next/navigation"
 import KeyDocumentDashboard from "@/components/vehicles/key-document-dashboard"
 
 export default async function KeyDocumentManagementPage() {
-  const supabase = createServerComponentClient({ cookies })
+  const cookieStore = await cookies()
+  const supabase = await createServerComponentClient()
 
   // Verificar si el usuario está autenticado
   const {

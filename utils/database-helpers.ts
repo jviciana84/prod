@@ -1,4 +1,4 @@
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createClientComponentClient } from "@/lib/supabase/client"
 
 // Función para verificar si un vehículo ya existe en la tabla fotos
 export async function checkVehicleInPhotos(licensePlate: string) {

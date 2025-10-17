@@ -22,7 +22,8 @@ interface AssignmentResult {
  * Asigna fotógrafos a vehículos pendientes que no tienen fotógrafo asignado
  */
 export async function assignPhotographersToExistingVehicles(): Promise<AssignmentResult> {
-  const supabase = createServerActionClient({ cookies })
+  const cookieStore = await cookies()
+  const supabase = await createServerActionClient(cookieStore)
 
   try {
     // 1. Obtener todos los fotógrafos activos

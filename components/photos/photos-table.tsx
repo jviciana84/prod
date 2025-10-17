@@ -33,7 +33,7 @@ import {
   RotateCcw,
   CheckCircle2,
 } from "lucide-react"
-import { getSupabaseClient } from "@/lib/supabase/singleton"
+import { createClientComponentClient, clearSupabaseClient } from "@/lib/supabase/client"
 import { differenceInDays } from "date-fns"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/use-auth"
@@ -122,7 +122,7 @@ export default function PhotosTable() {
   
   // Usar el hook de autenticación
   const { user, profile, loading: authLoading } = useAuth()
-  const supabase = getSupabaseClient()
+  const supabase = createClientComponentClient()
   const { toast } = useToast()
 
   // Función para generar claves únicas ultra-robustas
@@ -164,6 +164,11 @@ export default function PhotosTable() {
 
   useEffect(() => {
     fetchData()
+  }, [])
+
+  // Limpiar el cliente de Supabase cuando el componente se desmonte
+  useEffect(() => {
+    return () => clearSupabaseClient()
   }, [])
 
   const fetchData = async () => {

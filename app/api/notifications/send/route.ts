@@ -1,10 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
+import { createRouteHandlerClient } from "@/lib/supabase/server"
 import { cookies } from "next/headers"
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
+    const cookieStore = await cookies()
+    const supabase = await createRouteHandlerClient(cookieStore)
     const body = await request.json()
 
     const { notificationTypeId, title, body: message, data = {}, userIds = [] } = body

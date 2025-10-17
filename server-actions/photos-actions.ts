@@ -1,13 +1,14 @@
 "use server"
 
-import { createServerActionClient } from "@supabase/auth-helpers-nextjs"
+import { createServerActionClient } from "@/lib/supabase/server"
 import { cookies } from "next/headers"
 import type { PhotoVehicle, PhotosStatistics, TimeMetrics, PhotographerPerformance } from "../types/photos"
 import { differenceInDays } from "date-fns"
 
 // Obtener todos los vehículos de la tabla fotos
 export async function getPhotoVehicles(): Promise<PhotoVehicle[]> {
-  const supabase = createServerActionClient({ cookies })
+  const cookieStore = await cookies()
+  const supabase = await createServerActionClient(cookieStore)
 
   // Obtener vehículos sin usar relaciones implícitas
   const { data, error } = await supabase.from("fotos").select("*").order("disponible", { ascending: false })
@@ -25,7 +26,8 @@ export async function getPhotoVehicles(): Promise<PhotoVehicle[]> {
 
 // Obtener estadísticas detalladas
 export async function getDetailedStatistics(): Promise<PhotosStatistics & { timeMetrics: TimeMetrics }> {
-  const supabase = createServerActionClient({ cookies })
+  const cookieStore = await cookies()
+  const supabase = await createServerActionClient(cookieStore)
 
   // Obtener todos los vehículos para calcular métricas de tiempo
   const { data: vehicles, error } = await supabase.from("fotos").select("*")
@@ -103,7 +105,8 @@ export async function getDetailedStatistics(): Promise<PhotosStatistics & { time
 
 // Obtener rendimiento de fotógrafos
 export async function getPhotographerPerformance(): Promise<PhotographerPerformance[]> {
-  const supabase = createServerActionClient({ cookies })
+  const cookieStore = await cookies()
+  const supabase = await createServerActionClient(cookieStore)
 
   // Obtener usuarios con rol de fotógrafo sin usar relaciones implícitas
   const { data: photographers, error: userError } = await supabase.from("fotos_asignadas").select("*")

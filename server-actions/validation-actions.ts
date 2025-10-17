@@ -1,6 +1,6 @@
 "use server"
 
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createServerActionClient } from "@/lib/supabase/server"
 import { cookies } from "next/headers"
 import { revalidatePath } from "next/cache"
 
@@ -13,7 +13,7 @@ export async function syncValidatedVehicle(vehicleId: string, isValidated: boole
 
   try {
     const cookieStore = await cookies()
-    const supabase = createServerComponentClient({ cookies: () => cookieStore })
+    const supabase = await createServerActionClient(cookieStore)
 
     // Si el vehículo está siendo validado, necesitamos copiarlo a la tabla pedidos_validados
     if (isValidated) {
@@ -172,7 +172,7 @@ export async function syncUpdatedVehicle(vehicleId: string) {
 
   try {
     const cookieStore = await cookies()
-    const supabase = createServerComponentClient({ cookies: () => cookieStore })
+    const supabase = await createServerActionClient(cookieStore)
 
     // Verificar si el vehículo está validado
     const { data: vehicleData, error: vehicleError } = await supabase

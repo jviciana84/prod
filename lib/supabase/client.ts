@@ -1,8 +1,7 @@
-import { fixCorruptedCookies } from "@/utils/fix-auth"
 import { createBrowserClient } from "@supabase/ssr"
 
 // Usamos una variable global para almacenar la instancia del cliente
-let supabaseClientInstance: ReturnType<typeof createBrowserClient> | null = null // Renamed to avoid conflict with the other supabaseClient
+let supabaseClientInstance: ReturnType<typeof createBrowserClient> | null = null
 
 export function createClientComponentClient() {
   // Variables de entorno con valores por defecto
@@ -14,19 +13,9 @@ export function createClientComponentClient() {
     return createBrowserClient(supabaseUrl, supabaseAnonKey)
   }
 
-  // En el cliente, verificar cookies corruptas antes de crear la instancia
-  try {
-    fixCorruptedCookies()
-  } catch (error) {
-    console.error("Error al verificar cookies:", error)
-  }
-
   // En el cliente, verificamos si ya existe una instancia
   if (!supabaseClientInstance) {
-    supabaseClientInstance = createBrowserClient(
-      supabaseUrl,
-      supabaseAnonKey,
-    )
+    supabaseClientInstance = createBrowserClient(supabaseUrl, supabaseAnonKey)
   }
 
   return supabaseClientInstance
@@ -34,7 +23,6 @@ export function createClientComponentClient() {
 
 export function clearSupabaseClient() {
   if (typeof window !== "undefined") {
-    // console.log("Limpiando instancia de Supabase cliente")
     supabaseClientInstance = null
   }
 }

@@ -1,4 +1,4 @@
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createServerComponentClient } from "@/lib/supabase/server"
 import { cookies } from "next/headers"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -8,7 +8,7 @@ import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { Database, FileText, History } from "lucide-react"
 
 export default async function DiagnosticoIncidenciasPage() {
-  const supabase = createServerComponentClient({ cookies })
+  const supabase = await createServerComponentClient()
 
   // Obtener las últimas incidencias registradas
   const { data: historial, error: historialError } = await supabase

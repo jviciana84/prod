@@ -1,15 +1,15 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
+import { createRouteHandlerClient } from "@/lib/supabase/server"
 import { cookies } from "next/headers"
 
 export async function GET(request: NextRequest) {
   try {
     console.log("🔍 Iniciando prueba de autenticación...")
     
-    const supabase = createRouteHandlerClient({ cookies })
+    const cookieStore = await cookies()
+    const supabase = await createRouteHandlerClient(cookieStore)
     
     // Obtener cookies manualmente
-    const cookieStore = await cookies()
     const authCookie = cookieStore.get("sb-wpjmimbscfsdzcwuwctk-auth-token")
     
     console.log("🍪 Cookie de auth encontrada:", !!authCookie)

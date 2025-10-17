@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
+import { createRouteHandlerClient } from "@/lib/supabase/server"
 import { cookies } from "next/headers"
 
 export async function POST(request: NextRequest) {
@@ -16,7 +16,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = createRouteHandlerClient({ cookies })
+    const cookieStore = await cookies()
+    const supabase = await createRouteHandlerClient(cookieStore)
     
     // Verificar autenticación pero no fallar si no está autenticado
     const { data: { user }, error: authError } = await supabase.auth.getUser()

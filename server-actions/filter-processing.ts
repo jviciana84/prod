@@ -1,6 +1,6 @@
 'use server'
 
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createServerActionClient } from '@/lib/supabase/server'
 import { cookies } from 'next/headers'
 import { Database } from '@/types/supabase'
 
@@ -15,7 +15,8 @@ export interface ProcessingResult {
 }
 
 export async function processFilterConfig(configId: string): Promise<ProcessingResult> {
-  const supabase = createServerComponentClient<Database>({ cookies })
+  const cookieStore = await cookies()
+  const supabase = await createServerActionClient(cookieStore)
   
   try {
     // 1. Obtener la configuración
@@ -320,7 +321,8 @@ export async function processFilterConfig(configId: string): Promise<ProcessingR
 }
 
 export async function getProcessingHistory(configId?: string) {
-  const supabase = createServerComponentClient<Database>({ cookies })
+  const cookieStore = await cookies()
+  const supabase = await createServerActionClient(cookieStore)
   
   try {
     let query = supabase
@@ -350,7 +352,8 @@ export async function getProcessingHistory(configId?: string) {
 }
 
 export async function deleteFilterConfig(configId: string) {
-  const supabase = createServerComponentClient<Database>({ cookies })
+  const cookieStore = await cookies()
+  const supabase = await createServerActionClient(cookieStore)
   
   try {
     const { error } = await supabase

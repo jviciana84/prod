@@ -1,11 +1,12 @@
 "use server"
 
-import { createServerActionClient } from "@supabase/auth-helpers-nextjs"
+import { createServerActionClient } from "@/lib/supabase/server"
 import { cookies } from "next/headers"
 import { revalidatePath } from "next/cache"
 
 export async function testAutoAssignment() {
-  const supabase = createServerActionClient({ cookies })
+  const cookieStore = await cookies()
+  const supabase = await createServerActionClient(cookieStore)
 
   try {
     // Generar una matrícula aleatoria para el vehículo de prueba

@@ -53,4 +53,12 @@ export async function createServerComponentClient() {
   return createServerClient(await cookies())
 }
 
-export const createServerActionClient = createServerClientOriginal
+// Función para Server Actions
+export async function createServerActionClient(cookieStore: any) {
+  return createServerClient(cookieStore)
+}
+
+// Función para Route Handlers (API Routes)
+export async function createRouteHandlerClient(cookieStore: any) {
+  return createServerClient(cookieStore)
+}

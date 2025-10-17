@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createServerComponentClient } from "@/lib/supabase/server"
 import { cookies } from "next/headers"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { IncidenciaHistorialComponent } from "@/components/entregas/incidencia-historial"
@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: EntregaDetallePageProps): Pro
 }
 
 export default async function EntregaDetallePage({ params }: EntregaDetallePageProps) {
-  const supabase = createServerComponentClient({ cookies })
+  const supabase = await createServerComponentClient()
 
   // Obtener datos de la entrega
   const { data: entrega, error } = await supabase.from("entregas").select("*").eq("id", params.id).single()

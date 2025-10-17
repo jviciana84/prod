@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
+import { createRouteHandlerClient } from "@/lib/supabase/server"
 import { cookies } from "next/headers"
 
 export async function GET(request: NextRequest) {
   try {
     console.log('🚀🚀🚀 API /api/sales/stats EJECUTÁNDOSE 🚀🚀🚀')
     const cookieStore = await cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    const supabase = await createRouteHandlerClient(cookieStore)
 
     // Obtener la fecha actual y calcular rangos
     const now = new Date()

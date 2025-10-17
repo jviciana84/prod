@@ -1,0 +1,340 @@
+================================================================================
+  SOLUCIÓN COMPLETA - PROBLEMA DE TABLAS BLOQUEADAS DESPUÉS DE FOTOS
+================================================================================
+
+FECHA: 17 de octubre de 2025
+PROBLEMA: Las tablas dejan de cargar datos después de navegar desde la página de Fotos
+CAUSA: Cliente de Supabase entra en estado bloqueado después de múltiples queries en Fotos
+SOLUCIÓN: Fix en 2 archivos + migración completa de paquete obsoleto
+
+================================================================================
+  PARTE 1: FIX INMEDIATO (2 archivos)
+================================================================================
+
+Estos son los cambios MÍNIMOS que solucionan el problema:
+
+---
+ARCHIVO 1: components/sales/sales-table.tsx
+---
+
+CAMBIO 1 - Línea ~350 (donde se declara el cliente Supabase):
+
+BUSCAR:
+  const supabase = createClientComponentClient()
+
+REEMPLAZAR CON:
+  const supabase = useMemo(() => {
+    return createClientComponentClient()
+  }, [])
+
+NOTA: Asegúrate de que "useMemo" esté en los imports de React en la línea ~5
+
+
+CAMBIO 2 - Línea ~475 (función loadSoldVehicles):
+
+BUSCAR:
+  const loadSoldVehicles = async () => {
+    setLoading(true)
+    try {
+      // Obtenemos los vehículos vendidos
+      const { data: salesData, error: salesError } = await supabase.from("sales_vehicles").select("*")
+
+REEMPLAZAR CON:
+  const loadSoldVehicles = async () => {
+    setLoading(true)
+    try {
+      // Obtenemos los vehículos vendidos
+      // FIX: Llamar a getSession() primero para "despertar" el cliente
+      await supabase.auth.getSession()
+      
+      const { data: salesData, error: salesError } = await supabase.from("sales_vehicles").select("*")
+
+---
+ARCHIVO 2: components/photos/photos-table.tsx
+---
+
+CAMBIO 1 - Después del primer useEffect (línea ~167):
+
+BUSCAR:
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  const fetchData = async () => {
+
+REEMPLAZAR CON:
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  // Limpiar el cliente de Supabase cuando el componente se desmonte
+  useEffect(() => {
+    return () => {
+      clearSupabaseClient()
+    }
+  }, [])
+
+  const fetchData = async () => {
+
+
+CAMBIO 2 - En los imports (línea ~36):
+
+BUSCAR:
+import { createClientComponentClient } from "@/lib/supabase/client"
+
+REEMPLAZAR CON:
+import { createClientComponentClient, clearSupabaseClient } from "@/lib/supabase/client"
+
+NOTA: Solo si no está ya importado
+
+
+CON ESTOS 2 ARCHIVOS, EL PROBLEMA ESTÁ SOLUCIONADO Y PUEDES HACER PUSH.
+Los 50 archivos restantes pueden migrarse después.
+
+================================================================================
+  PARTE 2: MIGRACIÓN COMPLETA (OPCIONAL PERO RECOMENDADO)
+================================================================================
+
+Esta parte elimina el paquete obsoleto y migra todos los archivos.
+
+---
+PASO 1: Actualizar lib/supabase/server.ts
+---
+
+AGREGAR estas funciones al final del archivo (si no existen):
+
+// Función para Server Actions
+export async function createServerActionClient(cookieStore: any) {
+  return createServerClient(cookieStore)
+}
+
+// Función para Route Handlers (API Routes)
+export async function createRouteHandlerClient(cookieStore: any) {
+  return createServerClient(cookieStore)
+}
+
+---
+PASO 2: Migrar componentes cliente (archivos .tsx en components/)
+---
+
+PATRÓN A BUSCAR:
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+
+REEMPLAZAR CON:
+import { createClientComponentClient } from "@/lib/supabase/client"
+
+ARCHIVOS A ACTUALIZAR:
+- components/photos/user-display.tsx
+- components/photos/photos-summary.tsx
+- components/photos/photographer-assignments.tsx
+- components/sales/pdf-data-dialog.tsx
+- components/sales/sales-quick-form.tsx
+- components/sales/sales-table-backup-2.tsx
+- components/sales/sales-table-backup.tsx
+- components/validados/validados-table.tsx
+- components/transport/transport-dashboard.tsx
+- components/reports/mapa-espana-real.tsx
+- components/recogidas/vehiculos-para-recoger.tsx
+- components/recogidas/recogidas-email-config.tsx
+- components/keys/key-movements-search.tsx
+- components/entregas/notificaciones-incidencias.tsx
+- components/entregas/incidencia-historial.tsx
+- components/duc-scraper/duc-scraper-table.tsx
+- components/duc-scraper/duc-scraper-stats.tsx
+- components/vehicles/vehicle-management.tsx
+- components/vehicles/key-management.tsx
+- components/vehicles/document-management.tsx
+- components/vehicles/key-document-dashboard.tsx
+- components/login-page.tsx
+
+---
+PASO 3: Migrar server-actions/ (archivos .ts en server-actions/)
+---
+
+PATRÓN A BUSCAR:
+import { createServerActionClient } from "@supabase/auth-helpers-nextjs"
+const supabase = createServerActionClient({ cookies })
+
+REEMPLAZAR CON:
+import { createServerActionClient } from "@/lib/supabase/server"
+const cookieStore = await cookies()
+const supabase = await createServerActionClient(cookieStore)
+
+ARCHIVOS A ACTUALIZAR:
+- server-actions/validation-actions.ts
+- server-actions/filter-processing.ts
+- server-actions/test-auto-assignment.ts
+- server-actions/photos-actions.ts
+- server-actions/assign-photographers.ts
+- server-actions/photos-assignment.ts
+
+IMPORTANTE: AGREGAR "await" antes de createServerActionClient()
+
+---
+PASO 4: Migrar API Routes (archivos route.ts en app/api/)
+---
+
+PATRÓN A BUSCAR:
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
+const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+
+REEMPLAZAR CON:
+import { createRouteHandlerClient } from "@/lib/supabase/server"
+const supabase = await createRouteHandlerClient(cookieStore)
+
+ARCHIVOS A ACTUALIZAR:
+- app/api/sales/stats/route.ts
+- app/api/compare-csv-with-db/route.ts
+- app/api/admin/user-mappings/route.ts
+- app/api/debug-tables/route.ts
+- app/api/debug-session/route.ts
+- app/api/notifications/send-photo-assignment-simple/route.ts
+- app/api/notifications/send-photo-assignment/route.ts
+- app/api/notifications/send/route.ts
+- app/api/notifications/debug-subscriptions/route.ts
+- app/api/test-photo-assignment-trigger/route.ts
+- app/api/test-notification-client/route.ts
+- app/api/force-logout/route.ts
+- app/api/refresh-session/route.ts
+- app/api/test-notification-public/route.ts
+- app/api/fix-session/route.ts
+- app/api/test-auth-simple/route.ts
+- app/api/notifications/test-simple/route.ts
+- app/api/notifications/bell/route.ts
+- app/api/debug/fix-photographer-trigger/route.ts
+- app/api/debug/check-photographers/route.ts
+- app/api/mark-as-professional-sale/route.ts
+
+IMPORTANTE: AGREGAR "await" antes de createRouteHandlerClient()
+
+---
+PASO 5: Migrar Pages (archivos page.tsx en app/)
+---
+
+PATRÓN A BUSCAR (para client components):
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+
+REEMPLAZAR CON:
+import { createClientComponentClient } from "@/lib/supabase/client"
+
+ARCHIVOS A ACTUALIZAR:
+- app/dashboard/ventas/add/page.tsx
+- app/dashboard/nuevas-entradas/page.tsx
+- app/dashboard/tasaciones/page.tsx
+- app/dashboard/ventas-profesionales/page.tsx
+- app/dashboard/filter-config/page.tsx
+- app/dashboard/entregas/diagnostico/page.tsx
+- app/dashboard/admin/column-mapping/page.tsx
+- app/dashboard/llaves/historial/page.tsx
+- app/reset-password/page.tsx
+- app/dashboard/vehiculos/gestion/page.tsx
+- app/dashboard/vehiculos/[id]/page.tsx
+- app/dashboard/vehicles/movements/[licensePlate]/page.tsx
+- app/dashboard/vehicles/gestion/page.tsx
+- app/dashboard/vehicles/[id]/page.tsx
+- app/dashboard/validacion-debug/page.tsx
+- app/dashboard/entregas/[id]/page.tsx
+- app/dashboard/admin/payment-method-diagnostic/page.tsx
+- app/debug/fix-trigger/page.tsx
+- app/debug-recogidas-email/page.tsx
+
+---
+PASO 6: Migrar utils/database-helpers.ts
+---
+
+Actualizar imports según el patrón de cliente o servidor que use.
+
+---
+PASO 7: Eliminar el paquete obsoleto
+---
+
+En package.json, ELIMINAR la línea:
+"@supabase/auth-helpers-nextjs": "latest",
+
+Luego ejecutar:
+npm install
+
+---
+PASO 8: Verificar compilación
+---
+
+npm run build
+
+Si hay errores, significa que hay archivos que no fueron migrados.
+Buscarlos con:
+grep -r "@supabase/auth-helpers" . --include="*.ts" --include="*.tsx"
+
+================================================================================
+  TESTING ANTES DEL PUSH
+================================================================================
+
+FUNCIONALIDADES CRÍTICAS A PROBAR:
+
+1. ✅ Login/Logout
+2. ✅ Navegación: Dashboard → Fotos → Ventas → Validados → Nuevas Entradas
+3. ✅ Crear nueva venta (/dashboard/ventas/add)
+4. ✅ Validar/desvalidar vehículo
+5. ✅ Asignar fotógrafo (manual)
+6. ✅ Marcar foto como completada
+7. ✅ Marcar error en foto
+8. ✅ Actualizar estado CYP/360
+9. ✅ Agregar gasto a vehículo
+10. ✅ Reset de contraseña
+
+FUNCIONALIDADES SECUNDARIAS:
+11. Upload PDF de venta
+12. Notificaciones push
+13. Gestión de llaves
+14. Configuración de filtros
+15. Reportes
+
+================================================================================
+  CÓMO VOLVER AL BACKUP SI ALGO FALLA
+================================================================================
+
+Si después de aplicar todos los cambios algo falla:
+
+git reset --hard 22b52e4cf55c5b4822e22a07f96acc2f962d18ae
+npm install
+git push origin main --force
+
+LUEGO, pega este documento en el chat y dime "aplica la solución del txt"
+
+================================================================================
+  RESUMEN DE LA SOLUCIÓN
+================================================================================
+
+EL PROBLEMA:
+- Página de Fotos hace muchas queries simultáneas
+- Cliente de autenticación entra en estado "bloqueado"
+- Queries subsiguientes en otras páginas se quedan colgadas eternamente
+
+LA SOLUCIÓN:
+1. useMemo() para estabilizar la instancia del cliente en SalesTable
+2. await supabase.auth.getSession() ANTES de queries para "despertar" el cliente
+3. clearSupabaseClient() al desmontar PhotosTable para limpiar estado
+4. Migrar TODOS los archivos de @supabase/auth-helpers a @supabase/ssr
+
+ARCHIVOS PRINCIPALES MODIFICADOS:
+- components/sales/sales-table.tsx (FIX PRINCIPAL)
+- components/photos/photos-table.tsx (CLEANUP)
+- lib/supabase/server.ts (Nuevas funciones: createServerActionClient, createRouteHandlerClient)
+- 50+ archivos adicionales (imports actualizados)
+
+TIEMPO ESTIMADO DE APLICACIÓN:
+- Fix inmediato (2 archivos): 5 minutos
+- Migración completa (50+ archivos): 1-2 horas
+- Testing: 30 minutos
+
+NIVEL DE RIESGO:
+- Fix inmediato: BAJO (solo 2 archivos, ya probado)
+- Migración completa: MEDIO (muchos archivos, requiere testing exhaustivo)
+
+================================================================================
+  FIN DEL DOCUMENTO
+================================================================================
+
+NOTA: Guarda este archivo como backup. Si en el futuro necesitas volver al
+backup del 15 de octubre y reaplicar la solución, simplemente pega este
+contenido en el chat y la IA podrá aplicar todos los cambios automáticamente.
+

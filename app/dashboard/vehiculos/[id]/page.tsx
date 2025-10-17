@@ -1,10 +1,10 @@
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createServerComponentClient } from "@/lib/supabase/server"
 import { cookies } from "next/headers"
 import { notFound } from "next/navigation"
 import VehicleManagement from "@/components/vehicles/vehicle-management"
 
 export default async function VehicleDetailPage({ params }: { params: { id: string } }) {
-  const supabase = createServerComponentClient({ cookies })
+  const supabase = await createServerComponentClient()
 
   // Verificar si el usuario está autenticado
   const {

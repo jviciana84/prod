@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createClientComponentClient } from "@/lib/supabase/client"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -347,7 +347,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
     failed: 0,
   })
 
-  const supabase = createClientComponentClient()
+  const supabase = useMemo(() => createClientComponentClient(), [])
 
   // Verificar si el usuario es administrador
   useEffect(() => {
@@ -476,7 +476,10 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
     setLoading(true)
     try {
       // Obtenemos los vehículos vendidos
-      const { data: salesData, error: salesError } = await supabase.from("sales_vehicles").select("*")
+      // FIX: Llamar a getSession() primero para despertar el cliente de autenticación
+      await supabase.auth.getSession()
+      
+      const { data: salesData, error: salesError} = await supabase.from("sales_vehicles").select("*")
 
       if (salesError) {
         console.error("Error al cargar vehículos vendidos:", salesError)

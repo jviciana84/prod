@@ -23,7 +23,8 @@ interface AssignmentResult {
  * Asigna vehículos pendientes a fotógrafos según los porcentajes configurados
  */
 export async function assignVehiclesToPhotographers(): Promise<AssignmentResult> {
-  const supabase = createServerActionClient({ cookies })
+  const cookieStore = await cookies()
+  const supabase = await createServerActionClient(cookieStore)
 
   try {
     // 1. Obtener todos los fotógrafos activos con sus porcentajes
