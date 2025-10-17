@@ -152,7 +152,8 @@ export async function getAssignmentStats() {
 }
 
 export async function simplifyAutoAssignmentTrigger() {
-  const supabase = createServerActionClient({ cookies })
+  const cookieStore = await cookies()
+  const supabase = await createServerActionClient(cookieStore)
 
   try {
     // Ejecutar la función para simplificar el trigger

@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const cookieStore = await cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    const supabase = await createRouteHandlerClient(cookieStore)
 
     const body = await request.json()
     const { userId, asesorAlias } = body
@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const cookieStore = await cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    const supabase = await createRouteHandlerClient(cookieStore)
 
     const { searchParams } = new URL(request.url)
     const mappingId = searchParams.get("id")

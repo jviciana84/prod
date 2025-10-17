@@ -21,7 +21,8 @@ export async function POST(request: NextRequest) {
     
     if (!finalUserId) {
       try {
-        const supabase = createRouteHandlerClient({ cookies })
+        const cookieStore = await cookies()
+        const supabase = await createRouteHandlerClient(cookieStore)
         const { data: { user }, error: authError } = await supabase.auth.getUser()
         
         if (authError || !user) {
