@@ -163,10 +163,24 @@ export default function PhotosTable() {
   }, [profile?.role])
 
   useEffect(() => {
-    fetchData()
+    let isActive = true
+    
+    const fetchDataSafe = async () => {
+      if (!isActive) return
+      await fetchData(isActive)
+    }
+    
+    fetchDataSafe()
+    
+    return () => {
+      isActive = false
+      console.log("🧹 PhotosTable cleanup - cancelando carga de fotos")
+    }
   }, [])
 
-  const fetchData = async () => {
+  const fetchData = async (isActive: boolean | { current: boolean }) => {
+    const checkActive = () => typeof isActive === 'boolean' ? isActive : isActive.current
+    
     setIsLoading(true)
     try {
       // Obtener vehículos
@@ -175,6 +189,10 @@ export default function PhotosTable() {
         .select("*")
         .order("disponible", { ascending: false })
 
+      if (!checkActive()) {
+        console.log("❌ PhotosTable desmontado después de consultar fotos")
+        return
+      }
       if (vehiclesError) throw vehiclesError
 
       // Obtener fotógrafos asignados (sin usar relaciones implícitas)
@@ -183,6 +201,10 @@ export default function PhotosTable() {
         .select("*")
         .eq("is_active", true)
 
+      if (!checkActive()) {
+        console.log("❌ PhotosTable desmontado después de consultar fotos_asignadas")
+        return
+      }
       if (photographersError) throw photographersError
 
       // Obtener información de usuarios para los fotógrafos
@@ -197,6 +219,10 @@ export default function PhotosTable() {
           .select("id, alias, full_name")
           .in("id", userIds)
 
+        if (!checkActive()) {
+          console.log("❌ PhotosTable desmontado después de consultar profiles")
+          return
+        }
         if (!profilesError && profiles) {
           usersData = profiles
         }
@@ -223,9 +249,11 @@ export default function PhotosTable() {
         }
       })
 
-      setVehicles(vehiclesData || [])
-      setPhotographers(formattedPhotographers || [])
-      setIsDataReady(true)
+      if (checkActive()) {
+        setVehicles(vehiclesData || [])
+        setPhotographers(formattedPhotographers || [])
+        setIsDataReady(true)
+      }
     } catch (error) {
       console.error("Error al cargar datos:", error)
       
@@ -348,7 +376,11 @@ export default function PhotosTable() {
 
   // Cargar vehículos vendidos siempre (no solo cuando estés en la pestaña)
   useEffect(() => {
+      let isActive = true
+      
       const fetchSoldVehicles = async () => {
+        if (!isActive) return
+        
         try {
         console.log("🔍 Buscando vehículos vendidos y reservados sin fotos...")
         
@@ -357,6 +389,7 @@ export default function PhotosTable() {
             .from("sales_vehicles")
             .select("license_plate, model, sale_date, advisor, advisor_name")
 
+        if (!isActive) return
         if (soldError) {
           console.error("❌ Error al obtener vehículos vendidos:", soldError)
             return
@@ -368,6 +401,7 @@ export default function PhotosTable() {
           .select("Matrícula, Modelo, Disponibilidad")
           .ilike("Disponibilidad", "%reservado%")
 
+        if (!isActive) return
         if (reservedError) {
           console.error("❌ Error al obtener vehículos reservados:", reservedError)
           return
@@ -380,19 +414,28 @@ export default function PhotosTable() {
         // Combinar y eliminar duplicados
         const allSoldOrReserved = [...new Set([...soldLicensePlates, ...reservedLicensePlates])]
         
-        setSoldVehicles(allSoldOrReserved)
-        
-        console.log("✅ Matrículas cargadas:", {
-          vendidos: soldLicensePlates.length,
-          reservados: reservedLicensePlates.length,
-          total: allSoldOrReserved.length
-        })
+        if (isActive) {
+          setSoldVehicles(allSoldOrReserved)
+          
+          console.log("✅ Matrículas cargadas:", {
+            vendidos: soldLicensePlates.length,
+            reservados: reservedLicensePlates.length,
+            total: allSoldOrReserved.length
+          })
+        }
         } catch (error) {
-          console.error("❌ Error en fetchSoldVehicles:", error)
+          if (isActive) {
+            console.error("❌ Error en fetchSoldVehicles:", error)
+          }
         }
       }
 
       fetchSoldVehicles()
+      
+      return () => {
+        isActive = false
+        console.log("🧹 PhotosTable cleanup - cancelando carga de vehículos vendidos")
+      }
   }, [])
 
   // Calcular datos filtrados y paginados

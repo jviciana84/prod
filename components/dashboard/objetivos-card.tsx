@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -122,7 +122,7 @@ export function ObjetivosCard() {
   const [selectedQuarterSemester, setSelectedQuarterSemester] = useState<string>(initialQuarterSemester)
   const [displayPeriodLabel, setDisplayPeriodLabel] = useState<string>("") // Estado para el label del subtítulo
 
-  const supabase = createClientComponentClient()
+  const supabase = useMemo(() => createClientComponentClient(), [])
 
   const fetchObjetivos = useCallback(async () => {
     try {

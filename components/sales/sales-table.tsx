@@ -347,7 +347,8 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
     failed: 0,
   })
 
-  const supabase = useMemo(() => createClientComponentClient(), [])
+  // ELIMINAR useMemo - crear cliente FRESCO cada render
+  const supabase = createClientComponentClient()
 
   // Verificar si el usuario es administrador
   useEffect(() => {
@@ -472,7 +473,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
   }, [])
 
   // Cargar los vehículos vendidos
-  const loadSoldVehicles = async () => {
+  const loadSoldVehicles = async (): Promise<boolean> => {
     console.log("🔄 [loadSoldVehicles] Iniciando... estableciendo loading=true")
     setLoading(true)
     try {
@@ -485,7 +486,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
         console.error("Error al cargar vehículos vendidos:", salesError)
         toast.error("Error al cargar los datos")
         setLoading(false)
-        return
+        return false
       }
 
       if (!salesData || salesData.length === 0) {
@@ -493,7 +494,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
         setFilteredVehicles([])
         setCounts({ all: 0, car: 0, motorcycle: 0, not_validated: 0, finished: 0, failed: 0 })
         setLoading(false)
-        return
+        return true
       }
 
       // Calcular prioridades para cada vehículo
@@ -535,9 +536,11 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
       })
       setOrValues(initialORValues)
       console.log("✅ [loadSoldVehicles] Datos procesados correctamente")
+      return true
     } catch (err) {
       console.error("❌ [loadSoldVehicles] Error en la consulta:", err)
       toast.error("Error al cargar los datos")
+      return false
     } finally {
       console.log("🏁 [loadSoldVehicles] Finalizando... estableciendo loading=false")
       setLoading(false)
@@ -562,38 +565,17 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
     checkEditPermissions()
   }, [])
 
-  // Usar ref para evitar múltiples ejecuciones
-  const hasLoadedDataRef = useRef(false)
-  
-  // Cargar datos al montar el componente
+  // Cargar datos al montar el componente - SIN cleanup para evitar cancelaciones
   useEffect(() => {
-    // Solo ejecutar UNA VEZ en la vida del componente
-    if (hasLoadedDataRef.current) {
-      console.log("⚠️ Datos ya cargados, saltando ejecución")
-      return
-    }
-    
-    hasLoadedDataRef.current = true
-    
     const loadAllData = async () => {
       console.log("🚀 Iniciando carga de datos...")
       
-      // 1. Primero despertar el cliente UNA SOLA VEZ
-      try {
-        console.log("⏰ Despertando cliente Supabase...")
-        await supabase.auth.getSession()
-        console.log("✅ Cliente Supabase despierto")
-      } catch (err) {
-        console.error("❌ Error en getSession:", err)
-        return
-      }
-      
-      // 2. Cargar vehículos vendidos
+      // Cargar vehículos vendidos directamente (sin getSession)
       console.log("📦 Cargando vehículos vendidos...")
       await loadSoldVehicles()
       console.log("✅ Vehículos vendidos cargados")
       
-      // 3. Cargar tipos de gastos (ahora el cliente ya está despierto)
+      // Cargar tipos de gastos
       try {
         console.log("💰 Cargando tipos de gastos...")
         const { data, error } = await supabase
@@ -617,7 +599,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
     }
     
     loadAllData()
-  }, []) // Removed dependencies to prevent constant re-execution
+  }, [])
 
   // Focus en el buscador cuando se carga la página
   useEffect(() => {

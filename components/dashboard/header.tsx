@@ -28,7 +28,7 @@ import {
 import { createClientComponentClient } from "@/lib/supabase/client"
 import { Badge } from "@/components/ui/badge"
 import { Logo } from "@/components/ui/logo"
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
 import { Input } from "@/components/ui/input"
 import { toast } from "@/hooks/use-toast"
 import { getUserPreferences } from "@/lib/user-preferences"
@@ -62,7 +62,7 @@ interface Notification {
 
 export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
   const router = useRouter()
-  const supabase = createClientComponentClient()
+  const supabase = useMemo(() => createClientComponentClient(), [])
   const { toggleSidebar } = useSidebar()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isAvatarZoomed, setIsAvatarZoomed] = useState(false)

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, useMemo } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -32,6 +32,7 @@ export function NewsDropdown({ isOpen, onClose, triggerRef }: NewsDropdownProps)
   const [noticias, setNoticias] = useState<NewsItem[]>([])
   const [loading, setLoading] = useState(true)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  // ELIMINAR useMemo - crear cliente FRESCO cada render
   const supabase = createClientComponentClient()
   const router = useRouter()
 
@@ -61,7 +62,9 @@ export function NewsDropdown({ isOpen, onClose, triggerRef }: NewsDropdownProps)
 
   const fetchNoticias = async () => {
     try {
+      console.log("📰 [NewsDropdown] Iniciando carga de noticias...")
       setLoading(true)
+      console.log("🔍 [NewsDropdown] Consultando bmw_noticias...")
       const { data, error } = await supabase
         .from("bmw_noticias")
         .select("*")
@@ -69,11 +72,17 @@ export function NewsDropdown({ isOpen, onClose, triggerRef }: NewsDropdownProps)
         .order("created_at", { ascending: false })
         .limit(5)
 
-      if (error) throw error
+      if (error) {
+        console.error("❌ [NewsDropdown] Error:", error)
+        throw error
+      }
+      
+      console.log("✅ [NewsDropdown] Noticias cargadas:", data?.length || 0)
       setNoticias(data || [])
     } catch (error) {
-      console.error("Error al cargar noticias:", error)
+      console.error("❌ [NewsDropdown] Excepción al cargar noticias:", error)
     } finally {
+      console.log("🏁 [NewsDropdown] Finalizando carga")
       setLoading(false)
     }
   }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -41,7 +41,7 @@ export function FinancingRanking({ className }: FinancingRankingProps) {
   const [annualRanking, setAnnualRanking] = useState<AnnualRanking[]>([])
   const [loading, setLoading] = useState(true)
   const [debugInfo, setDebugInfo] = useState<string>("")
-  const supabase = createClientComponentClient()
+  const supabase = useMemo(() => createClientComponentClient(), [])
 
   useEffect(() => {
     loadRankingData()
