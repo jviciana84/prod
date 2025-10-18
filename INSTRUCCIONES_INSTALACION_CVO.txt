@@ -1,0 +1,80 @@
+========================================
+  MENU CONTEXTUAL CVO - INSTRUCCIONES
+========================================
+
+ARCHIVOS CREADOS:
+-----------------
+1. INSTALAR_MenuContextual_CVO.bat     -> Instalar (una vez, como admin)
+2. DESINSTALAR_MenuContextual_CVO.bat  -> Desinstalar si es necesario
+3. ActualizarOR_CVO_MenuContextual.ps1 -> Script principal
+4. EJECUTAR_Actualizar_OR.bat          -> Version sin menu contextual (alternativa)
+5. ActualizarOR_CVO.ps1                -> Version sin menu contextual (alternativa)
+
+
+COMO PROBAR (EN TU PC):
+-----------------------
+1. Clic derecho en "INSTALAR_MenuContextual_CVO.bat"
+2. Selecciona "Ejecutar como administrador"
+3. Presiona cualquier tecla para continuar
+4. Espera mensaje "INSTALACION COMPLETADA"
+
+5. Abre cualquier programa (Notepad, Word, etc.)
+6. Escribe un numero de OR (ejemplo: 12345)
+7. Selecciona el texto con el mouse
+8. Clic derecho -> "Exportar a CVO"
+9. Debe aparecer ventana con el numero ya cargado
+10. Escribe una matricula de prueba
+11. Presiona Enter o clic en "ACTUALIZAR"
+
+
+SI FUNCIONA, PARA PEDIR INSTALACION EN PC DEL MECANICO:
+--------------------------------------------------------
+Copiar todo el contenido de la carpeta "cursor" al PC del mecanico
+(o solo estos 3 archivos):
+  - INSTALAR_MenuContextual_CVO.bat
+  - ActualizarOR_CVO_MenuContextual.ps1
+  - (Opcional) DESINSTALAR_MenuContextual_CVO.bat
+
+TICKET PARA IT:
+"Necesito instalar una herramienta personalizada para actualizar 
+base de datos CVO desde el programa del taller. Requiere ejecutar 
+un archivo .bat como administrador UNA VEZ para registrar opcion 
+en menu contextual de Windows. Despues funciona sin permisos.
+
+Archivo: INSTALAR_MenuContextual_CVO.bat
+Accion: Ejecutar como administrador (solo instala entrada en registro)
+Seguridad: No instala software, solo agrega opcion al menu clic derecho"
+
+
+QUE HACE LA INSTALACION:
+-------------------------
+- Agrega entrada en registro de Windows (HKEY_CLASSES_ROOT)
+- Crea opcion "Exportar a CVO" en menu de clic derecho
+- NO instala programas ni servicios
+- NO modifica archivos del sistema
+- Facil de desinstalar (ejecutar DESINSTALAR_MenuContextual_CVO.bat)
+
+
+USO DIARIO (SIN PERMISOS):
+---------------------------
+1. En el programa del taller, selecciona numero OR
+2. Clic derecho -> "Exportar a CVO"
+3. Escribe matricula
+4. Enter
+5. Listo
+
+
+DESINSTALAR:
+------------
+Clic derecho en "DESINSTALAR_MenuContextual_CVO.bat"
+-> "Ejecutar como administrador"
+
+
+NOTA IMPORTANTE:
+----------------
+Actualmente el script SOLO CAPTURA los datos.
+Una vez confirmado que funciona, se agregara la conexion 
+a Supabase para actualizar la tabla sale_table.
+
+
+

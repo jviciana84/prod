@@ -47,8 +47,8 @@ export default function NoticiasPage() {
       const { data, error } = await supabase
         .from("bmw_noticias")
         .select("*")
+        .order("created_at", { ascending: false }) // Más recientes primero
         .order("fecha_publicacion", { ascending: false, nullsFirst: false })
-        .order("created_at", { ascending: false })
 
       if (error) throw error
       setNoticias(data || [])

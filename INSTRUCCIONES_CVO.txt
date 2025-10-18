@@ -1,0 +1,47 @@
+========================================
+  CVO - ACTUALIZADOR OR
+========================================
+
+EJECUTAR:
+---------
+Doble clic en: EJECUTAR_CVO.bat
+
+Aparece:
+- Ventana azul de PowerShell (dejarla abierta)
+- Icono "CVO" en barra de tareas
+
+
+USO:
+----
+1. Selecciona numero OR en tu programa
+2. Ctrl+º
+3. Ventana aparece con OR copiado
+4. Escribe matricula
+5. Enter (ventana se cierra)
+6. Ctrl+º de nuevo = ventana vuelve a aparecer
+
+
+INICIO AUTOMATICO:
+------------------
+Doble clic en: INSTALAR_Inicio_CVO.bat
+
+
+PROBAR:
+-------
+1. Ejecuta: EJECUTAR_CVO.bat
+2. Abre Notepad, escribe: 12345
+3. Selecciona el texto
+4. Ctrl+º
+5. Ventana aparece con 12345
+6. Escribe una matricula
+7. Enter
+8. Ctrl+º de nuevo para volver a abrir
+
+
+NOTA:
+-----
+PowerShell debe quedar abierto siempre
+Si lo cierras, el programa deja de funcionar
+
+
+

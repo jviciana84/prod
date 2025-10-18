@@ -65,8 +65,8 @@ export function NewsDropdown({ isOpen, onClose, triggerRef }: NewsDropdownProps)
       const { data, error } = await supabase
         .from("bmw_noticias")
         .select("*")
-        .order("fecha_publicacion", { ascending: false, nullsFirst: false }) // Más recientes primero
-        .order("created_at", { ascending: false })
+        .order("created_at", { ascending: false }) // Más recientes primero por created_at
+        .order("fecha_publicacion", { ascending: false, nullsFirst: false })
         .limit(5)
 
       if (error) throw error

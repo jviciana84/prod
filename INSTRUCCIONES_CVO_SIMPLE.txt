@@ -1,0 +1,76 @@
+========================================
+  CVO - ACTUALIZADOR OR (VERSION SIMPLE)
+========================================
+
+ARCHIVOS:
+---------
+1. EJECUTAR_CVO.bat                         -> Ejecutar programa
+2. ActualizarOR_CVO_Mejorado.ps1            -> Script principal
+3. INSTALAR_InicioAutomatico_CVO.bat        -> Iniciar con Windows
+4. DESINSTALAR_InicioAutomatico_CVO.bat     -> Quitar del inicio
+
+
+INSTALACION (SIN ADMIN):
+------------------------
+1. Doble clic en: INSTALAR_InicioAutomatico_CVO.bat
+2. Presiona cualquier tecla
+3. Listo - Se iniciara automaticamente al encender el PC
+
+
+USO PARA EL MECANICO:
+---------------------
+El programa queda abierto (invisible) en segundo plano.
+
+OPCION 1 (Mas simple):
+  1. Selecciona numero OR en el programa del taller
+  2. Ctrl+C (copiar)
+  3. Ventana CVO aparece automaticamente con el numero
+  4. Escribe matricula
+  5. Enter
+
+OPCION 2 (Con atajo):
+  1. Selecciona numero OR
+  2. Ctrl+C (copiar)
+  3. Ctrl+Shift+O (abre ventana CVO)
+  4. Numero OR ya esta pegado
+  5. Escribe matricula
+  6. Enter
+
+
+CARACTERISTICAS:
+----------------
+- Ventana ultra-compacta (una sola linea)
+- Sin barra de titulo (mas espacio)
+- Esquina superior derecha
+- Diseno oscuro moderno
+- Detecta automaticamente lo que copias
+- OR y Matricula en misma linea
+- Boton con icono checkmark (✔)
+- Se puede mover arrastrando
+- Campos se limpian solos despues de guardar
+- Enter en cualquier campo = guardar
+- No aparece en barra de tareas
+- Siempre visible encima de otras ventanas
+
+
+PROBAR AHORA:
+-------------
+1. Doble clic en: EJECUTAR_CVO.bat
+2. Aparece ventana pequena arriba a la derecha
+3. Abre Notepad y escribe un numero
+4. Selecciona el numero y Ctrl+C
+5. La ventana CVO se actualiza sola
+6. Escribe una matricula de prueba
+7. Enter
+
+
+DESINSTALAR:
+------------
+Doble clic en: DESINSTALAR_InicioAutomatico_CVO.bat
+
+
+NOTA:
+-----
+Actualmente solo captura datos.
+Proximamente se conectara a Supabase para actualizar sale_table.
+

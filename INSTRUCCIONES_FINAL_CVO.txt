@@ -1,0 +1,70 @@
+========================================
+  CVO - ACTUALIZADOR OR (VERSION FINAL)
+========================================
+
+ARCHIVOS:
+---------
+EJECUTAR_CVO_Final.bat                -> Ejecutar programa
+ActualizarOR_CVO_Final.ps1            -> Script principal
+INSTALAR_InicioAutomatico_FINAL.bat   -> Iniciar con Windows
+
+
+INSTALACION:
+------------
+1. Doble clic en: EJECUTAR_CVO_Final.bat
+2. Aparece icono "CVO" en barra de tareas (minimizado)
+3. Ya esta listo para usar
+
+
+PARA INICIO AUTOMATICO:
+------------------------
+Doble clic en: INSTALAR_InicioAutomatico_FINAL.bat
+
+
+USO PARA EL MECANICO:
+---------------------
+1. En el programa del taller, SELECCIONA el numero OR con el mouse
+2. Presiona: Ctrl+º
+3. Ventana CVO aparece en barra de tareas con el numero OR ya copiado
+4. Campo matricula tiene el foco (solo empieza a escribir)
+5. Escribe la matricula
+6. Presiona Enter
+7. Se cierra automaticamente
+
+
+CARACTERISTICAS:
+----------------
+- Una sola combinacion: Ctrl+º
+- Copia automaticamente el texto seleccionado
+- Ventana minimizada en barra de tareas
+- Focus automatico en campo matricula
+- Enter para guardar y cerrar
+- No molesta en pantalla
+- Siempre disponible
+
+
+PROBAR AHORA:
+-------------
+1. Ejecuta: EJECUTAR_CVO_Final.bat
+2. Mira la barra de tareas abajo (aparece "CVO")
+3. Abre Notepad y escribe: 12345
+4. Selecciona el texto con el mouse
+5. Presiona: Ctrl+º
+6. Ventana aparece con "12345" en OR
+7. Escribe una matricula de prueba
+8. Enter
+9. Listo
+
+
+NOTA TECLA º:
+-------------
+Si Ctrl+º no funciona en tu teclado, puedo cambiar
+a otra combinacion como Ctrl+Shift+O o la que prefieras.
+
+
+PROXIMAMENTE:
+-------------
+Conexion a Supabase para actualizar sale_table automaticamente.
+
+
+

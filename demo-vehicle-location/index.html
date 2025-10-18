@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo - Sistema Ubicación Vehículos</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+        }
+        
+        .header {
+            background: #2563eb;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .container {
+            display: flex;
+            height: calc(100vh - 80px);
+        }
+        
+        .sidebar {
+            width: 300px;
+            background: white;
+            border-right: 1px solid #e5e7eb;
+            padding: 1rem;
+            overflow-y: auto;
+        }
+        
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+        
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+        
+        .qr-scanner {
+            background: #f8fafc;
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .qr-scanner:hover {
+            border-color: #2563eb;
+            background: #eff6ff;
+        }
+        
+        .section-selector {
+            margin-bottom: 1rem;
+        }
+        
+        .section-btn {
+            width: 100%;
+            padding: 0.75rem;
+            margin: 0.25rem 0;
+            border: 1px solid #d1d5db;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .section-btn:hover {
+            background: #f3f4f6;
+            border-color: #2563eb;
+        }
+        
+        .section-btn.active {
+            background: #2563eb;
+            color: white;
+            border-color: #2563eb;
+        }
+        
+        .vehicle-form {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #374151;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        
+        .btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            width: 100%;
+            transition: background 0.2s;
+        }
+        
+        .btn:hover {
+            background: #1d4ed8;
+        }
+        
+        .btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        
+        .vehicle-list {
+            margin-top: 1rem;
+        }
+        
+        .vehicle-item {
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .vehicle-info {
+            flex: 1;
+        }
+        
+        .vehicle-matricula {
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .vehicle-zona {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+        
+        .remove-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+        }
+        
+        .remove-btn:hover {
+            background: #dc2626;
+        }
+        
+        .status {
+            padding: 0.5rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+        
+        .status.success {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+        
+        .status.error {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚗 Sistema Ubicación Vehículos</h1>
+        <p>Demo - Motor Munich Terrasa</p>
+    </div>
+    
+    <div class="container">
+        <div class="sidebar">
+            <!-- Simulador QR Scanner -->
+            <div class="qr-scanner" onclick="simulateQRScan()">
+                <div>📱</div>
+                <div>Escanear QR de Zona</div>
+                <small>(Click para simular)</small>
+            </div>
+            
+            <!-- Selector de Sección -->
+            <div class="section-selector">
+                <h3>Seleccionar Zona:</h3>
+                <button class="section-btn" onclick="selectSection('TALLER-MECANICA')">
+                    🔧 Taller Mecánica
+                </button>
+                <button class="section-btn" onclick="selectSection('TALLER-PINTURA')">
+                    🎨 Taller Pintura
+                </button>
+                <button class="section-btn" onclick="selectSection('SECTOR-1')">
+                    🅿️ Sector 1
+                </button>
+                <button class="section-btn" onclick="selectSection('SECTOR-2')">
+                    🅿️ Sector 2
+                </button>
+                <button class="section-btn" onclick="selectSection('RECEPCION')">
+                    🏢 Recepción
+                </button>
+                <button class="section-btn" onclick="selectSection('ENTREGA')">
+                    🚚 Entrega
+                </button>
+            </div>
+            
+            <!-- Formulario Vehículo -->
+            <div class="vehicle-form" id="vehicleForm" style="display: none;">
+                <h3>Registrar Vehículo</h3>
+                <div class="form-group">
+                    <label>Zona Seleccionada:</label>
+                    <input type="text" id="selectedZone" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Plaza:</label>
+                    <select id="plazaSelect">
+                        <option value="">Seleccionar plaza...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Matrícula:</label>
+                    <input type="text" id="matriculaInput" placeholder="Ej: 1234-ABC" maxlength="10">
+                </div>
+                <button class="btn" onclick="addVehicle()" id="addBtn" disabled>
+                    📍 Marcar en Mapa
+                </button>
+            </div>
+            
+            <!-- Lista de Vehículos -->
+            <div class="vehicle-list">
+                <h3>Vehículos Registrados</h3>
+                <div id="vehicleList">
+                    <p style="color: #6b7280; text-align: center; margin: 2rem 0;">
+                        No hay vehículos registrados
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="map-container">
+            <div id="map"></div>
+        </div>
+    </div>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Variables globales
+        let map;
+        let selectedSection = null;
+        let vehicles = [];
+        
+        // Configuración de secciones y plazas
+        const sections = {
+            'TALLER-MECANICA': {
+                name: 'Taller Mecánica',
+                plazas: ['T1', 'T2', 'T3', 'T4', 'T5'],
+                coordinates: [400, 200],
+                color: '#ef4444'
+            },
+            'TALLER-PINTURA': {
+                name: 'Taller Pintura',
+                plazas: ['P1', 'P2', 'P3', 'P4'],
+                coordinates: [300, 150],
+                color: '#f59e0b'
+            },
+            'SECTOR-1': {
+                name: 'Sector 1',
+                plazas: ['S1-1', 'S1-2', 'S1-3', 'S1-4', 'S1-5'],
+                coordinates: [200, 400],
+                color: '#10b981'
+            },
+            'SECTOR-2': {
+                name: 'Sector 2',
+                plazas: ['S2-1', 'S2-2', 'S2-3', 'S2-4', 'S2-5'],
+                coordinates: [600, 400],
+                color: '#3b82f6'
+            },
+            'RECEPCION': {
+                name: 'Recepción',
+                plazas: ['R1', 'R2', 'R3'],
+                coordinates: [100, 100],
+                color: '#8b5cf6'
+            },
+            'ENTREGA': {
+                name: 'Entrega',
+                plazas: ['E1', 'E2', 'E3'],
+                coordinates: [500, 100],
+                color: '#06b6d4'
+            }
+        };
+        
+        // Inicializar mapa
+        function initMap() {
+            map = L.map('map', {
+                crs: L.CRS.Simple,
+                minZoom: -1,
+                maxZoom: 3
+            });
+            
+            // Dimensiones del plano (ajustar según tu imagen)
+            const bounds = [[0, 0], [800, 1000]];
+            
+            // Cargar imagen del plano
+            L.imageOverlay('plano-instalaciones.jpg', bounds).addTo(map);
+            
+            // Ajustar vista al plano
+            map.fitBounds(bounds);
+            map.setView([400, 500], 0);
+            
+            // Añadir marcadores de secciones
+            Object.keys(sections).forEach(sectionKey => {
+                const section = sections[sectionKey];
+                const marker = L.circleMarker(section.coordinates, {
+                    radius: 15,
+                    fillColor: section.color,
+                    color: '#fff',
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                }).addTo(map);
+                
+                marker.bindPopup(`
+                    <strong>${section.name}</strong><br>
+                    Plazas: ${section.plazas.join(', ')}
+                `);
+            });
+        }
+        
+        // Simular escaneo QR
+        function simulateQRScan() {
+            const sections = ['TALLER-MECANICA', 'TALLER-PINTURA', 'SECTOR-1', 'SECTOR-2', 'RECEPCION', 'ENTREGA'];
+            const randomSection = sections[Math.floor(Math.random() * sections.length)];
+            selectSection(randomSection);
+            showStatus(`QR escaneado: ${sections[randomSection].name}`, 'success');
+        }
+        
+        // Seleccionar sección
+        function selectSection(sectionKey) {
+            selectedSection = sectionKey;
+            const section = sections[sectionKey];
+            
+            // Actualizar botones
+            document.querySelectorAll('.section-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Mostrar formulario
+            document.getElementById('vehicleForm').style.display = 'block';
+            document.getElementById('selectedZone').value = section.name;
+            
+            // Llenar selector de plazas
+            const plazaSelect = document.getElementById('plazaSelect');
+            plazaSelect.innerHTML = '<option value="">Seleccionar plaza...</option>';
+            section.plazas.forEach(plaza => {
+                const option = document.createElement('option');
+                option.value = plaza;
+                option.textContent = plaza;
+                plazaSelect.appendChild(option);
+            });
+            
+            // Centrar mapa en la sección
+            map.setView(section.coordinates, 1);
+            
+            showStatus(`Zona seleccionada: ${section.name}`, 'success');
+        }
+        
+        // Añadir vehículo
+        function addVehicle() {
+            const matricula = document.getElementById('matriculaInput').value.trim();
+            const plaza = document.getElementById('plazaSelect').value;
+            
+            if (!matricula || !plaza) {
+                showStatus('Por favor completa todos los campos', 'error');
+                return;
+            }
+            
+            if (matricula.length < 4) {
+                showStatus('La matrícula debe tener al menos 4 caracteres', 'error');
+                return;
+            }
+            
+            // Verificar si ya existe
+            if (vehicles.some(v => v.matricula === matricula)) {
+                showStatus('Esta matrícula ya está registrada', 'error');
+                return;
+            }
+            
+            const section = sections[selectedSection];
+            const vehicle = {
+                id: Date.now(),
+                matricula: matricula.toUpperCase(),
+                zona: selectedSection,
+                plaza: plaza,
+                coordinates: [
+                    section.coordinates[0] + (Math.random() - 0.5) * 50,
+                    section.coordinates[1] + (Math.random() - 0.5) * 50
+                ],
+                timestamp: new Date()
+            };
+            
+            vehicles.push(vehicle);
+            updateVehicleList();
+            addVehicleMarker(vehicle);
+            
+            // Limpiar formulario
+            document.getElementById('matriculaInput').value = '';
+            document.getElementById('plazaSelect').value = '';
+            document.getElementById('addBtn').disabled = true;
+            
+            showStatus(`Vehículo ${matricula} registrado en ${plaza}`, 'success');
+        }
+        
+        // Añadir marcador de vehículo
+        function addVehicleMarker(vehicle) {
+            const section = sections[vehicle.zona];
+            const marker = L.marker(vehicle.coordinates, {
+                icon: L.divIcon({
+                    className: 'vehicle-marker',
+                    html: `🚗<br><small>${vehicle.matricula}</small>`,
+                    iconSize: [40, 30],
+                    iconAnchor: [20, 15]
+                })
+            }).addTo(map);
+            
+            marker.bindPopup(`
+                <strong>🚗 ${vehicle.matricula}</strong><br>
+                Zona: ${section.name}<br>
+                Plaza: ${vehicle.plaza}<br>
+                Registrado: ${vehicle.timestamp.toLocaleTimeString()}
+            `);
+            
+            vehicle.marker = marker;
+        }
+        
+        // Actualizar lista de vehículos
+        function updateVehicleList() {
+            const container = document.getElementById('vehicleList');
+            
+            if (vehicles.length === 0) {
+                container.innerHTML = '<p style="color: #6b7280; text-align: center; margin: 2rem 0;">No hay vehículos registrados</p>';
+                return;
+            }
+            
+            container.innerHTML = vehicles.map(vehicle => {
+                const section = sections[vehicle.zona];
+                return `
+                    <div class="vehicle-item">
+                        <div class="vehicle-info">
+                            <div class="vehicle-matricula">🚗 ${vehicle.matricula}</div>
+                            <div class="vehicle-zona">${section.name} - ${vehicle.plaza}</div>
+                        </div>
+                        <button class="remove-btn" onclick="removeVehicle(${vehicle.id})">✕</button>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Eliminar vehículo
+        function removeVehicle(vehicleId) {
+            const vehicle = vehicles.find(v => v.id === vehicleId);
+            if (vehicle && vehicle.marker) {
+                map.removeLayer(vehicle.marker);
+            }
+            
+            vehicles = vehicles.filter(v => v.id !== vehicleId);
+            updateVehicleList();
+            showStatus('Vehículo eliminado', 'success');
+        }
+        
+        // Mostrar estado
+        function showStatus(message, type) {
+            // Remover status anterior
+            const existing = document.querySelector('.status');
+            if (existing) existing.remove();
+            
+            const status = document.createElement('div');
+            status.className = `status ${type}`;
+            status.textContent = message;
+            
+            document.querySelector('.sidebar').insertBefore(status, document.querySelector('.section-selector'));
+            
+            setTimeout(() => {
+                if (status.parentNode) {
+                    status.remove();
+                }
+            }, 3000);
+        }
+        
+        // Validar formulario
+        function validateForm() {
+            const matricula = document.getElementById('matriculaInput').value.trim();
+            const plaza = document.getElementById('plazaSelect').value;
+            const btn = document.getElementById('addBtn');
+            
+            btn.disabled = !(matricula.length >= 4 && plaza);
+        }
+        
+        // Event listeners
+        document.getElementById('matriculaInput').addEventListener('input', validateForm);
+        document.getElementById('plazaSelect').addEventListener('change', validateForm);
+        
+        // Inicializar cuando carga la página
+        document.addEventListener('DOMContentLoaded', initMap);
+    </script>
+</body>
+</html>
