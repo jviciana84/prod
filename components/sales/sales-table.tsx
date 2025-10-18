@@ -473,13 +473,13 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
 
   // Cargar los vehículos vendidos
   const loadSoldVehicles = async () => {
+    console.log("🔄 [loadSoldVehicles] Iniciando... estableciendo loading=true")
     setLoading(true)
     try {
       // Obtenemos los vehículos vendidos
-      // FIX: Llamar a getSession() primero para despertar el cliente de autenticación
-      await supabase.auth.getSession()
-      
+      console.log("🔍 [loadSoldVehicles] Consultando sales_vehicles...")
       const { data: salesData, error: salesError} = await supabase.from("sales_vehicles").select("*")
+      console.log("📊 [loadSoldVehicles] Resultado:", { dataCount: salesData?.length || 0, hasError: !!salesError })
 
       if (salesError) {
         console.error("Error al cargar vehículos vendidos:", salesError)
@@ -534,10 +534,12 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
         initialORValues[item.id] = item.or_value || "ORT"
       })
       setOrValues(initialORValues)
+      console.log("✅ [loadSoldVehicles] Datos procesados correctamente")
     } catch (err) {
-      console.error("Error en la consulta:", err)
+      console.error("❌ [loadSoldVehicles] Error en la consulta:", err)
       toast.error("Error al cargar los datos")
     } finally {
+      console.log("🏁 [loadSoldVehicles] Finalizando... estableciendo loading=false")
       setLoading(false)
     }
   }
@@ -560,14 +562,40 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
     checkEditPermissions()
   }, [])
 
+  // Usar ref para evitar múltiples ejecuciones
+  const hasLoadedDataRef = useRef(false)
+  
   // Cargar datos al montar el componente
   useEffect(() => {
-    loadSoldVehicles()
+    // Solo ejecutar UNA VEZ en la vida del componente
+    if (hasLoadedDataRef.current) {
+      console.log("⚠️ Datos ya cargados, saltando ejecución")
+      return
+    }
     
-    // Cargar tipos de gastos
-    const fetchExpenseTypes = async () => {
-      console.log("Cargando tipos de gastos...")
+    hasLoadedDataRef.current = true
+    
+    const loadAllData = async () => {
+      console.log("🚀 Iniciando carga de datos...")
+      
+      // 1. Primero despertar el cliente UNA SOLA VEZ
       try {
+        console.log("⏰ Despertando cliente Supabase...")
+        await supabase.auth.getSession()
+        console.log("✅ Cliente Supabase despierto")
+      } catch (err) {
+        console.error("❌ Error en getSession:", err)
+        return
+      }
+      
+      // 2. Cargar vehículos vendidos
+      console.log("📦 Cargando vehículos vendidos...")
+      await loadSoldVehicles()
+      console.log("✅ Vehículos vendidos cargados")
+      
+      // 3. Cargar tipos de gastos (ahora el cliente ya está despierto)
+      try {
+        console.log("💰 Cargando tipos de gastos...")
         const { data, error } = await supabase
           .from("expense_types")
           .select("id, name, description")
@@ -575,16 +603,20 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
           .order("name")
         
         if (error) {
-          console.error("Error cargando tipos de gastos:", error)
+          console.error("❌ Error cargando tipos de gastos:", error)
           toast.error("Error cargando tipos de gastos")
         } else {
+          console.log("✅ Tipos de gastos cargados:", data?.length || 0)
           setExpenseTypes(data || [])
         }
       } catch (err) {
-        console.error("Error en fetchExpenseTypes:", err)
+        console.error("❌ Excepción en fetchExpenseTypes:", err)
       }
+      
+      console.log("🎉 Carga de datos completada")
     }
-    fetchExpenseTypes()
+    
+    loadAllData()
   }, []) // Removed dependencies to prevent constant re-execution
 
   // Focus en el buscador cuando se carga la página
