@@ -166,11 +166,6 @@ export default function PhotosTable() {
     fetchData()
   }, [])
 
-  // Limpiar el cliente de Supabase cuando el componente se desmonte
-  useEffect(() => {
-    return () => clearSupabaseClient()
-  }, [])
-
   const fetchData = async () => {
     setIsLoading(true)
     try {

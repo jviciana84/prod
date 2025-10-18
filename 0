@@ -1,0 +1,84 @@
+[33mcommit 144aff6272acb664e78a9cbd3f1684bdf93b0235[m
+Author: jviciana84 <viciana84@gmail.com>
+Date:   Fri Oct 17 20:09:43 2025 +0200
+
+    fix: solucion completa problema tablas bloqueadas + migracion Supabase SSR
+
+ ANALISIS_CAMBIOS_MIGRACION_SUPABASE.md             | 652 [32m+++++++++++++++++++++[m
+ SOLUCION_COMPLETA_PROBLEMA_FOTOS_TABLAS.txt        | 340 [32m+++++++++++[m
+ app/api/admin/user-mappings/route.ts               |   4 [32m+[m[31m-[m
+ app/api/compare-csv-with-db/route.ts               |   4 [32m+[m[31m-[m
+ app/api/debug-session/route.ts                     |   6 [32m+[m[31m-[m
+ app/api/debug-tables/route.ts                      |   4 [32m+[m[31m-[m
+ app/api/debug/check-photographers/route.ts         |   5 [32m+[m[31m-[m
+ app/api/debug/fix-photographer-trigger/route.ts    |   5 [32m+[m[31m-[m
+ app/api/fix-session/route.ts                       |   5 [32m+[m[31m-[m
+ app/api/force-logout/route.ts                      |   5 [32m+[m[31m-[m
+ app/api/mark-as-professional-sale/route.ts         |   4 [32m+[m[31m-[m
+ app/api/notifications/bell/route.ts                |   5 [32m+[m[31m-[m
+ app/api/notifications/debug-subscriptions/route.ts |   4 [32m+[m[31m-[m
+ .../send-photo-assignment-simple/route.ts          |   4 [32m+[m[31m-[m
+ .../notifications/send-photo-assignment/route.ts   |   4 [32m+[m[31m-[m
+ app/api/notifications/send/route.ts                |   5 [32m+[m[31m-[m
+ app/api/notifications/test-simple/route.ts         |   5 [32m+[m[31m-[m
+ app/api/refresh-session/route.ts                   |   5 [32m+[m[31m-[m
+ app/api/sales/stats/route.ts                       |   4 [32m+[m[31m-[m
+ app/api/test-auth-simple/route.ts                  |   6 [32m+[m[31m-[m
+ app/api/test-notification-client/route.ts          |   2 [32m+[m[31m-[m
+ app/api/test-notification-public/route.ts          |   5 [32m+[m[31m-[m
+ app/api/test-photo-assignment-trigger/route.ts     |   4 [32m+[m[31m-[m
+ app/dashboard/admin/column-mapping/page.tsx        |   2 [32m+[m[31m-[m
+ .../admin/payment-method-diagnostic/page.tsx       |   2 [32m+[m[31m-[m
+ app/dashboard/entregas/[id]/page.tsx               |   4 [32m+[m[31m-[m
+ app/dashboard/entregas/diagnostico/page.tsx        |   4 [32m+[m[31m-[m
+ app/dashboard/filter-config/page.tsx               |   2 [32m+[m[31m-[m
+ app/dashboard/llaves/historial/page.tsx            |   2 [32m+[m[31m-[m
+ app/dashboard/nuevas-entradas/page.tsx             |   2 [32m+[m[31m-[m
+ app/dashboard/tasaciones/page.tsx                  |   2 [32m+[m[31m-[m
+ app/dashboard/validacion-debug/page.tsx            |   2 [32m+[m[31m-[m
+ app/dashboard/vehicles/[id]/page.tsx               |   2 [32m+[m[31m-[m
+ app/dashboard/vehicles/gestion/page.tsx            |   4 [32m+[m[31m-[m
+ .../vehicles/movements/[licensePlate]/page.tsx     |   2 [32m+[m[31m-[m
+ app/dashboard/vehiculos/[id]/page.tsx              |   4 [32m+[m[31m-[m
+ app/dashboard/vehiculos/gestion/page.tsx           |   5 [32m+[m[31m-[m
+ app/dashboard/ventas-profesionales/page.tsx        |   2 [32m+[m[31m-[m
+ app/dashboard/ventas/add/page.tsx                  |   2 [32m+[m[31m-[m
+ app/debug-recogidas-email/page.tsx                 |   2 [32m+[m[31m-[m
+ app/debug/fix-trigger/page.tsx                     |   2 [32m+[m[31m-[m
+ app/reset-password/page.tsx                        |   2 [32m+[m[31m-[m
+ components/duc-scraper/duc-scraper-stats.tsx       |   2 [32m+[m[31m-[m
+ components/duc-scraper/duc-scraper-table.tsx       |   2 [32m+[m[31m-[m
+ components/entregas/incidencia-historial.tsx       |   2 [32m+[m[31m-[m
+ components/entregas/notificaciones-incidencias.tsx |   2 [32m+[m[31m-[m
+ components/keys/key-movements-search.tsx           |   2 [32m+[m[31m-[m
+ components/photos/photographer-assignments.tsx     |   2 [32m+[m[31m-[m
+ components/photos/photos-summary.tsx               |   2 [32m+[m[31m-[m
+ components/photos/photos-table.tsx                 |   9 [32m+[m[31m-[m
+ components/photos/user-display.tsx                 |   2 [32m+[m[31m-[m
+ components/recogidas/recogidas-email-config.tsx    |   2 [32m+[m[31m-[m
+ components/recogidas/vehiculos-para-recoger.tsx    |   2 [32m+[m[31m-[m
+ components/reports/mapa-espana-real.tsx            |   2 [32m+[m[31m-[m
+ components/sales/pdf-data-dialog.tsx               |   2 [32m+[m[31m-[m
+ components/sales/sales-quick-form.tsx              |   2 [32m+[m[31m-[m
+ components/sales/sales-table-backup-2.tsx          |   2 [32m+[m[31m-[m
+ components/sales/sales-table-backup.tsx            |   2 [32m+[m[31m-[m
+ components/sales/sales-table.tsx                   |   9 [32m+[m[31m-[m
+ components/transport/transport-dashboard.tsx       |   2 [32m+[m[31m-[m
+ components/validados/validados-table.tsx           |   2 [32m+[m[31m-[m
+ components/vehicles/document-management.tsx        |   2 [32m+[m[31m-[m
+ components/vehicles/key-document-dashboard.tsx     |   2 [32m+[m[31m-[m
+ components/vehicles/key-management.tsx             |   2 [32m+[m[31m-[m
+ components/vehicles/vehicle-management.tsx         |   2 [32m+[m[31m-[m
+ lib/supabase/client.ts                             |  16 [32m+[m[31m-[m
+ lib/supabase/server.ts                             |  10 [32m+[m[31m-[m
+ lib/version.ts                                     |   8 [32m+[m[31m-[m
+ package-lock.json                                  |  43 [31m--[m
+ package.json                                       |   1 [31m-[m
+ server-actions/assign-photographers.ts             |   3 [32m+[m[31m-[m
+ server-actions/filter-processing.ts                |  11 [32m+[m[31m-[m
+ server-actions/photos-actions.ts                   |  11 [32m+[m[31m-[m
+ server-actions/photos-assignment.ts                |   3 [32m+[m[31m-[m
+ server-actions/test-auto-assignment.ts             |   5 [32m+[m[31m-[m
+ server-actions/validation-actions.ts               |   6 [32m+[m[31m-[m
+ utils/database-helpers.ts                          |   2 [32m+[m[31m-[m
+ 77 files changed, 1143 insertions(+), 172 deletions(-)
