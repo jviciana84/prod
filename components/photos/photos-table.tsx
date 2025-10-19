@@ -419,8 +419,9 @@ export default function PhotosTable() {
       }
   }, [salesVehiclesFromAPI])
 
-  // Calcular datos filtrados y paginados
-  useEffect(() => {
+  // Calcular datos filtrados y paginados - OPTIMIZADO CON useMemo
+  const filteredVehicles = useMemo(() => {
+    console.log("🔄 [useMemo] Calculando vehículos filtrados...")
     let filtered = vehicles
 
     // Filtro por activePhotoTab (pestañas principales)
@@ -515,7 +516,26 @@ export default function PhotosTable() {
       return true
     })
 
-    setFilteredVehicles(filtered)
+    console.log("✅ [useMemo] Filtrado completado. Total:", filtered.length)
+    return filtered
+  }, [
+    vehicles, 
+    searchTerm, 
+    statusFilter, 
+    photographerFilter, 
+    paintStatusFilter, 
+    dateFilter.from?.getTime(),
+    dateFilter.to?.getTime(),
+    activePhotoTab,
+    soldVehicles,
+    sortField,
+    sortDirection,
+    sortData
+  ])
+
+  // useEffect solo para actualizar contadores y paginación (no para filtrar)
+  useEffect(() => {
+    console.log("🔄 [useEffect] Actualizando contadores y paginación...")
 
     // Calcular contadores basados en los datos reales
     setTotalCount(vehicles.length)
@@ -533,30 +553,24 @@ export default function PhotosTable() {
     ).length
     setSoldVehiclesCount(soldInPhotos)
 
-    // Calcular paginación
-    const total = filtered.length
+    // Calcular paginación basada en filteredVehicles (ya calculado en useMemo)
+    const total = filteredVehicles.length
     const pages = Math.ceil(total / itemsPerPage)
     setTotalPages(pages)
     
     // Calcular datos paginados
     const startIndex = (currentPage - 1) * itemsPerPage
     const endIndex = startIndex + itemsPerPage
-    const paginated = filtered.slice(startIndex, endIndex)
+    const paginated = filteredVehicles.slice(startIndex, endIndex)
     setPaginatedVehicles(paginated)
+    
+    console.log("✅ [useEffect] Contadores y paginación actualizados")
   }, [
-    vehicles, 
-    searchTerm, 
-    statusFilter, 
-    photographerFilter, 
-    paintStatusFilter, 
+    vehicles,
+    filteredVehicles, 
     currentPage, 
-    itemsPerPage, 
-    dateFilter.from?.getTime(), // Usar getTime() para valores primitivos
-    dateFilter.to?.getTime(),   // Usar getTime() para valores primitivos
-    activePhotoTab, // ✅ Añadir activePhotoTab como dependencia
-    soldVehicles, // ✅ Añadir soldVehicles como dependencia
-    sortField, // ✅ Añadir sortField como dependencia
-    sortDirection // ✅ Añadir sortDirection como dependencia
+    itemsPerPage,
+    soldVehicles
   ])
 
   // Función para obtener números de página
