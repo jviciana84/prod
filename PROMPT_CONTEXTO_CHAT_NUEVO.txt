@@ -1,0 +1,71 @@
+CONTEXTO PROYECTO CVO - Para Chat Nuevo
+========================================
+
+Hola, estoy trabajando en el proyecto CVO Dashboard.
+
+MIGRACIÓN COMPLETADA (19 Oct 2025):
+- Se migró TODO el proyecto a API Routes
+- 18 API Routes creadas
+- Todas las consultas iniciales ahora usan fetch("/api/...")
+- Cliente Supabase (createClientComponentClient) SOLO para mutaciones
+
+PATRÓN ACTUAL OBLIGATORIO:
+✅ CORRECTO:
+   useEffect(() => {
+     const loadData = async () => {
+       const response = await fetch("/api/tabla/list")
+       const { data } = await response.json()
+       setData(data)
+     }
+     loadData()
+   }, [])
+
+❌ PROHIBIDO:
+   const supabase = createClientComponentClient()
+   useEffect(() => {
+     supabase.from("tabla").select("*").then(...)
+   }, [])
+
+REGLAS ESTRICTAS:
+1. NO usar createClientComponentClient() para consultas iniciales
+2. NO datos falsos/mock en ningún lado
+3. Siempre usar API Routes para cargar datos
+4. Cliente Supabase solo para INSERT/UPDATE/DELETE
+
+BRANCHES:
+- main: producción actual
+- staging: migración API Routes (EN TESTING AHORA)
+- fix/*: para correcciones específicas
+
+DOCUMENTOS CLAVE EN EL PROYECTO:
+- README_MIGRACION_API_ROUTES.md (916 líneas - documentación completa)
+- ESTANDARES_DESARROLLO_API_ROUTES.md (patrón obligatorio)
+- POLITICA_CERO_DATOS_FALSOS.md (NO datos mock)
+
+API ROUTES EXISTENTES (18):
+1. /api/sales/list - Ventas
+2. /api/entregas/list - Entregas
+3. /api/noticias/list - Noticias
+4. /api/validados/list - Validados
+5. /api/photos/list - Fotos
+6. /api/stock/list - Stock
+7. /api/transport/list - Nuevas Entradas
+8. /api/llaves/movements - Llaves
+9. /api/conversations/list - Conversaciones
+10. /api/conversations/sessions - Sesiones
+11. /api/dashboard/rankings - Rankings
+12. /api/dashboard/activity-feed - Actividad
+13. /api/settings/footer - Config Footer
+14. /api/footer/message - Mensaje Footer
+15. /api/tasaciones/list - Tasaciones
+16. /api/ventas-profesionales/list - Ventas Prof.
+
+PROBLEMA/TAREA ACTUAL:
+[DESCRIBE AQUÍ TU PROBLEMA O TAREA]
+
+
+NOTAS ADICIONALES:
+- Si necesitas hacer cambios, pregunta en qué branch debo trabajar
+- Si ves código legacy con cliente directo, necesita migración
+- Todos los ejemplos de código correcto están en los archivos mencionados
+
