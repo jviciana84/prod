@@ -15,7 +15,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { createClientComponentClient } from "@/lib/supabase/client"
+// Supabase client no necesario - mutations usan API Routes
 import {
   FileText,
   Loader2,
@@ -285,18 +285,6 @@ export function PdfDataDialog({ vehicleId, licensePlate }: PdfDataDialogProps) {
 
       console.log("💾 Actualizando pdf_extracted_data con:", updateData)
 
-      const { error: pdfError } = await supabase
-        .from("pdf_extracted_data")
-        .update(updateData)
-        .eq("id", pdfData.pdf_extraction_id)
-
-      if (pdfError) {
-        console.error("❌ Error actualizando PDF:", pdfError)
-        throw new Error(`Error actualizando PDF: ${pdfError.message}`)
-      }
-
-      console.log("✅ PDF actualizado correctamente")
-
       // Actualizar sales_vehicles con los nuevos datos
       const salesUpdateData = {
         client_name: editedData["NOMBRE Y APELLIDOS O EMPRESA"] || null,
@@ -312,7 +300,7 @@ export function PdfDataDialog({ vehicleId, licensePlate }: PdfDataDialogProps) {
         brand: editedData.MARCA || null,
         color: editedData.COLOR || null,
         mileage: editedData.KILÓMETROS ? Number.parseInt(editedData.KILÓMETROS.toString().replace(/[^\d]/g, "")) : null,
-        registration_date: parseDate(editedData["PRIMERA FECHA MATRICULACIÓN"]), // ✅ CONVERTIR FECHA
+        registration_date: parseDate(editedData["PRIMERA FECHA MATRICULACIÓN"]),
         bank: editedData.BANCO || null,
         origin_portal: editedData["PORTAL ORIGEN"] || null,
         price: editedData.TOTAL
@@ -323,7 +311,7 @@ export function PdfDataDialog({ vehicleId, licensePlate }: PdfDataDialogProps) {
             )
           : null,
         order_number: editedData["Nº PEDIDO"] || null,
-        order_date: parseDate(editedData["FECHA DE PEDIDO"]), // ✅ CONVERTIR FECHA
+        order_date: parseDate(editedData["FECHA DE PEDIDO"]),
         discount: editedData.DESCUENTO || null,
         dealership_code: editedData.dealership_code || editedData["dealership_code"] || "MM",
         updated_at: new Date().toISOString(),
@@ -331,14 +319,25 @@ export function PdfDataDialog({ vehicleId, licensePlate }: PdfDataDialogProps) {
 
       console.log("🚗 Actualizando sales_vehicles con:", salesUpdateData)
 
-      const { error: salesError } = await supabase.from("sales_vehicles").update(salesUpdateData).eq("id", vehicleId)
+      // Actualizar via API Route
+      const response = await fetch("/api/sales/update-pdf-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pdfExtractionId: pdfData.pdf_extraction_id,
+          pdfData: updateData,
+          vehicleId,
+          salesData: salesUpdateData,
+        }),
+      })
 
-      if (salesError) {
-        console.error("❌ Error actualizando venta:", salesError)
-        throw new Error(`Error actualizando venta: ${salesError.message}`)
+      const result = await response.json()
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || "Error actualizando datos")
       }
 
-      console.log("✅ Sales_vehicles actualizado correctamente")
+      console.log("✅ Datos actualizados correctamente via API Route")
 
       // Actualizar el estado local
       setPdfData({
