@@ -59,39 +59,11 @@ export default function KeyHistoryPage() {
         vehicleMap[v.id] = v.license_plate
       })
 
-      // Crear mapa de usuarios
+      // Crear mapa de usuarios (los profiles ya vienen de la API)
       const userMap: Record<string, any> = {}
       profiles?.forEach((user: any) => {
         userMap[user.id] = user
       })
-
-      // Obtener todos los IDs de usuario únicos
-      const userIds = new Set<string>()
-      keyMovements?.forEach((movement) => {
-        if (movement.from_user_id) userIds.add(movement.from_user_id)
-        if (movement.to_user_id) userIds.add(movement.to_user_id)
-      })
-      docMovements?.forEach((movement) => {
-        if (movement.from_user_id) userIds.add(movement.from_user_id)
-        if (movement.to_user_id) userIds.add(movement.to_user_id)
-      })
-
-      // Cargar información de usuarios en una sola consulta
-      let userMap: Record<string, any> = {}
-      if (userIds.size > 0) {
-        const { data: userData, error: userError } = await supabase
-          .from("profiles")
-          .select("id, full_name, alias")
-          .in("id", Array.from(userIds))
-
-        if (userError) throw userError
-
-        // Convertir a un objeto para fácil acceso
-        userMap = {}
-        userData?.forEach((user) => {
-          userMap[user.id] = user
-        })
-      }
 
       // Combinar y formatear los resultados
       const allMovements: Movement[] = [
