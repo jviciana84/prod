@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react"
-import { createClientComponentClient } from "@/lib/supabase/client"
+// Supabase client no necesario - mutations usan API Routes
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -819,108 +819,82 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
     }
   }
 
-  // Función para actualizar el estado de CyP
+  // Función para actualizar el estado de CyP - MIGRADA A API ROUTE
   async function updateCypStatus(id: string, currentStatus?: string) {
     setSelectedRowId(id)
     setUpdatingId(id)
+    
+    // Determinar el siguiente estado
     let newStatus: string
-
-    // Determinar el siguiente estado en la secuencia
     if (currentStatus === "pendiente") {
       newStatus = "en_proceso"
     } else if (currentStatus === "en_proceso") {
       newStatus = "completado"
-    } else if (currentStatus === "completado") {
-      newStatus = "pendiente" // Valor por defecto
     } else {
-      newStatus = "pendiente" // Valor por defecto
+      newStatus = "pendiente"
     }
 
-    const now = new Date().toISOString()
-
     try {
-      // Encontrar el vehículo actual
       const currentVehicle = vehicles.find((v) => v.id === id)
       if (!currentVehicle) {
         throw new Error("Vehículo no encontrado")
       }
 
-      // Actualizar el estado de CyP en la base de datos (sin incluir priority)
-      const updateData: any = {
-        cyp_status: newStatus,
-        cyp_date: newStatus === "completado" ? now : null,
-        updated_at: now,
+      const response = await fetch("/api/sales/update-cyp-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status: newStatus }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || "Error al actualizar CYP")
       }
 
-      // Crear cliente fresco para evitar zombie client
-      const supabase = createClientComponentClient()
-      const { error } = await supabase.from("sales_vehicles").update(updateData).eq("id", id)
-
-      if (error) {
-        console.error("Error al actualizar estado CyP:", error)
-        toast.error("Error al actualizar el estado CyP")
-      } else {
-        // Actualizar el estado local, incluyendo la prioridad calculada
-        const updatedVehicle = {
+      // Recalcular prioridad si sale de "en_proceso"
+      let newPriority = currentVehicle.priority
+      if (currentStatus === "en_proceso" && newStatus !== "en_proceso") {
+        newPriority = calculatePriority({
           ...currentVehicle,
           cyp_status: newStatus,
-          cyp_date: newStatus === "completado" ? now : null,
-        }
+          cyp_date: result.timestamp,
+        })
+      }
 
-        // Recalcular la prioridad solo si el estado cambia de "en_proceso" a otro estado
-        let newPriority = currentVehicle.priority
-        if (currentStatus === "en_proceso" && newStatus !== "en_proceso") {
-          newPriority = calculatePriority(updatedVehicle)
-        }
-
-        setVehicles(
-          vehicles.map((v) => {
-            if (v.id === id) {
-              const updated = {
-                ...v,
-                cyp_status: newStatus,
-                cyp_date: newStatus === "completado" ? now : null,
-                updated_at: now,
-              }
-
-              if (newPriority !== v.priority) {
-                updated.priority = newPriority
-              }
-
-              return updated
-            }
-            return v
-          }),
-        )
-
-        const updatedFilteredVehicles = filteredVehicles.map((v) => {
-          if (v.id === id) {
-            const updated = {
+      setVehicles(vehicles.map((v) =>
+        v.id === id
+          ? {
               ...v,
               cyp_status: newStatus,
-              cyp_date: newStatus === "completado" ? now : null,
-              updated_at: now,
+              cyp_date: newStatus === "completado" ? result.timestamp : null,
+              updated_at: result.timestamp,
+              priority: newPriority,
             }
+          : v
+      ))
 
-            if (newPriority !== v.priority) {
-              updated.priority = newPriority
+      const updatedFilteredVehicles = filteredVehicles.map((v) =>
+        v.id === id
+          ? {
+              ...v,
+              cyp_status: newStatus,
+              cyp_date: newStatus === "completado" ? result.timestamp : null,
+              updated_at: result.timestamp,
+              priority: newPriority,
             }
+          : v
+      )
+      
+      setFilteredVehicles(sortVehicles(updatedFilteredVehicles))
 
-            return updated
-          }
-          return v
-        })
-        // Reordenar después de actualizar el estado
-        setFilteredVehicles(sortVehicles(updatedFilteredVehicles))
-
-        const statusMessages = {
-          pendiente: "CyP pendiente",
-          en_proceso: "CyP en proceso",
-          completado: "CyP completado",
-        }
-
-        toast.success(statusMessages[newStatus] || "Estado CyP actualizado")
+      const statusMessages = {
+        pendiente: "CyP pendiente",
+        en_proceso: "CyP en proceso",
+        completado: "CyP completado",
       }
+      
+      toast.success(statusMessages[newStatus] || "Estado CyP actualizado")
     } catch (err) {
       console.error("Error en la actualización:", err)
       toast.error("Error al actualizar el estado CyP")
@@ -929,108 +903,82 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
     }
   }
 
-  // Función para actualizar el estado de 360º
+  // Función para actualizar el estado de 360º - MIGRADA A API ROUTE
   async function update360Status(id: string, currentStatus?: string) {
     setSelectedRowId(id)
     setUpdatingId(id)
+    
+    // Determinar el siguiente estado
     let newStatus: string
-
-    // Determinar el siguiente estado en la secuencia
     if (currentStatus === "pendiente") {
       newStatus = "en_proceso"
     } else if (currentStatus === "en_proceso") {
       newStatus = "completado"
-    } else if (currentStatus === "completado") {
-      newStatus = "pendiente" // Valor por defecto
     } else {
-      newStatus = "pendiente" // Valor por defecto
+      newStatus = "pendiente"
     }
 
-    const now = new Date().toISOString()
-
     try {
-      // Encontrar el vehículo actual
       const currentVehicle = vehicles.find((v) => v.id === id)
       if (!currentVehicle) {
         throw new Error("Vehículo no encontrado")
       }
 
-      // Actualizar el estado de 360º en la base de datos (sin incluir priority)
-      const updateData: any = {
-        photo_360_status: newStatus,
-        photo_360_date: newStatus === "completado" ? now : null,
-        updated_at: now,
+      const response = await fetch("/api/sales/update-photo360", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status: newStatus }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || "Error al actualizar Photo360")
       }
 
-      // Crear cliente fresco para evitar zombie client
-      const supabase = createClientComponentClient()
-      const { error } = await supabase.from("sales_vehicles").update(updateData).eq("id", id)
-
-      if (error) {
-        console.error("Error al actualizar estado 360º:", error)
-        toast.error("Error al actualizar el estado 360º")
-      } else {
-        // Actualizar el estado local, incluyendo la prioridad calculada
-        const updatedVehicle = {
+      // Recalcular prioridad si sale de "en_proceso"
+      let newPriority = currentVehicle.priority
+      if (currentStatus === "en_proceso" && newStatus !== "en_proceso") {
+        newPriority = calculatePriority({
           ...currentVehicle,
           photo_360_status: newStatus,
-          photo_360_date: newStatus === "completado" ? now : null,
-        }
+          photo_360_date: result.timestamp,
+        })
+      }
 
-        // Recalcular la prioridad solo si el estado cambia de "en_proceso" a otro estado
-        let newPriority = currentVehicle.priority
-        if (currentStatus === "en_proceso" && newStatus !== "en_proceso") {
-          newPriority = calculatePriority(updatedVehicle)
-        }
-
-        setVehicles(
-          vehicles.map((v) => {
-            if (v.id === id) {
-              const updated = {
-                ...v,
-                photo_360_status: newStatus,
-                photo_360_date: newStatus === "completado" ? now : null,
-                updated_at: now,
-              }
-
-              if (newPriority !== v.priority) {
-                updated.priority = newPriority
-              }
-
-              return updated
-            }
-            return v
-          }),
-        )
-
-        const updatedFilteredVehicles = filteredVehicles.map((v) => {
-          if (v.id === id) {
-            const updated = {
+      setVehicles(vehicles.map((v) =>
+        v.id === id
+          ? {
               ...v,
               photo_360_status: newStatus,
-              photo_360_date: newStatus === "completado" ? now : null,
-              updated_at: now,
+              photo_360_date: newStatus === "completado" ? result.timestamp : null,
+              updated_at: result.timestamp,
+              priority: newPriority,
             }
+          : v
+      ))
 
-            if (newPriority !== v.priority) {
-              updated.priority = newPriority
+      const updatedFilteredVehicles = filteredVehicles.map((v) =>
+        v.id === id
+          ? {
+              ...v,
+              photo_360_status: newStatus,
+              photo_360_date: newStatus === "completado" ? result.timestamp : null,
+              updated_at: result.timestamp,
+              priority: newPriority,
             }
+          : v
+      )
+      
+      setFilteredVehicles(sortVehicles(updatedFilteredVehicles))
 
-            return updated
-          }
-          return v
-        })
-        // Reordenar después de actualizar el estado
-        setFilteredVehicles(sortVehicles(updatedFilteredVehicles))
-
-        const statusMessages = {
-          pendiente: "Fotografías 360º pendientes",
-                  en_proceso: "Fotografías 360º en proceso",
+      const statusMessages = {
+        pendiente: "Fotografías 360º pendientes",
+        en_proceso: "Fotografías 360º en proceso",
         completado: "Fotografías 360º completadas",
-        }
-
-        toast.success(statusMessages[newStatus] || "Estado 360º actualizado")
       }
+
+      toast.success(statusMessages[newStatus] || "Estado 360º actualizado")
     } catch (err) {
       console.error("Error en la actualización:", err)
       toast.error("Error al actualizar el estado 360º")
@@ -1284,41 +1232,40 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
 
       const orValue = orValues[id] || "ORT"
 
-      // Actualizar en la base de datos
-      // Crear cliente fresco para evitar zombie client
-      const supabase = createClientComponentClient()
-      const { error } = await supabase.from("sales_vehicles").update({ or_value: orValue }).eq("id", id)
+      const response = await fetch("/api/sales/update-or", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, or: orValue }),
+      })
 
-      if (error) {
-        console.error("Error al guardar valor OR:", error)
-        throw new Error(error.message)
+      const result = await response.json()
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || "Error al guardar OR")
       }
 
-      // Actualizar la UI
       setVehicles((prevVehicles) =>
-        prevVehicles.map((item) => {
-          if (item.id === id) {
-            return {
-              ...item,
-              or_value: orValue,
-              updated_at: new Date().toISOString(),
-            }
-          }
-          return item
-        }),
+        prevVehicles.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                or_value: orValue,
+                updated_at: new Date().toISOString(),
+              }
+            : item
+        ),
       )
 
       setFilteredVehicles((prevVehicles) =>
-        prevVehicles.map((item) => {
-          if (item.id === id) {
-            return {
-              ...item,
-              or_value: orValue,
-              updated_at: new Date().toISOString(),
-            }
-          }
-          return item
-        }),
+        prevVehicles.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                or_value: orValue,
+                updated_at: new Date().toISOString(),
+              }
+            : item
+        ),
       )
 
       setEditingOR(null)
@@ -1390,19 +1337,12 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
     }, 100)
   }, [canEditPaymentMethods])
 
-  // Guardar el valor editado
+  // Guardar el valor editado - MIGRADA A API ROUTE
   const handleCellSave = useCallback(async (id: string, field: string, overrideValue?: any) => {
     setUpdatingId(id)
 
     try {
-      // Crear cliente fresco para evitar zombie client
-      const supabase = createClientComponentClient()
-      // FIX: Llamar a getSession() primero para despertar el cliente de autenticación
-      await supabase.auth.getSession()
-
       let valueToSave: any = overrideValue !== undefined ? overrideValue : editingValue
-
-      console.log(`🔧 [handleCellSave] Guardando ${field}:`, { id, field, editingValue, overrideValue, valueToSave })
 
       // Convertir el valor según el tipo de campo
       if (field === "price" || field === "mileage") {
@@ -1415,57 +1355,25 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
         field === "cyp_date" ||
         field === "photo_360_date"
       ) {
-        // Validar formato de fecha
         if (editingValue && !isNaN(Date.parse(editingValue))) {
-          // CORREGIDO: Usar mediodía para evitar problemas de zona horaria
           const date = new Date(editingValue)
-          date.setHours(12, 0, 0, 0) // Establecer a mediodía
+          date.setHours(12, 0, 0, 0)
           valueToSave = date.toISOString()
         } else {
           valueToSave = null
         }
       }
 
-      console.log(`🔧 [handleCellSave] Valor convertido:`, valueToSave)
+      const response = await fetch("/api/sales/update-cell", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, field, value: valueToSave }),
+      })
 
-      // Actualizar en la base de datos
-      const { data, error } = await supabase
-        .from("sales_vehicles")
-        .update({ [field]: valueToSave, updated_at: new Date().toISOString() })
-        .eq("id", id)
-        .select()
+      const result = await response.json()
 
-      console.log(`🔧 [handleCellSave] Respuesta de Supabase:`, { data, error })
-
-      // Si es expense_charge, sincronizar con otras tablas
-      if (field === "expense_charge" && !error) {
-        const vehicle = vehicles.find(v => v.id === id)
-        if (vehicle) {
-          // Actualizar en nuevas_entradas si existe
-          const { error: nuevasEntradasError } = await supabase
-            .from("nuevas_entradas")
-            .update({ expense_charge: valueToSave })
-            .eq("license_plate", vehicle.license_plate)
-
-          if (nuevasEntradasError && nuevasEntradasError.code !== "PGRST116") {
-            console.error("Error actualizando nuevas_entradas:", nuevasEntradasError)
-          }
-
-          // Actualizar en stock si existe
-          const { error: stockError } = await supabase
-            .from("stock")
-            .update({ expense_charge: valueToSave })
-            .eq("license_plate", vehicle.license_plate)
-
-          if (stockError && stockError.code !== "PGRST116") {
-            console.error("Error actualizando stock:", stockError)
-          }
-        }
-      }
-
-      if (error) {
-        console.error(`Error al actualizar ${field}:`, error)
-        throw new Error(error.message)
+      if (!response.ok || result.error) {
+        throw new Error(result.error || "Error al actualizar")
       }
 
       // Actualizar el estado local

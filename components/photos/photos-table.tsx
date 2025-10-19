@@ -33,7 +33,7 @@ import {
   RotateCcw,
   CheckCircle2,
 } from "lucide-react"
-import { createClientComponentClient, clearSupabaseClient } from "@/lib/supabase/client"
+// Supabase client no necesario - todas las mutations usan API Routes
 import { differenceInDays } from "date-fns"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/use-auth"
@@ -881,16 +881,17 @@ export default function PhotosTable() {
 
   const handlePhotoStatusChange = async (id: string, completed: boolean) => {
     try {
-      const updates = {
-        photos_completed: completed,
-        photos_completed_date: completed ? new Date().toISOString() : null,
+      const response = await fetch("/api/photos/update-photo-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, completed }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || "Error al actualizar")
       }
-
-      // Crear cliente fresco para evitar zombie client
-      const supabase = createClientComponentClient()
-      const { error } = await supabase.from("fotos").update(updates).eq("id", id)
-
-      if (error) throw error
 
       setVehicles((prev) =>
         prev.map((vehicle) =>
@@ -898,7 +899,7 @@ export default function PhotosTable() {
             ? {
                 ...vehicle,
                 photos_completed: completed,
-                photos_completed_date: completed ? new Date().toISOString() : null,
+                photos_completed_date: result.timestamp,
               }
             : vehicle,
         ),
@@ -1102,59 +1103,27 @@ export default function PhotosTable() {
 
   const handleMarkAsError = async (id: string) => {
     try {
-      console.log("🔍 [handleMarkAsError] Iniciando proceso para ID:", id)
-      
-      // Crear cliente fresco para evitar zombie client
-      const supabase = createClientComponentClient()
-      
-      // 1. Obtener el vehículo
-      const { data: vehicle, error: fetchError } = await supabase.from("fotos").select("*").eq("id", id).single()
+      const response = await fetch("/api/photos/mark-error", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      })
 
-      if (fetchError) {
-        console.error("❌ [handleMarkAsError] Error al obtener vehículo:", fetchError)
-        throw fetchError
+      const result = await response.json()
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || "Error al marcar como erróneo")
       }
 
-      console.log("✅ [handleMarkAsError] Vehículo obtenido:", vehicle?.license_plate)
-
-      // 2. Preparar actualización (sin depender de auth.getUser())
-      const updates = {
-        photos_completed: false, // Vuelve a pendientes
-        photos_completed_date: null,
-        error_count: (vehicle.error_count || 0) + 1,
-        error_subsanated: false, // Marcar como no subsanado
-        // No usar last_error_by por ahora para evitar problemas de autenticación
-        original_assigned_to: vehicle.original_assigned_to || vehicle.assigned_to,
-      }
-
-      console.log("🔧 [handleMarkAsError] Actualización a aplicar:", updates)
-
-      // 3. Ejecutar actualización
-      const { data: updateResult, error: updateError } = await supabase
-        .from("fotos")
-        .update(updates)
-        .eq("id", id)
-        .select()
-
-      if (updateError) {
-        console.error("❌ [handleMarkAsError] Error al actualizar:", updateError)
-        throw updateError
-      }
-
-      console.log("✅ [handleMarkAsError] Actualización exitosa:", updateResult)
-
-      // 4. Actualizar estado local
       setVehicles((prev) =>
         prev.map((v) =>
           v.id === id
             ? {
                 ...v,
-                photos_completed: false, // Vuelve a pendientes
+                photos_completed: false,
                 photos_completed_date: null,
-                error_count: (v.error_count || 0) + 1,
-                error_subsanated: false, // Marcar como no subsanado
-                // No actualizar last_error_by en el estado local por ahora
-                original_assigned_to: v.original_assigned_to || v.assigned_to,
+                error_count: result.errorCount,
+                error_subsanated: false,
               }
             : v,
         ),
@@ -1185,54 +1154,26 @@ export default function PhotosTable() {
 
   const handleSubsanateError = async (id: string) => {
     try {
-      console.log("🔍 [handleSubsanateError] Iniciando proceso para ID:", id)
-      
-      // Crear cliente fresco para evitar zombie client
-      const supabase = createClientComponentClient()
-      
-      // 1. Obtener el vehículo
-      const { data: vehicle, error: fetchError } = await supabase.from("fotos").select("*").eq("id", id).single()
+      const response = await fetch("/api/photos/subsanate-error", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      })
 
-      if (fetchError) {
-        console.error("❌ [handleSubsanateError] Error al obtener vehículo:", fetchError)
-        throw fetchError
+      const result = await response.json()
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || "Error al subsanar")
       }
 
-      console.log("✅ [handleSubsanateError] Vehículo obtenido:", vehicle?.license_plate)
-
-      // 2. Preparar actualización
-      const updates = {
-        error_subsanated: true, // Marcar como subsanado
-        photos_completed: true, // Marcar como completado
-        photos_completed_date: new Date().toISOString(), // Fecha actual
-        // No usar last_error_by por ahora para evitar problemas de autenticación
-      }
-
-      console.log("🔧 [handleSubsanateError] Actualización a aplicar:", updates)
-
-      // 3. Ejecutar actualización
-      const { data: updateResult, error: updateError } = await supabase
-        .from("fotos")
-        .update(updates)
-        .eq("id", id)
-        .select()
-
-      if (updateError) {
-        console.error("❌ [handleSubsanateError] Error al actualizar:", updateError)
-        throw updateError
-      }
-
-      console.log("✅ [handleSubsanateError] Actualización exitosa:", updateResult)
-
-      // 4. Actualizar estado local
       setVehicles((prev) =>
         prev.map((v) =>
           v.id === id
             ? {
                 ...v,
-                error_subsanated: true, // Marcar como subsanado
-                photos_completed: true, // Marcar como completado
-                photos_completed_date: new Date().toISOString(), // Fecha actual
+                error_subsanated: true,
+                photos_completed: true,
+                photos_completed_date: new Date().toISOString(),
               }
             : v,
         ),
@@ -1267,11 +1208,17 @@ export default function PhotosTable() {
     }
 
     try {
-      // Crear cliente fresco para evitar zombie client
-      const supabase = createClientComponentClient()
-      const { error } = await supabase.from("fotos").delete().eq("id", id)
+      const response = await fetch("/api/photos/delete-vehicle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      })
 
-      if (error) throw error
+      const result = await response.json()
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || "Error al eliminar")
+      }
 
       setVehicles((prev) => prev.filter((vehicle) => vehicle.id !== id))
 

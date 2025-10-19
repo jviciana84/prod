@@ -98,7 +98,7 @@ export function NewsToast({ news, onClose, onNavigate }: NewsToastProps) {
 
       {/* Imagen */}
       {news.imagen_url && (
-        <div className="relative w-full h-48 bg-muted">
+        <div className="relative w-full h-32 bg-muted">
           <Image
             src={news.imagen_url}
             alt={news.titulo}
@@ -114,9 +114,9 @@ export function NewsToast({ news, onClose, onNavigate }: NewsToastProps) {
       )}
 
       {/* Contenido */}
-      <div className="p-4">
-        <h3 className="font-bold text-sm mb-2 line-clamp-2">{news.titulo}</h3>
-        {news.resumen && <p className="text-xs text-muted-foreground line-clamp-3">{news.resumen}</p>}
+      <div className="p-3">
+        <h3 className="font-bold text-xs mb-1.5 line-clamp-2">{news.titulo}</h3>
+        {news.resumen && <p className="text-[11px] text-muted-foreground line-clamp-2">{news.resumen}</p>}
       </div>
 
       {/* Indicador de progreso */}
