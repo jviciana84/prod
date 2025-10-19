@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect, useMemo } from "react"
-import { createClientComponentClient } from "@/lib/supabase/client"
+// Supabase client no necesario - mutations usan API Routes
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -293,14 +293,20 @@ export default function TransportTable({
   const toggleReception = async (id: number, currentStatus: boolean) => {
     try {
       const newStatus = !currentStatus
+
+      const response = await fetch("/api/transport/update-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, isReceived: newStatus }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || "Error al actualizar")
+      }
+
       const receptionDate = newStatus ? new Date().toISOString() : null
-
-      const { error } = await supabase
-        .from("nuevas_entradas")
-        .update({ is_received: newStatus, reception_date: receptionDate })
-        .eq("id", id)
-
-      if (error) throw error
 
       const updatedTransports = transports.map((item) =>
         item && item.id === id ? { ...item, is_received: newStatus, reception_date: receptionDate } : item,
@@ -331,9 +337,17 @@ export default function TransportTable({
 
     setIsDeleting(true)
     try {
-      const { error } = await supabase.from("nuevas_entradas").delete().eq("id", id)
+      const response = await fetch("/api/transport/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      })
 
-      if (error) throw error
+      const result = await response.json()
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || "Error al eliminar")
+      }
 
       const updatedTransports = transports.filter((item) => item && item.id !== id)
       setTransports(updatedTransports)

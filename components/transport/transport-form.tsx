@@ -113,19 +113,29 @@ export default function TransportForm({ transport, locations }: TransportFormPro
       console.log("ID del transporte:", transport?.id, "Tipo:", typeof transport?.id)
       console.log("Tipo de gasto seleccionado:", selectedExpenseType)
 
-      let response
+      let apiResponse
 
       if (transport?.id) {
         // Actualizar transporte existente
-        response = await supabase.from("nuevas_entradas").update(dataToSend).eq("id", transport.id)
+        apiResponse = await fetch("/api/transport/update", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: transport.id, transportData: dataToSend }),
+        })
       } else {
         // Crear nuevo transporte
-        response = await supabase.from("nuevas_entradas").insert(dataToSend)
+        apiResponse = await fetch("/api/transport/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ transportData: dataToSend }),
+        })
       }
 
-      if (response.error) {
-        console.error("Error de Supabase:", response.error)
-        throw response.error
+      const result = await apiResponse.json()
+
+      if (!apiResponse.ok || result.error) {
+        console.error("Error de API:", result.error)
+        throw new Error(result.error || "Error al guardar")
       }
 
       toast({

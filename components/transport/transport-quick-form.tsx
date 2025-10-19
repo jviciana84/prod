@@ -137,9 +137,17 @@ export default function TransportQuickForm({
         purchase_price: price,
       }
 
-      const { error } = await supabase.from("nuevas_entradas").insert([dataToSubmit])
+      const response = await fetch("/api/transport/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transportData: dataToSubmit }),
+      })
 
-      if (error) throw error
+      const result = await response.json()
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || "Error al crear transporte")
+      }
 
       // Resetear formulario
       setLicensePlate("")
