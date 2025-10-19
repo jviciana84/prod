@@ -15,7 +15,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-// Supabase client no necesario - mutations usan API Routes
+import { createClientComponentClient } from "@/lib/supabase/client"
 import {
   FileText,
   Loader2,
