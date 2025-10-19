@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react"
-// Supabase client no necesario - mutations usan API Routes
+import { createClientComponentClient } from "@/lib/supabase/client"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -1083,12 +1083,20 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
         updateData.external_provider = null
       }
 
-      // Crear cliente fresco para evitar zombie client
-      const supabase = createClientComponentClient()
-      const { error } = await supabase.from("sales_vehicles").update(updateData).eq("id", id)
+      // Actualizar via API Route
+      const response = await fetch("/api/sales/update-pre-delivery", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id,
+          preDeliveryCenter: center,
+        }),
+      })
 
-      if (error) {
-        console.error("Error al actualizar centro de pre-entrega:", error)
+      const result = await response.json()
+
+      if (!response.ok || result.error) {
+        console.error("Error al actualizar centro de pre-entrega:", result.error)
         toast.error("Error al actualizar el centro de pre-entrega")
       } else {
         // Actualizar el estado local

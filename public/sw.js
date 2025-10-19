@@ -1,5 +1,6 @@
 // Service Worker para PWA - CVO Dashboard
-const CACHE_NAME = 'cvo-dashboard-v1'
+// Versión 1.2.0 - Con auto-actualización
+const CACHE_NAME = 'cvo-dashboard-v1.2.0'
 const urlsToCache = [
   '/',
   '/dashboard',
@@ -8,7 +9,11 @@ const urlsToCache = [
 
 // Instalación del Service Worker
 self.addEventListener('install', (event) => {
-  console.log('Service Worker: Instalando...')
+  console.log('Service Worker: Instalando v1.2.0...')
+  
+  // Skip waiting - Activar inmediatamente sin esperar
+  self.skipWaiting()
+  
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
@@ -23,19 +28,40 @@ self.addEventListener('install', (event) => {
 
 // Activación del Service Worker
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker: Activando...')
+  console.log('Service Worker: Activando v1.2.0...')
+  
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Service Worker: Eliminando caché antigua', cacheName)
-            return caches.delete(cacheName)
-          }
-        })
-      )
-    })
+    Promise.all([
+      // Borrar caches viejos
+      caches.keys().then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => {
+            if (cacheName !== CACHE_NAME) {
+              console.log('Service Worker: Eliminando caché antigua', cacheName)
+              return caches.delete(cacheName)
+            }
+          })
+        )
+      }),
+      // Claim clients - Tomar control inmediato de todas las pestañas
+      self.clients.claim()
+    ])
   )
+  
+  // Notificar a todos los clientes que hay nueva versión
+  self.clients.matchAll().then(clients => {
+    clients.forEach(client => {
+      client.postMessage({ type: 'SW_UPDATED', version: '1.2.0' })
+    })
+  })
+})
+
+// Escuchar mensajes del cliente (para SKIP_WAITING)
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('Service Worker: SKIP_WAITING recibido')
+    self.skipWaiting()
+  }
 })
 
 // Fetch - Strategy: Network First, fallback to Cache

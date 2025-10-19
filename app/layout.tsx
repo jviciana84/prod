@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from "@/components/auth/auth-provider"
 import { PushProcessor } from "@/components/push-processor"
 import { PWAInstaller } from "@/components/pwa-installer"
+import { PWAUpdatePrompt } from "@/components/pwa-update-prompt"
 
 // import ThemeHtmlSync from "@/components/theme-html-sync"
 // import { RoundFavicon } from "@/components/ui/round-favicon"
@@ -91,6 +92,7 @@ export default function RootLayout({
             <Toaster />
             <PushProcessor />
             <PWAInstaller />
+            <PWAUpdatePrompt />
           </AuthProvider>
         </ThemeProvider>
       </body>
