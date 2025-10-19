@@ -8,25 +8,17 @@ export async function GET(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
-    // Obtener la noticia más reciente marcada como "nueva"
-    const { data, error } = await supabase
+    const { count, error } = await supabase
       .from("bmw_noticias")
-      .select("*")
+      .select("*", { count: "exact", head: true })
       .eq("nueva", true)
-      .order("fecha_publicacion", { ascending: false })
-      .limit(1)
-      .single()
 
     if (error) {
-      // Si no hay noticias nuevas, devolver null en vez de error
-      if (error.code === "PGRST116") {
-        return NextResponse.json(null)
-      }
-      console.error("❌ [API] Error fetching latest news:", error)
+      console.error("❌ [API] Error counting news:", error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json(data)
+    return NextResponse.json({ count: count || 0 })
   } catch (error) {
     console.error("❌ [API] Exception:", error)
     return NextResponse.json(
@@ -35,3 +27,4 @@ export async function GET(request: NextRequest) {
     )
   }
 }
+

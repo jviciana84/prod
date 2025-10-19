@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Newspaper } from "lucide-react"
-import { createClientComponentClient } from "@/lib/supabase/client"
+// Supabase client no necesario - usa API Routes
 import { useRouter } from "next/navigation"
 
 /**
@@ -14,7 +14,6 @@ import { useRouter } from "next/navigation"
 export function NewsCounterBadge() {
   const [newCount, setNewCount] = useState(0)
   const router = useRouter()
-  const supabase = createClientComponentClient()
 
   useEffect(() => {
     fetchNewCount()
@@ -27,10 +26,12 @@ export function NewsCounterBadge() {
 
   const fetchNewCount = async () => {
     try {
-      const { count, error } = await supabase.from("bmw_noticias").select("*", { count: "exact", head: true }).eq("nueva", true)
-
-      if (error) throw error
-      setNewCount(count || 0)
+      const response = await fetch("/api/noticias/count-nuevas")
+      if (!response.ok) {
+        throw new Error("Error al obtener contador")
+      }
+      const result = await response.json()
+      setNewCount(result.count || 0)
     } catch (error) {
       console.error("Error al obtener contador de noticias:", error)
     }
