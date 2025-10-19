@@ -47,8 +47,8 @@ interface VehicleDocumentManagementProps {
 
 // Exportación nombrada para mantener compatibilidad con el código existente
 export function VehicleDocumentManagement({ vehicleId, vehicle }: VehicleDocumentManagementProps) {
-  // NOTA: Crear cliente fresco en cada mutación para evitar zombie client
   const router = useRouter()
+  const supabase = createClientComponentClient() // Para queries (SELECT)
 
   const [documentData, setDocumentData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -90,23 +90,22 @@ export function VehicleDocumentManagement({ vehicleId, vehicle }: VehicleDocumen
         if (existingDocs) {
           setDocumentData(existingDocs)
         } else {
-          // Si no existe, creamos un nuevo registro
+          // Si no existe, creamos un nuevo registro via API Route
           const licencePlate = vehicle.license_plate || ""
 
-          // Crear cliente fresco para evitar zombie client
-          const supabase = createClientComponentClient()
-          const { data: newDocData, error: createError } = await supabase
-            .from("vehicle_documents")
-            .insert({
-              vehicle_id: vehicleId,
-              license_plate: licencePlate,
-              technical_sheet_status: "En concesionario",
-            })
-            .select()
-            .single()
+          const response = await fetch("/api/documents/initialize", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              vehicleId,
+              licensePlate: licencePlate,
+            }),
+          })
 
-          if (createError) {
-            throw new Error(`Error al crear registro de documentos: ${createError.message}`)
+          const result = await response.json()
+
+          if (!response.ok || result.error) {
+            throw new Error(`Error al crear registro de documentos: ${result.error}`)
           }
 
           // Recargar los datos para obtener el registro completo
@@ -164,38 +163,31 @@ export function VehicleDocumentManagement({ vehicleId, vehicle }: VehicleDocumen
         throw new Error("Faltan datos necesarios para registrar el movimiento")
       }
 
-      // Calcular la fecha límite para la confirmación (24 horas)
-      const confirmationDeadline = new Date()
-      confirmationDeadline.setHours(confirmationDeadline.getHours() + 24)
-
-      // Registrar el movimiento en la tabla document_movements
-      const { error: movementError } = await supabase.from("document_movements").insert({
-        vehicle_id: vehicleId,
-        document_type: data.documentType,
-        from_user_id: null, // Desde el concesionario (null)
-        to_user_id: data.toUserId,
-        reason: data.reason,
-        confirmation_deadline: confirmationDeadline.toISOString(),
+      // Registrar movimiento via API Route
+      const response = await fetch("/api/documents/movement", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          vehicleId,
+          documentType: data.documentType,
+          fromUserId: null,
+          toUserId: data.toUserId,
+          deliveryDate: new Date().toISOString(),
+          notes: data.reason || "",
+        }),
       })
 
-      if (movementError) {
-        throw new Error(`Error al registrar movimiento: ${movementError.message}`)
+      const result = await response.json()
+
+      if (!response.ok || result.error) {
+        throw new Error(`Error al registrar movimiento: ${result.error}`)
       }
 
-      // Actualizar el estado del documento en vehicle_documents
+      // Actualizar datos locales
       const updateData: Record<string, any> = {
         [`${data.documentType}_status`]: "Entregado",
         [`${data.documentType}_holder`]: data.toUserId,
         updated_at: new Date().toISOString(),
-      }
-
-      const { error: updateError } = await supabase
-        .from("vehicle_documents")
-        .update(updateData)
-        .eq("vehicle_id", vehicleId)
-
-      if (updateError) {
-        throw new Error(`Error al actualizar estado de documento: ${updateError.message}`)
       }
 
       // Actualizar la UI

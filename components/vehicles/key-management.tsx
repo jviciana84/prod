@@ -90,25 +90,22 @@ export function VehicleKeyManagement({ vehicleId, vehicle }: VehicleKeyManagemen
         if (existingKeys) {
           setKeyData(existingKeys)
         } else {
-          // Si no existe, creamos un nuevo registro
+          // Si no existe, creamos un nuevo registro via API Route
           const licencePlate = vehicle.license_plate || ""
 
-          // Crear cliente fresco para evitar zombie client
-          const supabase = createClientComponentClient()
-          const { data: newKeyData, error: createError } = await supabase
-            .from("vehicle_keys")
-            .insert({
-              vehicle_id: vehicleId,
-              license_plate: licencePlate,
-              first_key_status: "En concesionario",
-              second_key_status: "En concesionario",
-              card_key_status: "En concesionario",
-            })
-            .select()
-            .single()
+          const response = await fetch("/api/keys/initialize", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              vehicleId,
+              licensePlate: licencePlate,
+            }),
+          })
 
-          if (createError) {
-            throw new Error(`Error al crear registro de llaves: ${createError.message}`)
+          const result = await response.json()
+
+          if (!response.ok || result.error) {
+            throw new Error(`Error al crear registro de llaves: ${result.error}`)
           }
 
           // Recargar los datos para obtener el registro completo
@@ -166,35 +163,31 @@ export function VehicleKeyManagement({ vehicleId, vehicle }: VehicleKeyManagemen
         throw new Error("Faltan datos necesarios para registrar el movimiento")
       }
 
-      // Calcular la fecha límite para la confirmación (24 horas)
-      const confirmationDeadline = new Date()
-      confirmationDeadline.setHours(confirmationDeadline.getHours() + 24)
-
-      // Registrar el movimiento en la tabla key_movements (supabase ya creado arriba)
-      const { error: movementError } = await supabase.from("key_movements").insert({
-        vehicle_id: vehicleId,
-        key_type: data.keyType,
-        from_user_id: null, // Desde el concesionario (null)
-        to_user_id: data.toUserId,
-        reason: data.reason,
-        confirmation_deadline: confirmationDeadline.toISOString(),
+      // Registrar movimiento via API Route
+      const response = await fetch("/api/keys/movement", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          vehicleId,
+          keyType: data.keyType,
+          fromUserId: null,
+          toUserId: data.toUserId,
+          deliveryDate: new Date().toISOString(),
+          notes: data.reason || "",
+        }),
       })
 
-      if (movementError) {
-        throw new Error(`Error al registrar movimiento: ${movementError.message}`)
+      const result = await response.json()
+
+      if (!response.ok || result.error) {
+        throw new Error(`Error al registrar movimiento: ${result.error}`)
       }
 
-      // Actualizar el estado de la llave en vehicle_keys
+      // Actualizar datos locales
       const updateData: Record<string, any> = {
         [`${data.keyType}_status`]: "Entregada",
         [`${data.keyType}_holder`]: data.toUserId,
         updated_at: new Date().toISOString(),
-      }
-
-      const { error: updateError } = await supabase.from("vehicle_keys").update(updateData).eq("vehicle_id", vehicleId)
-
-      if (updateError) {
-        throw new Error(`Error al actualizar estado de llave: ${updateError.message}`)
       }
 
       // Resolver automáticamente las incidencias relacionadas
