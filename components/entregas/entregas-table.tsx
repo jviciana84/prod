@@ -120,7 +120,7 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
 
   // Cliente Supabase solo para mutaciones (updates)
   // Las consultas iniciales ahora usan API Routes
-  const supabase = createClientComponentClient()
+  // NOTA: Crear cliente fresco en cada mutación para evitar zombie client
   const router = useRouter() // Inicializar useRouter
 
   const formatDateDisplay = (dateString: string | undefined | null) => {
@@ -279,6 +279,8 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
     setEntregas((prev) => prev.map((e) => (e.id === entregaId ? { ...e, ...updateObject } : e)))
 
     try {
+      // Crear cliente fresco para evitar zombie client
+      const supabase = createClientComponentClient()
       const { error: dbError } = await supabase.from("entregas").update(updateObject).eq("id", entregaId)
       if (dbError) throw dbError
 
@@ -294,7 +296,7 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
 
         if (updateHistorialError) console.error("Error al marcar incidencia como resuelta:", updateHistorialError)
       } else {
-        // Se está añadiendo una nueva incidencia
+        // Se está añadiendo una nueva incidencia (supabase ya definido arriba)
         const { error: insertHistorialError } = await supabase.from("incidencias_historial").insert({
           entrega_id: entregaId,
           matricula: entregaToUpdate.matricula,
@@ -401,6 +403,8 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
       }
 
       try {
+        // Crear cliente fresco para evitar zombie client
+        const supabase = createClientComponentClient()
         const { data, error } = await supabase.from("entregas").update(updateData).eq("id", id).select().single()
         if (error) throw error
 

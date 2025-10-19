@@ -349,12 +349,14 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
 
   // Cliente Supabase solo para mutaciones (updates/deletes)
   // Las consultas iniciales ahora usan API Routes
-  const supabase = createClientComponentClient()
+  // NOTA: Crear cliente fresco en cada mutación para evitar zombie client
 
   // Verificar si el usuario es administrador
   useEffect(() => {
     const checkAdminStatus = async () => {
       try {
+        // Crear cliente fresco para evitar zombie client
+        const supabase = createClientComponentClient()
         const {
           data: { session },
         } = await supabase.auth.getSession()
@@ -850,6 +852,8 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
         updated_at: now,
       }
 
+      // Crear cliente fresco para evitar zombie client
+      const supabase = createClientComponentClient()
       const { error } = await supabase.from("sales_vehicles").update(updateData).eq("id", id)
 
       if (error) {
@@ -958,6 +962,8 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
         updated_at: now,
       }
 
+      // Crear cliente fresco para evitar zombie client
+      const supabase = createClientComponentClient()
       const { error } = await supabase.from("sales_vehicles").update(updateData).eq("id", id)
 
       if (error) {
@@ -1129,6 +1135,8 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
         updateData.external_provider = null
       }
 
+      // Crear cliente fresco para evitar zombie client
+      const supabase = createClientComponentClient()
       const { error } = await supabase.from("sales_vehicles").update(updateData).eq("id", id)
 
       if (error) {
@@ -1277,6 +1285,8 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
       const orValue = orValues[id] || "ORT"
 
       // Actualizar en la base de datos
+      // Crear cliente fresco para evitar zombie client
+      const supabase = createClientComponentClient()
       const { error } = await supabase.from("sales_vehicles").update({ or_value: orValue }).eq("id", id)
 
       if (error) {
@@ -1385,6 +1395,8 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
     setUpdatingId(id)
 
     try {
+      // Crear cliente fresco para evitar zombie client
+      const supabase = createClientComponentClient()
       // FIX: Llamar a getSession() primero para despertar el cliente de autenticación
       await supabase.auth.getSession()
 

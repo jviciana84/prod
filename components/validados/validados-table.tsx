@@ -177,7 +177,7 @@ export function ValidadosTable({ onRefreshRequest }: ValidadosTableProps) {
 
   // Cliente Supabase solo para mutaciones (updates/deletes)
   // Las consultas iniciales ahora usan API Routes
-  const supabase = createClientComponentClient()
+  // NOTA: Crear cliente fresco en cada mutación para evitar zombie client
 
   // Inicializar filtros de fecha
   useEffect(() => {
@@ -297,6 +297,8 @@ export function ValidadosTable({ onRefreshRequest }: ValidadosTableProps) {
         if (Object.keys(updateData).length > 0) {
           updateData.updated_at = new Date().toISOString()
 
+          // Crear cliente fresco para evitar zombie client
+          const supabase = createClientComponentClient()
           const { error: updateError } = await supabase.from("sales_vehicles").update(updateData).eq("id", sale.id)
 
           if (updateError) {
