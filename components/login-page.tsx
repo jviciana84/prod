@@ -102,7 +102,7 @@ export default function LoginPage() {
         className="absolute inset-0 w-full h-full object-cover pointer-events-none"
         style={{ zIndex: 0 }}
       >
-        <source src="/Video_BMW_M_GT_CVO.mp4" type="video/mp4" />
+        <source src="https://wpjmimbscfsdzcwuwctk.supabase.co/storage/v1/object/public/videos/Video_BMW_M_GT_CVO_2.mp4" type="video/mp4" />
       </video>
       <div 
         className={`absolute inset-0 transition-all duration-1000 ${videoEnded ? 'bg-black/55' : 'bg-black/20'}`}
