@@ -14,7 +14,6 @@ import { useToast } from "@/hooks/use-toast"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { createClientComponentClient } from "@/lib/supabase/client"
 import { VersionBadge } from "@/components/version-badge"
-import { AnimatedGridBackground } from "@/components/ui/animated-grid-background"
 import { Logo } from "@/components/ui/logo"
 // import { clearAllSupabaseCookies } from "@/utils/fix-auth"
 
@@ -26,6 +25,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [videoEnded, setVideoEnded] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
 
@@ -89,15 +89,32 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative">
-      <AnimatedGridBackground />
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Video de fondo BMW - reproducción única sin audio */}
+      <video
+        autoPlay
+        muted
+        playsInline
+        onEnded={() => setVideoEnded(true)}
+        onContextMenu={(e) => e.preventDefault()}
+        controlsList="nodownload nofullscreen noremoteplayback"
+        disablePictureInPicture
+        className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+        style={{ zIndex: 0 }}
+      >
+        <source src="/Video_BMW_M_GT_CVO.mp4" type="video/mp4" />
+      </video>
+      <div 
+        className={`absolute inset-0 transition-all duration-1000 ${videoEnded ? 'bg-black/55' : 'bg-black/20'}`}
+        style={{ zIndex: 1 }} 
+      />
 
       <div className="absolute top-4 right-4 z-20">
         <ThemeToggle />
       </div>
 
       <div className="w-full max-w-md z-10">
-        <Card className="bg-background/80">
+        <Card className={`bg-background/80 transition-all duration-1000 ${videoEnded ? 'backdrop-blur-md' : ''}`}>
           <CardHeader className="space-y-1 text-center pt-4 pb-2">
             <div className="flex justify-center">
               {/* Logo con tamaño extra grande */}

@@ -6,7 +6,7 @@
  */
 
 // Versión actual de la aplicación (generada automáticamente)
-export const APP_VERSION = "1.2.318-5f3918c"
+export const APP_VERSION = "1.2.319-bca5fbd"
 
 // Función para obtener la fecha de la última actualización
 export function getLastUpdateDate(): string {
@@ -20,8 +20,8 @@ export function getVersionInfo() {
     version: APP_VERSION,
     lastUpdate: getLastUpdateDate(),
     environment: process.env.NODE_ENV || "development",
-    commitHash: "5f3918c",
-    commitCount: 318,
+    commitHash: "bca5fbd",
+    commitCount: 319,
   }
 }
 
