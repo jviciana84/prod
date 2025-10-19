@@ -30,59 +30,98 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
-// Configuración de búsquedas
+// Configuración de búsquedas - Enfocado en medios españoles y competición/economía
 const SEARCH_QUERIES = [
-  // BMW - Económicas
+  // ===== BMW =====
   {
-    query: "BMW financiero OR BMW ventas OR BMW mercado OR BMW acciones",
+    query: "BMW ventas España OR BMW mercado automoción OR BMW resultados financieros",
     marca: "BMW",
     categoria: "economica",
   },
-  // BMW - Competiciones
   {
-    query: "BMW racing OR BMW motorsport OR BMW M competición OR BMW Formula E",
+    query: "BMW Formula E OR BMW motorsport España OR BMW competición automovilística",
     marca: "BMW",
     categoria: "competicion",
   },
-  // BMW - General
-  { query: "BMW nuevos modelos OR BMW tecnología OR BMW eléctrico", marca: "BMW", categoria: "general" },
-
-  // MINI - Económicas
-  { query: "MINI Cooper ventas OR MINI mercado OR MINI financiero", marca: "MINI", categoria: "economica" },
-  // MINI - Competiciones
-  { query: "MINI rally OR MINI racing OR MINI motorsport", marca: "MINI", categoria: "competicion" },
-  // MINI - General
-  { query: "MINI Cooper nuevo OR MINI eléctrico OR MINI tecnología", marca: "MINI", categoria: "general" },
-
-  // BMW Motorrad - Económicas
   {
-    query: "BMW Motorrad ventas OR BMW motocicletas mercado",
+    query: "BMW España automoción OR BMW nuevos modelos España",
+    marca: "BMW",
+    categoria: "general",
+  },
+
+  // ===== BMW M =====
+  {
+    query: "BMW M competición OR BMW M racing OR BMW M GT3 OR BMW M4 carreras",
+    marca: "BMW",
+    categoria: "competicion",
+  },
+  {
+    query: "BMW M nuevos modelos OR BMW M deportivo España",
+    marca: "BMW",
+    categoria: "general",
+  },
+
+  // ===== BMW i =====
+  {
+    query: "BMW eléctrico ventas OR BMW i4 OR BMW iX España mercado",
+    marca: "BMW",
+    categoria: "economica",
+  },
+  {
+    query: "BMW eléctrico España OR BMW i tecnología OR BMW electromovilidad",
+    marca: "BMW",
+    categoria: "general",
+  },
+
+  // ===== BMW MOTORRAD =====
+  {
+    query: "BMW Motorrad ventas España OR BMW motocicletas mercado",
     marca: "Motorrad",
     categoria: "economica",
   },
-  // BMW Motorrad - Competiciones
   {
-    query: "BMW Motorrad MotoGP OR BMW Motorrad racing OR BMW motocicletas competición",
+    query: "BMW Motorrad WorldSBK OR BMW superbikes campeonato",
     marca: "Motorrad",
     categoria: "competicion",
   },
-  // BMW Motorrad - General
   {
-    query: "BMW Motorrad nuevos modelos OR BMW motocicletas",
+    query: "BMW WorldSBK Jerez OR BMW Motorrad carreras",
+    marca: "Motorrad",
+    categoria: "competicion",
+  },
+  {
+    query: "BMW Motorrad nuevos modelos España OR BMW motocicletas",
     marca: "Motorrad",
     categoria: "general",
   },
 
-  // Quadis - Noticias de la empresa
+  // ===== MINI =====
   {
-    query: "Quadis Munich OR Quadis BMW concesionario",
-    marca: "Quadis",
-    categoria: "general",
+    query: "MINI Cooper ventas España OR MINI mercado automoción",
+    marca: "MINI",
+    categoria: "economica",
   },
   {
-    query: "Quadis automoción OR Quadis vehículos",
+    query: "MINI rally OR MINI Cooper competición OR MINI racing España",
+    marca: "MINI",
+    categoria: "competicion",
+  },
+  {
+    query: "MINI Cooper nuevo España OR MINI eléctrico",
+    marca: "MINI",
+    categoria: "general",
+  },
+
+  // ===== QUADIS =====
+  {
+    query: "Quadis BMW concesionario OR Quadis automoción España",
     marca: "Quadis",
     categoria: "economica",
+  },
+  {
+    query: "Quadis Munich OR Quadis Barcelona OR Quadis Sabadell",
+    marca: "Quadis",
+    categoria: "general",
   },
 ]
 
@@ -114,6 +153,16 @@ async function saveNewsToSupabase(article, marca, categoria) {
 
   if (existing) {
     return { saved: false, reason: "Ya existe" }
+  }
+
+  // FILTRO: Para Motorrad competición, verificar que menciona BMW
+  if (marca === "Motorrad" && categoria === "competicion") {
+    const texto = `${article.title} ${article.description || ""} ${article.content || ""}`.toLowerCase()
+    const mencionaBMW = texto.includes("bmw") || texto.includes("motorrad")
+    
+    if (!mencionaBMW) {
+      return { saved: false, reason: "No menciona BMW/Motorrad" }
+    }
   }
 
   // Preparar datos

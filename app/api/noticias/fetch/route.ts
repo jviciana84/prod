@@ -25,34 +25,97 @@ interface SearchQuery {
 }
 
 const SEARCH_QUERIES: SearchQuery[] = [
-  // BMW - Económicas
+  // ===== BMW =====
   {
-    query: "BMW financiero OR BMW ventas OR BMW mercado OR BMW acciones",
+    query: "BMW ventas España OR BMW mercado automoción OR BMW resultados financieros",
     marca: "BMW",
     categoria: "economica",
   },
-  // BMW - Competiciones
   {
-    query: "BMW racing OR BMW motorsport OR BMW M competición OR BMW Formula E",
+    query: "BMW Formula E OR BMW motorsport España OR BMW competición automovilística",
     marca: "BMW",
     categoria: "competicion",
   },
-  // BMW - General
-  { query: "BMW nuevos modelos OR BMW tecnología OR BMW eléctrico", marca: "BMW", categoria: "general" },
+  {
+    query: "BMW España automoción OR BMW nuevos modelos España",
+    marca: "BMW",
+    categoria: "general",
+  },
 
-  // MINI
-  { query: "MINI Cooper ventas OR MINI mercado", marca: "MINI", categoria: "economica" },
-  { query: "MINI rally OR MINI racing", marca: "MINI", categoria: "competicion" },
-  { query: "MINI Cooper nuevo OR MINI eléctrico", marca: "MINI", categoria: "general" },
+  // ===== BMW M =====
+  {
+    query: "BMW M competición OR BMW M racing OR BMW M GT3 OR BMW M4 carreras",
+    marca: "BMW",
+    categoria: "competicion",
+  },
+  {
+    query: "BMW M nuevos modelos OR BMW M deportivo España",
+    marca: "BMW",
+    categoria: "general",
+  },
 
-  // BMW Motorrad
-  { query: "BMW Motorrad ventas OR BMW motocicletas mercado", marca: "Motorrad", categoria: "economica" },
-  { query: "BMW Motorrad MotoGP OR BMW Motorrad racing", marca: "Motorrad", categoria: "competicion" },
-  { query: "BMW Motorrad nuevos modelos", marca: "Motorrad", categoria: "general" },
+  // ===== BMW i =====
+  {
+    query: "BMW eléctrico ventas OR BMW i4 OR BMW iX España mercado",
+    marca: "BMW",
+    categoria: "economica",
+  },
+  {
+    query: "BMW eléctrico España OR BMW i tecnología OR BMW electromovilidad",
+    marca: "BMW",
+    categoria: "general",
+  },
 
-  // Quadis
-  { query: "Quadis Munich OR Quadis BMW concesionario", marca: "Quadis", categoria: "general" },
-  { query: "Quadis automoción OR Quadis vehículos", marca: "Quadis", categoria: "economica" },
+  // ===== BMW MOTORRAD =====
+  {
+    query: "BMW Motorrad ventas España OR BMW motocicletas mercado",
+    marca: "Motorrad",
+    categoria: "economica",
+  },
+  {
+    query: "BMW Motorrad WorldSBK OR BMW superbikes campeonato",
+    marca: "Motorrad",
+    categoria: "competicion",
+  },
+  {
+    query: "BMW WorldSBK Jerez OR BMW Motorrad carreras",
+    marca: "Motorrad",
+    categoria: "competicion",
+  },
+  {
+    query: "BMW Motorrad nuevos modelos España OR BMW motocicletas",
+    marca: "Motorrad",
+    categoria: "general",
+  },
+
+  // ===== MINI =====
+  {
+    query: "MINI Cooper ventas España OR MINI mercado automoción",
+    marca: "MINI",
+    categoria: "economica",
+  },
+  {
+    query: "MINI rally OR MINI Cooper competición OR MINI racing España",
+    marca: "MINI",
+    categoria: "competicion",
+  },
+  {
+    query: "MINI Cooper nuevo España OR MINI eléctrico",
+    marca: "MINI",
+    categoria: "general",
+  },
+
+  // ===== QUADIS =====
+  {
+    query: "Quadis BMW concesionario OR Quadis automoción España",
+    marca: "Quadis",
+    categoria: "economica",
+  },
+  {
+    query: "Quadis Munich OR Quadis Barcelona OR Quadis Sabadell",
+    marca: "Quadis",
+    categoria: "general",
+  },
 ]
 
 async function fetchNewsFromAPI(query: string, fromDate: string): Promise<NewsArticle[]> {
@@ -116,6 +179,16 @@ export async function GET() {
 
           if (existing) {
             continue
+          }
+
+          // FILTRO: Para Motorrad competición, verificar que menciona BMW
+          if (search.marca === "Motorrad" && search.categoria === "competicion") {
+            const texto = `${article.title} ${article.description || ""} ${article.content || ""}`.toLowerCase()
+            const mencionaBMW = texto.includes("bmw") || texto.includes("motorrad")
+            
+            if (!mencionaBMW) {
+              continue // Saltar esta noticia
+            }
           }
 
           // Guardar noticia

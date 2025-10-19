@@ -186,7 +186,7 @@ export default function PhotosTable() {
     try {
       console.log("📸 Cargando datos de fotos desde API...")
       const response = await fetch("/api/photos/list")
-      
+
       if (!checkActive()) {
         console.log("❌ PhotosTable desmontado antes de recibir respuesta")
         return
@@ -208,9 +208,9 @@ export default function PhotosTable() {
       const photographersData = apiData.fotosAsignadas
       const usersData = apiData.profiles
 
-      if (!checkActive()) {
+        if (!checkActive()) {
         console.log("❌ PhotosTable desmontado después de recibir datos API")
-        return
+          return
       }
 
       // Combinar datos de fotógrafos con datos de usuarios
@@ -551,10 +551,10 @@ export default function PhotosTable() {
     
     console.log("✅ [useEffect] Contadores y paginación actualizados")
   }, [
-    vehicles,
+    vehicles, 
     filteredVehicles, 
     currentPage, 
-    itemsPerPage,
+    itemsPerPage, 
     soldVehicles
   ])
 
@@ -941,99 +941,52 @@ export default function PhotosTable() {
         return
       }
 
-      // Solo permitir cambiar de "pendiente" a "no_apto"
+      // Determinar nuevo estado
+      let newStatus: "no_apto" | "pendiente"
       if (vehicle.estado_pintura === "pendiente") {
-        console.log("🔄 [handlePaintStatusChange] Cambiando de 'pendiente' a 'no_apto'...")
-        const now = new Date().toISOString()
-        const updates = {
-          estado_pintura: "no_apto" as const,
-          paint_status_date: now,
-        }
-
-        console.log("📤 [handlePaintStatusChange] Enviando UPDATE a Supabase:", updates)
-        // Crear cliente fresco para evitar zombie client
-        const supabase = createClientComponentClient()
-        console.log("🔧 Cliente creado, ejecutando update...")
-        
-        const result = await supabase.from("fotos").update(updates).eq("id", id)
-        console.log("📊 Resultado completo:", result)
-
-        if (result.error) {
-          console.error("❌ [handlePaintStatusChange] Error de Supabase:", result.error)
-          throw result.error
-        }
-        
-        console.log("✅ [handlePaintStatusChange] UPDATE exitoso en Supabase")
-        
-        // Limpiar cliente para forzar uno nuevo en la próxima mutación
-        clearSupabaseClient()
-        console.log("🧹 Cliente limpiado para próxima mutación")
-
-        console.log("🔄 [handlePaintStatusChange] Actualizando estado local...")
-        setVehicles((prev) =>
-          prev.map((v) =>
-            v.id === id
-              ? {
-                  ...v,
-                  estado_pintura: "no_apto",
-                  paint_status_date: now,
-                }
-              : v,
-          ),
-        )
-
-        console.log("✅ [handlePaintStatusChange] Estado actualizado a 'no_apto'")
-        toast({
-          title: "Estado de pintura actualizado",
-          description: "El estado de pintura ha sido marcado como 'No Apto'.",
-        })
+        newStatus = "no_apto"
+        console.log("🔄 Cambiando de 'pendiente' a 'no_apto'...")
       } else if (vehicle.estado_pintura === "no_apto") {
-        // Permitir volver a "pendiente" desde "no_apto"
-        console.log("🔄 [handlePaintStatusChange] Cambiando de 'no_apto' a 'pendiente'...")
-        const now = new Date().toISOString()
-        const updates = {
-          estado_pintura: "pendiente" as const,
-          paint_status_date: now,
-        }
+        newStatus = "pendiente"
+        console.log("🔄 Cambiando de 'no_apto' a 'pendiente'...")
+      } else {
+        return // No permitir cambios desde otros estados
+      }
 
-        console.log("📤 [handlePaintStatusChange] Enviando UPDATE a Supabase:", updates)
-        // Crear cliente fresco para evitar zombie client
-        const supabase = createClientComponentClient()
-        console.log("🔧 Cliente creado, ejecutando update...")
-        
-        const result = await supabase.from("fotos").update(updates).eq("id", id)
-        console.log("📊 Resultado completo:", result)
+      console.log("📤 Enviando UPDATE via API Route...")
+      
+      const response = await fetch("/api/photos/update-paint-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, newStatus }),
+      })
 
-        if (result.error) {
-          console.error("❌ [handlePaintStatusChange] Error de Supabase:", result.error)
-          throw result.error
-        }
-        
-        console.log("✅ [handlePaintStatusChange] UPDATE exitoso en Supabase")
-        
-        // Limpiar cliente para forzar uno nuevo en la próxima mutación
-        clearSupabaseClient()
-        console.log("🧹 Cliente limpiado para próxima mutación")
+      const result = await response.json()
+      console.log("📊 Respuesta de API:", result)
 
-        console.log("🔄 [handlePaintStatusChange] Actualizando estado local...")
+      if (!response.ok || result.error) {
+        throw new Error(result.error || "Error al actualizar")
+      }
+
+      console.log("✅ UPDATE exitoso via API")
+
+      // Actualizar estado local
         setVehicles((prev) =>
           prev.map((v) =>
             v.id === id
               ? {
                   ...v,
-                  estado_pintura: "pendiente",
-                  paint_status_date: now,
+                estado_pintura: newStatus,
+                paint_status_date: result.timestamp,
                 }
               : v,
           ),
         )
 
-        console.log("✅ [handlePaintStatusChange] Estado actualizado a 'pendiente'")
         toast({
           title: "Estado de pintura actualizado",
-          description: "El estado de pintura ha sido marcado como 'Pendiente'.",
+        description: `El estado ha sido marcado como '${newStatus === "no_apto" ? "No Apto" : "Pendiente"}'.`,
         })
-      }
     } catch (error) {
       console.error("❌ [handlePaintStatusChange] ERROR COMPLETO:", error)
       console.error("❌ [handlePaintStatusChange] Error name:", error instanceof Error ? error.name : 'unknown')
@@ -1051,11 +1004,21 @@ export default function PhotosTable() {
       // Obtener información del vehículo antes de actualizar
       const vehicle = vehicles.find(v => v.id === id)
       
-      // Crear cliente fresco para evitar zombie client
-      const supabase = createClientComponentClient()
-      const { error } = await supabase.from("fotos").update({ assigned_to: photographerId }).eq("id", id)
+      console.log("📤 Actualizando fotógrafo via API...")
+      
+      const response = await fetch("/api/photos/update-photographer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, photographerId }),
+      })
 
-      if (error) throw error
+      const result = await response.json()
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || "Error al actualizar fotógrafo")
+      }
+
+      console.log("✅ Fotógrafo actualizado via API")
 
       setVehicles((prev) =>
         prev.map((vehicle) => (vehicle.id === id ? { ...vehicle, assigned_to: photographerId } : vehicle)),

@@ -1,30 +1,18 @@
 import { createBrowserClient } from "@supabase/ssr"
 
-// Usamos una variable global para almacenar la instancia del cliente
-let supabaseClientInstance: ReturnType<typeof createBrowserClient> | null = null
-
+// ✅ SIN SINGLETON - Cada llamada crea un cliente completamente FRESCO
 export function createClientComponentClient() {
   // Variables de entorno con valores por defecto
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://wpjmimbscfsdzcwuwctk.supabase.co"
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indwam1pbWJzY2ZzZHpjd3V3Y3RrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY2NDIyNTksImV4cCI6MjA2MjIxODI1OX0.ZqP4FGG3_ZBOauHb3l_qhz5ULY2i9Dtwn3JX_hzqUuM"
   
-  // Si estamos en el servidor, siempre creamos una nueva instancia
-  if (typeof window === "undefined") {
-    return createBrowserClient(supabaseUrl, supabaseAnonKey)
-  }
-
-  // En el cliente, verificamos si ya existe una instancia
-  if (!supabaseClientInstance) {
-    supabaseClientInstance = createBrowserClient(supabaseUrl, supabaseAnonKey)
-  }
-
-  return supabaseClientInstance
+  // SIEMPRE crear nuevo cliente (sin cache/singleton)
+  return createBrowserClient(supabaseUrl, supabaseAnonKey)
 }
 
+// clearSupabaseClient ya no es necesario (no hay singleton que limpiar)
 export function clearSupabaseClient() {
-  if (typeof window !== "undefined") {
-    supabaseClientInstance = null
-  }
+  // No-op: sin singleton, no hay nada que limpiar
 }
 
 // Exportación adicional para compatibilidad
