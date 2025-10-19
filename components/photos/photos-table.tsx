@@ -964,6 +964,10 @@ export default function PhotosTable() {
         }
         
         console.log("✅ [handlePaintStatusChange] UPDATE exitoso en Supabase")
+        
+        // Limpiar cliente para forzar uno nuevo en la próxima mutación
+        clearSupabaseClient()
+        console.log("🧹 Cliente limpiado para próxima mutación")
 
         console.log("🔄 [handlePaintStatusChange] Actualizando estado local...")
         setVehicles((prev) =>
@@ -995,14 +999,21 @@ export default function PhotosTable() {
         console.log("📤 [handlePaintStatusChange] Enviando UPDATE a Supabase:", updates)
         // Crear cliente fresco para evitar zombie client
         const supabase = createClientComponentClient()
-        const { error } = await supabase.from("fotos").update(updates).eq("id", id)
+        console.log("🔧 Cliente creado, ejecutando update...")
+        
+        const result = await supabase.from("fotos").update(updates).eq("id", id)
+        console.log("📊 Resultado completo:", result)
 
-        if (error) {
-          console.error("❌ [handlePaintStatusChange] Error de Supabase:", error)
-          throw error
+        if (result.error) {
+          console.error("❌ [handlePaintStatusChange] Error de Supabase:", result.error)
+          throw result.error
         }
         
         console.log("✅ [handlePaintStatusChange] UPDATE exitoso en Supabase")
+        
+        // Limpiar cliente para forzar uno nuevo en la próxima mutación
+        clearSupabaseClient()
+        console.log("🧹 Cliente limpiado para próxima mutación")
 
         console.log("🔄 [handlePaintStatusChange] Actualizando estado local...")
         setVehicles((prev) =>
