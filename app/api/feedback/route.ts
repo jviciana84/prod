@@ -132,8 +132,8 @@ export async function GET(request: NextRequest) {
       .from('ai_feedback')
       .select(`
         *,
-        ai_conversations!inner(message, response),
-        profiles!inner(full_name, email)
+        ai_conversations(message, response),
+        profiles(full_name, email)
       `, { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
