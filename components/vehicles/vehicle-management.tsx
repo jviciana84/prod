@@ -56,26 +56,38 @@ export default function VehicleManagement({
   const initializeRecords = async () => {
     setIsLoading(true)
     try {
-      // Crear cliente fresco para evitar zombie client
-      const supabase = createClientComponentClient()
       // Inicializar registro de llaves si no existe
       if (!keys) {
-        const { error: keysError } = await supabase.from("vehicle_keys").insert({
-          vehicle_id: vehicle.id,
-          license_plate: vehicle.license_plate,
+        const keysResponse = await fetch("/api/keys/initialize", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            vehicleId: vehicle.id,
+            licensePlate: vehicle.license_plate,
+          }),
         })
 
-        if (keysError) throw keysError
+        const keysResult = await keysResponse.json()
+        if (!keysResponse.ok || keysResult.error) {
+          throw new Error(keysResult.error || "Error al inicializar llaves")
+        }
       }
 
       // Inicializar registro de documentos si no existe
       if (!documents) {
-        const { error: docsError } = await supabase.from("vehicle_documents").insert({
-          vehicle_id: vehicle.id,
-          license_plate: vehicle.license_plate,
+        const docsResponse = await fetch("/api/documents/initialize", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            vehicleId: vehicle.id,
+            licensePlate: vehicle.license_plate,
+          }),
         })
 
-        if (docsError) throw docsError
+        const docsResult = await docsResponse.json()
+        if (!docsResponse.ok || docsResult.error) {
+          throw new Error(docsResult.error || "Error al inicializar documentos")
+        }
       }
 
       toast({

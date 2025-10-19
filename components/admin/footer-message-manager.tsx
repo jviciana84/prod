@@ -60,15 +60,19 @@ export default function FooterMessageManager({ initialMessages }: FooterMessageM
       // Formatear fecha de caducidad
       const expiryDate = new Date(`${newExpiryDate}T23:59:59`)
 
-      const { data, error } = await supabase
-        .from("footer_messages")
-        .insert({
-          message: newMessage.trim(),
-          expiry_date: expiryDate.toISOString(),
-        })
-        .select()
+      const response = await fetch("/api/footer/create-message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: newMessage,
+        }),
+      })
 
-      if (error) throw error
+      const result = await response.json()
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || "Error al crear mensaje")
+      }
 
       // Actualizar la lista de mensajes
       const { data: updatedMessages, error: fetchError } = await supabase
@@ -106,9 +110,17 @@ export default function FooterMessageManager({ initialMessages }: FooterMessageM
 
     setIsLoading(true)
     try {
-      const { error } = await supabase.from("footer_messages").delete().eq("id", id)
+      const response = await fetch("/api/footer/delete-message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      })
 
-      if (error) throw error
+      const result = await response.json()
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || "Error al eliminar mensaje")
+      }
 
       // Actualizar la lista de mensajes
       setMessages(messages.filter((message) => message.id !== id))
@@ -159,16 +171,21 @@ export default function FooterMessageManager({ initialMessages }: FooterMessageM
       // Formatear fecha de caducidad
       const expiryDate = new Date(`${editExpiryDate}T23:59:59`)
 
-      const { error } = await supabase
-        .from("footer_messages")
-        .update({
-          message: editMessage.trim(),
-          expiry_date: expiryDate.toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", id)
+      const response = await fetch("/api/footer/update-message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id,
+          message: editMessage,
+          expiryDate: editExpiryDate,
+        }),
+      })
 
-      if (error) throw error
+      const result = await response.json()
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || "Error al actualizar mensaje")
+      }
 
       // Actualizar la lista de mensajes
       const { data: updatedMessages, error: fetchError } = await supabase

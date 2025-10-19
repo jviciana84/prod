@@ -322,11 +322,20 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
     if (!userProfile) return
 
     try {
-      // Actualizar el teléfono en la tabla profiles
-      const { error } = await supabase.from("profiles").update({ phone: phoneNumber }).eq("id", user.id)
+      // Actualizar el teléfono via API Route
+      const response = await fetch("/api/profile/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user.id,
+          profileData: { phone: phoneNumber },
+        }),
+      })
 
-      if (error) {
-        console.error("Error al actualizar el teléfono:", error)
+      const result = await response.json()
+
+      if (!response.ok || result.error) {
+        console.error("Error al actualizar el teléfono:", result.error)
         toast({
           title: "Error",
           description: "No se pudo actualizar el teléfono",
