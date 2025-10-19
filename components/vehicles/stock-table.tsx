@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { createClientComponentClient } from "@/lib/supabase/client"
+// Supabase client no necesario - mutations usan API Routes
 import { useToast } from "@/hooks/use-toast"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
@@ -767,23 +767,22 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
 
       // Si se cambia el estado a algo diferente de pendiente y no hay fecha de inspección, añadirla
       const currentItem = stock.find((item) => item.id === editingId)
-      if (
-        currentItem &&
-        !currentItem.inspection_date &&
-        ((editFormData.paint_status && editFormData.paint_status !== "pendiente") ||
-          (editFormData.body_status && editFormData.body_status !== "pendiente") ||
-          (editFormData.mechanical_status && editFormData.mechanical_status !== "pendiente"))
-      ) {
-        updateData.inspection_date = new Date().toISOString()
-      }
 
-      // Actualizar en la base de datos
-      const supabase = createClientComponentClient()
-      const { error } = await supabase.from("stock").update(updateData).eq("id", editingId)
+      // Actualizar via API Route
+      const response = await fetch("/api/stock/update-edit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editingId,
+          updateData,
+          hasInspectionDate: !!currentItem?.inspection_date,
+        }),
+      })
 
-      if (error) {
-        console.error("Error de Supabase:", error)
-        throw new Error(error.message)
+      const result = await response.json()
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || "Error al actualizar")
       }
 
       // Actualizar la UI optimistamente
@@ -878,18 +877,25 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
     try {
       setPendingUpdates((prev) => new Set(prev).add(item.id))
 
-      const now = new Date().toISOString()
-      const updateData = {
-        inspection_date: item.inspection_date ? null : now,
+      // Actualizar via API Route
+      const response = await fetch("/api/stock/toggle-inspection", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: item.id,
+          currentDate: item.inspection_date,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || "Error al actualizar inspección")
       }
 
-      // Actualizar en la base de datos
-      const supabase = createClientComponentClient()
-      const { error } = await supabase.from("stock").update(updateData).eq("id", item.id)
-
-      if (error) {
-        console.error("Error al actualizar estado de inspección:", error)
-        throw new Error(error.message)
+      const now = result.data.inspection_date
+      const updateData = {
+        inspection_date: result.data.inspection_date,
       }
 
       // Actualizar la UI optimistamente
@@ -948,22 +954,26 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
         newStatus = "pendiente"
       }
 
+      // Actualizar via API Route
+      const response = await fetch("/api/stock/update-body-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: item.id,
+          newStatus,
+          hasInspectionDate: !!item.inspection_date,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || "Error al actualizar carrocería")
+      }
+
       const updateData = {
         body_status: newStatus,
-      }
-
-      // Si es la primera vez que se marca como no pendiente, actualizar la fecha de inspección
-      if (!item.inspection_date && newStatus !== "pendiente") {
-        updateData.inspection_date = now
-      }
-
-      // Actualizar en la base de datos
-      const supabase = createClientComponentClient()
-      const { error } = await supabase.from("stock").update(updateData).eq("id", item.id)
-
-      if (error) {
-        console.error("Error al actualizar estado de carrocería:", error)
-        throw new Error(error.message)
+        inspection_date: result.data.inspection_date,
       }
 
       // También actualizar la tabla fotos si es apto
@@ -1031,27 +1041,28 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
         newStatus = "pendiente"
       }
 
+      // Actualizar via API Route
+      const response = await fetch("/api/stock/update-mechanical-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: item.id,
+          newStatus,
+          hasInspectionDate: !!item.inspection_date,
+          hasMechanicalStatusDate: !!item.mechanical_status_date,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || "Error al actualizar mecánica")
+      }
+
       const updateData: any = {
         mechanical_status: newStatus,
-      }
-
-      // Si se cambia a "apto", actualizar la fecha
-      if (newStatus === "apto") {
-        updateData.mechanical_status_date = now
-      }
-
-      // Si es la primera vez que se marca como no pendiente, actualizar la fecha de inspección
-      if (!item.inspection_date && newStatus !== "pendiente") {
-        updateData.inspection_date = now
-      }
-
-      // Actualizar en la base de datos
-      const supabase = createClientComponentClient()
-      const { error } = await supabase.from("stock").update(updateData).eq("id", item.id)
-
-      if (error) {
-        console.error("Error al actualizar estado mecánico:", error)
-        throw new Error(error.message)
+        mechanical_status_date: result.data.mechanical_status_date,
+        inspection_date: result.data.inspection_date,
       }
 
       // Actualizar la UI optimistamente
@@ -1119,13 +1130,20 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
 
       const orValue = orValues[id] || "ORT"
 
-      // Actualizar en la base de datos
-      const supabase = createClientComponentClient()
-      const { error } = await supabase.from("stock").update({ work_order: orValue }).eq("id", id)
+      // Actualizar via API Route
+      const response = await fetch("/api/stock/update-or", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id,
+          orValue,
+        }),
+      })
 
-      if (error) {
-        console.error("Error al guardar valor OR:", error)
-        throw new Error(error.message)
+      const result = await response.json()
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || "Error al guardar OR")
       }
 
       // Actualizar la UI
@@ -1184,17 +1202,22 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
     try {
       setPendingUpdates((prev) => new Set(prev).add(item.id))
 
-      const supabase = createClientComponentClient()
-      const { error } = await supabase
-        .from("stock")
-        .update({ expense_charge: value })
-        .eq("id", item.id)
+      // Actualizar via API Route
+      const response = await fetch("/api/stock/update-expense", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: item.id,
+          value,
+        }),
+      })
 
-      if (error) {
-        console.error("Error al actualizar cargo de gastos:", error)
+      const result = await response.json()
+
+      if (!response.ok || result.error) {
         toast({
           title: "Error",
-          description: "No se pudo actualizar el cargo de gastos",
+          description: result.error || "No se pudo actualizar el cargo de gastos",
           variant: "destructive",
         })
         return
@@ -1256,76 +1279,31 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
           console.warn("⚠️ Work center actual no es válido:", currentWorkCenter)
         }
 
-        // Actualizar en la base de datos
-        const supabase = createClientComponentClient()
-        const { data, error } = await supabase
-          .from("stock")
-          .update(updateData)
-          .eq("id", item.id)
-          .select()
-
-        if (error) {
-          console.error("❌ Error al actualizar centro de trabajo:", error)
-          throw new Error(`Error de base de datos: ${error.message}`)
-        }
-
-        if (!data || data.length === 0) {
-          console.error("❌ No se actualizó ningún registro")
-          console.log("🔍 Intentando con upsert...")
-          
-          // Intentar con upsert como fallback - usar solo columnas esenciales
-          const upsertPayload = {
+        // Actualizar via API Route
+        const response = await fetch("/api/stock/update-work-center", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
             id: item.id,
-            license_plate: item.license_plate,
-            model: item.model,
-            vehicle_type: item.vehicle_type || 'Coche',
-            reception_date: item.reception_date,
-            work_center: value,
-            external_provider: item.external_provider,
-            expense_charge: item.expense_charge,
-            body_status: item.body_status || 'pendiente',
-            mechanical_status: item.mechanical_status || 'pendiente',
-            inspection_date: item.inspection_date,
-            paint_status: item.paint_status || 'pendiente',
-            updated_at: new Date().toISOString(),
-          }
+            value,
+            item,
+          }),
+        })
 
-          const { data: upsertResult, error: upsertError } = await supabase
-            .from("stock")
-            .upsert(upsertPayload)
-            .select()
+        const result = await response.json()
 
-          if (upsertError) {
-            console.error("❌ Error en upsert:", upsertError)
-            throw new Error(`Error en upsert: ${upsertError.message}`)
-          }
-
-          if (!upsertResult || upsertResult.length === 0) {
-            throw new Error("No se pudo actualizar el registro ni con upsert")
-          }
-
-          console.log("✅ Centro de trabajo actualizado con upsert:", upsertResult[0])
-          
-          // Actualizar el estado local para reflejar el cambio inmediatamente
-          setStock(prevStock => 
-            prevStock.map(stockItem => 
-              stockItem.id === item.id 
-                ? { ...stockItem, work_center: value }
-                : stockItem
-            )
-          )
-        } else {
-          console.log("✅ Centro de trabajo actualizado exitosamente:", data[0])
-          
-          // Actualizar el estado local para reflejar el cambio inmediatamente
-          setStock(prevStock => 
-            prevStock.map(stockItem => 
-              stockItem.id === item.id 
-                ? { ...stockItem, work_center: value }
-                : stockItem
-            )
-          )
+        if (!response.ok || result.error) {
+          throw new Error(result.error || "Error al actualizar centro de trabajo")
         }
+
+        console.log("✅ Centro de trabajo actualizado exitosamente:", result.data)
+
+        // Actualizar el estado local
+        setStock((prevStock) =>
+          prevStock.map((stockItem) =>
+            stockItem.id === item.id ? { ...stockItem, work_center: value } : stockItem
+          )
+        )
 
         // Actualizar la UI optimistamente
         setStock((prevStock) =>
