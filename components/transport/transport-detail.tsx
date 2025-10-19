@@ -83,16 +83,20 @@ export default function TransportDetail({ transportId, onBack }: TransportDetail
     try {
       const newStatus = !transport.is_received
 
-      const { error } = await supabase
-        .from("nuevas_entradas")
-        .update({
-          is_received: newStatus,
-          reception_date: newStatus ? new Date().toISOString() : null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", transport.id)
+      const response = await fetch("/api/transport/update-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: transport.id,
+          isReceived: newStatus,
+        }),
+      })
 
-      if (error) throw error
+      const result = await response.json()
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || "Error al actualizar")
+      }
 
       // Actualizar el estado local
       setTransport({
