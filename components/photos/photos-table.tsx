@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo, useRef } from "react"
+import { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -268,7 +268,7 @@ export default function PhotosTable() {
   const [pendienteCount, setPendienteCount] = useState(0)
   const [errorCount, setErrorCount] = useState(0)
 
-  const [filteredVehicles, setFilteredVehicles] = useState<PhotoVehicle[]>([])
+  // filteredVehicles ahora es useMemo, no useState
 
   // Función para aplicar filtro de fechas
   const applyDateFilter = (from: Date | undefined, to: Date | undefined) => {
@@ -289,8 +289,8 @@ export default function PhotosTable() {
     setCurrentPage(1)
   }
 
-  // Función para ordenar datos
-  const sortData = (data: PhotoVehicle[]) => {
+  // Función para ordenar datos - wrapped en useCallback para useMemo
+  const sortData = useCallback((data: PhotoVehicle[]) => {
     return [...data].sort((a, b) => {
       let aValue: any
       let bValue: any
@@ -331,7 +331,7 @@ export default function PhotosTable() {
         return aValue < bValue ? 1 : aValue > bValue ? -1 : 0
       }
     })
-  }
+  }, [sortField, sortDirection])
 
   // Función para manejar el ordenamiento
   const handleSort = (field: string, direction: "asc" | "desc") => {
@@ -376,33 +376,20 @@ export default function PhotosTable() {
 
         if (!isActive) return
 
-        // 2. Obtener vehículos reservados de duc_scraper
-        const { data: reservedVehiclesData, error: reservedError } = await supabase
-          .from("duc_scraper")
-          .select("Matrícula, Modelo, Disponibilidad")
-          .ilike("Disponibilidad", "%reservado%")
-
-        if (!isActive) return
-        if (reservedError) {
-          console.error("❌ Error al obtener vehículos reservados:", reservedError)
-          return
-        }
-
-        // 3. Combinar ambas listas
-        const soldLicensePlates = soldVehiclesData?.map(v => v.license_plate) || []
-        const reservedLicensePlates = reservedVehiclesData?.map(v => (v as any).Matrícula) || []
-        
-        // Combinar y eliminar duplicados
-        const allSoldOrReserved = [...new Set([...soldLicensePlates, ...reservedLicensePlates])]
-        
-        if (isActive) {
-          setSoldVehicles(allSoldOrReserved)
+        if (soldVehiclesData && soldVehiclesData.length > 0) {
+          console.log("✅ Vehículos vendidos encontrados:", soldVehiclesData.length)
           
-          console.log("✅ Matrículas cargadas:", {
-            vendidos: soldLicensePlates.length,
-            reservados: reservedLicensePlates.length,
-            total: allSoldOrReserved.length
-          })
+          // Extraer matrículas de vehículos vendidos o reservados
+          const soldOrReserved = soldVehiclesData.filter(vehicle => 
+            vehicle.status === 'sold' || vehicle.status === 'reserved'
+          )
+          
+          const soldLicensePlates = soldOrReserved.map(vehicle => vehicle.license_plate)
+          
+          if (soldLicensePlates.length > 0 && isActive) {
+            setSoldVehicles(soldLicensePlates)
+            console.log("✅ Matrículas vendidas/reservadas:", soldLicensePlates.length)
+          }
         }
         } catch (error) {
           if (isActive) {
@@ -528,8 +515,6 @@ export default function PhotosTable() {
     dateFilter.to?.getTime(),
     activePhotoTab,
     soldVehicles,
-    sortField,
-    sortDirection,
     sortData
   ])
 
@@ -968,11 +953,14 @@ export default function PhotosTable() {
         console.log("📤 [handlePaintStatusChange] Enviando UPDATE a Supabase:", updates)
         // Crear cliente fresco para evitar zombie client
         const supabase = createClientComponentClient()
-        const { error } = await supabase.from("fotos").update(updates).eq("id", id)
+        console.log("🔧 Cliente creado, ejecutando update...")
+        
+        const result = await supabase.from("fotos").update(updates).eq("id", id)
+        console.log("📊 Resultado completo:", result)
 
-        if (error) {
-          console.error("❌ [handlePaintStatusChange] Error de Supabase:", error)
-          throw error
+        if (result.error) {
+          console.error("❌ [handlePaintStatusChange] Error de Supabase:", result.error)
+          throw result.error
         }
         
         console.log("✅ [handlePaintStatusChange] UPDATE exitoso en Supabase")
