@@ -75,7 +75,7 @@ export default function TransportTable({
   const [sortField, setSortField] = useState("purchase_date")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
 
-  const supabase = createClientComponentClient()
+  // NOTA: Crear cliente fresco en cada mutación para evitar zombie client
   const { toast } = useToast()
 
   // Verificar permisos de edición

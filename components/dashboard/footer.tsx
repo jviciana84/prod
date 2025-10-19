@@ -24,71 +24,20 @@ interface FooterSettings {
 }
 
 export function DashboardFooter() {
-  const [message, setMessage] = useState<string | null>(null)
-  const [settings, setSettings] = useState<FooterSettings>({
-    show_marquee: true,
-    animation_speed: 20,
-    text_color: "#666666",
-    hover_effect: true,
-  })
-
-  useEffect(() => {
-    // Obtener mensaje del footer desde la base de datos
-    const fetchFooterMessage = async () => {
-      try {
-        // Obtener configuración y mensaje usando API
-        const [settingsResponse, messageResponse] = await Promise.all([
-          fetch("/api/settings/footer", {
-            method: "GET",
-            headers: { "Content-Type": "application/json" },
-          }),
-          fetch("/api/footer/message", {
-            method: "GET",
-            headers: { "Content-Type": "application/json" },
-          })
-        ])
-
-        // Procesar configuración
-        if (settingsResponse.ok) {
-          const settingsData = await settingsResponse.json()
-          if (settingsData) {
-            setSettings(settingsData)
-          }
-        }
-
-        // Procesar mensaje
-        if (messageResponse.ok) {
-          const messageData = await messageResponse.json()
-          if (messageData && messageData.message) {
-            setMessage(messageData.message)
-          }
-        }
-      } catch (err) {
-        console.error("Error al procesar mensaje del footer:", err)
-      }
-    }
-
-    fetchFooterMessage()
-  }, [])
-
-  // Si no hay mensaje de la BD, usar el mensaje por defecto
-  const displayMessage =
-    message ||
-    "CVO está en fase de desarrollo y pruebas. Por favor, para reportar fallos o necesidades, contactar con Jordi Viciana."
+  // SOLO MENSAJE HARDCODEADO CON NEGRITA
+  const displayMessage = "CVO está en fase de desarrollo y pruebas. Por favor, para reportar fallos o necesidades, contactar con <strong>Jordi Viciana</strong>."
 
   // Estilo dinámico para el texto en movimiento
   const marqueeStyle = {
-    color: settings.text_color,
-    animationDuration: `${settings.animation_speed}s`,
+    color: "#666666",
+    animation: "marquee 20s linear infinite",
   }
 
   // Clase para el contenedor del marquee
-  const marqueeContainerClass = settings.show_marquee ? "marquee-container" : "text-center px-4"
+  const marqueeContainerClass = "marquee-container"
 
   // Clase para el contenido del marquee
-  const marqueeContentClass = settings.show_marquee
-    ? `marquee-content ${settings.hover_effect ? "hover-effect" : ""}`
-    : ""
+  const marqueeContentClass = "marquee-content"
 
   return (
     <footer className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-1">
@@ -98,15 +47,15 @@ export function DashboardFooter() {
           <span className="md:hidden">© {new Date().getFullYear()} CVO</span>
         </div>
 
-        {displayMessage && (
-          <div className="flex-1 mx-1 md:mx-2 overflow-hidden min-w-0 hidden md:block">
-            <div className={marqueeContainerClass}>
-              <div className={marqueeContentClass} style={marqueeStyle}>
-                {displayMessage}
-              </div>
-            </div>
-          </div>
-        )}
+         <div className="flex-1 mx-1 md:mx-2 overflow-hidden min-w-0 hidden md:block">
+           <div className={marqueeContainerClass}>
+             <div 
+               className={marqueeContentClass} 
+               style={marqueeStyle}
+               dangerouslySetInnerHTML={{ __html: displayMessage }}
+             />
+           </div>
+         </div>
 
         <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
           <span className="text-xs md:text-sm text-muted-foreground hidden xs:inline">controlvo.ovh</span>

@@ -1,0 +1,64 @@
+COMPONENTES CON MUTACIONES REAL - PROGRESO
+===========================================
+
+YA CORREGIDOS (9):
+✅ components/photos/photos-table.tsx
+✅ components/sales/sales-table.tsx
+✅ components/entregas/entregas-table.tsx
+✅ components/validados/validados-table.tsx
+✅ app/dashboard/admin/conversaciones/conversations-client.tsx
+✅ components/vehicles/vehicle-management.tsx
+✅ components/vehicles/key-management.tsx
+✅ components/vehicles/document-management.tsx
+✅ components/vehicles/stock-table.tsx
+
+PENDIENTES CRÍTICOS (38 restantes):
+
+PRIORIDAD ALTA - Users/Forms/Tables (20):
+⏳ components/transport/transport-dashboard.tsx
+⏳ components/transport/transport-table.tsx
+⏳ components/transport/transport-form.tsx
+⏳ components/transport/transport-quick-form.tsx
+⏳ components/transport/transport-detail.tsx
+⏳ components/keys/key-management-form.tsx
+⏳ components/keys/key-document-dashboard.tsx
+⏳ components/admin/user-management.tsx
+⏳ components/admin/objetivos-manager.tsx
+⏳ components/admin/objetivos-simple-manager.tsx
+⏳ components/photos/photographer-assignments.tsx
+⏳ components/photos/photos-manager.tsx
+⏳ components/entregas/entregas-table-simple.tsx
+⏳ components/entregas/entregas-table-with-mapping.tsx
+⏳ components/entregas/entregas-table-admin.tsx (si existe)
+⏳ components/entregas/entregas-table-fixed.tsx (si existe)
+⏳ components/sales/sales-quick-form.tsx
+⏳ components/recogidas/vehiculos-para-recoger.tsx
+⏳ components/extornos/extornos-table.tsx
+⏳ components/profile/profile-form.tsx
+
+PRIORIDAD MEDIA - Settings/Notif (10):
+⏳ components/settings/vehicles-database-manager.tsx
+⏳ components/settings/locations-manager.tsx
+⏳ components/settings/expense-types-manager.tsx
+⏳ components/notifications/admin-notification-panel.tsx
+⏳ components/notifications/user-notification-settings.tsx
+⏳ components/recogidas/seguimiento-updater.tsx
+⏳ components/recogidas/recogidas-email-config.tsx
+⏳ components/admin/footer-message-manager.tsx
+⏳ components/admin/footer-settings-manager.tsx
+⏳ components/columnas/columnas-manager.tsx
+
+PRIORIDAD BAJA - Otros (8):
+⏳ components/image-upload/image-uploader.tsx
+⏳ components/image-upload/image-gallery.tsx
+⏳ components/profile/avatar-selector.tsx
+⏳ components/entregas/incidencia-historial.tsx
+⏳ components/entregas/notificaciones-incidencias.tsx
+⏳ components/entregas/informes-incidencias.tsx
+⏳ components/sales/pdf-data-dialog.tsx
+⏳ components/dashboard/pending-movements-card-simple.tsx
+
+TOTAL: 47 componentes
+CORREGIDOS: 9
+PENDIENTES: 38
+

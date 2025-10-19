@@ -33,7 +33,7 @@ export default function TransportDetail({ transportId, onBack }: TransportDetail
   const [isLoading, setIsLoading] = useState(true)
   const [isUpdating, setIsUpdating] = useState(false)
 
-  const supabase = createClientComponentClient()
+  // NOTA: Crear cliente fresco en cada mutación para evitar zombie client
   const { toast } = useToast()
 
   useEffect(() => {

@@ -1,0 +1,63 @@
+COMPONENTES CON MUTACIONES - 48 ARCHIVOS
+==========================================
+
+YA CORREGIDOS (7):
+✅ components/photos/photos-table.tsx
+✅ components/sales/sales-table.tsx
+✅ components/entregas/entregas-table.tsx
+✅ components/validados/validados-table.tsx
+✅ app/dashboard/admin/conversaciones/conversations-client.tsx
+✅ components/vehicles/vehicle-management.tsx
+✅ components/vehicles/key-management.tsx
+
+PENDIENTES CRÍTICOS (15):
+⏳ components/vehicles/document-management.tsx
+⏳ components/vehicles/stock-table.tsx
+⏳ components/vehicles/key-document-dashboard.tsx
+⏳ components/transport/transport-table.tsx
+⏳ components/transport/transport-form.tsx
+⏳ components/transport/transport-quick-form.tsx
+⏳ components/transport/transport-detail.tsx
+⏳ components/keys/key-management-form.tsx
+⏳ components/keys/docuware-requests-modal.tsx
+⏳ components/keys/circulation-permit-modal.tsx
+⏳ components/sales/sales-quick-form.tsx
+⏳ components/sales/pdf-data-dialog.tsx
+⏳ components/admin/objetivos-manager.tsx
+⏳ components/admin/objetivos-simple-manager.tsx
+⏳ components/admin/footer-message-manager.tsx
+
+PENDIENTES SECUNDARIOS (10):
+⏳ components/photos/photographer-assignments.tsx
+⏳ components/photos/photos-manager.tsx
+⏳ components/entregas/notificaciones-incidencias.tsx
+⏳ components/recogidas/vehiculos-para-recoger.tsx
+⏳ components/recogidas/recogidas-email-config.tsx
+⏳ components/recogidas/seguimiento-updater.tsx
+⏳ components/settings/vehicles-database-manager.tsx
+⏳ components/settings/locations-manager.tsx
+⏳ components/settings/expense-types-manager.tsx
+⏳ components/notifications/admin-notification-panel.tsx
+
+PENDIENTES TERCIARIOS (16):
+⏳ components/dashboard/header.tsx
+⏳ components/dashboard/pending-movements-card-simple.tsx
+⏳ components/notifications/user-notification-settings.tsx
+⏳ components/profile/profile-form.tsx
+⏳ components/profile/avatar-selector.tsx
+⏳ components/image-upload/image-uploader.tsx
+⏳ components/image-upload/image-gallery.tsx
+⏳ components/admin/footer-settings-manager.tsx
+⏳ components/vehicles/movement-history.tsx
+⏳ components/incentivos/incentivos-table.tsx
+⏳ components/entregas/entregas-table-fixed.tsx
+⏳ components/entregas/entregas-table-admin.tsx
+⏳ components/ui/smart-content-detector.tsx
+⏳ components/ui/use-toast.ts
+⏳ components/sales/sales-table-backup.tsx (backup)
+⏳ components/transport/transport-table-backup.tsx (backup)
+
+TOTAL: 48 archivos con mutaciones
+CORREGIDOS: 7
+PENDIENTES: 41
+

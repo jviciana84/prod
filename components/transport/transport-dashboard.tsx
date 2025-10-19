@@ -45,7 +45,7 @@ export default function TransportDashboard({
   const [isConsoleOpen, setIsConsoleOpen] = useState(false)
 
 
-  const supabase = createClientComponentClient()
+  // NOTA: Crear cliente fresco en cada mutación para evitar zombie client
   const { toast } = useToast()
 
   // Determinar si el usuario es administrador basado en sus roles
