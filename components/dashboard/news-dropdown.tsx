@@ -32,8 +32,6 @@ export function NewsDropdown({ isOpen, onClose, triggerRef }: NewsDropdownProps)
   const [noticias, setNoticias] = useState<NewsItem[]>([])
   const [loading, setLoading] = useState(true)
   const dropdownRef = useRef<HTMLDivElement>(null)
-  // ELIMINAR useMemo - crear cliente FRESCO cada render
-  const supabase = createClientComponentClient()
   const router = useRouter()
 
   useEffect(() => {
@@ -62,21 +60,15 @@ export function NewsDropdown({ isOpen, onClose, triggerRef }: NewsDropdownProps)
 
   const fetchNoticias = async () => {
     try {
-      console.log("📰 [NewsDropdown] Iniciando carga de noticias...")
+      console.log("📰 [NewsDropdown] Iniciando carga de noticias desde API...")
       setLoading(true)
-      console.log("🔍 [NewsDropdown] Consultando bmw_noticias...")
-      const { data, error } = await supabase
-        .from("bmw_noticias")
-        .select("*")
-        .order("fecha_publicacion", { ascending: false, nullsFirst: false }) // Más recientes primero por fecha_publicacion
-        .order("created_at", { ascending: false })
-        .limit(5)
-
-      if (error) {
-        console.error("❌ [NewsDropdown] Error:", error)
-        throw error
+      const response = await fetch("/api/noticias/list?limit=5")
+      
+      if (!response.ok) {
+        throw new Error("Error al cargar noticias")
       }
       
+      const { data } = await response.json()
       console.log("✅ [NewsDropdown] Noticias cargadas:", data?.length || 0)
       setNoticias(data || [])
     } catch (error) {

@@ -118,6 +118,8 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
   const [profile, setProfile] = useState<any>(null)
   const [authLoading, setAuthLoading] = useState(true)
 
+  // Cliente Supabase solo para mutaciones (updates)
+  // Las consultas iniciales ahora usan API Routes
   const supabase = createClientComponentClient()
   const router = useRouter() // Inicializar useRouter
 
@@ -125,40 +127,33 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
     return formatDateForDisplay(dateString)
   }
 
-  // Función para obtener el usuario y perfil actual
+  // Obtener usuario y perfil desde la API
   useEffect(() => {
-    async function getUser() {
+    async function getUserData() {
       try {
-        const {
-          data: { user }, // <--- CAMBIO AQUÍ: de session a user
-        } = await supabase.auth.getUser() // <--- CAMBIO AQUÍ: de getSession() a getUser()
-
-        if (user) {
-          // <--- CAMBIO AQUÍ: de session?.user a user
-          setUser(user)
-
-          // Obtener el perfil del usuario
-          const { data: profileData, error: profileError } = await supabase
-            .from("profiles")
-            .select("full_name, role")
-            .eq("id", user.id) // Asegúrate de que user.id se usa aquí
-            .single()
-
-          if (profileError) {
-            console.error("Error al obtener perfil:", profileError)
-          } else {
-            setProfile(profileData)
-            console.log("✅ Perfil cargado:", profileData)
-          }
+        console.log("🔍 Cargando datos de usuario desde API...")
+        const response = await fetch("/api/entregas/list")
+        
+        if (!response.ok) {
+          throw new Error("Error al cargar datos de usuario")
+        }
+        
+        const { data } = await response.json()
+        
+        if (data.user && data.profile) {
+          setUser(data.user)
+          setProfile(data.profile)
+          console.log("✅ Usuario y perfil cargados desde API:", data.profile)
         }
       } catch (error) {
         console.error("Error al obtener usuario:", error)
+        toast.error("Error al cargar datos de usuario")
       } finally {
         setAuthLoading(false)
       }
     }
 
-    getUser()
+    getUserData()
   }, [])
 
   useEffect(() => {
@@ -180,91 +175,29 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
 
   const loadEntregas = async () => {
     setLoading(true)
-    console.log("🚀 Iniciando carga de entregas...")
+    console.log("🚀 Iniciando carga de entregas desde API...")
     try {
-      // TEMPORAL: Cargar todas las entregas sin filtros para diagnosticar
-      console.log("🔍 Cargando TODAS las entregas (diagnóstico)...")
-      let query = supabase.from("entregas").select("*").order("fecha_venta", { ascending: false })
-
-      // Determinar si el usuario es administrador o supervisor
-      const userRole = profile?.role?.toLowerCase() || ""
-      const isAdmin = ["admin", "administrador", "director", "supervisor"].includes(userRole)
-      const isAsesor = ["asesor", "asesor ventas", "asesor comercial"].includes(userRole)
-
-      console.log("🔍 Debug info:")
-      console.log("- User:", user?.email)
-      console.log("- Profile:", profile)
-      console.log("- User role:", userRole)
-      console.log("- Is Admin:", isAdmin)
-      console.log("- Is Asesor:", isAsesor)
-
-      // Aplicar filtros según el rol del usuario
-      if (isAdmin) {
-        // Admin y Supervisor ven todas las entregas
-        console.log("👑 Modo administrador/supervisor - mostrando todas las entregas")
-        toast.info("Mostrando todas las entregas (modo administrador/supervisor)")
-      } else if (isAsesor && profile?.full_name) {
-        // Asesor ve solo sus entregas - usar mapeo de nombres
-        console.log("🔍 Buscando mapeo para asesor...")
-        const asesorAlias = await getUserAsesorAlias(user.id, profile.full_name, user.email)
-
-        console.log("🔍 Mapeo de asesor:")
-        console.log("- Nombre en perfil:", profile.full_name)
-        console.log("- Alias encontrado:", asesorAlias)
-
-        if (asesorAlias) {
-          // Usar ilike para comparación insensible a mayúsculas/minúsculas
-          query = query.ilike("asesor", asesorAlias)
-          console.log(`✅ Filtro aplicado: asesor ILIKE ${asesorAlias}`)
-          toast.info(`Mostrando entregas para: ${asesorAlias} (${profile.full_name})`)
-        } else {
-          console.log("❌ No se encontró mapeo para el asesor")
-          toast.warning(
-            `No se encontró mapeo para ${profile.full_name}. Contacte al administrador para configurar el mapeo.`,
-          )
-          setEntregas([])
-          actualizarContadores([])
-          setLoading(false)
-          return
-        }
-      } else if (!isAdmin && !profile?.full_name) {
-        // Usuario sin nombre completo
-        console.log("❌ Usuario sin nombre completo en perfil")
-        toast.warning("No se pudo determinar el asesor. Contacte al administrador.")
-        setEntregas([])
-        actualizarContadores([])
-        setLoading(false)
-        return
-      } else {
-        // Otros roles - mostrar mensaje informativo
-        console.log(`ℹ️ Rol no reconocido: ${userRole}`)
-        toast.info(`Rol: ${userRole}. Si debería ver entregas, contacte al administrador.`)
-        setEntregas([])
-        actualizarContadores([])
+      // Cargar entregas desde API Route
+      console.log("🔍 Consultando API /api/entregas/list...")
+      const response = await fetch("/api/entregas/list")
+      
+      if (!response.ok) {
+        const error = await response.json()
+        console.error("❌ Error en API:", error)
+        toast.error("Error al cargar entregas")
         setLoading(false)
         return
       }
       
-      console.log("🔍 Ejecutando consulta con filtros aplicados...")
-
-      console.log("🔍 Ejecutando consulta a la base de datos...")
-      const { data, error } = await query
-
-      if (error) {
-        console.error("❌ Error al cargar entregas:", error)
-        toast.error("Error al cargar los datos: " + error.message)
-        setEntregas([])
-        actualizarContadores([])
-        setLoading(false)
-        return
-      }
-
-      console.log("📊 Resultados de la consulta:")
-      console.log("- Data:", data)
-      console.log("- Data length:", data?.length || 0)
-
-      if (data && data.length > 0) {
-        const formattedData: Entrega[] = data.map((item) => ({
+      const { data: apiData } = await response.json()
+      const entregasData = apiData.entregas
+      
+      // La API ya filtró por rol, simplemente usamos los datos
+      console.log("📊 Entregas recibidas desde API:")
+      console.log("- Cantidad:", entregasData?.length || 0)
+      
+      if (entregasData && entregasData.length > 0) {
+        const formattedData: Entrega[] = entregasData.map((item) => ({
           id: item.id,
           fecha_venta: item.fecha_venta,
           fecha_entrega: item.fecha_entrega,

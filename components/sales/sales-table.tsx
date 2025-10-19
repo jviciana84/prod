@@ -347,7 +347,8 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
     failed: 0,
   })
 
-  // ELIMINAR useMemo - crear cliente FRESCO cada render
+  // Cliente Supabase solo para mutaciones (updates/deletes)
+  // Las consultas iniciales ahora usan API Routes
   const supabase = createClientComponentClient()
 
   // Verificar si el usuario es administrador
@@ -472,31 +473,27 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
     })
   }, [])
 
-  // Cargar los vehículos vendidos
-  const loadSoldVehicles = async (signal?: AbortSignal): Promise<boolean> => {
-    console.log("🔄 [loadSoldVehicles] Iniciando... estableciendo loading=true")
+  // Cargar los vehículos vendidos usando API Route
+  const loadSoldVehicles = async (): Promise<boolean> => {
+    console.log("🔄 [loadSoldVehicles] Iniciando carga desde API...")
     setLoading(true)
     try {
-      // Verificar si ya fue abortado
-      if (signal?.aborted) {
-        console.log("❌ [loadSoldVehicles] Abortado antes de iniciar consulta")
-        return false
-      }
-
-      // Obtenemos los vehículos vendidos
-      console.log("🔍 [loadSoldVehicles] Consultando sales_vehicles...")
-      const { data: salesData, error: salesError} = await supabase
-        .from("sales_vehicles")
-        .select("*")
-        .abortSignal(signal!)
-      console.log("📊 [loadSoldVehicles] Resultado:", { dataCount: salesData?.length || 0, hasError: !!salesError })
-
-      if (salesError) {
-        console.error("Error al cargar vehículos vendidos:", salesError)
+      // Usar API Route en lugar de cliente Supabase directo
+      console.log("🔍 [loadSoldVehicles] Consultando API /api/sales/list...")
+      const response = await fetch("/api/sales/list")
+      
+      if (!response.ok) {
+        const error = await response.json()
+        console.error("Error en API:", error)
         toast.error("Error al cargar los datos")
         setLoading(false)
         return false
       }
+
+      const { data } = await response.json()
+      const salesData = data.salesVehicles
+      
+      console.log("📊 [loadSoldVehicles] Resultado:", { dataCount: salesData?.length || 0 })
 
       if (!salesData || salesData.length === 0) {
         setVehicles([])
@@ -547,7 +544,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
       console.log("✅ [loadSoldVehicles] Datos procesados correctamente")
       return true
     } catch (err) {
-      console.error("❌ [loadSoldVehicles] Error en la consulta:", err)
+      console.error("❌ [loadSoldVehicles] Error en fetch:", err)
       toast.error("Error al cargar los datos")
       return false
     } finally {
@@ -576,68 +573,43 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
 
   // Cargar datos al montar el componente - CON AbortController para cancelar consultas pendientes
   useEffect(() => {
-    const abortController = new AbortController()
-    
     const loadAllData = async () => {
-      console.log("🚀 Iniciando carga de datos...")
+      console.log("🚀 Iniciando carga de datos desde API...")
       
       try {
-        // Cargar vehículos vendidos con AbortSignal
-        console.log("📦 Cargando vehículos vendidos...")
-        const success = await loadSoldVehicles(abortController.signal)
+        // Cargar vehículos vendidos desde API Route
+        console.log("📦 Cargando vehículos vendidos desde API...")
+        const success = await loadSoldVehicles()
         
         if (!success) {
-          console.log("⚠️ Carga de vehículos cancelada o falló")
+          console.log("⚠️ Carga de vehículos falló")
           return
         }
         
-        console.log("✅ Vehículos vendidos cargados")
+        console.log("✅ Vehículos vendidos cargados desde API")
         
-        // Verificar si fue abortado antes de continuar
-        if (abortController.signal.aborted) {
-          console.log("❌ Carga abortada antes de cargar tipos de gastos")
-          return
-        }
-        
-        // Cargar tipos de gastos
-        console.log("💰 Cargando tipos de gastos...")
-        const { data, error } = await supabase
-          .from("expense_types")
-          .select("id, name, description")
-          .eq("is_active", true)
-          .order("name")
-          .abortSignal(abortController.signal)
-        
-        if (error) {
-          // Si el error es por abort, no mostrar toast
-          if (error.message?.includes('aborted')) {
-            console.log("❌ Carga de tipos de gastos abortada")
-            return
+        // Cargar datos adicionales desde la misma API
+        console.log("💰 Cargando datos adicionales...")
+        const response = await fetch("/api/sales/list")
+        if (response.ok) {
+          const { data } = await response.json()
+          
+          if (data.expenseTypes) {
+            setExpenseTypes(data.expenseTypes)
+            console.log("✅ Tipos de gastos cargados:", data.expenseTypes.length)
           }
-          console.error("❌ Error cargando tipos de gastos:", error)
-          toast.error("Error cargando tipos de gastos")
-        } else {
-          console.log("✅ Tipos de gastos cargados:", data?.length || 0)
-          setExpenseTypes(data || [])
+          
+          // deliveryCenters no se usa en este componente por ahora
+          console.log("✅ Datos adicionales cargados")
         }
         
         console.log("🎉 Carga de datos completada")
       } catch (err: any) {
-        // Si el error es por abort, no hacer nada
-        if (err?.message?.includes('aborted') || err?.name === 'AbortError') {
-          console.log("❌ Carga de datos abortada")
-          return
-        }
         console.error("❌ Excepción en loadAllData:", err)
       }
     }
     
     loadAllData()
-    
-    return () => {
-      console.log("🧹 SalesTable cleanup - abortando consultas pendientes")
-      abortController.abort()
-    }
   }, [])
 
   // Focus en el buscador cuando se carga la página
@@ -656,11 +628,6 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
     // Notificar que se ha realizado una actualización
     if (onRefreshRequest) {
       onRefreshRequest()
-    }
-    
-    // Llamar a la función onRefresh si está disponible
-    if (typeof onRefresh === 'function') {
-      onRefresh()
     }
   }
 

@@ -26,7 +26,6 @@ interface Movement {
 }
 
 export default function KeyHistoryPage() {
-  const supabase = createClientComponentClient()
   const [movements, setMovements] = useState<Movement[]>([])
   const [filteredMovements, setFilteredMovements] = useState<Movement[]>([])
   const [loading, setLoading] = useState(true)
@@ -35,56 +34,36 @@ export default function KeyHistoryPage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [typeFilter, setTypeFilter] = useState("all")
 
-  // Función para cargar todos los movimientos
+  // Función para cargar todos los movimientos desde API Route
   const loadAllMovements = async () => {
     setLoading(true)
     setError(null)
 
     try {
-      // Primero, cargar todos los vehículos para obtener las matrículas desde sales_vehicles
-      const { data: vehicles, error: vehiclesError } = await supabase.from("sales_vehicles").select("id, license_plate")
+      console.log("Cargando movimientos desde API...")
+      const response = await fetch("/api/llaves/movements")
+      
+      if (!response.ok) {
+        throw new Error("Error al cargar movimientos")
+      }
 
-      if (vehiclesError) throw vehiclesError
+      const { data: apiData } = await response.json()
+      const vehicles = apiData.vehicles
+      const keyMovements = apiData.keyMovements
+      const docMovements = apiData.docMovements
+      const profiles = apiData.profiles
 
-      // Crear un mapa de ID de vehículo a matrícula para uso posterior
+      // Crear un mapa de ID de vehículo a matrícula
       const vehicleMap: Record<string, string> = {}
-      vehicles?.forEach((v) => {
+      vehicles?.forEach((v: any) => {
         vehicleMap[v.id] = v.license_plate
       })
 
-      // Cargar movimientos de llaves
-      const { data: keyMovements, error: keyError } = await supabase
-        .from("key_movements")
-        .select(`
-          id,
-          vehicle_id,
-          key_type,
-          reason,
-          confirmed,
-          created_at,
-          from_user_id,
-          to_user_id
-        `)
-        .order("created_at", { ascending: false })
-
-      if (keyError) throw keyError
-
-      // Cargar movimientos de documentos
-      const { data: docMovements, error: docError } = await supabase
-        .from("document_movements")
-        .select(`
-          id,
-          vehicle_id,
-          document_type,
-          reason,
-          confirmed,
-          created_at,
-          from_user_id,
-          to_user_id
-        `)
-        .order("created_at", { ascending: false })
-
-      if (docError) throw docError
+      // Crear mapa de usuarios
+      const userMap: Record<string, any> = {}
+      profiles?.forEach((user: any) => {
+        userMap[user.id] = user
+      })
 
       // Obtener todos los IDs de usuario únicos
       const userIds = new Set<string>()

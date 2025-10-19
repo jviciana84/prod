@@ -1,0 +1,508 @@
+===========================================
+RESUMEN COMPLETO DEL PROBLEMA - LOADING INFINITO EN TABLAS
+===========================================
+
+## PROBLEMA PRINCIPAL
+Las tablas de **Ventas**, **Entregas** y **Noticias** se quedan en "Loading..." infinito.
+- Ocurre en desarrollo Y en producción
+- Ocurre después de navegar entre páginas
+- Ocurre después de inactividad (PC suspendido)
+- Las consultas Supabase se inician pero NUNCA completan
+- NO hay error, simplemente se quedan colgadas
+
+## SÍNTOMAS EN CONSOLA
+```
+🔍 [loadSoldVehicles] Consultando sales_vehicles...
+[SE QUEDA AQUÍ PARA SIEMPRE - NO HAY MÁS LOGS]
+```
+
+===========================================
+HISTORIAL COMPLETO DE INTENTOS (TODOS FALLARON)
+===========================================
+
+### 1. BACKUP del 15 de Octubre
+- Se hizo backup completo antes de empezar
+- Commit: "Backup completo antes de cambios - 15 octubre"
+
+### 2. Eliminar `useMemo` del cliente Supabase
+ARCHIVOS: sales-table.tsx, news-dropdown.tsx, photos-table.tsx
+CAMBIO:
+```typescript
+// ANTES
+const supabase = useMemo(() => createClientComponentClient(), [])
+
+// DESPUÉS
+const supabase = createClientComponentClient()
+```
+RAZÓN: useMemo podía retener instancia "dormida"
+RESULTADO: ❌ NO FUNCIONÓ
+
+### 3. Agregar `getSession()` con timeout antes de consultas
+ARCHIVOS: sales-table.tsx, news-dropdown.tsx
+CAMBIO:
+```typescript
+const sessionPromise = supabase.auth.getSession()
+const timeoutPromise = new Promise((_, reject) => 
+  setTimeout(() => reject(new Error('Session timeout')), 5000)
+)
+await Promise.race([sessionPromise, timeoutPromise])
+```
+RAZÓN: "Despertar" el cliente antes de consultas
+RESULTADO: ❌ NO FUNCIONÓ - getSession() también se colgaba
+
+### 4. Revertir useMemo y eliminar getSession()
+ARCHIVOS: sales-table.tsx, news-dropdown.tsx
+CAMBIO: Eliminado todo el código de getSession()
+RESULTADO: ❌ NO FUNCIONÓ
+
+### 5. Timeout global de inactividad en cliente Supabase
+ARCHIVO: lib/supabase/client.ts
+CAMBIO:
+```typescript
+let client: SupabaseClient | null = null
+let lastActivity = Date.now()
+const INACTIVITY_TIMEOUT = 5 * 60 * 1000 // 5 minutos
+
+export const createClientComponentClient = () => {
+  const now = Date.now()
+  
+  if (client && (now - lastActivity) > INACTIVITY_TIMEOUT) {
+    console.log("♻️ Recreando cliente Supabase por inactividad")
+    client = null
+  }
+  
+  if (!client) {
+    client = createBrowserClient(...)
+  }
+  
+  lastActivity = now
+  return client
+}
+```
+RAZÓN: Cliente se "dormía" después de inactividad
+RESULTADO: ❌ NO FUNCIONÓ - Usuario dijo que era específico de navegación, no global
+ACCIÓN: SE REVIRTIÓ
+
+### 6. Deshabilitar React Strict Mode
+ARCHIVO: next.config.mjs
+CAMBIO:
+```javascript
+const nextConfig = {
+  reactStrictMode: false, // Deshabilitado temporalmente
+}
+```
+RAZÓN: Strict Mode monta/desmonta componentes dos veces
+RESULTADO: ❌ NO FUNCIONÓ - Problema también en producción (sin Strict Mode)
+ACCIÓN: SE REVIRTIÓ
+
+### 7. Cleanup con useRef para evitar doble ejecución
+ARCHIVO: sales-table.tsx
+CAMBIO:
+```typescript
+const hasLoadedDataRef = useRef(false)
+
+useEffect(() => {
+  if (hasLoadedDataRef.current) return
+  hasLoadedDataRef.current = true
+  
+  const loadAllData = async () => { /* ... */ }
+  loadAllData()
+}, [])
+```
+RAZÓN: Evitar múltiples ejecuciones por Strict Mode
+RESULTADO: ❌ NO FUNCIONÓ
+ACCIÓN: SE ELIMINÓ
+
+### 8. Flag `isActive` en SalesTable para cleanup
+ARCHIVO: sales-table.tsx
+CAMBIO:
+```typescript
+useEffect(() => {
+  let isActive = true
+  
+  const loadAllData = async () => {
+    if (!isActive) return
+    await loadSoldVehicles()
+    
+    if (!isActive) return
+    // cargar expense_types...
+  }
+  
+  loadAllData()
+  
+  return () => {
+    isActive = false
+    console.log("🧹 SalesTable cleanup")
+  }
+}, [])
+```
+RAZÓN: Cancelar operaciones al desmontar
+RESULTADO: ❌ NO FUNCIONÓ
+ACCIÓN: SE ELIMINÓ
+
+### 9. Cleanup completo de PhotosTable
+ARCHIVO: photos-table.tsx
+CAMBIO:
+```typescript
+useEffect(() => {
+  let isActive = true
+  
+  const fetchDataSafe = async () => {
+    if (!isActive) return
+    await fetchData(isActive)
+  }
+  
+  fetchDataSafe()
+  
+  return () => {
+    isActive = false
+    console.log("🧹 PhotosTable cleanup - cancelando carga de fotos")
+  }
+}, [])
+
+// Dentro de fetchData:
+const fetchData = async (isActive: boolean) => {
+  const checkActive = () => typeof isActive === 'boolean' ? isActive : isActive.current
+  
+  const { data: vehiclesData } = await supabase.from("fotos").select("*")
+  
+  if (!checkActive()) {
+    console.log("❌ PhotosTable desmontado después de consultar fotos")
+    return
+  }
+  
+  // Más consultas con checks similares...
+}
+```
+RAZÓN: PhotosTable hace múltiples consultas, podía bloquear cliente singleton
+RESULTADO: ✅ PhotosTable ahora SÍ se limpia correctamente
+         ❌ PERO NO solucionó el problema de las otras páginas
+
+### 10. Deshabilitar PWA y Service Worker
+ARCHIVOS: 
+- components/pwa-installer.tsx (modificado)
+- public/sw.js (ELIMINADO)
+CAMBIO:
+```typescript
+// pwa-installer.tsx
+export default function PWAInstaller() {
+  return null // PWA completamente deshabilitado
+}
+```
+RAZÓN: Service Worker podía estar cacheando o bloqueando peticiones
+RESULTADO: ❌ NO FUNCIONÓ
+
+### 11. AbortController para cancelar consultas pendientes (ÚLTIMO INTENTO)
+ARCHIVO: sales-table.tsx
+CAMBIO:
+```typescript
+useEffect(() => {
+  const abortController = new AbortController()
+  
+  const loadAllData = async () => {
+    const success = await loadSoldVehicles(abortController.signal)
+    if (!success) return
+    
+    const { data, error } = await supabase
+      .from("expense_types")
+      .select("*")
+      .abortSignal(abortController.signal)
+  }
+  
+  loadAllData()
+  
+  return () => {
+    console.log("🧹 SalesTable cleanup - abortando consultas pendientes")
+    abortController.abort()
+  }
+}, [])
+
+const loadSoldVehicles = async (signal?: AbortSignal): Promise<boolean> => {
+  if (signal?.aborted) {
+    console.log("❌ [loadSoldVehicles] Abortado antes de iniciar consulta")
+    return false
+  }
+
+  const { data, error } = await supabase
+    .from("sales_vehicles")
+    .select("*")
+    .abortSignal(signal!)
+  // ...
+}
+```
+RAZÓN: Abortar consultas pendientes al desmontar componente
+RESULTADO: ❌❌❌ EMPEORA EL PROBLEMA
+          El AbortController cancela las consultas LEGÍTIMAS porque 
+          React Strict Mode desmonta el componente inmediatamente
+
+===========================================
+ESTADO ACTUAL DEL CÓDIGO
+===========================================
+
+ARCHIVOS MODIFICADOS (git status):
+- components/sales/sales-table.tsx (CON AbortController - NO FUNCIONA)
+- components/photos/photos-table.tsx (CON isActive cleanup - funciona OK)
+- components/pwa-installer.tsx (return null - deshabilitado)
+
+ARCHIVOS ELIMINADOS:
+- public/sw.js
+- DIAGNOSTICO_PROBLEMA_TABLAS_1_MINUTO.md
+- public/fix-cookies-auto.js
+- find-obsolete-imports.ps1
+- buscar-obsoletos.ps1
+- lib/supabase/client-wrapper.ts
+
+ÚLTIMO COMMIT:
+[main 289b994] feat: Implementar AbortController en SalesTable para cancelar consultas pendientes al desmontar
+ 2 files changed, 55 insertions(+), 16 deletions(-)
+
+⚠️ NO SE HA HECHO PUSH - Los cambios están solo en local
+
+===========================================
+LOGS ACTUALES (DESARROLLO)
+===========================================
+
+```
+🧹 PhotosTable cleanup - cancelando carga de fotos
+🧹 PhotosTable cleanup - cancelando carga de vehículos vendidos
+🚀 Iniciando carga de datos...
+📦 Cargando vehículos vendidos...
+🔄 [loadSoldVehicles] Iniciando... estableciendo loading=true
+🔍 [loadSoldVehicles] Consultando sales_vehicles...
+🧹 SalesTable cleanup - abortando consultas pendientes  ← SE ABORTA INMEDIATAMENTE
+🚀 Iniciando carga de datos...
+📦 Cargando vehículos vendidos...
+🔄 [loadSoldVehicles] Iniciando... estableciendo loading=true
+🔍 [loadSoldVehicles] Consultando sales_vehicles...
+[SE QUEDA COLGADO AQUÍ PARA SIEMPRE - NO HAY ERROR]
+```
+
+===========================================
+LO QUE SÍ FUNCIONA (PÁGINAS SIN PROBLEMA)
+===========================================
+
+### Dashboard (app/dashboard/page.tsx)
+- Usa `createServerClient` (SSR)
+- Las consultas se ejecutan en el SERVIDOR durante el render
+- NO usa useEffect en el cliente
+- Por eso NUNCA se bloquea
+
+CÓDIGO:
+```typescript
+export default async function Dashboard() {
+  const cookieStore = await cookies()
+  const supabase = await createServerClient(cookieStore)
+
+  const { data: salesVehiclesData } = await supabase
+    .from("sales_vehicles")
+    .select("*")
+  
+  // Todo se ejecuta en el servidor antes de enviar al cliente
+  return <DashboardContent data={salesVehiclesData} />
+}
+```
+
+### Incentivos (app/incentivos/incentivos-table.tsx)
+- Usa `createClient` (cliente)
+- Hace consultas en useEffect
+- FUNCIONA porque no hay navegación problemática desde otras páginas
+- Se accede normalmente desde el menú
+
+===========================================
+PÁGINAS QUE FALLAN
+===========================================
+
+1. **Ventas** (components/sales/sales-table.tsx)
+   - "use client"
+   - Consulta: sales_vehicles (tabla grande ~150 registros)
+   - Se queda en loading infinito
+
+2. **Entregas** (ruta no especificada)
+   - Usuario confirma que también falla
+   - Mismo patrón de comportamiento
+
+3. **Noticias** (components/dashboard/news-dropdown.tsx)
+   - "use client"
+   - Consulta: bmw_noticias
+   - Se queda en loading infinito
+
+PATRÓN: Todas usan "use client" y hacen consultas Supabase en useEffect
+
+===========================================
+CONFIGURACIÓN ACTUAL
+===========================================
+
+### lib/supabase/client.ts
+```typescript
+let client: SupabaseClient | null = null
+
+export const createClientComponentClient = () => {
+  if (!client) {
+    client = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+  }
+  return client
+}
+```
+
+### next.config.mjs
+```javascript
+const nextConfig = {
+  reactStrictMode: true, // Volvió a true después de descartar que fuera el problema
+  // ... otras configuraciones
+}
+```
+
+===========================================
+OBSERVACIONES IMPORTANTES
+===========================================
+
+1. **NO es problema de navegación desde Fotos específicamente**
+   - Usuario confirma: "entregas tampoco he ido directamente desde fotos"
+   - El problema ocurre navegando desde CUALQUIER página
+
+2. **NO es problema de inactividad únicamente**
+   - También ocurre en navegación normal sin inactividad
+
+3. **El AbortController está mal aplicado**
+   - Cancela las consultas legítimas
+   - React Strict Mode monta/desmonta inmediatamente
+   - El cleanup se ejecuta antes de que la consulta complete
+
+4. **Las consultas NO fallan, simplemente se quedan colgadas**
+   - No hay error en consola
+   - No hay timeout
+   - Solo silencio después de "Consultando sales_vehicles..."
+
+5. **PhotosTable SÍ se limpia correctamente**
+   - Los logs muestran cleanup exitoso
+   - No es la causa del problema
+
+6. **El problema es INTERMITENTE**
+   - A veces funciona después de esperar mucho tiempo
+   - No hay patrón claro de cuándo funciona o no
+
+===========================================
+PARA EL SIGUIENTE ASISTENTE - NO REPETIR
+===========================================
+
+❌ NO volver a intentar:
+1. useMemo/sin useMemo en cliente Supabase
+2. getSession() con timeout
+3. Timeout global de inactividad
+4. Deshabilitar React Strict Mode
+5. useRef para evitar re-ejecución
+6. isActive flags simples
+7. Cleanup de PhotosTable (ya funciona correctamente)
+8. Deshabilitar PWA/Service Worker
+9. AbortController en useEffect (empeora el problema)
+
+===========================================
+ÁREAS A INVESTIGAR (NO EXPLORADAS AÚN)
+===========================================
+
+1. **¿Por qué SSR funciona pero CSR no?**
+   - Dashboard usa SSR y SIEMPRE funciona
+   - Componentes cliente se quedan colgados
+   - ¿Hay diferencia en cómo Supabase maneja las conexiones?
+
+2. **¿Problema con pooling de conexiones?**
+   - ¿El cliente singleton está bloqueado por una conexión anterior?
+   - ¿Necesitamos múltiples instancias del cliente?
+
+3. **¿Middleware de Next.js interfiriendo?**
+   - ¿Hay algún middleware bloqueando requests?
+   - ¿Alguna configuración de Next.js 13+ App Router?
+
+4. **¿Configuración de Supabase incorrecta?**
+   - ¿Variables de entorno correctas?
+   - ¿Límites de rate limiting?
+   - ¿Configuración de pooling en Supabase?
+
+5. **¿Por qué las consultas no tienen timeout?**
+   - Supabase debería tener timeout por defecto
+   - ¿Está configurado correctamente?
+
+6. **¿Problema con React 18+ o Next.js 13+?**
+   - ¿Suspense interfiriendo?
+   - ¿Server Components vs Client Components?
+   - ¿Streaming SSR causando problemas?
+
+7. **¿Necesitamos implementar retry logic?**
+   - ¿Las consultas fallan silenciosamente?
+   - ¿Necesitamos capturar y reintentar?
+
+===========================================
+CONTEXTO ADICIONAL
+===========================================
+
+- Framework: Next.js 13+ con App Router
+- React: Versión 18+
+- Supabase: Cliente JavaScript
+- Usuario: CANSADO y FRUSTRADO - necesita solución definitiva
+- Prioridad: MÁXIMA - afecta producción
+- Ambiente: El problema ocurre en desarrollo Y producción
+
+===========================================
+CITA DEL USUARIO
+===========================================
+
+"no sabes de donde viene el puto error"
+"me cansa mucho todo lo que estas haciendo"
+"que estas muy perdido"
+
+El usuario tiene razón. Necesitamos encontrar la CAUSA RAÍZ,
+no seguir probando parches aleatorios.
+
+===========================================
+ACCIÓN RECOMENDADA
+===========================================
+
+1. REVERTIR todos los cambios del AbortController
+2. Investigar desde cero por qué las consultas se quedan colgadas
+3. Comparar código de Dashboard (funciona) vs Ventas (no funciona)
+4. Revisar configuración de Supabase
+5. Considerar refactorizar todo a SSR como Dashboard
+
+===========================================
+FIN DEL RESUMEN
+===========================================
+
+===========================================
+SOLUCIÓN IMPLEMENTADA - 19 OCT 2025
+===========================================
+
+✅ PATRÓN API ROUTES (COMO INCENTIVOS) - FUNCIONANDO
+
+### Cambios Realizados:
+
+1. **API Routes Creadas:**
+   - /api/sales/list - Ventas
+   - /api/entregas/list - Entregas  
+   - /api/noticias/list - Noticias
+   - /api/photos/list - Fotos
+   - /api/dashboard/rankings - Rankings
+   - /api/dashboard/activity-feed - Actividad
+
+2. **Componentes Refactorizados:**
+   - components/sales/sales-table.tsx (eliminado AbortController)
+   - components/entregas/entregas-table.tsx
+   - app/dashboard/noticias/page.tsx
+   - components/dashboard/news-dropdown.tsx
+
+### Resultados:
+
+✅ **NewsDropdown funcionó** - Primera vez que carga sin problemas
+✅ **API Routes funcionan** - Patrón correcto confirmado
+⚠️ **Ventas necesitó ajuste** - tabla delivery_centers no existe (arreglado)
+
+### Error encontrado y corregido:
+```
+Error: relation "public.delivery_centers" does not exist
+```
+Solución: Hacer tabla opcional en API Route
+
+===========================================
+

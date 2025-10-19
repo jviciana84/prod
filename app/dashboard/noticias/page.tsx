@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Search, ExternalLink, Calendar, Newspaper } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
-import { createClientComponentClient } from "@/lib/supabase/client"
+import { toast } from "sonner"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { CompactSearchWithModal } from "@/components/dashboard/compact-search-with-modal"
 
@@ -35,7 +35,6 @@ export default function NoticiasPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [marcaFilter, setMarcaFilter] = useState<MarcaFilter>("todas")
   const [categoriaFilter, setCategoriaFilter] = useState<CategoriaFilter>("todas")
-  const supabase = createClientComponentClient()
 
   useEffect(() => {
     fetchNoticias()
@@ -44,16 +43,19 @@ export default function NoticiasPage() {
   const fetchNoticias = async () => {
     try {
       setLoading(true)
-      const { data, error } = await supabase
-        .from("bmw_noticias")
-        .select("*")
-        .order("fecha_publicacion", { ascending: false, nullsFirst: false }) // Más recientes primero por fecha_publicacion
-        .order("created_at", { ascending: false })
-
-      if (error) throw error
+      console.log("📰 Cargando noticias desde API...")
+      const response = await fetch("/api/noticias/list")
+      
+      if (!response.ok) {
+        throw new Error("Error al cargar noticias")
+      }
+      
+      const { data } = await response.json()
       setNoticias(data || [])
+      console.log("✅ Noticias cargadas:", data?.length || 0)
     } catch (error) {
       console.error("Error al cargar noticias:", error)
+      toast.error("Error al cargar las noticias")
     } finally {
       setLoading(false)
     }

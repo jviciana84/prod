@@ -1,18 +1,14 @@
 "use client"
 
-import { useState, useCallback, useEffect, useRef } from "react"
-import { createClientComponentClient } from "@/lib/supabase/client"
+import { useState, useCallback, useEffect } from "react"
 import TransportDashboard from "@/components/transport/transport-dashboard"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { CompactSearchWithModal } from "@/components/dashboard/compact-search-with-modal"
-import { getUserRolesClient } from "@/lib/auth/permissions-client"
-import { AutoRefreshIndicator } from "@/components/ui/auto-refresh-indicator"
-import { AutoRefreshSettings } from "@/components/ui/auto-refresh-settings"
 import { AutoRefreshNotification } from "@/components/ui/auto-refresh-notification"
 import { useAutoRefresh } from "@/hooks/use-auto-refresh"
 import { useAutoRefreshPreferences } from "@/hooks/use-auto-refresh-preferences"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { AddCarIcon } from "@/components/ui/icons"
+import { toast } from "sonner"
 
 export default function TransportPage() {
   const [refreshKey, setRefreshKey] = useState(0)
@@ -31,72 +27,31 @@ export default function TransportPage() {
   // Usar preferencias guardadas
   const { preferences, isLoaded, setEnabled, setInterval } = useAutoRefreshPreferences()
 
-  // Usar useRef para evitar recrear el cliente en cada render
-  const supabaseRef = useRef(createClientComponentClient())
-
-  // Función para cargar datos
+  // Función para cargar datos desde API Route
   const loadData = useCallback(async (showLoading = false) => {
     if (showLoading) {
       setIsLoading(true)
     }
     try {
-      const supabase = supabaseRef.current
+      console.log("🚚 Cargando nuevas entradas desde API...")
+      const response = await fetch("/api/transport/list")
+
+      if (!response.ok) {
+        throw new Error("Error al cargar datos de transporte")
+      }
+
+      const { data } = await response.json()
       
-      // Obtener sedes para el formulario
-      const { data: locations, error: locationsError } = await supabase.from("locations").select("*").order("name")
-      if (locationsError) {
-        console.error("Error al cargar sedes:", locationsError)
-      }
-
-      // Cambiar la consulta a la base de datos
-      const { data: transports, error: transportsError } = await supabase
-        .from("nuevas_entradas")
-        .select("*")
-        .order("purchase_date", { ascending: false })
-      if (transportsError) {
-        console.error("Error al cargar datos de transporte:", transportsError)
-      }
-
-      // Si tenemos transportes, cargar los datos relacionados
-      let transportesConRelaciones = []
-      if (transports && transports.length > 0) {
-        // Crear un mapa de ubicaciones para búsqueda rápida
-        const locationMap = locations
-          ? locations.reduce((map, loc) => {
-              map[loc.id] = loc
-              return map
-            }, {})
-          : {}
-
-        // Obtener tipos de gastos
-        const { data: expenseTypes } = await supabase.from("expense_types").select("*")
-
-        // Crear un mapa de tipos de gastos para búsqueda rápida
-        const expenseTypeMap = expenseTypes
-          ? expenseTypes.reduce((map, type) => {
-              map[type.id] = type
-              return map
-            }, {})
-          : {}
-
-        // Combinar los datos manualmente
-        transportesConRelaciones = transports.map((transport) => ({
-          ...transport,
-          origin_location: locationMap[transport.origin_location_id] || null,
-          expense_type: expenseTypeMap[transport.expense_type_id] || null,
-        }))
-      }
-
-      // Obtener roles del usuario
-      const userRoles = await getUserRolesClient()
-
       setInitialData({
-        transports: transportesConRelaciones || [],
-        locations: locations || [],
-        userRoles: userRoles || []
+        transports: data.transports || [],
+        locations: data.locations || [],
+        userRoles: data.userRoles || []
       })
+      
+      console.log("✅ Nuevas entradas cargadas:", data.transports?.length || 0)
     } catch (error) {
-      console.error("Error cargando datos:", error)
+      console.error("❌ Error cargando datos:", error)
+      toast.error("Error al cargar los datos de transporte")
     } finally {
       setIsLoading(false)
     }

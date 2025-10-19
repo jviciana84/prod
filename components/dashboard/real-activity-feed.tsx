@@ -34,6 +34,7 @@ export function RealActivityFeed({ className }: RealActivityFeedProps) {
   const [activities, setActivities] = useState<ActivityItem[]>([])
   const [loading, setLoading] = useState(true)
   const [debugInfo, setDebugInfo] = useState<string[]>([])
+  // Cliente Supabase solo para consultas ligeras de profiles
   const supabase = useMemo(() => createClientComponentClient(), [])
 
   useEffect(() => {

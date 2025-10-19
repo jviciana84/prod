@@ -41,6 +41,7 @@ export function FinancingRanking({ className }: FinancingRankingProps) {
   const [annualRanking, setAnnualRanking] = useState<AnnualRanking[]>([])
   const [loading, setLoading] = useState(true)
   const [debugInfo, setDebugInfo] = useState<string>("")
+  // Cliente Supabase solo para consultas de profiles (ligeras)
   const supabase = useMemo(() => createClientComponentClient(), [])
 
   useEffect(() => {

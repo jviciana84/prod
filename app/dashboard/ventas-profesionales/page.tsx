@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useCallback, useEffect } from "react"
-import { createClientComponentClient } from "@/lib/supabase/client"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -10,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search, RefreshCw, Calendar, Tag } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { toast as sonnerToast } from "sonner"
 
 interface ProfessionalSale {
   id: string
@@ -31,52 +31,34 @@ export default function VentasProfesionalesPage() {
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [totalPages, setTotalPages] = useState(1)
 
-  const supabase = createClientComponentClient()
   const { toast } = useToast()
 
-  // Cargar datos
+  // Cargar datos desde API Route
   const loadData = useCallback(async () => {
     setIsLoading(true)
     try {
-      // Por ahora, simulamos datos ya que no tenemos la tabla de ventas profesionales
-      // En el futuro, esto vendría de una tabla específica
-      const mockData: ProfessionalSale[] = [
-        {
-          id: "1",
-          license_plate: "1234ABC",
-          model: "BMW Serie 1",
-          vehicle_type: "Coche",
-          source: "stock",
-          sale_date: new Date().toISOString(),
-          created_at: new Date().toISOString(),
-          notes: "Venta profesional - Cliente corporativo"
-        },
-        {
-          id: "2", 
-          license_plate: "5678DEF",
-          model: "BMW Serie 3",
-          vehicle_type: "Coche",
-          source: "nuevas_entradas",
-          sale_date: new Date().toISOString(),
-          created_at: new Date().toISOString(),
-          notes: "Venta profesional - Flota empresa"
-        }
-      ]
+      console.log("💼 Cargando ventas profesionales desde API...")
+      const response = await fetch("/api/ventas-profesionales/list")
 
-      setSales(mockData)
-      setFilteredSales(mockData)
-      setTotalPages(Math.ceil(mockData.length / itemsPerPage))
+      if (!response.ok) {
+        throw new Error("Error al cargar ventas profesionales")
+      }
+
+      const { data } = await response.json()
+      const salesData = data.sales || []
+
+      setSales(salesData)
+      setFilteredSales(salesData)
+      setTotalPages(Math.ceil(salesData.length / itemsPerPage))
+      
+      console.log("✅ Ventas profesionales cargadas:", salesData.length)
     } catch (error) {
-      console.error('Error cargando ventas profesionales:', error)
-      toast({
-        title: "Error",
-        description: "Error al cargar las ventas profesionales",
-        variant: "destructive"
-      })
+      console.error("❌ Error cargando ventas profesionales:", error)
+      sonnerToast.error("Error al cargar las ventas profesionales")
     } finally {
       setIsLoading(false)
     }
-  }, [itemsPerPage, toast])
+  }, [itemsPerPage])
 
   // Cargar datos iniciales
   useEffect(() => {

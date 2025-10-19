@@ -175,6 +175,8 @@ export function ValidadosTable({ onRefreshRequest }: ValidadosTableProps) {
   })
 
 
+  // Cliente Supabase solo para mutaciones (updates/deletes)
+  // Las consultas iniciales ahora usan API Routes
   const supabase = createClientComponentClient()
 
   // Inicializar filtros de fecha
@@ -318,29 +320,28 @@ export function ValidadosTable({ onRefreshRequest }: ValidadosTableProps) {
     }
   }
 
-  // Función para cargar los pedidos desde Supabase
+  // Función para cargar los pedidos desde API Route
   const loadPedidos = async () => {
     setLoading(true)
     try {
-      console.log("Cargando pedidos validados desde Supabase...")
+      console.log("Cargando pedidos validados desde API...")
 
-      // Intentar obtener datos reales de Supabase
-      const { data, error } = await supabase
-        .from("pedidos_validados")
-        .select("*")
-        .order("validation_date", { ascending: false })
-
-      if (error) {
-        console.error("Error al cargar pedidos validados:", error)
-        toast.error("Error al cargar los datos: " + error.message)
-
-        // Si hay un error, usar datos de ejemplo
-        usarDatosEjemplo()
+      // Usar API Route en lugar de cliente Supabase directo
+      const response = await fetch("/api/validados/list")
+      
+      if (!response.ok) {
+        const error = await response.json()
+        console.error("Error en API:", error)
+        toast.error("Error al cargar los datos. Por favor, contacta soporte.")
+        setPedidos([])
+        actualizarContadores([])
         return
       }
 
+      const { data } = await response.json()
+
       if (data && data.length > 0) {
-        console.log(`Se encontraron ${data.length} pedidos validados en Supabase`)
+        console.log(`Se encontraron ${data.length} pedidos validados desde API`)
 
         // Transformar los datos al formato esperado por el componente
         const formattedData: PedidoValidado[] = data.map((item) => ({

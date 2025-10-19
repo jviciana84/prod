@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
-import { createClientComponentClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 
 interface Tasacion {
@@ -38,62 +37,32 @@ export default function TasacionesBackofficePage() {
   const [advisorLink, setAdvisorLink] = useState<AdvisorLink | null>(null)
   const [loading, setLoading] = useState(true)
   const [currentUser, setCurrentUser] = useState<any>(null)
-  
-  const supabase = createClientComponentClient()
 
   useEffect(() => {
     loadData()
-    getCurrentUser()
   }, [])
-
-  const getCurrentUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    setCurrentUser(user)
-  }
 
   const loadData = async () => {
     try {
       setLoading(true)
+      console.log("📋 Cargando tasaciones desde API...")
       
-      // Cargar enlace del asesor (mock por ahora)
-      setAdvisorLink({
-        advisor_name: currentUser?.user_metadata?.full_name || 'Asesor',
-        slug: 'test-advisor',
-        full_url: `${window.location.origin}/tasacion/test-advisor`,
-        short_url: 'https://bit.ly/tas-test',
-        created_at: new Date().toISOString()
-      })
+      const response = await fetch("/api/tasaciones/list")
 
-      // Cargar tasaciones (mock por ahora)
-      const mockTasaciones: Tasacion[] = [
-        {
-          id: '1',
-          fecha: '2025-01-10',
-          matricula: '1234ABC',
-          marca: 'BMW',
-          modelo: 'Serie 3',
-          cliente: 'Cliente desde enlace',
-          status: 'pendiente',
-          advisor_slug: 'test-advisor',
-          created_at: '2025-01-10T10:00:00Z'
-        },
-        {
-          id: '2',
-          fecha: '2025-01-09',
-          matricula: '5678DEF',
-          marca: 'Mercedes-Benz',
-          modelo: 'Clase C',
-          cliente: 'Cliente desde enlace',
-          status: 'revisada',
-          advisor_slug: 'test-advisor',
-          created_at: '2025-01-09T15:30:00Z'
-        },
-      ]
+      if (!response.ok) {
+        throw new Error("Error al cargar tasaciones")
+      }
+
+      const { data } = await response.json()
       
-      setTasaciones(mockTasaciones)
+      setTasaciones(data.tasaciones || [])
+      setAdvisorLink(data.advisorLink)
+      setCurrentUser(data.currentUser)
+      
+      console.log("✅ Tasaciones cargadas:", data.tasaciones?.length || 0)
     } catch (error) {
-      console.error('Error cargando datos:', error)
-      toast.error('Error al cargar los datos')
+      console.error("❌ Error cargando datos:", error)
+      toast.error("Error al cargar los datos")
     } finally {
       setLoading(false)
     }

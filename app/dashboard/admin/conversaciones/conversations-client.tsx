@@ -101,6 +101,8 @@ export default function ConversationsClient() {
   const [insightsLoading, setInsightsLoading] = useState(false)
   const [insightsData, setInsightsData] = useState<any>(null)
 
+  // Cliente Supabase solo para mutaciones (updates/deletes)
+  // Las consultas iniciales ahora usan API Routes
   const supabase = createClientComponentClient()
 
   // Cargar datos iniciales
@@ -149,45 +151,35 @@ export default function ConversationsClient() {
 
   const loadConversations = async () => {
     try {
-      let query = supabase
-        .from('ai_conversations')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .range(
-          (currentPage - 1) * itemsPerPage,
-          currentPage * itemsPerPage - 1
-        )
+      console.log("Cargando conversaciones desde API...")
+      const response = await fetch("/api/conversations/list", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          page: currentPage,
+          itemsPerPage,
+          sessionId: selectedSession,
+          userId: selectedUser,
+          searchTerm,
+          showHidden,
+        }),
+      })
 
-      // Aplicar filtros
-      if (selectedSession !== "all") {
-        query = query.eq('session_id', selectedSession)
+      if (!response.ok) {
+        throw new Error("Error al cargar conversaciones")
       }
+
+      const { data, count } = await response.json()
       
-      if (selectedUser !== "all") {
-        query = query.eq('user_id', selectedUser)
-      }
-
-      if (searchTerm) {
-        query = query.or(`message.ilike.%${searchTerm}%,response.ilike.%${searchTerm}%`)
-      }
-
-      // Aplicar filtro de visibilidad para administradores
-      if (!showHidden) {
-        query = query.eq('is_hidden', false)
-      }
-
-      const { data, error, count } = await query
-
-      if (error) throw error
-
       setConversations(data || [])
       setTotalPages(Math.ceil((count || 0) / itemsPerPage))
+      console.log("✅ Conversaciones cargadas:", data?.length || 0)
     } catch (error) {
       console.error("Error cargando conversaciones:", error)
       toast({
         title: "Error",
         description: "Error cargando conversaciones",
-        variant: "destructive"
+        variant: "destructive",
       })
     }
   }
@@ -390,61 +382,27 @@ export default function ConversationsClient() {
 
   const loadSessions = async () => {
     try {
-      const { data, error } = await supabase
-        .from('ai_sessions')
-        .select('*')
-        .order('last_message_at', { ascending: false })
-        .limit(100)
-
-      if (error) {
-        console.error("Error obteniendo sesiones:", error)
-        setSessions([])
-        return
-      }
+      console.log("Cargando sesiones desde API...")
+      const response = await fetch("/api/conversations/sessions")
       
-      setSessions(data || [])
+      if (!response.ok) {
+        throw new Error("Error al cargar sesiones")
+      }
+
+      const { data } = await response.json()
+      setSessions(data.sessions || [])
+      setUsers(data.users || [])
+      console.log("✅ Sesiones y usuarios cargados desde API")
     } catch (error) {
       console.error("Error cargando sesiones:", error)
       setSessions([])
+      setUsers([])
     }
   }
 
   const loadUsers = async () => {
-    try {
-      // Obtener usuarios únicos que tienen conversaciones
-      const { data, error } = await supabase
-        .from('ai_conversations')
-        .select('user_id')
-        .neq('user_id', 'ai-user') // Excluir usuario genérico
-
-      if (error) {
-        console.error("Error obteniendo user_ids:", error)
-        setUsers([])
-        return
-      }
-
-      const uniqueUserIds = [...new Set(data?.map(c => c.user_id) || [])]
-      
-      if (uniqueUserIds.length > 0) {
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, full_name, email')
-          .in('id', uniqueUserIds)
-
-        if (profilesError) {
-          console.error("Error obteniendo profiles:", profilesError)
-          setUsers([])
-          return
-        }
-        
-        setUsers(profiles || [])
-      } else {
-        setUsers([])
-      }
-    } catch (error) {
-      console.error("Error cargando usuarios:", error)
-      setUsers([])
-    }
+    // Ya se cargan en loadSessions, no hace falta hacer nada
+    console.log("Usuarios ya cargados con sesiones")
   }
 
   const deleteConversation = async (conversationId: string) => {

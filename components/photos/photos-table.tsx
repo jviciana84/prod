@@ -183,49 +183,33 @@ export default function PhotosTable() {
     
     setIsLoading(true)
     try {
-      // Obtener vehículos
-      const { data: vehiclesData, error: vehiclesError } = await supabase
-        .from("fotos")
-        .select("*")
-        .order("disponible", { ascending: false })
+      console.log("📸 Cargando datos de fotos desde API...")
+      const response = await fetch("/api/photos/list")
+      
+      if (!checkActive()) {
+        console.log("❌ PhotosTable desmontado antes de recibir respuesta")
+        return
+      }
+
+      if (!response.ok) {
+        throw new Error("Error al cargar fotos")
+      }
+
+      const { data: apiData } = await response.json()
+      const vehiclesData = apiData.fotos
 
       if (!checkActive()) {
         console.log("❌ PhotosTable desmontado después de consultar fotos")
         return
       }
-      if (vehiclesError) throw vehiclesError
 
-      // Obtener fotógrafos asignados (sin usar relaciones implícitas)
-      const { data: photographersData, error: photographersError } = await supabase
-        .from("fotos_asignadas")
-        .select("*")
-        .eq("is_active", true)
+      // Obtener fotógrafos asignados desde la API
+      const photographersData = apiData.fotosAsignadas
+      const usersData = apiData.profiles
 
       if (!checkActive()) {
-        console.log("❌ PhotosTable desmontado después de consultar fotos_asignadas")
+        console.log("❌ PhotosTable desmontado después de recibir datos API")
         return
-      }
-      if (photographersError) throw photographersError
-
-      // Obtener información de usuarios para los fotógrafos
-      const userIds = photographersData.map((p) => p.user_id)
-
-      // Solo hacer la consulta si hay IDs de usuario
-      let usersData = []
-      if (userIds.length > 0) {
-        // Obtener datos de profiles (con alias y full_name)
-        const { data: profiles, error: profilesError } = await supabase
-          .from("profiles")
-          .select("id, alias, full_name")
-          .in("id", userIds)
-
-        if (!checkActive()) {
-          console.log("❌ PhotosTable desmontado después de consultar profiles")
-          return
-        }
-        if (!profilesError && profiles) {
-          usersData = profiles
-        }
       }
 
       // Combinar datos de fotógrafos con datos de usuarios
@@ -252,6 +236,7 @@ export default function PhotosTable() {
       if (checkActive()) {
         setVehicles(vehiclesData || [])
         setPhotographers(formattedPhotographers || [])
+        setSalesVehiclesFromAPI(apiData.salesVehicles || [])
         setIsDataReady(true)
       }
     } catch (error) {
@@ -373,6 +358,7 @@ export default function PhotosTable() {
   // Estado para vehículos vendidos
   const [soldVehicles, setSoldVehicles] = useState<string[]>([])
   const [soldVehiclesCount, setSoldVehiclesCount] = useState(0)
+  const [salesVehiclesFromAPI, setSalesVehiclesFromAPI] = useState<any[]>([])
 
   // Cargar vehículos vendidos siempre (no solo cuando estés en la pestaña)
   useEffect(() => {
@@ -382,18 +368,12 @@ export default function PhotosTable() {
         if (!isActive) return
         
         try {
-        console.log("🔍 Buscando vehículos vendidos y reservados sin fotos...")
+        console.log("🔍 Buscando vehículos vendidos desde API (ya cargados)...")
         
-        // 1. Obtener vehículos vendidos de sales_vehicles
-        const { data: soldVehiclesData, error: soldError } = await supabase
-            .from("sales_vehicles")
-            .select("license_plate, model, sale_date, advisor, advisor_name")
+        // Los vehículos vendidos ya vienen del estado
+        const soldVehiclesData = salesVehiclesFromAPI
 
         if (!isActive) return
-        if (soldError) {
-          console.error("❌ Error al obtener vehículos vendidos:", soldError)
-            return
-          }
 
         // 2. Obtener vehículos reservados de duc_scraper
         const { data: reservedVehiclesData, error: reservedError } = await supabase
@@ -436,7 +416,7 @@ export default function PhotosTable() {
         isActive = false
         console.log("🧹 PhotosTable cleanup - cancelando carga de vehículos vendidos")
       }
-  }, [])
+  }, [salesVehiclesFromAPI])
 
   // Calcular datos filtrados y paginados
   useEffect(() => {

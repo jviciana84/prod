@@ -41,6 +41,7 @@ export function SalesRanking({ className }: SalesRankingProps) {
   const [annualRanking, setAnnualRanking] = useState<AnnualRanking[]>([])
   const [loading, setLoading] = useState(true)
   const [debugInfo, setDebugInfo] = useState<string>("")
+  // Cliente Supabase solo para mutaciones si es necesario
   const supabase = useMemo(() => createClientComponentClient(), [])
 
   useEffect(() => {
