@@ -297,8 +297,6 @@ export function ValidadosTable({ onRefreshRequest }: ValidadosTableProps) {
         if (Object.keys(updateData).length > 0) {
           updateData.updated_at = new Date().toISOString()
 
-          // Crear cliente fresco para evitar zombie client
-          const supabase = createClientComponentClient()
           const { error: updateError } = await supabase.from("sales_vehicles").update(updateData).eq("id", sale.id)
 
           if (updateError) {
