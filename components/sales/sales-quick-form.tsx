@@ -409,12 +409,18 @@ export function SalesQuickForm({ onSaleRegistered }: { onSaleRegistered?: () => 
 
       console.log("Datos a insertar:", salesData)
 
-      // Insertar en la tabla sales_vehicles
-      const { data: insertedData, error } = await supabase.from("sales_vehicles").insert([salesData]).select()
+      // Insertar via API Route
+      const response = await fetch("/api/sales/create-quick", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ salesData }),
+      })
 
-      if (error) {
-        console.error("Error al registrar la venta:", error)
-        setErrorMessage(`Error al registrar la venta: ${error.message}`)
+      const result = await response.json()
+
+      if (!response.ok || result.error) {
+        console.error("Error al registrar la venta:", result.error)
+        setErrorMessage(`Error al registrar la venta: ${result.error}`)
         return
       }
 

@@ -32,13 +32,21 @@ export default function AvatarSelector({ userId, currentAvatar }: AvatarSelector
     setIsLoading(true)
 
     try {
-      // Actualizar el avatar en la tabla profiles
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({ avatar_url: selectedAvatar })
-        .eq("id", userId)
+      // Actualizar avatar via API Route
+      const response = await fetch("/api/profile/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          profileData: { avatar_url: selectedAvatar },
+        }),
+      })
 
-      if (profileError) throw profileError
+      const result = await response.json()
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || "Error al actualizar avatar")
+      }
 
       // Actualizar los metadatos del usuario
       const { error: metadataError } = await supabase.auth.updateUser({

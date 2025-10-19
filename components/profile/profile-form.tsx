@@ -32,18 +32,26 @@ export default function ProfileForm({ user, profile }: ProfileFormProps) {
     setIsLoading(true)
 
     try {
-      // Actualizar directamente en la tabla profiles
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          full_name: fullName,
-          phone,
-          position,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", user.id)
+      // Actualizar via API Route
+      const response = await fetch("/api/profile/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user.id,
+          profileData: {
+            full_name: fullName,
+            phone,
+            position,
+            updated_at: new Date().toISOString(),
+          },
+        }),
+      })
 
-      if (error) throw error
+      const result = await response.json()
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || "Error al actualizar perfil")
+      }
 
       toast({
         title: "Perfil actualizado",
