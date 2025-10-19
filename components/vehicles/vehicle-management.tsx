@@ -56,6 +56,8 @@ export default function VehicleManagement({
   const initializeRecords = async () => {
     setIsLoading(true)
     try {
+      // Crear cliente fresco para evitar zombie client
+      const supabase = createClientComponentClient()
       // Inicializar registro de llaves si no existe
       if (!keys) {
         const { error: keysError } = await supabase.from("vehicle_keys").insert({

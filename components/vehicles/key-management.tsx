@@ -93,6 +93,8 @@ export function VehicleKeyManagement({ vehicleId, vehicle }: VehicleKeyManagemen
           // Si no existe, creamos un nuevo registro
           const licencePlate = vehicle.license_plate || ""
 
+          // Crear cliente fresco para evitar zombie client
+          const supabase = createClientComponentClient()
           const { data: newKeyData, error: createError } = await supabase
             .from("vehicle_keys")
             .insert({
@@ -168,7 +170,7 @@ export function VehicleKeyManagement({ vehicleId, vehicle }: VehicleKeyManagemen
       const confirmationDeadline = new Date()
       confirmationDeadline.setHours(confirmationDeadline.getHours() + 24)
 
-      // Registrar el movimiento en la tabla key_movements
+      // Registrar el movimiento en la tabla key_movements (supabase ya creado arriba)
       const { error: movementError } = await supabase.from("key_movements").insert({
         vehicle_id: vehicleId,
         key_type: data.keyType,

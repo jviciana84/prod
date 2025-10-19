@@ -103,7 +103,7 @@ export default function ConversationsClient() {
 
   // Cliente Supabase solo para mutaciones (updates/deletes)
   // Las consultas iniciales ahora usan API Routes
-  const supabase = createClientComponentClient()
+  // NOTA: Crear cliente fresco en cada mutación para evitar zombie client
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -407,6 +407,8 @@ export default function ConversationsClient() {
 
   const deleteConversation = async (conversationId: string) => {
     try {
+      // Crear cliente fresco para evitar zombie client
+      const supabase = createClientComponentClient()
       const { error } = await supabase
         .from('ai_conversations')
         .delete()
