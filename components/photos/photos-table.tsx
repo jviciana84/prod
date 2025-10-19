@@ -122,7 +122,8 @@ export default function PhotosTable() {
   
   // Usar el hook de autenticación
   const { user, profile, loading: authLoading } = useAuth()
-  const supabase = createClientComponentClient()
+  // Cliente Supabase para mutaciones
+  // NOTA: Crear cliente fresco en cada mutación para evitar zombie client
   const { toast } = useToast()
 
   // Función para generar claves únicas ultra-robustas
@@ -886,6 +887,8 @@ export default function PhotosTable() {
         photos_completed_date: completed ? new Date().toISOString() : null,
       }
 
+      // Crear cliente fresco para evitar zombie client
+      const supabase = createClientComponentClient()
       const { error } = await supabase.from("fotos").update(updates).eq("id", id)
 
       if (error) throw error
@@ -917,16 +920,20 @@ export default function PhotosTable() {
   }
 
   const handlePaintStatusChange = async (id: string) => {
+    console.log("🎨 [handlePaintStatusChange] Iniciando cambio de estado de pintura, ID:", id)
     try {
       // Obtener el vehículo actual
       const vehicle = vehicles.find((v) => v.id === id)
+      console.log("🎨 [handlePaintStatusChange] Vehículo encontrado:", vehicle?.license_plate, "Estado actual:", vehicle?.estado_pintura)
 
       if (!vehicle) {
+        console.error("❌ [handlePaintStatusChange] Vehículo no encontrado con ID:", id)
         throw new Error("Vehículo no encontrado")
       }
 
       // Si ya está en estado "apto", no permitir cambios
       if (vehicle.estado_pintura === "apto") {
+        console.log("⚠️ [handlePaintStatusChange] Intento de cambiar estado 'apto' (no permitido)")
         toast({
           title: "No permitido",
           description: "No puedes cambiar el estado de un vehículo marcado como apto por el pintor.",
@@ -937,16 +944,26 @@ export default function PhotosTable() {
 
       // Solo permitir cambiar de "pendiente" a "no_apto"
       if (vehicle.estado_pintura === "pendiente") {
+        console.log("🔄 [handlePaintStatusChange] Cambiando de 'pendiente' a 'no_apto'...")
         const now = new Date().toISOString()
         const updates = {
           estado_pintura: "no_apto" as const,
           paint_status_date: now,
         }
 
+        console.log("📤 [handlePaintStatusChange] Enviando UPDATE a Supabase:", updates)
+        // Crear cliente fresco para evitar zombie client
+        const supabase = createClientComponentClient()
         const { error } = await supabase.from("fotos").update(updates).eq("id", id)
 
-        if (error) throw error
+        if (error) {
+          console.error("❌ [handlePaintStatusChange] Error de Supabase:", error)
+          throw error
+        }
+        
+        console.log("✅ [handlePaintStatusChange] UPDATE exitoso en Supabase")
 
+        console.log("🔄 [handlePaintStatusChange] Actualizando estado local...")
         setVehicles((prev) =>
           prev.map((v) =>
             v.id === id
@@ -959,22 +976,33 @@ export default function PhotosTable() {
           ),
         )
 
+        console.log("✅ [handlePaintStatusChange] Estado actualizado a 'no_apto'")
         toast({
           title: "Estado de pintura actualizado",
           description: "El estado de pintura ha sido marcado como 'No Apto'.",
         })
       } else if (vehicle.estado_pintura === "no_apto") {
         // Permitir volver a "pendiente" desde "no_apto"
+        console.log("🔄 [handlePaintStatusChange] Cambiando de 'no_apto' a 'pendiente'...")
         const now = new Date().toISOString()
         const updates = {
           estado_pintura: "pendiente" as const,
           paint_status_date: now,
         }
 
+        console.log("📤 [handlePaintStatusChange] Enviando UPDATE a Supabase:", updates)
+        // Crear cliente fresco para evitar zombie client
+        const supabase = createClientComponentClient()
         const { error } = await supabase.from("fotos").update(updates).eq("id", id)
 
-        if (error) throw error
+        if (error) {
+          console.error("❌ [handlePaintStatusChange] Error de Supabase:", error)
+          throw error
+        }
+        
+        console.log("✅ [handlePaintStatusChange] UPDATE exitoso en Supabase")
 
+        console.log("🔄 [handlePaintStatusChange] Actualizando estado local...")
         setVehicles((prev) =>
           prev.map((v) =>
             v.id === id
@@ -987,16 +1015,19 @@ export default function PhotosTable() {
           ),
         )
 
+        console.log("✅ [handlePaintStatusChange] Estado actualizado a 'pendiente'")
         toast({
           title: "Estado de pintura actualizado",
           description: "El estado de pintura ha sido marcado como 'Pendiente'.",
         })
       }
     } catch (error) {
-      console.error("Error al cambiar estado de pintura:", error)
+      console.error("❌ [handlePaintStatusChange] ERROR COMPLETO:", error)
+      console.error("❌ [handlePaintStatusChange] Error name:", error instanceof Error ? error.name : 'unknown')
+      console.error("❌ [handlePaintStatusChange] Error message:", error instanceof Error ? error.message : error)
       toast({
         title: "Error",
-        description: "No se pudo actualizar el estado de pintura. Por favor, inténtalo de nuevo.",
+        description: `No se pudo actualizar el estado de pintura: ${error instanceof Error ? error.message : 'Error desconocido'}`,
         variant: "destructive",
       })
     }
@@ -1007,6 +1038,8 @@ export default function PhotosTable() {
       // Obtener información del vehículo antes de actualizar
       const vehicle = vehicles.find(v => v.id === id)
       
+      // Crear cliente fresco para evitar zombie client
+      const supabase = createClientComponentClient()
       const { error } = await supabase.from("fotos").update({ assigned_to: photographerId }).eq("id", id)
 
       if (error) throw error
@@ -1095,6 +1128,9 @@ export default function PhotosTable() {
     try {
       console.log("🔍 [handleMarkAsError] Iniciando proceso para ID:", id)
       
+      // Crear cliente fresco para evitar zombie client
+      const supabase = createClientComponentClient()
+      
       // 1. Obtener el vehículo
       const { data: vehicle, error: fetchError } = await supabase.from("fotos").select("*").eq("id", id).single()
 
@@ -1175,6 +1211,9 @@ export default function PhotosTable() {
     try {
       console.log("🔍 [handleSubsanateError] Iniciando proceso para ID:", id)
       
+      // Crear cliente fresco para evitar zombie client
+      const supabase = createClientComponentClient()
+      
       // 1. Obtener el vehículo
       const { data: vehicle, error: fetchError } = await supabase.from("fotos").select("*").eq("id", id).single()
 
@@ -1252,6 +1291,8 @@ export default function PhotosTable() {
     }
 
     try {
+      // Crear cliente fresco para evitar zombie client
+      const supabase = createClientComponentClient()
       const { error } = await supabase.from("fotos").delete().eq("id", id)
 
       if (error) throw error
