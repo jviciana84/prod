@@ -39,7 +39,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
-import { createClientComponentClient } from "@/lib/supabase/client"
+// Supabase client no necesario - mutations usan API Routes
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import type { Entrega, TipoIncidencia } from "@/types/entregas"
 import { enviarEntregaAIncentivos } from "@/server-actions/incentivos-actions"
@@ -266,48 +266,35 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
     }
 
     const isTipoPresente = entregaToUpdate.tipos_incidencia?.includes(tipo)
-    const nuevosTiposIncidencia: TipoIncidencia[] = isTipoPresente
-      ? entregaToUpdate.tipos_incidencia.filter((t) => t !== tipo)
-      : [...(entregaToUpdate.tipos_incidencia || []), tipo]
-
-    const updateObject = {
-      tipos_incidencia: nuevosTiposIncidencia,
-      incidencia: nuevosTiposIncidencia.length > 0,
-    }
-
-    // Actualización optimista del estado local
-    setEntregas((prev) => prev.map((e) => (e.id === entregaId ? { ...e, ...updateObject } : e)))
 
     try {
-      // Crear cliente fresco para evitar zombie client
-      const supabase = createClientComponentClient()
-      const { error: dbError } = await supabase.from("entregas").update(updateObject).eq("id", entregaId)
-      if (dbError) throw dbError
+      const response = await fetch("/api/entregas/update-incidencia", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          entregaId, 
+          tipo, 
+          adding: !isTipoPresente,
+          matricula: entregaToUpdate.matricula 
+        }),
+      })
 
-      // Actualizar historial de incidencias
-      if (isTipoPresente) {
-        // Se está quitando/resolviendo una incidencia
-        const { error: updateHistorialError } = await supabase
-          .from("incidencias_historial")
-          .update({ resuelta: true, fecha_resolucion: new Date().toISOString() })
-          .eq("matricula", entregaToUpdate.matricula)
-          .eq("tipo_incidencia", tipo)
-          .eq("resuelta", false)
+      const result = await response.json()
 
-        if (updateHistorialError) console.error("Error al marcar incidencia como resuelta:", updateHistorialError)
-      } else {
-        // Se está añadiendo una nueva incidencia (supabase ya definido arriba)
-        const { error: insertHistorialError } = await supabase.from("incidencias_historial").insert({
-          entrega_id: entregaId,
-          matricula: entregaToUpdate.matricula,
-          tipo_incidencia: tipo,
-          accion: "añadida",
-          resuelta: false,
-          fecha: new Date().toISOString(),
-        })
-        if (insertHistorialError)
-          console.error("Error al registrar nueva incidencia en historial:", insertHistorialError)
+      if (!response.ok || result.error) {
+        throw new Error(result.error || "Error al actualizar incidencia")
       }
+
+      // Actualizar estado local
+      setEntregas((prev) => prev.map((e) => 
+        e.id === entregaId 
+          ? { 
+              ...e, 
+              tipos_incidencia: result.nuevosTipos,
+              incidencia: result.nuevosTipos.length > 0 
+            } 
+          : e
+      ))
 
       toast.success(`${isTipoPresente ? "Eliminada" : "Añadida"} incidencia "${tipo}"`)
     } catch (error: any) {
