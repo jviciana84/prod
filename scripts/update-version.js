@@ -54,8 +54,8 @@ function generateVersion() {
   const shortHash = getShortHash();
   const timestamp = getLastCommitTimestamp();
   
-  // Formato: 1.1.{commitCount}-{shortHash}
-  return `1.1.${commitCount}-${shortHash}`;
+  // Formato: 1.2.{commitCount}-{shortHash} (v1.2.0 = Migración completa API Routes)
+  return `1.2.${commitCount}-${shortHash}`;
 }
 
 // Función para actualizar el archivo de versiones
