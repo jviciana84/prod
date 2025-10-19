@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { getSupabaseClient } from "@/lib/supabase/singleton"
+import { createClientComponentClient } from "@/lib/supabase/client"
 import { useToast } from "@/hooks/use-toast"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
@@ -136,8 +136,7 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
   })
   const [expenseTypes, setExpenseTypes] = useState<Array<{ value: string; label: string }>>([])
 
-  const supabase = getSupabaseClient()
-  console.log("🔌 Supabase client inicializado:", !!supabase)
+  // NOTA: Crear cliente fresco en cada mutación para evitar zombie client
   const { toast } = useToast()
   const externalProviderInputRef = useRef<HTMLInputElement>(null)
   const orInputRef = useRef<HTMLInputElement>(null)
@@ -779,6 +778,7 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
       }
 
       // Actualizar en la base de datos
+      const supabase = createClientComponentClient()
       const { error } = await supabase.from("stock").update(updateData).eq("id", editingId)
 
       if (error) {
@@ -831,6 +831,7 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
     if (!licensePlate) return
 
     try {
+      const supabase = createClientComponentClient()
       const { error } = await supabase
         .from("fotos")
         .update({
@@ -883,6 +884,7 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
       }
 
       // Actualizar en la base de datos
+      const supabase = createClientComponentClient()
       const { error } = await supabase.from("stock").update(updateData).eq("id", item.id)
 
       if (error) {
@@ -956,6 +958,7 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
       }
 
       // Actualizar en la base de datos
+      const supabase = createClientComponentClient()
       const { error } = await supabase.from("stock").update(updateData).eq("id", item.id)
 
       if (error) {
@@ -1043,6 +1046,7 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
       }
 
       // Actualizar en la base de datos
+      const supabase = createClientComponentClient()
       const { error } = await supabase.from("stock").update(updateData).eq("id", item.id)
 
       if (error) {
@@ -1116,6 +1120,7 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
       const orValue = orValues[id] || "ORT"
 
       // Actualizar en la base de datos
+      const supabase = createClientComponentClient()
       const { error } = await supabase.from("stock").update({ work_order: orValue }).eq("id", id)
 
       if (error) {
@@ -1179,6 +1184,7 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
     try {
       setPendingUpdates((prev) => new Set(prev).add(item.id))
 
+      const supabase = createClientComponentClient()
       const { error } = await supabase
         .from("stock")
         .update({ expense_charge: value })
@@ -1251,6 +1257,7 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
         }
 
         // Actualizar en la base de datos
+        const supabase = createClientComponentClient()
         const { data, error } = await supabase
           .from("stock")
           .update(updateData)

@@ -47,7 +47,7 @@ interface VehicleDocumentManagementProps {
 
 // Exportación nombrada para mantener compatibilidad con el código existente
 export function VehicleDocumentManagement({ vehicleId, vehicle }: VehicleDocumentManagementProps) {
-  const supabase = createClientComponentClient()
+  // NOTA: Crear cliente fresco en cada mutación para evitar zombie client
   const router = useRouter()
 
   const [documentData, setDocumentData] = useState<any>(null)
@@ -93,6 +93,8 @@ export function VehicleDocumentManagement({ vehicleId, vehicle }: VehicleDocumen
           // Si no existe, creamos un nuevo registro
           const licencePlate = vehicle.license_plate || ""
 
+          // Crear cliente fresco para evitar zombie client
+          const supabase = createClientComponentClient()
           const { data: newDocData, error: createError } = await supabase
             .from("vehicle_documents")
             .insert({
