@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { RefreshCw, X } from "lucide-react"
+import { RefreshCw } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export function PWAUpdatePrompt() {
@@ -56,29 +56,16 @@ export function PWAUpdatePrompt() {
     }
   }
 
-  const handleDismiss = () => {
-    setShowPrompt(false)
-  }
-
   if (!showPrompt) return null
 
   return (
-    <div className="fixed bottom-4 right-4 z-[9999] animate-in slide-in-from-bottom-5 duration-500">
+    <div className="fixed top-4 left-4 z-[9999] animate-in slide-in-from-top-5 duration-500">
       <Card
         className={cn(
           "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-2xl border-0",
-          "p-4 pr-12 max-w-sm relative"
+          "p-4 max-w-sm"
         )}
       >
-        {/* Botón cerrar */}
-        <button
-          onClick={handleDismiss}
-          className="absolute top-2 right-2 p-1 rounded-full hover:bg-white/20 transition-colors"
-          aria-label="Cerrar"
-        >
-          <X className="h-4 w-4" />
-        </button>
-
         {/* Contenido */}
         <div className="flex items-start gap-3">
           <div className="mt-1">

@@ -109,6 +109,7 @@ const NoDataMessage = ({ message = "No hay datos disponibles" }: { message?: str
 export default function StockTable({ initialStock = [], onRefresh }: StockTableProps) {
   console.log("🚀 StockTable - Componente iniciando con initialStock:", initialStock.length)
   
+  const supabase = createClientComponentClient()
   const [stock, setStock] = useState<StockItem[]>(initialStock)
   const [filteredStock, setFilteredStock] = useState<StockItem[]>(initialStock)
   const [displayedStock, setDisplayedStock] = useState<StockItem[]>([])
