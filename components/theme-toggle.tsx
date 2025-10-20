@@ -1,11 +1,11 @@
 "use client"
 import { Moon, Sun, Sunset } from "lucide-react"
-import { useTheme } from "next-themes"
+import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import { useState, useEffect, useRef } from "react"
 
 export function ThemeToggle() {
-  const { setTheme, theme } = useTheme()
+  const themeContext = useTheme()
   const [isOpen, setIsOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -14,6 +14,13 @@ export function ThemeToggle() {
   useEffect(() => {
     setMounted(true)
   }, [])
+  
+  // Protección mientras se monta
+  if (!themeContext) {
+    return null
+  }
+  
+  const { setTheme, theme } = themeContext
 
   // Manejar eventos de clic fuera del menú
   useEffect(() => {

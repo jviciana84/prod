@@ -1,4 +1,5 @@
 import type { UserPreferences, UserPreferencesInput, PageInfo } from "@/types/user-preferences"
+import { createClientComponentClient } from "@/lib/supabase/client"
 
 // Páginas disponibles para favoritos
 export const availablePages: PageInfo[] = [
@@ -15,20 +16,22 @@ export const availablePages: PageInfo[] = [
 ]
 
 // Función para obtener las preferencias del usuario
+// ✅ CONSULTA: usa cliente directo (sin API Route)
 export async function getUserPreferences(userId: string): Promise<UserPreferences | null> {
   try {
-    const response = await fetch("/api/preferences", {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    })
+    const supabase = createClientComponentClient()
+    
+    const { data, error } = await supabase
+      .from("user_preferences")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle()
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+    if (error) {
+      console.error("Error al obtener preferencias:", error)
+      return null
     }
 
-    const data = await response.json()
     return data as UserPreferences | null
   } catch (error) {
     console.error("Error al obtener preferencias:", error)
@@ -37,6 +40,7 @@ export async function getUserPreferences(userId: string): Promise<UserPreference
 }
 
 // Función para guardar las preferencias del usuario
+// ✅ MUTACIÓN: usa API Route obligatoria
 export async function saveUserPreferences(
   userId: string,
   preferences: UserPreferencesInput,

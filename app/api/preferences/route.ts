@@ -4,8 +4,8 @@ import { cookies } from "next/headers"
 
 // GET - Obtener preferencias del usuario
 export async function GET(request: NextRequest) {
-  const cookieStore = cookies()
-  const supabase = createServerClient(cookieStore)
+  const cookieStore = await cookies()
+  const supabase = await createServerClient(cookieStore)
 
   const { data: { session } } = await supabase.auth.getSession()
 
@@ -51,8 +51,8 @@ export async function GET(request: NextRequest) {
 
 // POST/PUT - Guardar/actualizar preferencias del usuario
 export async function POST(request: NextRequest) {
-  const cookieStore = cookies()
-  const supabase = createServerClient(cookieStore)
+  const cookieStore = await cookies()
+  const supabase = await createServerClient(cookieStore)
 
   const { data: { session } } = await supabase.auth.getSession()
 

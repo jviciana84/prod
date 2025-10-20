@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import { useTheme } from "next-themes"
+import { useTheme } from "@/components/theme-provider"
 
 interface CardiogramLineProps {
   className?: string
@@ -12,6 +12,8 @@ export function CardiogramLine({ className = "" }: CardiogramLineProps) {
   const { theme } = useTheme()
 
   useEffect(() => {
+    if (!theme) return // Esperar a que el tema esté listo
+    
     const canvas = canvasRef.current
     if (!canvas) return
 

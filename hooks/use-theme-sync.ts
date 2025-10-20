@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useTheme } from "next-themes"
+import { useTheme } from "@/components/theme-provider"
 
 export function useThemeSync() {
   const { theme, resolvedTheme } = useTheme()
@@ -13,7 +13,7 @@ export function useThemeSync() {
   }, [])
 
   useEffect(() => {
-    if (!mounted) return
+    if (!mounted || !theme) return
 
     const active = resolvedTheme || theme || "dark"
     setCurrentTheme(active)

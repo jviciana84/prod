@@ -78,13 +78,7 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} antialiased`} suppressHydrationWarning>
         {/* <ThemeInitializer /> */}
-        <ThemeProvider 
-          attribute="class" 
-          defaultTheme="dark" 
-          enableSystem 
-          disableTransitionOnChange
-          storageKey="theme"
-        >
+        <ThemeProvider>
           {/* <ThemeHtmlSync /> */}
           {/* <RoundFavicon /> */}
           <AuthProvider>
