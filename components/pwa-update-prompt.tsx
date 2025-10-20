@@ -84,35 +84,20 @@ export function PWAUpdatePrompt() {
         )}
       >
         {/* Contenido */}
-        <div className="flex items-start gap-3">
-          <div className="mt-1">
-            <RefreshCw className={cn("h-5 w-5", isUpdating && "animate-spin")} />
-          </div>
-          <div className="flex-1">
-            <h3 className="font-bold text-sm mb-1">🔄 Actualización disponible</h3>
-            <p className="text-xs opacity-90 mb-3">
-              Nueva versión v1.2.0 lista. Haz clic para actualizar ahora.
-            </p>
-            <Button
-              onClick={handleUpdate}
-              disabled={isUpdating}
-              size="sm"
-              variant="secondary"
-              className="bg-white text-green-600 hover:bg-white/90 font-semibold"
-            >
-              {isUpdating ? (
-                <>
-                  <RefreshCw className="h-3 w-3 mr-2 animate-spin" />
-                  Actualizando...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="h-3 w-3 mr-2" />
-                  Actualizar ahora
-                </>
-              )}
-            </Button>
-          </div>
+        <div className="flex-1">
+          <h3 className="font-bold text-sm mb-1">Actualización disponible</h3>
+          <p className="text-xs opacity-90 mb-3">
+            Nueva versión v1.2.0 lista. Haz clic para actualizar ahora.
+          </p>
+          <Button
+            onClick={handleUpdate}
+            disabled={isUpdating}
+            size="sm"
+            variant="secondary"
+            className="bg-white text-green-600 hover:bg-white/90 font-semibold"
+          >
+            {isUpdating ? "Actualizando..." : "Actualizar ahora"}
+          </Button>
         </div>
       </Card>
     </div>

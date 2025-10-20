@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Mail, RefreshCw, KeyRound, Key, Users } from "lucide-react"
+import { Mail, RefreshCw, KeyRound, Key, Users, Zap } from "lucide-react"
 import Link from "next/link"
 
 import type React from "react"
@@ -80,6 +80,10 @@ export default function UserManagement() {
 
   // Add a new state variable to store the dynamically fetched roles:
   const [availableRoles, setAvailableRoles] = useState<any[]>([])
+
+  // Estado para forzar actualización
+  const [isForcingUpdate, setIsForcingUpdate] = useState(false)
+  const [isDeactivatingUpdate, setIsDeactivatingUpdate] = useState(false)
 
   useEffect(() => {
     fetchUsers()
@@ -185,6 +189,112 @@ export default function UserManagement() {
     } catch (error) {
       console.warn("⚠️ Error al cargar avatar aleatorio (continuando sin avatar):", error)
       // No fallar, simplemente continuar sin avatar
+    }
+  }
+
+  async function handleForceUpdate() {
+    setIsForcingUpdate(true)
+    try {
+      // Obtener el userId actual
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        toast({
+          title: "Error",
+          description: "No se pudo obtener el usuario actual",
+          variant: "destructive",
+        })
+        setIsForcingUpdate(false)
+        return
+      }
+
+      const response = await fetch("/api/admin/force-update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          isActive: true,
+          message: "Actualización del sistema requerida",
+          userId: user.id
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error("Error al forzar actualización")
+      }
+
+      toast({
+        title: "✅ Actualización forzada",
+        description: "Todos los usuarios verán el popup al iniciar sesión",
+      })
+
+      // Disparar evento para verificación inmediata
+      window.dispatchEvent(new CustomEvent('force-update'))
+      
+      // También forzar recarga de la página para ver el popup inmediatamente
+      setTimeout(() => {
+        window.location.reload()
+      }, 1000)
+    } catch (error) {
+      console.error("Error al forzar actualización:", error)
+      toast({
+        title: "Error",
+        description: "No se pudo forzar la actualización",
+        variant: "destructive",
+      })
+    } finally {
+      setIsForcingUpdate(false)
+    }
+  }
+
+  async function handleDeactivateUpdate() {
+    setIsDeactivatingUpdate(true)
+    try {
+      // Obtener el userId actual
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        toast({
+          title: "Error",
+          description: "No se pudo obtener el usuario actual",
+          variant: "destructive",
+        })
+        setIsDeactivatingUpdate(false)
+        return
+      }
+
+      const response = await fetch("/api/admin/force-update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          isActive: false,
+          message: "Actualización del sistema requerida",
+          userId: user.id
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error("Error al desactivar actualización")
+      }
+
+      toast({
+        title: "✅ Actualización desactivada",
+        description: "El popup ya no aparecerá a los usuarios",
+      })
+
+      // Disparar evento para verificación inmediata
+      window.dispatchEvent(new CustomEvent('force-update'))
+      
+      // También forzar recarga de la página
+      setTimeout(() => {
+        window.location.reload()
+      }, 1000)
+    } catch (error) {
+      console.error("Error al desactivar actualización:", error)
+      toast({
+        title: "Error",
+        description: "No se pudo desactivar la actualización",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeactivatingUpdate(false)
     }
   }
 
@@ -628,7 +738,43 @@ export default function UserManagement() {
             <CardTitle>Gestión de Usuarios</CardTitle>
             <CardDescription>Administra los usuarios y sus roles en el sistema</CardDescription>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={handleForceUpdate}
+              disabled={isForcingUpdate || isDeactivatingUpdate}
+              variant="destructive"
+              size="sm"
+            >
+              {isForcingUpdate ? (
+                <>
+                  <RefreshCw className="mr-2 h-3 w-3 animate-spin" />
+                  Forzando...
+                </>
+              ) : (
+                <>
+                  <Zap className="mr-2 h-3 w-3" />
+                  Forzar actualización
+                </>
+              )}
+            </Button>
+            <Button
+              onClick={handleDeactivateUpdate}
+              disabled={isForcingUpdate || isDeactivatingUpdate}
+              variant="outline"
+              size="sm"
+            >
+              {isDeactivatingUpdate ? (
+                <>
+                  <RefreshCw className="mr-2 h-3 w-3 animate-spin" />
+                  Desactivando...
+                </>
+              ) : (
+                <>
+                  <Zap className="mr-2 h-3 w-3" />
+                  Desactivar
+                </>
+              )}
+            </Button>
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
                 <Button>
