@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Eye, EyeOff, Lock, Mail, AlertCircle } from "lucide-react"
@@ -20,6 +20,14 @@ import { Logo } from "@/components/ui/logo"
 // Definir la versión actual de la aplicación
 const APP_VERSION = "1.0.0"
 
+// Array de videos disponibles en Supabase Storage
+const LOGIN_VIDEOS = [
+  "https://wpjmimbscfsdzcwuwctk.supabase.co/storage/v1/object/public/videos/Video_BMW_M_GT_CVO_2.mp4",
+  "https://wpjmimbscfsdzcwuwctk.supabase.co/storage/v1/object/public/videos/BMW_M_HYBRID_V.mp4",
+  "https://wpjmimbscfsdzcwuwctk.supabase.co/storage/v1/object/public/videos/BMW_M_GT_Carreras.mp4",
+  "https://wpjmimbscfsdzcwuwctk.supabase.co/storage/v1/object/public/videos/Video_BMW_M_GT_CVO.mp4"
+]
+
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -28,6 +36,11 @@ export default function LoginPage() {
   const [videoEnded, setVideoEnded] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
+
+  // Seleccionar video aleatorio al montar el componente
+  const randomVideo = useMemo(() => {
+    return LOGIN_VIDEOS[Math.floor(Math.random() * LOGIN_VIDEOS.length)]
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -90,7 +103,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Video de fondo BMW - reproducción única sin audio */}
+      {/* Video de fondo BMW - reproducción única sin audio (aleatorio) */}
       <video
         autoPlay
         muted
@@ -102,7 +115,7 @@ export default function LoginPage() {
         className="absolute inset-0 w-full h-full object-cover pointer-events-none"
         style={{ zIndex: 0 }}
       >
-        <source src="https://wpjmimbscfsdzcwuwctk.supabase.co/storage/v1/object/public/videos/Video_BMW_M_GT_CVO_2.mp4" type="video/mp4" />
+        <source src={randomVideo} type="video/mp4" />
       </video>
       <div 
         className={`absolute inset-0 transition-all duration-1000 ${videoEnded ? 'bg-black/55' : 'bg-black/20'}`}
