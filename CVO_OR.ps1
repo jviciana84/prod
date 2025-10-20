@@ -122,7 +122,7 @@ $textMatricula.Add_KeyDown({
 
 # Evitar que se cierre al presionar X, solo ocultar
 $form.Add_FormClosing({
-    param($sender, $e)
+    param($formSender, $e)
     if ($e.CloseReason -eq [System.Windows.Forms.CloseReason]::UserClosing) {
         $e.Cancel = $true
         $form.Visible = $false
@@ -193,6 +193,8 @@ $form.Add_Disposed({
 
 # Loop de mensajes
 [System.Windows.Forms.Application]::Run($form)
+
+
 
 
 

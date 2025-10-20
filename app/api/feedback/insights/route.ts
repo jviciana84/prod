@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
       .select(`
         feedback_text,
         created_at,
-        ai_conversations!inner(message, response)
+        ai_conversations(message, response)
       `)
       .eq('feedback_type', 'negative')
       .not('feedback_text', 'is', null)

@@ -114,7 +114,7 @@ export default function KeysManagementPage() {
       try {
         const { data, error } = await supabase
           .from("key_document_requests")
-          .select("id, key_document_materials!inner(id, selected)")
+          .select("id, key_document_materials(id, selected)")
           .eq("status", "pending")
         
         if (error) {
@@ -142,7 +142,7 @@ export default function KeysManagementPage() {
       try {
         const { data, error } = await supabase
           .from("circulation_permit_requests")
-          .select("id, circulation_permit_materials!inner(id, selected)")
+          .select("id, circulation_permit_materials(id, selected)")
           .eq("status", "pending")
         
         if (error) {

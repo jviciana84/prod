@@ -137,3 +137,4 @@ window.checkThemeStatus = checkThemeStatus
 console.log('📋 Funciones disponibles:')
 console.log('  - migrateThemesToSupabase() - Migrar tema a Supabase')
 console.log('  - checkThemeStatus() - Verificar estado actual')
+

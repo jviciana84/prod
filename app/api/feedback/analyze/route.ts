@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       .from('ai_feedback')
       .select(`
         *,
-        ai_conversations!inner(message, response, context_data)
+        ai_conversations(message, response, context_data)
       `)
       .eq('feedback_type', 'negative')
       .gte('created_at', thirtyDaysAgo.toISOString())

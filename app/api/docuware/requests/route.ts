@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
         .from("key_document_requests")
         .select(`
           *,
-          key_document_materials!inner (
+          key_document_materials (
             id,
             material_type,
             material_label,
