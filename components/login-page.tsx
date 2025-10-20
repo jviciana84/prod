@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useMemo } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Eye, EyeOff, Lock, Mail, AlertCircle } from "lucide-react"
@@ -29,6 +29,14 @@ const LOGIN_VIDEOS = [
 ]
 
 export default function LoginPage() {
+  // Seleccionar video aleatorio al montar el componente (se ejecuta en cada montaje)
+  const [randomVideo] = useState(() => {
+    const selectedVideo = LOGIN_VIDEOS[Math.floor(Math.random() * LOGIN_VIDEOS.length)]
+    const videoName = selectedVideo.split('/').pop()
+    console.log(`🎬 Video de login seleccionado: ${videoName}`)
+    return selectedVideo
+  })
+  
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -36,11 +44,6 @@ export default function LoginPage() {
   const [videoEnded, setVideoEnded] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
-
-  // Seleccionar video aleatorio al montar el componente
-  const randomVideo = useMemo(() => {
-    return LOGIN_VIDEOS[Math.floor(Math.random() * LOGIN_VIDEOS.length)]
-  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()

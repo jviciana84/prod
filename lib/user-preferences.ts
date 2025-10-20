@@ -1,4 +1,3 @@
-import { createClientComponentClient } from "@/lib/supabase/client"
 import type { UserPreferences, UserPreferencesInput, PageInfo } from "@/types/user-preferences"
 
 // Páginas disponibles para favoritos
@@ -17,33 +16,20 @@ export const availablePages: PageInfo[] = [
 
 // Función para obtener las preferencias del usuario
 export async function getUserPreferences(userId: string): Promise<UserPreferences | null> {
-  const supabase = createClientComponentClient()
-
   try {
-    // Primero verificamos si existe un registro para este usuario
-    const { data, error, count } = await supabase
-      .from("user_preferences")
-      .select("*", { count: "exact" })
-      .eq("user_id", userId)
+    const response = await fetch("/api/preferences", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
 
-    // Si hay un error o no hay registros, devolvemos null
-    if (error || !count || count === 0) {
-      console.log("No se encontraron preferencias para el usuario:", userId)
-      return null
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
     }
 
-    // Si hay exactamente un registro, lo devolvemos
-    if (count === 1 && data && data.length === 1) {
-      return data[0] as UserPreferences
-    }
-
-    // Si hay múltiples registros, usamos el primero y registramos una advertencia
-    if (count > 1 && data && data.length > 0) {
-      console.warn(`Se encontraron ${count} registros de preferencias para el usuario ${userId}. Usando el primero.`)
-      return data[0] as UserPreferences
-    }
-
-    return null
+    const data = await response.json()
+    return data as UserPreferences | null
   } catch (error) {
     console.error("Error al obtener preferencias:", error)
     return null
@@ -55,68 +41,21 @@ export async function saveUserPreferences(
   userId: string,
   preferences: UserPreferencesInput,
 ): Promise<UserPreferences | null> {
-  const supabase = createClientComponentClient()
-
   try {
-    // Verificar si ya existen preferencias para este usuario
-    const { data: existingData, count } = await supabase
-      .from("user_preferences")
-      .select("id", { count: "exact" })
-      .eq("user_id", userId)
+    const response = await fetch("/api/preferences", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(preferences),
+    })
 
-    const now = new Date().toISOString()
-
-    // Si hay múltiples registros, eliminamos todos excepto el primero
-    if (count && count > 1 && existingData && existingData.length > 1) {
-      console.warn(`Se encontraron ${count} registros de preferencias para el usuario ${userId}. Limpiando duplicados.`)
-
-      // Mantener solo el primer registro
-      const keepId = existingData[0].id
-
-      // Eliminar los demás registros
-      await supabase.from("user_preferences").delete().eq("user_id", userId).neq("id", keepId)
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
     }
 
-    if (existingData && existingData.length > 0) {
-      // Actualizar preferencias existentes
-      const { data, error } = await supabase
-        .from("user_preferences")
-        .update({
-          ...preferences,
-          updated_at: now,
-        })
-        .eq("id", existingData[0].id)
-        .select("*")
-        .single()
-
-      if (error) {
-        console.error("Error al actualizar preferencias:", error)
-        return null
-      }
-
-      return data as UserPreferences
-    } else {
-      // Crear nuevas preferencias
-      const { data, error } = await supabase
-        .from("user_preferences")
-        .insert({
-          user_id: userId,
-          theme: preferences.theme || "system",
-          main_page: preferences.main_page || null,
-          favorite_pages: preferences.favorite_pages || [],
-          created_at: now,
-          updated_at: now,
-        })
-        .select("*")
-        .single()
-
-      if (error) {
-        console.error("Error al crear preferencias:", error)
-        return null
-      }
-
-      return data as UserPreferences
-    }
+    const data = await response.json()
+    return data as UserPreferences
   } catch (error) {
     console.error("Error al guardar preferencias:", error)
     return null

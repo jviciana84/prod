@@ -18,18 +18,18 @@ export function GothicEIcon({ onClick, className = "" }: GothicEIconProps) {
     let timeoutId: NodeJS.Timeout
 
     const startCycle = () => {
-      // Cara A (E gótica) por 8 segundos
+      // Cara A (E gótica) por 4 segundos
       setIsRotated(false)
       
       timeoutId = setTimeout(() => {
-        // Cara B (degradado) por 1 segundo
+        // Cara B (degradado) por 1.6 segundos
         setIsRotated(true)
         
         setTimeout(() => {
           // Volver a empezar el ciclo
           startCycle()
-        }, 1000)
-      }, 8000)
+        }, 1600)
+      }, 4000)
     }
 
     startCycle()

@@ -888,7 +888,10 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
                         variant="outline"
                         size="sm"
                         className="w-full justify-between text-xs h-8 mb-1.5 group relative overflow-hidden border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30"
-                        onClick={() => router.push(mainFavorite.path)}
+                        onClick={() => {
+                          setIsMenuOpen(false)
+                          router.push(mainFavorite.path)
+                        }}
                       >
                         <div className="flex items-center">
                           <div className="w-5 flex justify-center">
@@ -915,7 +918,10 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
                             variant="ghost"
                             size="sm"
                             className="justify-start text-xs h-7 group relative overflow-hidden px-2"
-                            onClick={() => router.push(page.path)}
+                            onClick={() => {
+                              setIsMenuOpen(false)
+                              router.push(page.path)
+                            }}
                           >
                             <div className="w-5 flex justify-center">
                               <Star className="h-3.5 w-3.5 text-amber-500" />
@@ -936,7 +942,10 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
                         variant="outline"
                         size="sm"
                         className="w-full text-xs"
-                        onClick={() => router.push("/dashboard/settings")}
+                        onClick={() => {
+                          setIsMenuOpen(false)
+                          router.push("/dashboard/settings")
+                        }}
                       >
                         <Heart className="h-3.5 w-3.5 mr-2 text-red-500" />
                         Gestionar favoritos
@@ -949,7 +958,10 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
                     <Button
                       variant="ghost"
                       className="w-full justify-start text-xs h-7 relative overflow-hidden group px-2"
-                      onClick={() => router.push("/dashboard/directory")}
+                      onClick={() => {
+                        setIsMenuOpen(false)
+                        router.push("/dashboard/directory")
+                      }}
                     >
                       <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 opacity-0 group-hover:opacity-10 transition-opacity"></div>
                       <div className="w-5 flex justify-center">
@@ -960,7 +972,10 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
                     <Button
                       variant="ghost"
                       className="w-full justify-start text-xs h-7 relative overflow-hidden group px-2"
-                      onClick={() => router.push("/dashboard/settings")}
+                      onClick={() => {
+                        setIsMenuOpen(false)
+                        router.push("/dashboard/settings")
+                      }}
                     >
                       <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 opacity-0 group-hover:opacity-10 transition-opacity"></div>
                       <div className="w-5 flex justify-center">

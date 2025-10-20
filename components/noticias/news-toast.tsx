@@ -66,10 +66,10 @@ export function NewsToast({ news, onClose, onNavigate }: NewsToastProps) {
   return (
     <div
       className={cn(
-        "fixed right-4 top-1/2 -translate-y-1/2 z-50 w-96 max-w-[calc(100vw-2rem)]",
+        "fixed left-1/2 -translate-x-1/2 z-50 w-96 max-w-[calc(100vw-2rem)]",
         "bg-card border border-border rounded-lg shadow-2xl overflow-hidden",
-        "transform transition-all duration-300 ease-out",
-        isVisible && !isLeaving ? "translate-x-0 opacity-100" : "translate-x-full opacity-0",
+        "transform transition-all duration-500 ease-out",
+        isVisible && !isLeaving ? "top-16 opacity-100" : "-top-full opacity-0",
         "cursor-pointer hover:shadow-3xl hover:scale-[1.02]"
       )}
       onClick={handleClick}
