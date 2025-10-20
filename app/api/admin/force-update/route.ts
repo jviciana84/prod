@@ -31,6 +31,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No se encontró registro de forced_updates" }, { status: 404 })
     }
 
+    // Si se está desactivando, limpiar todos los registros de user_forced_updates
+    if (!isActive) {
+      const { error: deleteError } = await supabaseAdmin
+        .from("user_forced_updates")
+        .delete()
+        .neq("id", "00000000-0000-0000-0000-000000000000") // Eliminar todos los registros
+      
+      if (deleteError) {
+        console.error("Error al limpiar user_forced_updates:", deleteError)
+        return NextResponse.json({ error: deleteError.message }, { status: 500 })
+      }
+    }
+
     // Actualizar el estado de forced_updates
     const { data, error } = await supabaseAdmin
       .from("forced_updates")
@@ -50,7 +63,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, data })
+    const actionMessage = isActive 
+      ? "Actualización forzada activada" 
+      : "Actualización desactivada y registros limpiados"
+
+    return NextResponse.json({ success: true, data, message: actionMessage })
   } catch (error) {
     console.error("Error en force-update API:", error)
     return NextResponse.json(
