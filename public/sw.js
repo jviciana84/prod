@@ -48,12 +48,8 @@ self.addEventListener('activate', (event) => {
     ])
   )
   
-  // Notificar a todos los clientes que hay nueva versión
-  self.clients.matchAll().then(clients => {
-    clients.forEach(client => {
-      client.postMessage({ type: 'SW_UPDATED', version: '1.2.0' })
-    })
-  })
+  // NO notificar inmediatamente - solo cuando hay un SW esperando
+  // El cliente verificará si hay un SW waiting al cargar
 })
 
 // Escuchar mensajes del cliente (para SKIP_WAITING)

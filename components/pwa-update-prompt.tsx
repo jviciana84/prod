@@ -13,6 +13,19 @@ export function PWAUpdatePrompt() {
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return
 
+    // Verificar si hay un Service Worker esperando al cargar
+    const checkForWaitingSW = async () => {
+      try {
+        const registration = await navigator.serviceWorker.getRegistration()
+        if (registration?.waiting) {
+          console.log("🔄 Service Worker esperando activación")
+          setShowPrompt(true)
+        }
+      } catch (error) {
+        console.log("Error verificando Service Worker:", error)
+      }
+    }
+
     // Escuchar mensajes del Service Worker
     const handleMessage = (event: MessageEvent) => {
       if (event.data && event.data.type === "SW_UPDATED") {
@@ -21,6 +34,10 @@ export function PWAUpdatePrompt() {
       }
     }
 
+    // Verificar al cargar
+    checkForWaitingSW()
+
+    // Escuchar mensajes
     navigator.serviceWorker.addEventListener("message", handleMessage)
 
     // Detectar cuando Service Worker se actualiza
@@ -62,8 +79,8 @@ export function PWAUpdatePrompt() {
     <div className="fixed top-4 left-4 z-[9999] animate-in slide-in-from-top-5 duration-500">
       <Card
         className={cn(
-          "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-2xl border-0",
-          "p-4 max-w-sm"
+          "bg-gradient-to-r from-green-500 to-green-600 text-white shadow-2xl border-0",
+          "p-4 max-w-sm animate-pulse"
         )}
       >
         {/* Contenido */}
@@ -72,16 +89,16 @@ export function PWAUpdatePrompt() {
             <RefreshCw className={cn("h-5 w-5", isUpdating && "animate-spin")} />
           </div>
           <div className="flex-1">
-            <h3 className="font-bold text-sm mb-1">Nueva versión disponible</h3>
+            <h3 className="font-bold text-sm mb-1">🔄 Actualización disponible</h3>
             <p className="text-xs opacity-90 mb-3">
-              Hay una actualización importante. Haz clic para actualizar ahora.
+              Nueva versión v1.2.0 lista. Haz clic para actualizar ahora.
             </p>
             <Button
               onClick={handleUpdate}
               disabled={isUpdating}
               size="sm"
               variant="secondary"
-              className="bg-white text-blue-600 hover:bg-white/90 font-semibold"
+              className="bg-white text-green-600 hover:bg-white/90 font-semibold"
             >
               {isUpdating ? (
                 <>
