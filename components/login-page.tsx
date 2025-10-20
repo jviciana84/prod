@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Eye, EyeOff, Lock, Mail, AlertCircle } from "lucide-react"
@@ -29,13 +29,16 @@ const LOGIN_VIDEOS = [
 ]
 
 export default function LoginPage() {
-  // Seleccionar video aleatorio al montar el componente (se ejecuta en cada montaje)
-  const [randomVideo] = useState(() => {
+  // Seleccionar video aleatorio solo en cliente (null hasta que se monte)
+  const [randomVideo, setRandomVideo] = useState<string | null>(null)
+  
+  // Seleccionar video aleatorio después de la hidratación (solo en cliente)
+  useEffect(() => {
     const selectedVideo = LOGIN_VIDEOS[Math.floor(Math.random() * LOGIN_VIDEOS.length)]
     const videoName = selectedVideo.split('/').pop()
     console.log(`🎬 Video de login seleccionado: ${videoName}`)
-    return selectedVideo
-  })
+    setRandomVideo(selectedVideo)
+  }, [])
   
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -107,23 +110,30 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
       {/* Video de fondo BMW - reproducción única sin audio (aleatorio) */}
-      <video
-        autoPlay
-        muted
-        playsInline
-        onEnded={() => setVideoEnded(true)}
-        onContextMenu={(e) => e.preventDefault()}
-        controlsList="nodownload nofullscreen noremoteplayback"
-        disablePictureInPicture
-        className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-        style={{ zIndex: 0 }}
-      >
-        <source src={randomVideo} type="video/mp4" />
-      </video>
-      <div 
-        className={`absolute inset-0 transition-all duration-1000 ${videoEnded ? 'bg-black/55' : 'bg-black/20'}`}
-        style={{ zIndex: 1 }} 
-      />
+      {randomVideo ? (
+        <>
+          <video
+            key={randomVideo}
+            autoPlay
+            muted
+            playsInline
+            onEnded={() => setVideoEnded(true)}
+            onContextMenu={(e) => e.preventDefault()}
+            controlsList="nodownload nofullscreen noremoteplayback"
+            disablePictureInPicture
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+            style={{ zIndex: 0 }}
+          >
+            <source src={randomVideo} type="video/mp4" />
+          </video>
+          <div 
+            className={`absolute inset-0 transition-all duration-1000 ${videoEnded ? 'bg-black/55' : 'bg-black/20'}`}
+            style={{ zIndex: 1 }} 
+          />
+        </>
+      ) : (
+        <div className="absolute inset-0 bg-black" style={{ zIndex: 0 }} />
+      )}
 
       <div className="absolute top-4 right-4 z-20">
         <ThemeToggle />

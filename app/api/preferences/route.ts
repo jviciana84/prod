@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
         .from("user_preferences")
         .insert({
           user_id: session.user.id,
-          theme: preferences.theme || "system",
+          theme: preferences.theme || "dark",
           main_page: preferences.main_page || null,
           favorite_pages: preferences.favorite_pages || [],
           created_at: now,

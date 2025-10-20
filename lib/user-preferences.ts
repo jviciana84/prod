@@ -77,7 +77,7 @@ export async function addToFavorites(
   if (!prefs) {
     // Crear preferencias nuevas
     return saveUserPreferences(userId, {
-      theme: "system",
+      theme: "dark",
       main_page: isMainPage ? page : null,
       favorite_pages: isMainPage ? [] : [page],
     })

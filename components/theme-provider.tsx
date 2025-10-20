@@ -15,8 +15,8 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme | undefined>(undefined)
-  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark" | "ocre" | undefined>(undefined)
+  const [theme, setThemeState] = useState<Theme | undefined>("dark") // Tema oscuro por defecto
+  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark" | "ocre" | undefined>("dark")
   const [systemTheme, setSystemTheme] = useState<"light" | "dark" | undefined>(undefined)
   const [mounted, setMounted] = useState(false)
   const supabase = createClientComponentClient()
