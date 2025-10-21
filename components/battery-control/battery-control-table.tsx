@@ -233,21 +233,31 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
             
             console.log("🔍 Analizando:", { marca, modelo, tipoMotor, combustible })
             
-            // LÓGICA SIMPLE: Solo basada en columna Combustible
-            if (combustible.includes("ELÉCTRIC") || combustible.includes("ELECTRIC")) {
+            // LÓGICA: Priorizar "Tipo motor" sobre "Combustible"
+            // 1. Primero verificar "Tipo motor" (más confiable)
+            if (tipoMotor.includes("BEV") || tipoMotor.includes("ELÉCTRIC") && tipoMotor.includes("PURO")) {
               correctType = "BEV"
-              console.log("✅ Detectado BEV (eléctrico)")
+              console.log("✅ Detectado BEV desde Tipo motor")
+            }
+            else if (tipoMotor.includes("PHEV") || tipoMotor.includes("HÍBRID") || tipoMotor.includes("HIBRID") || tipoMotor.includes("HYBRID")) {
+              correctType = "PHEV"
+              console.log("✅ Detectado PHEV desde Tipo motor")
+            }
+            // 2. Si "Tipo motor" no es concluyente, usar "Combustible"
+            else if (combustible.includes("ELÉCTRIC") || combustible.includes("ELECTRIC")) {
+              correctType = "BEV"
+              console.log("✅ Detectado BEV desde Combustible")
             }
             else if (combustible.includes("HÍBRID") || combustible.includes("HIBRID") || combustible.includes("HYBRID")) {
               correctType = "PHEV"
-              console.log("✅ Detectado PHEV (híbrido)")
+              console.log("✅ Detectado PHEV desde Combustible")
             }
             else if (combustible.includes("GASOLINA") || combustible.includes("DIESEL")) {
               correctType = "ICE"
               console.log("✅ Detectado ICE (térmico)")
             }
             else {
-              console.log("⚠️ Combustible desconocido, usando ICE por defecto")
+              console.log("⚠️ Tipo desconocido, usando ICE por defecto")
             }
             
             // Si el tipo es diferente, actualizarlo
@@ -324,21 +334,31 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
               combustible
             })
             
-            // LÓGICA SIMPLE: Solo basada en columna Combustible
-            if (combustible.includes("ELÉCTRIC") || combustible.includes("ELECTRIC")) {
+            // LÓGICA: Priorizar "Tipo motor" sobre "Combustible"
+            // 1. Primero verificar "Tipo motor" (más confiable)
+            if (tipoMotor.includes("BEV") || tipoMotor.includes("ELÉCTRIC") && tipoMotor.includes("PURO")) {
               vehicleType = "BEV"
-              console.log("✅ Detectado BEV (eléctrico)")
+              console.log("✅ Detectado BEV desde Tipo motor")
+            }
+            else if (tipoMotor.includes("PHEV") || tipoMotor.includes("HÍBRID") || tipoMotor.includes("HIBRID") || tipoMotor.includes("HYBRID")) {
+              vehicleType = "PHEV"
+              console.log("✅ Detectado PHEV desde Tipo motor")
+            }
+            // 2. Si "Tipo motor" no es concluyente, usar "Combustible"
+            else if (combustible.includes("ELÉCTRIC") || combustible.includes("ELECTRIC")) {
+              vehicleType = "BEV"
+              console.log("✅ Detectado BEV desde Combustible")
             }
             else if (combustible.includes("HÍBRID") || combustible.includes("HIBRID") || combustible.includes("HYBRID")) {
               vehicleType = "PHEV"
-              console.log("✅ Detectado PHEV (híbrido)")
+              console.log("✅ Detectado PHEV desde Combustible")
             }
             else if (combustible.includes("GASOLINA") || combustible.includes("DIESEL")) {
               vehicleType = "ICE"
               console.log("✅ Detectado ICE (térmico)")
             }
             else {
-              console.log("⚠️ Combustible desconocido, usando ICE por defecto")
+              console.log("⚠️ Tipo desconocido, usando ICE por defecto")
             }
 
             return {

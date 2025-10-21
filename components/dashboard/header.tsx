@@ -24,6 +24,7 @@ import {
   Trash2,
   ScanLine,
   Newspaper,
+  Map,
 } from "lucide-react"
 import { createClientComponentClient } from "@/lib/supabase/client"
 import { Badge } from "@/components/ui/badge"
@@ -982,6 +983,20 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
                         <Settings className="h-3.5 w-3.5 text-blue-500 group-hover:text-blue-600 transition-colors" />
                       </div>
                       <span>Configuración</span>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-xs h-7 relative overflow-hidden group px-2"
+                      onClick={() => {
+                        router.push("/dashboard/mapa-flujo")
+                        setIsMenuOpen(false)
+                      }}
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-r from-purple-500 via-purple-600 to-purple-700 opacity-0 group-hover:opacity-10 transition-opacity"></div>
+                      <div className="w-5 flex justify-center">
+                        <Map className="h-3.5 w-3.5 text-purple-500 group-hover:text-purple-600 transition-colors" />
+                      </div>
+                      <span>Mapa CVO</span>
                     </Button>
                     <Button
                       variant="ghost"
