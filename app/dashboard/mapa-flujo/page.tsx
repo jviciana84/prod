@@ -12,12 +12,9 @@ export default function MapaFlujoPage() {
   const [mermaidLoaded, setMermaidLoaded] = useState(false)
 
   const handlePrint = () => {
-    // Guardar el contenido actual
-    const originalContents = document.body.innerHTML
     const printContents = document.querySelector('.mermaid-print-area')?.innerHTML
     
     if (printContents) {
-      // Crear ventana de impresión
       const printWindow = window.open('', '_blank')
       if (printWindow) {
         printWindow.document.write(`
@@ -27,23 +24,84 @@ export default function MapaFlujoPage() {
             <title>Mapa de Flujo CVO - ${activeTab}</title>
             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
             <style>
-              @page { size: landscape; margin: 1cm; }
+              @page { 
+                size: landscape; 
+                margin: 0.5cm; 
+              }
+              * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+              }
+              html, body { 
+                width: 100%;
+                height: 100vh;
+                overflow: hidden;
+              }
               body { 
                 font-family: system-ui, -apple-system, sans-serif; 
-                padding: 20px;
                 background: white;
+                display: flex;
+                flex-direction: column;
+                padding: 10px;
               }
-              svg { max-width: 100%; height: auto; }
-              h1 { color: #333; margin-bottom: 10px; }
-              .mermaid { display: flex; justify-content: center; }
+              h1 { 
+                color: #333; 
+                font-size: 18px;
+                margin-bottom: 10px;
+                text-align: center;
+              }
+              .mermaid-container {
+                flex: 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 100%;
+                height: calc(100vh - 40px);
+                overflow: hidden;
+              }
+              svg { 
+                max-width: 100% !important;
+                max-height: 100% !important;
+                width: auto !important;
+                height: auto !important;
+                display: block;
+              }
+              .mermaid {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 100%;
+                height: 100%;
+              }
               @media print {
-                body { padding: 0; }
+                html, body {
+                  height: 100%;
+                  overflow: hidden;
+                }
+                body { 
+                  padding: 5px;
+                }
+                h1 {
+                  font-size: 16px;
+                  margin-bottom: 5px;
+                }
+                .mermaid-container {
+                  height: calc(100% - 30px);
+                }
+                svg {
+                  page-break-inside: avoid;
+                  max-width: 100% !important;
+                  max-height: calc(100vh - 35px) !important;
+                }
               }
             </style>
           </head>
           <body>
-            <h1>Mapa de Flujo CVO - ${activeTab}</h1>
-            ${printContents}
+            <h1>Mapa de Flujo CVO - ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h1>
+            <div class="mermaid-container">
+              ${printContents}
+            </div>
           </body>
           </html>
         `)
@@ -52,7 +110,7 @@ export default function MapaFlujoPage() {
         // Esperar a que se cargue y luego imprimir
         setTimeout(() => {
           printWindow.print()
-        }, 500)
+        }, 800)
       }
     }
   }
