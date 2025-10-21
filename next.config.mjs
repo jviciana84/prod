@@ -30,4 +30,4 @@ const nextConfig = {
 }
 
 export default nextConfig
-// Force Vercel rebuild - 21/10/2025
+// Force Vercel rebuild after service restoration - 21/10/2025
