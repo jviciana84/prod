@@ -18,12 +18,11 @@ import {
   Settings,
   Loader2,
   Calendar,
-  Printer,
   CheckCircle2,
   AlertCircle,
   Zap,
-  FileSpreadsheet,
 } from "lucide-react"
+import { BatteryControlPrintExport } from "./battery-control-print-export"
 import { toast } from "sonner"
 import { differenceInDays, format } from "date-fns"
 import { cn } from "@/lib/utils"
@@ -200,6 +199,7 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
       if (batteryError) throw batteryError
 
       // 3. Actualizar tipos de vehículos existentes si es necesario
+      let typesUpdated = false
       if (batteryData && batteryData.length > 0) {
         console.log("🔄 Verificando tipos de vehículos existentes...")
         
@@ -225,16 +225,28 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
             // Determinar el tipo correcto según especificación
             let correctType = "ICE" // Por defecto ICE
             
-            // Gasolina o Diesel → ICE
+            // PRIORIDAD 1: Eléctrico → BEV (verificar primero)
             if (
-              combustible.includes("GASOLINA") ||
-              combustible.includes("DIESEL") ||
-              combustible.includes("GASOLINE") ||
-              combustible.includes("PETROL")
+              combustible.includes("ELÉCTRIC") ||
+              combustible.includes("ELECTRIC") ||
+              tipoMotor.includes("BEV") ||
+              tipoMotor.includes("ELÉCTRIC") ||
+              tipoMotor.includes("ELECTRIC")
             ) {
-              correctType = "ICE"
+              // Pero si TAMBIÉN contiene híbrido, es PHEV
+              if (
+                combustible.includes("HÍBRID") ||
+                combustible.includes("HIBRID") ||
+                combustible.includes("HYBRID") ||
+                tipoMotor.includes("PHEV") ||
+                tipoMotor.includes("HÍBRID")
+              ) {
+                correctType = "PHEV"
+              } else {
+                correctType = "BEV"
+              }
             }
-            // Híbrido/XXX → PHEV
+            // PRIORIDAD 2: Híbrido/XXX → PHEV
             else if (
               combustible.includes("HÍBRID") ||
               combustible.includes("HIBRID") ||
@@ -245,15 +257,14 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
             ) {
               correctType = "PHEV"
             }
-            // Eléctrico → BEV
+            // PRIORIDAD 3: Gasolina o Diesel → ICE
             else if (
-              combustible.includes("ELÉCTRIC") ||
-              combustible.includes("ELECTRIC") ||
-              tipoMotor.includes("BEV") ||
-              tipoMotor.includes("ELÉCTRIC") ||
-              tipoMotor.includes("ELECTRIC")
+              combustible.includes("GASOLINA") ||
+              combustible.includes("DIESEL") ||
+              combustible.includes("GASOLINE") ||
+              combustible.includes("PETROL")
             ) {
-              correctType = "BEV"
+              correctType = "ICE"
             }
             
             // Si el tipo es diferente, actualizarlo
@@ -263,7 +274,21 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
                 .from("battery_control")
                 .update({ vehicle_type: correctType })
                 .eq("id", vehicle.id)
+              typesUpdated = true
             }
+          }
+        }
+        
+        // Si se actualizaron tipos, recargar datos de battery_control
+        if (typesUpdated) {
+          console.log("♻️ Recargando datos después de actualizar tipos...")
+          const { data: updatedBatteryData } = await supabase
+            .from("battery_control")
+            .select("*")
+            .order("updated_at", { ascending: false })
+          
+          if (updatedBatteryData) {
+            batteryData = updatedBatteryData
           }
         }
       }
@@ -304,16 +329,28 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
               combustible
             })
             
-            // Gasolina o Diesel → ICE
+            // PRIORIDAD 1: Eléctrico → BEV (verificar primero)
             if (
-              combustible.includes("GASOLINA") ||
-              combustible.includes("DIESEL") ||
-              combustible.includes("GASOLINE") ||
-              combustible.includes("PETROL")
+              combustible.includes("ELÉCTRIC") ||
+              combustible.includes("ELECTRIC") ||
+              tipoMotor.includes("BEV") ||
+              tipoMotor.includes("ELÉCTRIC") ||
+              tipoMotor.includes("ELECTRIC")
             ) {
-              vehicleType = "ICE"
+              // Pero si TAMBIÉN contiene híbrido, es PHEV
+              if (
+                combustible.includes("HÍBRID") ||
+                combustible.includes("HIBRID") ||
+                combustible.includes("HYBRID") ||
+                tipoMotor.includes("PHEV") ||
+                tipoMotor.includes("HÍBRID")
+              ) {
+                vehicleType = "PHEV"
+              } else {
+                vehicleType = "BEV"
+              }
             }
-            // Híbrido/XXX → PHEV
+            // PRIORIDAD 2: Híbrido/XXX → PHEV
             else if (
               combustible.includes("HÍBRID") ||
               combustible.includes("HIBRID") ||
@@ -324,15 +361,14 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
             ) {
               vehicleType = "PHEV"
             }
-            // Eléctrico → BEV
+            // PRIORIDAD 3: Gasolina o Diesel → ICE
             else if (
-              combustible.includes("ELÉCTRIC") ||
-              combustible.includes("ELECTRIC") ||
-              tipoMotor.includes("BEV") ||
-              tipoMotor.includes("ELÉCTRIC") ||
-              tipoMotor.includes("ELECTRIC")
+              combustible.includes("GASOLINA") ||
+              combustible.includes("DIESEL") ||
+              combustible.includes("GASOLINE") ||
+              combustible.includes("PETROL")
             ) {
-              vehicleType = "BEV"
+              vehicleType = "ICE"
             }
             
             console.log(`✅ Detectado como ${vehicleType}`)
@@ -538,10 +574,18 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
   const getAlertPing = (vehicle: BatteryVehicle) => {
     if (!config) return null
 
+    // PRIORIDAD 1: Carga insuficiente SIEMPRE ping rojo
+    const chargeLevel = getChargeLevel(vehicle)
+    if (chargeLevel === "insuficiente") {
+      return "bg-red-500" // Ping rojo - Carga insuficiente
+    }
+
+    // PRIORIDAD 2: Estado pendiente ping rojo
     if (vehicle.status === "pendiente") {
       return "bg-red-500" // Ping rojo - Alerta 2
     }
 
+    // PRIORIDAD 3: Días sin revisar ping ámbar
     if (vehicle.status_date) {
       const daysSinceReview = differenceInDays(new Date(), new Date(vehicle.status_date))
       if (daysSinceReview >= config.days_alert_1) {
@@ -591,20 +635,22 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
 
   // Toggle estado
   const handleToggleStatus = async (vehicle: BatteryVehicle) => {
-    const newStatus = vehicle.status === "pendiente" ? "revisado" : "pendiente"
-    const newIsCharging = newStatus === "pendiente" ? false : vehicle.is_charging
-
-    await handleUpdateField(vehicle.id, "status", newStatus)
-    
-    // Si cambia a "revisado", actualizar la fecha de revisión
-    if (newStatus === "revisado") {
+    if (vehicle.status === "revisado") {
+      // Si ya está revisado, solo actualizar la fecha (reiniciar contador)
       const currentDate = new Date().toISOString()
-      console.log("Actualizando status_date a:", currentDate)
+      console.log("🔄 Actualizando fecha de revisión (reinicio de contador):", currentDate)
       await handleUpdateField(vehicle.id, "status_date", currentDate)
-    }
-    
-    if (newStatus === "pendiente" && vehicle.is_charging) {
-      await handleUpdateField(vehicle.id, "is_charging", false)
+      toast.success("Fecha de revisión actualizada")
+    } else {
+      // Si está pendiente, cambiar a revisado
+      await handleUpdateField(vehicle.id, "status", "revisado")
+      
+      // Actualizar la fecha de revisión
+      const currentDate = new Date().toISOString()
+      console.log("✅ Cambiando a revisado con fecha:", currentDate)
+      await handleUpdateField(vehicle.id, "status_date", currentDate)
+      
+      // Si estaba cargando, dejarlo como estaba (ya no forzar a false)
     }
   }
 
@@ -696,26 +742,13 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
                 <Settings className="h-4 w-4" />
               </Button>
             )}
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => toast.info("Función de impresión en desarrollo")}
-              className="h-9 w-9"
-              title="Imprimir"
-            >
-              <Printer className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => toast.info("Función de exportar en desarrollo")}
-              className="h-9 w-9"
-              title="Exportar"
-            >
-              <FileSpreadsheet className="h-4 w-4" />
-            </Button>
+            <BatteryControlPrintExport
+              vehicles={filteredVehicles}
+              activeTab={currentTab}
+              searchQuery={searchTerm}
+            />
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             {/* Selector de tipo de motor */}
             <Select value={motorTypeFilter} onValueChange={(value: any) => setMotorTypeFilter(value)}>
               <SelectTrigger className="w-32 h-9">
@@ -730,7 +763,7 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
               </SelectContent>
             </Select>
 
-            {/* Todas las pestañas juntas */}
+            {/* Pestañas de disponibilidad */}
             <TabsList className="h-9 bg-muted/50">
               <TabsTrigger value="disponibles" className="px-3 py-1 h-7 data-[state=active]:bg-background">
                 <Battery className="h-3.5 w-3.5 mr-1" />
@@ -746,6 +779,10 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
                   {vehicles.filter((v) => v.is_sold).length}
                 </Badge>
               </TabsTrigger>
+            </TabsList>
+
+            {/* Pestañas de nivel de carga */}
+            <TabsList className="h-9 bg-muted/50">
               <TabsTrigger 
                 value="insuficiente" 
                 className="px-3 py-1 h-7 data-[state=active]:bg-background"
