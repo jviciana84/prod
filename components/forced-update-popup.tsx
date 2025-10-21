@@ -127,15 +127,18 @@ export function ForcedUpdatePopup() {
   if (!showPopup) return null
 
   return (
-    <div className="fixed top-4 left-4 z-[9999] animate-in slide-in-from-top-2 duration-300">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 animate-in fade-in duration-300">
       <Card
         className={cn(
-          "bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-xl border-0",
-          "p-3 max-w-xs"
+          "bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-2xl border-0",
+          "p-3 max-w-xs animate-in zoom-in-95 duration-300"
         )}
       >
         <div className="flex items-start gap-2">
-          <RefreshCw className={cn("h-4 w-4 mt-0.5 flex-shrink-0", isUpdating && "animate-spin")} />
+          <div className="flex flex-col items-center gap-0.5">
+            <RefreshCw className={cn("h-4 w-4 flex-shrink-0", isUpdating && "animate-spin")} />
+            <span className="text-[8px] opacity-75 whitespace-nowrap">~1s</span>
+          </div>
           <div className="flex-1 min-w-0">
             <h3 className="font-bold text-xs mb-1">Actualización requerida</h3>
             <p className="text-[10px] opacity-90 mb-2 leading-tight">
