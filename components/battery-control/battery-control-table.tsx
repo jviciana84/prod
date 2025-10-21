@@ -191,12 +191,14 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
       console.log("✅ Vehículos BEV/PHEV encontrados:", ducVehicles?.length || 0)
 
       // 2. Consultar datos existentes de battery_control
-      const { data: batteryData, error: batteryError } = await supabase
+      const { data: batteryDataResult, error: batteryError } = await supabase
         .from("battery_control")
         .select("*")
         .order("updated_at", { ascending: false })
 
       if (batteryError) throw batteryError
+      
+      let batteryData = batteryDataResult
 
       // 3. Actualizar tipos de vehículos existentes si es necesario
       let typesUpdated = false
@@ -207,16 +209,20 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
           // Buscar el vehículo en duc_scraper para obtener datos actualizados
           const { data: ducVehicle } = await supabase
             .from("duc_scraper")
-            .select(`"Tipo motor", "Combustible"`)
+            .select(`"Tipo motor", "Combustible", "Modelo", "Marca"`)
             .eq("Chasis", vehicle.vehicle_chassis)
             .single()
 
           if (ducVehicle) {
             const tipoMotor = (ducVehicle["Tipo motor"] || "").toUpperCase()
             const combustible = (ducVehicle["Combustible"] || "").toUpperCase()
+            const modelo = (ducVehicle["Modelo"] || "").toUpperCase()
+            const marca = (ducVehicle["Marca"] || "").toUpperCase()
             
             console.log("🔍 Verificando vehículo existente:", {
               chasis: vehicle.vehicle_chassis,
+              marca,
+              modelo,
               tipoMotor,
               combustible,
               tipoActual: vehicle.vehicle_type
@@ -225,46 +231,23 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
             // Determinar el tipo correcto según especificación
             let correctType = "ICE" // Por defecto ICE
             
-            // PRIORIDAD 1: Eléctrico → BEV (verificar primero)
-            if (
-              combustible.includes("ELÉCTRIC") ||
-              combustible.includes("ELECTRIC") ||
-              tipoMotor.includes("BEV") ||
-              tipoMotor.includes("ELÉCTRIC") ||
-              tipoMotor.includes("ELECTRIC")
-            ) {
-              // Pero si TAMBIÉN contiene híbrido, es PHEV
-              if (
-                combustible.includes("HÍBRID") ||
-                combustible.includes("HIBRID") ||
-                combustible.includes("HYBRID") ||
-                tipoMotor.includes("PHEV") ||
-                tipoMotor.includes("HÍBRID")
-              ) {
-                correctType = "PHEV"
-              } else {
-                correctType = "BEV"
-              }
+            console.log("🔍 Analizando:", { marca, modelo, tipoMotor, combustible })
+            
+            // LÓGICA SIMPLE: Solo basada en columna Combustible
+            if (combustible.includes("ELÉCTRIC") || combustible.includes("ELECTRIC")) {
+              correctType = "BEV"
+              console.log("✅ Detectado BEV (eléctrico)")
             }
-            // PRIORIDAD 2: Híbrido/XXX → PHEV
-            else if (
-              combustible.includes("HÍBRID") ||
-              combustible.includes("HIBRID") ||
-              combustible.includes("HYBRID") ||
-              tipoMotor.includes("PHEV") ||
-              tipoMotor.includes("HÍBRID") ||
-              tipoMotor.includes("HIBRID")
-            ) {
+            else if (combustible.includes("HÍBRID") || combustible.includes("HIBRID") || combustible.includes("HYBRID")) {
               correctType = "PHEV"
+              console.log("✅ Detectado PHEV (híbrido)")
             }
-            // PRIORIDAD 3: Gasolina o Diesel → ICE
-            else if (
-              combustible.includes("GASOLINA") ||
-              combustible.includes("DIESEL") ||
-              combustible.includes("GASOLINE") ||
-              combustible.includes("PETROL")
-            ) {
+            else if (combustible.includes("GASOLINA") || combustible.includes("DIESEL")) {
               correctType = "ICE"
+              console.log("✅ Detectado ICE (térmico)")
+            }
+            else {
+              console.log("⚠️ Combustible desconocido, usando ICE por defecto")
             }
             
             // Si el tipo es diferente, actualizarlo
@@ -304,9 +287,19 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
 
       // 5. Sincronizar: crear registros en battery_control si no existen
       if (ducVehicles && ducVehicles.length > 0) {
-        const existingChassis = new Set(batteryData?.map((v) => v.vehicle_chassis) || [])
+        const existingChassis = new Set(batteryData?.map((v) => v.vehicle_chassis).filter(Boolean) || [])
+        
+        console.log("🔍 Chasis existentes en battery_control:", existingChassis.size)
+        console.log("🔍 Vehículos BEV/PHEV en duc_scraper:", ducVehicles.length)
 
-        const newVehicles = ducVehicles.filter((v) => v.Chasis && !existingChassis.has(v.Chasis))
+        const newVehicles = ducVehicles.filter((v) => {
+          const hasChasis = v.Chasis && v.Chasis.trim() !== ""
+          const notExists = !existingChassis.has(v.Chasis)
+          if (hasChasis && !notExists) {
+            console.log(`⏭️ Saltando vehículo existente: ${v.Chasis}`)
+          }
+          return hasChasis && notExists
+        })
 
         if (newVehicles.length > 0) {
           console.log("🆕 Creando registros para nuevos vehículos:", newVehicles.length)
@@ -320,58 +313,33 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
             let vehicleType = "ICE" // Por defecto ICE
             const tipoMotor = (v["Tipo motor"] || "").toUpperCase()
             const combustible = (v["Combustible"] || "").toUpperCase()
+            const modelo = (v["Modelo"] || "").toUpperCase()
+            const marca = (v["Marca"] || "").toUpperCase()
             
             console.log("🔍 Analizando vehículo:", {
               chasis: v.Chasis,
-              marca: v.Marca,
-              modelo: v.Modelo,
+              marca,
+              modelo,
               tipoMotor,
               combustible
             })
             
-            // PRIORIDAD 1: Eléctrico → BEV (verificar primero)
-            if (
-              combustible.includes("ELÉCTRIC") ||
-              combustible.includes("ELECTRIC") ||
-              tipoMotor.includes("BEV") ||
-              tipoMotor.includes("ELÉCTRIC") ||
-              tipoMotor.includes("ELECTRIC")
-            ) {
-              // Pero si TAMBIÉN contiene híbrido, es PHEV
-              if (
-                combustible.includes("HÍBRID") ||
-                combustible.includes("HIBRID") ||
-                combustible.includes("HYBRID") ||
-                tipoMotor.includes("PHEV") ||
-                tipoMotor.includes("HÍBRID")
-              ) {
-                vehicleType = "PHEV"
-              } else {
-                vehicleType = "BEV"
-              }
+            // LÓGICA SIMPLE: Solo basada en columna Combustible
+            if (combustible.includes("ELÉCTRIC") || combustible.includes("ELECTRIC")) {
+              vehicleType = "BEV"
+              console.log("✅ Detectado BEV (eléctrico)")
             }
-            // PRIORIDAD 2: Híbrido/XXX → PHEV
-            else if (
-              combustible.includes("HÍBRID") ||
-              combustible.includes("HIBRID") ||
-              combustible.includes("HYBRID") ||
-              tipoMotor.includes("PHEV") ||
-              tipoMotor.includes("HÍBRID") ||
-              tipoMotor.includes("HIBRID")
-            ) {
+            else if (combustible.includes("HÍBRID") || combustible.includes("HIBRID") || combustible.includes("HYBRID")) {
               vehicleType = "PHEV"
+              console.log("✅ Detectado PHEV (híbrido)")
             }
-            // PRIORIDAD 3: Gasolina o Diesel → ICE
-            else if (
-              combustible.includes("GASOLINA") ||
-              combustible.includes("DIESEL") ||
-              combustible.includes("GASOLINE") ||
-              combustible.includes("PETROL")
-            ) {
+            else if (combustible.includes("GASOLINA") || combustible.includes("DIESEL")) {
               vehicleType = "ICE"
+              console.log("✅ Detectado ICE (térmico)")
             }
-            
-            console.log(`✅ Detectado como ${vehicleType}`)
+            else {
+              console.log("⚠️ Combustible desconocido, usando ICE por defecto")
+            }
 
             return {
               vehicle_chassis: v.Chasis,
@@ -389,7 +357,7 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
             }
           })
 
-          console.log("📝 Insertando registros:", inserts.length)
+          console.log("📝 Insertando registros nuevos:", inserts.length)
 
           const { data: insertedData, error: insertError } = await supabase
             .from("battery_control")
@@ -763,7 +731,7 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
               </SelectContent>
             </Select>
 
-            {/* Pestañas de disponibilidad */}
+            {/* TODAS las pestañas en un solo TabsList */}
             <TabsList className="h-9 bg-muted/50">
               <TabsTrigger value="disponibles" className="px-3 py-1 h-7 data-[state=active]:bg-background">
                 <Battery className="h-3.5 w-3.5 mr-1" />
@@ -779,14 +747,9 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
                   {vehicles.filter((v) => v.is_sold).length}
                 </Badge>
               </TabsTrigger>
-            </TabsList>
-
-            {/* Pestañas de nivel de carga */}
-            <TabsList className="h-9 bg-muted/50">
               <TabsTrigger 
                 value="insuficiente" 
                 className="px-3 py-1 h-7 data-[state=active]:bg-background"
-                onClick={() => setCurrentTab("insuficiente")}
               >
                 <span>Insuficiente</span>
                 <Badge variant="outline" className="ml-1 text-xs px-1 py-0">
@@ -796,7 +759,6 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
               <TabsTrigger 
                 value="suficiente" 
                 className="px-3 py-1 h-7 data-[state=active]:bg-background"
-                onClick={() => setCurrentTab("suficiente")}
               >
                 <span>Suficiente</span>
                 <Badge variant="outline" className="ml-1 text-xs px-1 py-0">
@@ -806,7 +768,6 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
               <TabsTrigger 
                 value="correcto" 
                 className="px-3 py-1 h-7 data-[state=active]:bg-background"
-                onClick={() => setCurrentTab("correcto")}
               >
                 <span>Correcto</span>
                 <Badge variant="outline" className="ml-1 text-xs px-1 py-0">

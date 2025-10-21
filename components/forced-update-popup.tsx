@@ -144,21 +144,23 @@ export function ForcedUpdatePopup() {
             <p className="text-[10px] opacity-90 mb-2 leading-tight">
               {message}
             </p>
-            <Button
-              onClick={handleUpdate}
-              disabled={isUpdating}
-              size="sm"
-              className="bg-white text-red-600 hover:bg-white/90 font-semibold h-7 text-xs w-full"
-            >
-              {isUpdating ? (
-                <>
-                  <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
-                  Actualizando...
-                </>
-              ) : (
-                "Actualizar ahora"
-              )}
-            </Button>
+            <div className="flex justify-center">
+              <Button
+                onClick={handleUpdate}
+                disabled={isUpdating}
+                size="sm"
+                className="bg-white text-red-600 hover:bg-white/90 font-semibold h-7 text-xs"
+              >
+                {isUpdating ? (
+                  <>
+                    <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                    Actualizando...
+                  </>
+                ) : (
+                  "Actualizar ahora"
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       </Card>
