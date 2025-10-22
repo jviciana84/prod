@@ -390,10 +390,17 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
       }
 
       try {
-        // Crear cliente fresco para evitar zombie client
-        const supabase = createClientComponentClient()
-        const { data, error } = await supabase.from("entregas").update(updateData).eq("id", id).select().single()
-        if (error) throw error
+        // ✅ MUTACIÓN → API Route (evita zombie client y problemas de RLS)
+        const response = await fetch("/api/entregas/update-cell", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id, field, value: finalValue })
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || "Error al actualizar")
+        }
 
         setEntregas((prev) => prev.map((item) => (item.id === id ? { ...item, ...updateData } : item)))
         toast.success(`${field === "fecha_entrega" ? "Fecha de entrega" : "Observaciones"} actualizada.`)
