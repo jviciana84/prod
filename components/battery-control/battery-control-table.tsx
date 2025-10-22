@@ -21,6 +21,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Zap,
+  TriangleAlert,
 } from "lucide-react"
 import { BatteryControlPrintExport } from "./battery-control-print-export"
 import { toast } from "sonner"
@@ -91,6 +92,7 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
   const [showConfigModal, setShowConfigModal] = useState(false)
   const [editingCell, setEditingCell] = useState<{ id: string; field: string } | null>(null)
   const [tempValues, setTempValues] = useState<Record<string, any>>({})
+  const [unavailableVehicles, setUnavailableVehicles] = useState<Set<string>>(new Set())
 
   // Paginación
   const [currentPage, setCurrentPage] = useState(1)
@@ -200,75 +202,81 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
       
       let batteryData = batteryDataResult
 
-      // 3. Actualizar tipos de vehículos existentes si es necesario
+      // 3. Actualizar tipos de vehículos existentes si es necesario (OPTIMIZADO)
       let typesUpdated = false
       if (batteryData && batteryData.length > 0) {
         console.log("🔄 Verificando tipos de vehículos existentes...")
         
-        for (const vehicle of batteryData) {
-          // Buscar el vehículo en duc_scraper para obtener datos actualizados
-          const { data: ducVehicle } = await supabase
+        // OPTIMIZACIÓN: Obtener TODOS los datos de duc_scraper en UNA sola consulta
+        const chassisToCheck = batteryData.map(v => v.vehicle_chassis).filter(Boolean)
+        
+        if (chassisToCheck.length > 0) {
+          const { data: ducVehiclesData } = await supabase
             .from("duc_scraper")
-            .select(`"Tipo motor", "Combustible", "Modelo", "Marca"`)
-            .eq("Chasis", vehicle.vehicle_chassis)
-            .single()
+            .select(`"Chasis", "Tipo motor", "Combustible", "Modelo", "Marca"`)
+            .in("Chasis", chassisToCheck)
 
-          if (ducVehicle) {
-            const tipoMotor = (ducVehicle["Tipo motor"] || "").toUpperCase()
-            const combustible = (ducVehicle["Combustible"] || "").toUpperCase()
-            const modelo = (ducVehicle["Modelo"] || "").toUpperCase()
-            const marca = (ducVehicle["Marca"] || "").toUpperCase()
+          // Crear un mapa para acceso rápido
+          const ducVehicleMap = new Map(
+            ducVehiclesData?.map(v => [v.Chasis, v]) || []
+          )
+
+          // Array para acumular actualizaciones batch
+          const updatesToProcess = []
+
+          for (const vehicle of batteryData) {
+            const ducVehicle = ducVehicleMap.get(vehicle.vehicle_chassis)
+
+            if (ducVehicle) {
+              const tipoMotor = (ducVehicle["Tipo motor"] || "").toUpperCase()
+              const combustible = (ducVehicle["Combustible"] || "").toUpperCase()
+              
+              // Determinar el tipo correcto según especificación
+              let correctType = "ICE"
+              
+              // LÓGICA: Priorizar "Tipo motor" sobre "Combustible"
+              if (tipoMotor.includes("BEV") || tipoMotor.includes("ELÉCTRIC") && tipoMotor.includes("PURO")) {
+                correctType = "BEV"
+              }
+              else if (tipoMotor.includes("PHEV") || tipoMotor.includes("HÍBRID") || tipoMotor.includes("HIBRID") || tipoMotor.includes("HYBRID")) {
+                correctType = "PHEV"
+              }
+              else if (combustible.includes("ELÉCTRIC") || combustible.includes("ELECTRIC")) {
+                correctType = "BEV"
+              }
+              else if (combustible.includes("HÍBRID") || combustible.includes("HIBRID") || combustible.includes("HYBRID")) {
+                correctType = "PHEV"
+              }
+              else if (combustible.includes("GASOLINA") || combustible.includes("DIESEL")) {
+                correctType = "ICE"
+              }
+              
+              // Si el tipo es diferente, acumular para actualización
+              if (vehicle.vehicle_type !== correctType) {
+                updatesToProcess.push({
+                  id: vehicle.id,
+                  chassis: vehicle.vehicle_chassis,
+                  oldType: vehicle.vehicle_type,
+                  newType: correctType
+                })
+              }
+            }
+          }
+
+          // OPTIMIZACIÓN: Actualizar en batch (paralelo)
+          if (updatesToProcess.length > 0) {
+            console.log(`🔄 Actualizando ${updatesToProcess.length} tipos de vehículos...`)
             
-            console.log("🔍 Verificando vehículo existente:", {
-              chasis: vehicle.vehicle_chassis,
-              marca,
-              modelo,
-              tipoMotor,
-              combustible,
-              tipoActual: vehicle.vehicle_type
-            })
+            await Promise.all(
+              updatesToProcess.map(update =>
+                supabase
+                  .from("battery_control")
+                  .update({ vehicle_type: update.newType })
+                  .eq("id", update.id)
+              )
+            )
             
-            // Determinar el tipo correcto según especificación
-            let correctType = "ICE" // Por defecto ICE
-            
-            console.log("🔍 Analizando:", { marca, modelo, tipoMotor, combustible })
-            
-            // LÓGICA: Priorizar "Tipo motor" sobre "Combustible"
-            // 1. Primero verificar "Tipo motor" (más confiable)
-            if (tipoMotor.includes("BEV") || tipoMotor.includes("ELÉCTRIC") && tipoMotor.includes("PURO")) {
-              correctType = "BEV"
-              console.log("✅ Detectado BEV desde Tipo motor")
-            }
-            else if (tipoMotor.includes("PHEV") || tipoMotor.includes("HÍBRID") || tipoMotor.includes("HIBRID") || tipoMotor.includes("HYBRID")) {
-              correctType = "PHEV"
-              console.log("✅ Detectado PHEV desde Tipo motor")
-            }
-            // 2. Si "Tipo motor" no es concluyente, usar "Combustible"
-            else if (combustible.includes("ELÉCTRIC") || combustible.includes("ELECTRIC")) {
-              correctType = "BEV"
-              console.log("✅ Detectado BEV desde Combustible")
-            }
-            else if (combustible.includes("HÍBRID") || combustible.includes("HIBRID") || combustible.includes("HYBRID")) {
-              correctType = "PHEV"
-              console.log("✅ Detectado PHEV desde Combustible")
-            }
-            else if (combustible.includes("GASOLINA") || combustible.includes("DIESEL")) {
-              correctType = "ICE"
-              console.log("✅ Detectado ICE (térmico)")
-            }
-            else {
-              console.log("⚠️ Tipo desconocido, usando ICE por defecto")
-            }
-            
-            // Si el tipo es diferente, actualizarlo
-            if (vehicle.vehicle_type !== correctType) {
-              console.log(`🔄 Actualizando tipo de ${vehicle.vehicle_type} a ${correctType}`)
-              await supabase
-                .from("battery_control")
-                .update({ vehicle_type: correctType })
-                .eq("id", vehicle.id)
-              typesUpdated = true
-            }
+            typesUpdated = true
           }
         }
         
@@ -305,9 +313,6 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
         const newVehicles = ducVehicles.filter((v) => {
           const hasChasis = v.Chasis && v.Chasis.trim() !== ""
           const notExists = !existingChassis.has(v.Chasis)
-          if (hasChasis && !notExists) {
-            console.log(`⏭️ Saltando vehículo existente: ${v.Chasis}`)
-          }
           return hasChasis && notExists
         })
 
@@ -323,42 +328,22 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
             let vehicleType = "ICE" // Por defecto ICE
             const tipoMotor = (v["Tipo motor"] || "").toUpperCase()
             const combustible = (v["Combustible"] || "").toUpperCase()
-            const modelo = (v["Modelo"] || "").toUpperCase()
-            const marca = (v["Marca"] || "").toUpperCase()
-            
-            console.log("🔍 Analizando vehículo:", {
-              chasis: v.Chasis,
-              marca,
-              modelo,
-              tipoMotor,
-              combustible
-            })
             
             // LÓGICA: Priorizar "Tipo motor" sobre "Combustible"
-            // 1. Primero verificar "Tipo motor" (más confiable)
             if (tipoMotor.includes("BEV") || tipoMotor.includes("ELÉCTRIC") && tipoMotor.includes("PURO")) {
               vehicleType = "BEV"
-              console.log("✅ Detectado BEV desde Tipo motor")
             }
             else if (tipoMotor.includes("PHEV") || tipoMotor.includes("HÍBRID") || tipoMotor.includes("HIBRID") || tipoMotor.includes("HYBRID")) {
               vehicleType = "PHEV"
-              console.log("✅ Detectado PHEV desde Tipo motor")
             }
-            // 2. Si "Tipo motor" no es concluyente, usar "Combustible"
             else if (combustible.includes("ELÉCTRIC") || combustible.includes("ELECTRIC")) {
               vehicleType = "BEV"
-              console.log("✅ Detectado BEV desde Combustible")
             }
             else if (combustible.includes("HÍBRID") || combustible.includes("HIBRID") || combustible.includes("HYBRID")) {
               vehicleType = "PHEV"
-              console.log("✅ Detectado PHEV desde Combustible")
             }
             else if (combustible.includes("GASOLINA") || combustible.includes("DIESEL")) {
               vehicleType = "ICE"
-              console.log("✅ Detectado ICE (térmico)")
-            }
-            else {
-              console.log("⚠️ Tipo desconocido, usando ICE por defecto")
             }
 
             return {
@@ -582,6 +567,24 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
     }
 
     return null
+  }
+
+  // Verificar si el vehículo no está disponible (sin datos de batería)
+  const isVehicleUnavailable = (vehicle: BatteryVehicle) => {
+    return !vehicle.battery_level && !vehicle.battery_voltage && !vehicle.battery_current
+  }
+
+  // Toggle estado de vehículo no disponible
+  const toggleUnavailable = (vehicleId: string) => {
+    setUnavailableVehicles(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(vehicleId)) {
+        newSet.delete(vehicleId)
+      } else {
+        newSet.add(vehicleId)
+      }
+      return newSet
+    })
   }
 
   // Actualizar campo
@@ -822,17 +825,17 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
                   <Table>
                     <TableHeader className="bg-muted/50">
                       <TableRow className="hover:bg-transparent border-b border-border">
-                        <TableHead className="truncate py-2">MARCA</TableHead>
-                        <TableHead className="truncate py-2">CHASIS</TableHead>
-                        <TableHead className="truncate py-2">E-CODE</TableHead>
-                        <TableHead className="truncate py-2">MATRÍCULA</TableHead>
-                        <TableHead className="truncate py-2">MODELO</TableHead>
-                        <TableHead className="truncate py-2">COLOR</TableHead>
-                        <TableHead className="truncate py-2">TIPO / NIVEL</TableHead>
-                        <TableHead className="w-24 truncate py-2">% CARGA</TableHead>
-                        <TableHead className="truncate py-2">ESTADO</TableHead>
-                        <TableHead className="truncate py-2">CARGANDO</TableHead>
-                        <TableHead className="truncate py-2">OBSERVACIONES</TableHead>
+                        <TableHead className="truncate py-2 px-2">MARCA</TableHead>
+                        <TableHead className="truncate py-2 px-2">CHASIS</TableHead>
+                        <TableHead className="truncate py-2 px-2">E-CODE</TableHead>
+                        <TableHead className="truncate py-2 px-2">MATRÍCULA</TableHead>
+                        <TableHead className="truncate py-2 px-2">MODELO</TableHead>
+                        <TableHead className="truncate py-2 px-2">COLOR</TableHead>
+                        <TableHead className="truncate py-2 px-2">TIPO / NIVEL</TableHead>
+                        <TableHead className="w-24 truncate py-2 px-2">% CARGA</TableHead>
+                        <TableHead className="truncate py-2 px-2">ESTADO</TableHead>
+                        <TableHead className="truncate py-2 px-2">CARGANDO</TableHead>
+                        <TableHead className="truncate py-2 px-2">OBSERVACIONES</TableHead>
                       </TableRow>
                     </TableHeader>
                   <TableBody>
@@ -854,7 +857,7 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
                           onClick={(e) => handleRowClick(vehicle.id, e)}
                         >
                           {/* Marca (con ping de alerta) */}
-                          <TableCell className="py-2">
+                          <TableCell className="py-2 px-2">
                             <div className="flex items-center gap-2">
                               {alertPing && (
                                 <span className="relative flex h-3 w-3 flex-shrink-0">
@@ -872,22 +875,22 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
                           </TableCell>
 
                           {/* Chasis */}
-                          <TableCell className="font-mono text-xs py-2">{vehicle.vehicle_chassis}</TableCell>
+                          <TableCell className="font-mono text-xs py-2 px-2">{vehicle.vehicle_chassis}</TableCell>
 
                           {/* e-code */}
-                          <TableCell className="font-mono text-xs py-2">{vehicle.vehicle_ecode || "-"}</TableCell>
+                          <TableCell className="font-mono text-xs py-2 px-2">{vehicle.vehicle_ecode || "-"}</TableCell>
 
                           {/* Matrícula */}
-                          <TableCell className="py-2">{vehicle.vehicle_plate || "-"}</TableCell>
+                          <TableCell className="py-2 px-2">{vehicle.vehicle_plate || "-"}</TableCell>
 
                           {/* Modelo */}
-                          <TableCell className="py-2">{vehicle.vehicle_model || "-"}</TableCell>
+                          <TableCell className="py-2 px-2">{vehicle.vehicle_model || "-"}</TableCell>
 
                           {/* Color */}
-                          <TableCell className="py-2">{vehicle.vehicle_color || "-"}</TableCell>
+                          <TableCell className="py-2 px-2">{vehicle.vehicle_color || "-"}</TableCell>
 
                           {/* Tipo / Nivel */}
-                          <TableCell className="py-2">
+                          <TableCell className="py-2 px-2">
                             <div className="flex flex-col gap-1 items-center">
                               {/* Tipo (arriba) */}
                               {vehicle.vehicle_type === "BEV" ? (
@@ -910,7 +913,7 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
                           </TableCell>
 
                           {/* % Carga */}
-                          <TableCell className="py-2">
+                          <TableCell className="py-2 px-2">
                             {editingCell?.id === vehicle.id && editingCell?.field === "charge_percentage" ? (
                               <Input
                                 type="number"
@@ -942,43 +945,63 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
                           </TableCell>
 
                           {/* Estado */}
-                          <TableCell className="py-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleToggleStatus(vehicle)}
-                              className={cn(
-                                "gap-1 min-w-[130px] justify-center",
-                                vehicle.status === "revisado"
-                                  ? "border-green-500 text-green-500 hover:bg-green-500 hover:text-white"
-                                  : "border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
-                              )}
-                            >
-                              {vehicle.status === "revisado" ? (
-                                <>
-                                  <CheckCircle2 className="h-3 w-3" />
-                                  <span className="text-sm">
-                                    {vehicle.status_date 
-                                      ? (() => {
-                                          const formattedDate = format(new Date(vehicle.status_date), "dd/MM/yyyy")
-                                          console.log("Fecha formateada:", formattedDate, "para vehículo:", vehicle.id)
-                                          return formattedDate
-                                        })()
-                                      : "Revisado"
-                                    }
-                                  </span>
-                                </>
-                              ) : (
-                                <>
-                                  <AlertCircle className="h-3 w-3" />
-                                  <span className="text-sm">Pendiente</span>
-                                </>
-                              )}
-                            </Button>
+                          <TableCell className="py-2 px-2">
+                            <div className="flex items-center gap-1">
+                              {/* Botón de estado */}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleToggleStatus(vehicle)}
+                                className={cn(
+                                  "gap-1 w-[130px] justify-center",
+                                  unavailableVehicles.has(vehicle.id)
+                                    ? "border-amber-500 text-amber-500 hover:bg-amber-500 hover:text-white"
+                                    : vehicle.status === "revisado"
+                                    ? "border-green-500 text-green-500 hover:bg-green-500 hover:text-white"
+                                    : "border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+                                )}
+                              >
+                                {unavailableVehicles.has(vehicle.id) ? (
+                                  <>
+                                    <AlertCircle className="h-3 w-3" />
+                                    <span className="text-sm">NO DISPONIBLE</span>
+                                  </>
+                                ) : vehicle.status === "revisado" ? (
+                                  <>
+                                    <CheckCircle2 className="h-3 w-3" />
+                                    <span className="text-sm">
+                                      {vehicle.status_date 
+                                        ? format(new Date(vehicle.status_date), "dd/MM/yyyy")
+                                        : "Revisado"
+                                      }
+                                    </span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <AlertCircle className="h-3 w-3" />
+                                    <span className="text-sm">Pendiente</span>
+                                  </>
+                                )}
+                              </Button>
+                              
+                              {/* Botón pequeño de alerta a la derecha (sin borde) */}
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  toggleUnavailable(vehicle.id)
+                                }}
+                                className="h-6 w-6 p-0 hover:bg-muted/50 rounded"
+                                title="Marcar como no disponible"
+                              >
+                                <TriangleAlert className="h-3.5 w-3.5 text-amber-500" />
+                              </Button>
+                            </div>
                           </TableCell>
 
                           {/* Cargando */}
-                          <TableCell className="py-2">
+                          <TableCell className="py-2 px-2">
                             <Select
                               value={vehicle.is_charging ? "si" : "no"}
                               onValueChange={(value) => handleUpdateField(vehicle.id, "is_charging", value === "si")}
@@ -995,7 +1018,7 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
                           </TableCell>
 
                           {/* Observaciones */}
-                          <TableCell className="py-2 max-w-[250px]">
+                          <TableCell className="py-2 px-2 max-w-[250px]">
                             {editingCell?.id === vehicle.id && editingCell?.field === "observations" ? (
                               <Input
                                 value={tempValues[`${vehicle.id}-observations`] || ""}
