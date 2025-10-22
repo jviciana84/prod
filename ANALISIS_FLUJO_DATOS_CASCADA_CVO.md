@@ -1036,6 +1036,25 @@ const { data: ducVehicles } = await supabase
   .or('"Tipo motor".ilike.%BEV%,"Tipo motor".ilike.%PHEV%,
        "Combustible".ilike.%eléctric%')
 
+// PASO 1.5: LIMPIEZA AUTOMÁTICA - Eliminar vehículos huérfanos
+// Obtener chasis actuales de duc_scraper
+const currentChassis = new Set(
+  ducVehicles?.map(v => v.Chasis).filter(Boolean) || []
+)
+
+// Identificar vehículos huérfanos (que ya no están en duc_scraper)
+const orphanedVehicles = allBatteryVehicles?.filter(vehicle => 
+  vehicle.vehicle_chassis && !currentChassis.has(vehicle.vehicle_chassis)
+) || []
+
+// Eliminar vehículos huérfanos automáticamente
+if (orphanedVehicles.length > 0) {
+  await supabase
+    .from("battery_control")
+    .delete()
+    .in("id", orphanedVehicles.map(v => v.id))
+}
+
 // PASO 2: Verificar y actualizar tipos existentes (OPTIMIZADO)
 // Se obtienen TODOS los datos en UNA consulta con .in()
 const { data: ducVehiclesData } = await supabase
@@ -1066,6 +1085,12 @@ await Promise.all(
 - Antes: 50 consultas secuenciales → ~10-15 segundos
 - Ahora: 1 consulta + batch updates → ~2-3 segundos
 - **Mejora: 70-80% más rápido**
+
+**🧹 Limpieza automática:**
+- Elimina vehículos que ya no están en duc_scraper
+- Mantiene sincronización perfecta con DUC
+- Evita acumulación de datos obsoletos
+- Notifica al usuario sobre vehículos eliminados
 
 ### 2. SINCRONIZACIÓN CON VENTAS
 ```javascript

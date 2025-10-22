@@ -193,6 +193,46 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
 
       console.log("✅ Vehículos BEV/PHEV encontrados:", ducVehicles?.length || 0)
 
+      // 1.5. LIMPIEZA AUTOMÁTICA: Eliminar vehículos huérfanos
+      console.log("🧹 Verificando vehículos huérfanos...")
+      
+      // Obtener chasis actuales de duc_scraper
+      const currentChassis = new Set(
+        ducVehicles?.map(v => v.Chasis).filter(Boolean) || []
+      )
+      
+      // Consultar todos los vehículos en battery_control
+      const { data: allBatteryVehicles, error: allBatteryError } = await supabase
+        .from("battery_control")
+        .select("id, vehicle_chassis")
+      
+      if (allBatteryError) throw allBatteryError
+      
+      // Identificar vehículos huérfanos (que ya no están en duc_scraper)
+      const orphanedVehicles = allBatteryVehicles?.filter(vehicle => 
+        vehicle.vehicle_chassis && !currentChassis.has(vehicle.vehicle_chassis)
+      ) || []
+      
+      if (orphanedVehicles.length > 0) {
+        console.log(`🗑️ Eliminando ${orphanedVehicles.length} vehículos huérfanos:`, 
+          orphanedVehicles.map(v => v.vehicle_chassis))
+        
+        const { error: deleteError } = await supabase
+          .from("battery_control")
+          .delete()
+          .in("id", orphanedVehicles.map(v => v.id))
+        
+        if (deleteError) {
+          console.error("❌ Error eliminando vehículos huérfanos:", deleteError)
+          toast.error("Error al limpiar vehículos obsoletos")
+        } else {
+          console.log("✅ Vehículos huérfanos eliminados correctamente")
+          toast.success(`${orphanedVehicles.length} vehículos obsoletos eliminados`)
+        }
+      } else {
+        console.log("✅ No hay vehículos huérfanos")
+      }
+
       // 2. Consultar datos existentes de battery_control
       const { data: batteryDataResult, error: batteryError } = await supabase
         .from("battery_control")
