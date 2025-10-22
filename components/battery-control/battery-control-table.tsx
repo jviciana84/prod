@@ -724,8 +724,9 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
     <div className="space-y-4">
       <Tabs value={currentTab} onValueChange={(v) => setCurrentTab(v as VehicleTab)} className="w-full">
         {/* Barra superior con buscador y pestañas en la misma línea */}
-        <div className="flex flex-wrap items-center justify-between gap-2 bg-card rounded-lg p-2 shadow-sm mb-4">
-          <div className="flex items-center gap-2 flex-1">
+        <div className="flex items-center gap-4 bg-card rounded-lg p-2 shadow-sm mb-4">
+          {/* Lado izquierdo: Buscador y botones */}
+          <div className="flex items-center gap-2">
             <Card className="p-3">
               <div className="flex items-center gap-2 relative">
                 <Search className="h-4 w-4 text-muted-foreground" />
@@ -765,6 +766,11 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
               searchQuery={searchTerm}
             />
           </div>
+
+          {/* Espaciador para empujar todo a la derecha */}
+          <div className="flex-1" />
+
+          {/* Lado derecho: Filtros y pestañas */}
           <div className="flex items-center gap-2">
             {/* Selector de tipo de motor */}
             <Select value={motorTypeFilter} onValueChange={(value: any) => setMotorTypeFilter(value)}>
