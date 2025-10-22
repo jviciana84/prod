@@ -19,6 +19,7 @@ interface BatteryVehicle {
   status: "pendiente" | "revisado"
   status_date: string | null
   is_charging: boolean
+  is_unavailable?: boolean
   observations: string | null
   is_sold?: boolean
 }
@@ -75,7 +76,11 @@ export function BatteryControlPrintExport({ vehicles, activeTab, searchQuery }: 
               else value = "Insuficiente"
             }
           } else if (col.key === "status") {
-            value = value === "revisado" ? "Revisado" : "Pendiente"
+            if (vehicle.is_unavailable) {
+              value = "No Disponible"
+            } else {
+              value = value === "revisado" ? "Revisado" : "Pendiente"
+            }
           } else if (col.key === "status_date" && value) {
             value = format(new Date(value), "dd/MM/yyyy")
           } else if (col.key === "is_charging") {
@@ -115,6 +120,7 @@ export function BatteryControlPrintExport({ vehicles, activeTab, searchQuery }: 
             .row-odd { background-color: #ffffff; }
             .status-revisado { background-color: #d4edda; color: #155724; }
             .status-pendiente { background-color: #f8d7da; color: #721c24; }
+            .status-unavailable { background-color: #fff3cd; color: #856404; }
             .level-correcto { background-color: #d4edda; color: #155724; }
             .level-suficiente { background-color: #fff3cd; color: #856404; }
             .level-insuficiente { background-color: #f8d7da; color: #721c24; }
@@ -182,10 +188,12 @@ export function BatteryControlPrintExport({ vehicles, activeTab, searchQuery }: 
                   <td class="type-${vehicle.vehicle_type.toLowerCase()}">${vehicle.vehicle_type}</td>
                   <td><strong>${vehicle.charge_percentage}%</strong></td>
                   <td class="${levelClass}">${level}</td>
-                  <td class="status-${vehicle.status}">
-                    ${vehicle.status === "revisado" 
-                      ? (vehicle.status_date ? format(new Date(vehicle.status_date), "dd/MM/yyyy") : "Revisado")
-                      : "Pendiente"
+                  <td class="status-${vehicle.is_unavailable ? 'unavailable' : vehicle.status}">
+                    ${vehicle.is_unavailable 
+                      ? "No Disponible"
+                      : vehicle.status === "revisado" 
+                        ? (vehicle.status_date ? format(new Date(vehicle.status_date), "dd/MM/yyyy") : "Revisado")
+                        : "Pendiente"
                     }
                   </td>
                   <td>${vehicle.is_charging ? "Sí" : "No"}</td>
