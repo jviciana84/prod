@@ -61,8 +61,8 @@ duc_scraper {
 3. Se ELIMINAN todos los registros anteriores
 4. Se INSERTAN los 140 nuevos registros
 
-**⚠️ PROBLEMA CRÍTICO:**
-Esta tabla **NO alimenta automáticamente a stock**. Es una tabla aislada.
+**✅ SINCRONIZACIÓN AUTOMÁTICA:**
+Esta tabla **SÍ alimenta automáticamente** a `battery_control` con limpieza de vehículos huérfanos.
 
 ---
 
@@ -976,10 +976,12 @@ Solución necesaria:
 │   Vehículos eléctricos: ~30-40        │
 └────────────────────────────────────────┘
               ↓ Sincronización automática
+              ↓ 🧹 LIMPIEZA AUTOMÁTICA
 ┌────────────────────────────────────────┐
 │   📊 TABLA: battery_control            │
 │   Tipo: Operacional                    │
-│   Registros: Vehículos BEV/PHEV        │
+│   Registros: Solo vehículos actuales   │
+│   ✅ Sin vehículos huérfanos            │
 └────────────────────────────────────────┘
               ↓ Consulta estado
 ┌────────────────────────────────────────┐
@@ -1205,16 +1207,18 @@ if (daysSinceReview >= config.days_alert_1) return "bg-amber-500"
 
 **Nuevas funcionalidades optimizadas:**
 - ✅ Control de baterías BEV/PHEV con sincronización automática
+- ✅ **LIMPIEZA AUTOMÁTICA** de vehículos huérfanos
 - ✅ Configuración de niveles personalizables
 - ✅ Sistema de alertas por prioridad (carga, estado, tiempo)
 - ✅ Detección de tipo de vehículo priorizada (Tipo motor > Combustible)
 - ✅ Rendimiento optimizado (70-80% más rápido)
 - ✅ Indicador visual de vehículos "No disponibles"
+- ✅ Sincronización perfecta con DUC (sin datos obsoletos)
 
 ---
 
 **Documento creado:** 21 de octubre de 2025  
-**Última actualización:** 22 de octubre de 2025  
+**Última actualización:** 22 de octubre de 2025 (Limpieza automática implementada)  
 **Tipo:** Análisis en cascada - Flujo de datos tabla por tabla
 
 
