@@ -53,6 +53,7 @@ interface BatteryVehicle {
   status: "pendiente" | "revisado"
   status_date: string | null
   is_charging: boolean
+  is_unavailable?: boolean // Estado de no disponible
   observations: string | null
   updated_by: string | null
   created_at: string
@@ -409,6 +410,15 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
         setVehicles(vehiclesWithSoldFlag)
       }
 
+      // Cargar vehículos marcados como "no disponibles"
+      const unavailableSet = new Set<string>()
+      batteryData?.forEach(v => {
+        if (v.is_unavailable) {
+          unavailableSet.add(v.id)
+        }
+      })
+      setUnavailableVehicles(unavailableSet)
+
       console.log("✅ Datos de baterías cargados correctamente")
     } catch (error) {
       console.error("❌ Error cargando datos:", error)
@@ -575,16 +585,32 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
   }
 
   // Toggle estado de vehículo no disponible
-  const toggleUnavailable = (vehicleId: string) => {
-    setUnavailableVehicles(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(vehicleId)) {
-        newSet.delete(vehicleId)
-      } else {
-        newSet.add(vehicleId)
-      }
-      return newSet
-    })
+  const toggleUnavailable = async (vehicleId: string) => {
+    const vehicle = vehicles.find(v => v.id === vehicleId)
+    if (!vehicle) return
+
+    const newUnavailableStatus = !unavailableVehicles.has(vehicleId)
+    
+    try {
+      // Actualizar en la base de datos
+      await handleUpdateField(vehicleId, "is_unavailable", newUnavailableStatus)
+      
+      // Actualizar estado local
+      setUnavailableVehicles(prev => {
+        const newSet = new Set(prev)
+        if (newUnavailableStatus) {
+          newSet.add(vehicleId)
+        } else {
+          newSet.delete(vehicleId)
+        }
+        return newSet
+      })
+      
+      toast.success(newUnavailableStatus ? "Marcado como no disponible" : "Marcado como disponible")
+    } catch (error) {
+      console.error("Error al actualizar disponibilidad:", error)
+      toast.error("Error al actualizar el estado")
+    }
   }
 
   // Actualizar campo
@@ -919,12 +945,12 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
                                 type="number"
                                 min="0"
                                 max="100"
-                                value={tempValues[`${vehicle.id}-charge_percentage`] || 0}
+                                value={tempValues[`${vehicle.id}-charge_percentage`] ?? 0}
                                 onChange={(e) =>
-                                  setTempValues({
-                                    ...tempValues,
+                                  setTempValues(prev => ({
+                                    ...prev,
                                     [`${vehicle.id}-charge_percentage`]: parseInt(e.target.value) || 0,
-                                  })
+                                  }))
                                 }
                                 onBlur={saveEditing}
                                 onKeyDown={(e) => {
@@ -1021,12 +1047,12 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
                           <TableCell className="py-2 px-2 max-w-[250px]">
                             {editingCell?.id === vehicle.id && editingCell?.field === "observations" ? (
                               <Input
-                                value={tempValues[`${vehicle.id}-observations`] || ""}
+                                value={tempValues[`${vehicle.id}-observations`] ?? ""}
                                 onChange={(e) =>
-                                  setTempValues({
-                                    ...tempValues,
+                                  setTempValues(prev => ({
+                                    ...prev,
                                     [`${vehicle.id}-observations`]: e.target.value,
-                                  })
+                                  }))
                                 }
                                 onBlur={saveEditing}
                                 onKeyDown={(e) => {
@@ -1042,7 +1068,7 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
                                 onClick={() => startEditing(vehicle.id, "observations", vehicle.observations || "")}
                                 title={vehicle.observations || ""}
                               >
-                                <span className={vehicle.observations ? "" : "text-muted-foreground italic"}>
+                                <span className={vehicle.observations ? "" : "text-muted-foreground/40 italic"}>
                                   {vehicle.observations || "Click para añadir observaciones..."}
                                 </span>
                               </div>

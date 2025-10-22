@@ -395,9 +395,11 @@ export interface Database {
           "Fecha disponibilidad": string | null
           "Fecha entrada VO": string | null
           "Fecha fabricación": string | null
+          "Fecha fabricación.1": string | null
           "Fecha modificación": string | null
           "Fecha primera matriculación": string | null
           "Fecha primera publicación": string | null
+          "Fecha rematriculación": string | null
           "Garantía": string | null
           "KM": string | null
           "Libre de siniestros": string | null
@@ -422,7 +424,9 @@ export interface Database {
           "Proveedor": string | null
           "Referencia": string | null
           "Referencia interna": string | null
+          "Rematriculado ": string | null
           "Regimen fiscal": string | null
+          "Impuesto rematriculación": string | null
           "Tienda": string | null
           "Tipo de distribución": string | null
           "Tipo motor": string | null
@@ -497,9 +501,11 @@ export interface Database {
           "Fecha disponibilidad"?: string | null
           "Fecha entrada VO"?: string | null
           "Fecha fabricación"?: string | null
+          "Fecha fabricación.1"?: string | null
           "Fecha modificación"?: string | null
           "Fecha primera matriculación"?: string | null
           "Fecha primera publicación"?: string | null
+          "Fecha rematriculación"?: string | null
           "Garantía"?: string | null
           "KM"?: string | null
           "Libre de siniestros"?: string | null
@@ -524,7 +530,9 @@ export interface Database {
           "Proveedor"?: string | null
           "Referencia"?: string | null
           "Referencia interna"?: string | null
+          "Rematriculado "?: string | null
           "Regimen fiscal"?: string | null
+          "Impuesto rematriculación"?: string | null
           "Tienda"?: string | null
           "Tipo de distribución"?: string | null
           "Tipo motor"?: string | null
@@ -599,9 +607,11 @@ export interface Database {
           "Fecha disponibilidad"?: string | null
           "Fecha entrada VO"?: string | null
           "Fecha fabricación"?: string | null
+          "Fecha fabricación.1"?: string | null
           "Fecha modificación"?: string | null
           "Fecha primera matriculación"?: string | null
           "Fecha primera publicación"?: string | null
+          "Fecha rematriculación"?: string | null
           "Garantía"?: string | null
           "KM"?: string | null
           "Libre de siniestros"?: string | null
@@ -626,7 +636,9 @@ export interface Database {
           "Proveedor"?: string | null
           "Referencia"?: string | null
           "Referencia interna"?: string | null
+          "Rematriculado "?: string | null
           "Regimen fiscal"?: string | null
+          "Impuesto rematriculación"?: string | null
           "Tienda"?: string | null
           "Tipo de distribución"?: string | null
           "Tipo motor"?: string | null
