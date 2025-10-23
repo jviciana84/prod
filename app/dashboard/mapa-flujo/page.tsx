@@ -9,7 +9,989 @@ import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { ScrollIndicator } from "@/components/ui/scroll-indicator"
 
-// Estructura completa de páginas del sistema
+// Explicaciones detalladas por página
+const pageExplanations: { [key: string]: { steps: string[], validations: string[], technical: string[], diagram?: string } } = {
+  "DUC Scraper": {
+    steps: [
+      "📥 **Scraper Automático:** Se ejecuta automáticamente y descarga CSV del sitio DUC.",
+      "🔄 **Carga a duc_scraper:** Los datos crudos se suben a la tabla 'duc_scraper' (fuente de verdad).",
+      "⚡ **Trigger sync_duc_to_stock:** Automáticamente sincroniza vehículos a la tabla 'stock' marcándolos como disponibles.",
+      "⚡ **Trigger sync_duc_to_nuevas_entradas:** Crea registros en 'nuevas_entradas' para vehículos sin recepción física.",
+      "🔋 **Control de Baterías:** Para BEV/PHEV, se crean registros automáticos en 'battery_control' para monitoreo de carga."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de duc_scraper",
+      "🔧 **Mutaciones:** Solo el scraper (Python) inserta datos, nunca desde el frontend",
+      "📊 **Patrón:** Esta página es solo lectura (READ-ONLY) desde el dashboard",
+      "⚡ **Triggers:** Se ejecutan automáticamente en Supabase tras cada INSERT"
+    ],
+    validations: [
+      "❌ NUNCA modificar datos en 'duc_scraper' - es la fuente de verdad inmutable",
+      "⚠️ NO eliminar registros del scraper - esto rompe la trazabilidad",
+      "✅ Los cambios deben hacerse en 'stock' o 'nuevas_entradas', nunca en duc_scraper",
+      "🔍 Revisar logs si el scraper falla - puede afectar toda la cadena de datos"
+    ],
+    diagram: `
+    graph TD
+      A[🤖 Scraper DUC Automático] -->|Descarga CSV| B[📊 duc_scraper]
+      B -->|Trigger| C[🚗 stock]
+      B -->|Trigger| D[📝 nuevas_entradas]
+      B -->|BEV/PHEV| E[🔋 battery_control]
+      style B fill:#ffcccc
+      style C fill:#ccffcc
+      style D fill:#ccffcc
+      style E fill:#cce5ff
+    `
+  },
+  "Nuevas Entradas": {
+    steps: [
+      "📝 **Registro Inicial:** Se crea automáticamente desde DUC o manualmente por el usuario.",
+      "📸 **Asignación Fotográfica:** El sistema puede asignar automáticamente un fotógrafo.",
+      "✅ **Recepción Física:** Cuando el vehículo llega, se marca como 'recibido' (checkbox).",
+      "⚡ **Trigger nuevas_entradas_to_stock:** Al marcar como recibido, automáticamente pasa a 'stock' disponible.",
+      "📁 **Carga de PDFs:** Se suben certificados (CyP, 360, etc.) que habilitan validaciones posteriores."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de nuevas_entradas",
+      "🔧 **Mutaciones:** `/api/nuevas-entradas/crear` para INSERT (creación manual)",
+      "📝 **Edición:** `/api/nuevas-entradas/editar` para UPDATE (marcar recibido, PDFs)",
+      "📊 **Patrón:** Componente separado `nuevas-entradas-table.tsx` + API Routes"
+    ],
+    validations: [
+      "❌ NO marcar como recibido si el vehículo no ha llegado físicamente",
+      "⚠️ NO saltarse la carga de PDFs - son obligatorios para entregas",
+      "✅ Verificar que los datos coinciden con la documentación física antes de recibir",
+      "🔍 Revisar fotos asignadas - deben completarse antes de vender"
+    ]
+  },
+  "Stock (Vehicles)": {
+    steps: [
+      "🚗 **Tabla Central:** Almacena todos los vehículos disponibles, vendidos y en proceso.",
+      "🔄 **Sincronización DUC:** Se actualiza automáticamente desde 'duc_scraper' vía trigger.",
+      "📊 **Estados:** disponible → vendido → entregado (según el flujo de venta).",
+      "🔗 **Relaciones:** Conecta con 'fotos', 'sales_vehicles', 'entregas', 'llaves', etc.",
+      "⚡ **Trigger delete_stock_on_delivery:** Elimina el vehículo de stock al completar entrega."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT con joins a fotos, sales",
+      "🔧 **Mutaciones:** `/api/vehicles/editar` para UPDATE (cambios de estado, validación)",
+      "🗑️ **Eliminación:** `/api/vehicles/eliminar` para DELETE (solo casos especiales)",
+      "📊 **Patrón:** Componente separado `vehicles-table.tsx` + API Routes + Service Role"
+    ],
+    validations: [
+      "❌ NO modificar 'matricula' - es la clave única del sistema",
+      "⚠️ NO cambiar estado manualmente sin seguir el flujo completo",
+      "✅ Verificar que CyP y 360 estén completos antes de marcar como 'validado'",
+      "🔍 Revisar fotos completas antes de vender - evita ventas prematuras"
+    ]
+  },
+  "Fotos": {
+    steps: [
+      "📸 **Asignación:** Los vehículos se asignan a fotógrafos (manual o automática).",
+      "🖼️ **Carga de Fotos:** El fotógrafo sube las fotos del vehículo.",
+      "🎨 **Estados:** sin_fotos → asignado → fotos_completadas → publicado.",
+      "⚡ **Trigger sync_body_status_to_paint_status:** Sincroniza estados de carrocería y pintura.",
+      "⚡ **Trigger sync_sales_to_fotos_vendido:** Marca fotos como vendidas al completar venta."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de fotos con join a stock",
+      "🔧 **Mutaciones:** `/api/photos/asignar` para UPDATE (asignar fotógrafo)",
+      "📷 **Subida:** `/api/photos/upload` para INSERT (subir fotos a storage + DB)",
+      "📊 **Patrón:** Componente `photos-table.tsx` + API Routes + Supabase Storage"
+    ],
+    validations: [
+      "❌ NO marcar fotos como completas si faltan ángulos obligatorios",
+      "⚠️ NO vender sin fotos completas - genera 'ventas prematuras'",
+      "✅ Verificar calidad y cantidad de fotos antes de publicar",
+      "🔍 Revisar 'ventas-prematuras' para recuperar fotos pendientes"
+    ]
+  },
+  "Ventas": {
+    steps: [
+      "🛒 **Crear Venta:** Se registra cliente, vehículo, precio y condiciones.",
+      "💰 **Financiación:** Se indica si es financiado (opcional).",
+      "📋 **Validación:** El sistema verifica que CyP y 360 estén completos.",
+      "✅ **Confirmación:** Se confirma la venta y pasa a 'sales_vehicles'.",
+      "🚚 **Preparación Entrega:** Se generan documentos y se prepara el proceso de entrega."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de sales_vehicles",
+      "🔧 **Mutaciones:** `/api/ventas/crear` para INSERT (nueva venta)",
+      "📝 **Edición:** `/api/ventas/editar` para UPDATE (modificar datos, confirmar)",
+      "📊 **Patrón:** Formulario + Tabla separada + API Routes con validaciones"
+    ],
+    validations: [
+      "❌ NO vender sin CyP y 360 completos - bloquea la entrega",
+      "⚠️ NO vender vehículos sin fotos completas",
+      "✅ Verificar que el cliente tiene todos los datos completos",
+      "🔍 Confirmar precio y condiciones antes de finalizar venta"
+    ]
+  },
+  "Entregas": {
+    steps: [
+      "📅 **Programar Entrega:** Se asigna fecha y hora para la entrega del vehículo.",
+      "📋 **Documentación:** Se verifica que todos los documentos estén completos.",
+      "🔑 **Llaves y Docs:** Se confirma disponibilidad de llaves y documentos físicos.",
+      "✅ **Entrega Física:** Se marca como entregado al completar la entrega.",
+      "⚡ **Trigger delete_stock_on_delivery:** Elimina el vehículo de stock automáticamente."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de entregas",
+      "🔧 **Mutaciones:** `/api/entregas/crear` para INSERT (programar entrega)",
+      "✅ **Completar:** `/api/entregas/completar` para UPDATE (marcar como entregado)",
+      "📊 **Patrón:** Formulario complejo + Validaciones + API Routes + Trigger automático"
+    ],
+    validations: [
+      "❌ NO entregar sin CyP y 360 validados - requisito obligatorio",
+      "⚠️ NO entregar sin llaves y documentos físicos disponibles",
+      "✅ Verificar que el cliente ha firmado todos los documentos",
+      "🔍 Confirmar que el vehículo está en condiciones óptimas antes de entregar"
+    ]
+  },
+  "Llaves y Documentos": {
+    steps: [
+      "🔑 **Registro de Llaves:** Se registran las llaves del vehículo al llegar.",
+      "📄 **Registro de Documentos:** Se registran permisos de circulación y otros docs.",
+      "📍 **Ubicación:** Se indica dónde están almacenadas físicamente.",
+      "🔄 **Movimientos:** Se registran entradas/salidas para trazabilidad.",
+      "✅ **Disponibilidad:** Se verifica disponibilidad antes de cada entrega."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de vehicle_keys, vehicle_documents",
+      "🔧 **Mutaciones:** `/api/llaves/registrar` para INSERT (nueva llave/documento)",
+      "📍 **Movimientos:** `/api/llaves/mover` para INSERT en key_movements, document_movements",
+      "📊 **Patrón:** Sistema de trazabilidad completo + Historial + API Routes"
+    ],
+    validations: [
+      "❌ NO registrar llaves/docs que no existen físicamente",
+      "⚠️ NO entregar sin confirmar ubicación física de llaves y docs",
+      "✅ Actualizar ubicación en cada movimiento para evitar pérdidas",
+      "🔍 Revisar historial de movimientos si no se encuentran"
+    ]
+  },
+  // FASE 2: FLUJO COMPLETO DE VEHÍCULOS
+  "Control de Baterías": {
+    steps: [
+      "🔋 **Monitoreo BEV/PHEV:** Sistema automático para vehículos eléctricos e híbridos enchufables.",
+      "📊 **Estado de Carga:** Registra nivel de batería, fecha de última carga y días sin cargar.",
+      "⚠️ **Alertas:** Genera alertas cuando la batería lleva demasiado tiempo sin carga.",
+      "🔄 **Actualización:** Los usuarios actualizan manualmente el estado de carga.",
+      "📈 **Estadísticas:** Muestra promedios de días en taller y días sin cargar."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de battery_control + join duc_scraper",
+      "🔧 **Mutaciones:** `/api/baterias/actualizar` para UPDATE (actualizar estado carga)",
+      "📊 **Patrón:** Componente `battery-control-table.tsx` + API Routes",
+      "🔄 **Auto-creación:** Se crean registros automáticamente desde DUC para BEV/PHEV"
+    ],
+    validations: [
+      "❌ NO marcar como cargado sin verificar físicamente la carga",
+      "⚠️ NO ignorar alertas de batería - puede dañar el vehículo",
+      "✅ Cargar al menos cada 15 días para mantener salud de batería",
+      "🔍 Revisar configuración de días máximos sin carga"
+    ]
+  },
+  "Asignar Fotógrafo": {
+    steps: [
+      "📸 **Asignación Manual:** El usuario selecciona vehículo y fotógrafo manualmente.",
+      "👤 **Lista Fotógrafos:** Muestra fotógrafos activos disponibles.",
+      "📅 **Fecha Asignación:** Registra fecha y hora de asignación.",
+      "🔔 **Notificación:** Opcionalmente notifica al fotógrafo asignado.",
+      "📊 **Actualización Estado:** Cambia estado del vehículo a 'asignado'."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de fotos, profiles",
+      "🔧 **Mutaciones:** `/api/photos/asignar` para UPDATE (asignar fotógrafo)",
+      "📊 **Patrón:** Formulario de asignación + Lista de fotógrafos + API Route",
+      "🔔 **Notificaciones:** Opcional - envía notificación push/email al fotógrafo"
+    ],
+    validations: [
+      "❌ NO asignar sin verificar disponibilidad del fotógrafo",
+      "⚠️ NO asignar múltiples vehículos al mismo fotógrafo simultáneamente",
+      "✅ Verificar ubicación del vehículo antes de asignar",
+      "🔍 Revisar carga de trabajo del fotógrafo antes de asignar"
+    ]
+  },
+  "Assignment": {
+    steps: [
+      "🤖 **Asignación Automática:** Sistema inteligente que asigna fotógrafos automáticamente.",
+      "📊 **Criterios:** Considera carga de trabajo, ubicación y disponibilidad.",
+      "⚡ **Proceso Batch:** Asigna múltiples vehículos de una vez.",
+      "📈 **Balanceo:** Distribuye equitativamente entre fotógrafos disponibles.",
+      "✅ **Confirmación:** Muestra resultado y permite ajustes manuales."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de fotos + carga de trabajo",
+      "🔧 **Mutaciones:** `/api/photos/auto-assign` para UPDATE batch (asignación múltiple)",
+      "📊 **Patrón:** Algoritmo de asignación + Vista de resultado + API Route",
+      "🤖 **Lógica:** Balancea por número de vehículos asignados actualmente"
+    ],
+    validations: [
+      "❌ NO ejecutar sin revisar carga actual de fotógrafos",
+      "⚠️ NO asignar vehículos que ya tienen fotógrafo",
+      "✅ Verificar resultado antes de confirmar asignaciones",
+      "🔍 Permitir ajustes manuales después de asignación automática"
+    ]
+  },
+  "Estadísticas Fotos": {
+    steps: [
+      "📊 **Métricas Globales:** Muestra totales de fotos completadas, pendientes, en proceso.",
+      "👤 **Por Fotógrafo:** Desglose de performance individual.",
+      "📈 **Tendencias:** Gráficos de evolución temporal.",
+      "⏱️ **Tiempos:** Promedio de tiempo entre asignación y completado.",
+      "🎯 **Objetivos:** Compara contra metas establecidas."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT con agregaciones",
+      "📊 **Patrón:** Solo lectura - Componente de estadísticas + Gráficos (Recharts)",
+      "📈 **Agregaciones:** COUNT, AVG, SUM directamente en queries Supabase",
+      "🎨 **Visualización:** Cards + Charts para diferentes métricas"
+    ],
+    validations: [
+      "✅ Actualizar datos en tiempo real para ver cambios",
+      "🔍 Filtrar por rango de fechas para análisis específicos",
+      "📊 Exportar datos para reportes externos si es necesario",
+      "⏱️ Los tiempos se calculan automáticamente, no editar manualmente"
+    ]
+  },
+  "Resumen Fotógrafos": {
+    steps: [
+      "👥 **Lista de Fotógrafos:** Muestra todos los fotógrafos activos.",
+      "📊 **Performance Individual:** Vehículos asignados, completados, pendientes.",
+      "⏱️ **Tiempo Promedio:** Tiempo medio que tarda cada fotógrafo.",
+      "📈 **Ranking:** Ordena por productividad y calidad.",
+      "🎯 **Alertas:** Marca fotógrafos con retrasos o problemas."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de profiles + fotos agregadas",
+      "📊 **Patrón:** Solo lectura - Tabla resumen + Métricas por fotógrafo",
+      "📈 **Join:** Combina datos de profiles con estadísticas de fotos",
+      "🎨 **Indicadores:** Badges de colores para diferentes estados de performance"
+    ],
+    validations: [
+      "✅ Revisar regularmente para detectar cuellos de botella",
+      "🔍 Identificar fotógrafos que necesitan más asignaciones",
+      "📊 Usar para tomar decisiones de asignación manual",
+      "⏱️ Considerar variaciones estacionales en la carga de trabajo"
+    ]
+  },
+  "Ventas Prematuras (Photos)": {
+    steps: [
+      "⚠️ **Detección:** Identifica vehículos vendidos sin fotos completas.",
+      "📸 **Estado Fotos:** Muestra qué fotos faltan por completar.",
+      "🚗 **Datos Vehículo:** Información del vehículo y venta.",
+      "🔔 **Alertas:** Notifica a fotógrafos para completar fotos urgentes.",
+      "✅ **Resolución:** Marca como resuelto cuando se completan las fotos."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT con join sales + fotos incompletas",
+      "🔧 **Mutaciones:** `/api/photos/resolver-prematura` para UPDATE (marcar como resuelto)",
+      "📊 **Patrón:** Tabla de alertas + Acción rápida + API Route",
+      "⚠️ **Filtro:** WHERE vendido = true AND fotos_completas = false"
+    ],
+    validations: [
+      "❌ NO ignorar ventas prematuras - afecta la calidad del inventario online",
+      "⚠️ PRIORIZAR estas fotos sobre nuevas asignaciones",
+      "✅ Notificar a fotógrafos inmediatamente cuando aparece una venta prematura",
+      "🔍 Analizar causas para prevenir futuras ventas sin fotos completas"
+    ]
+  },
+  "Gestión de Ventas": {
+    steps: [
+      "🛒 **Tabla de Ventas:** Lista todas las ventas registradas en el sistema.",
+      "📊 **Estados:** Pendiente, confirmada, entregada, cancelada.",
+      "🔍 **Filtros:** Por fecha, cliente, vehículo, vendedor, estado.",
+      "✏️ **Edición:** Permite modificar datos de ventas existentes.",
+      "📄 **Documentos:** Acceso a contratos, facturas y documentación."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de sales_vehicles + joins",
+      "🔧 **Mutaciones:** `/api/ventas/editar` para UPDATE (modificar venta)",
+      "🗑️ **Cancelar:** `/api/ventas/cancelar` para UPDATE (cancelar venta)",
+      "📊 **Patrón:** Tabla compleja + Modal de edición + API Routes"
+    ],
+    validations: [
+      "❌ NO cancelar ventas sin motivo válido - afecta métricas",
+      "⚠️ NO modificar precios después de confirmar sin autorización",
+      "✅ Verificar datos del cliente antes de confirmar venta",
+      "🔍 Mantener documentación completa para auditorías"
+    ]
+  },
+  "Nueva Venta": {
+    steps: [
+      "🛒 **Selección Vehículo:** Buscar y seleccionar vehículo disponible.",
+      "👤 **Datos Cliente:** Ingresar información completa del cliente.",
+      "💰 **Precio y Condiciones:** Precio final, forma de pago, financiación.",
+      "📋 **Validaciones:** Sistema verifica CyP, 360, fotos completas.",
+      "✅ **Confirmación:** Se crea la venta y se actualiza estado del vehículo."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de stock disponible",
+      "🔧 **Mutaciones:** `/api/ventas/crear` para INSERT (nueva venta)",
+      "📊 **Patrón:** Formulario multi-paso + Validaciones en tiempo real + API Route",
+      "✅ **Validaciones:** Verifica requisitos antes de permitir venta"
+    ],
+    validations: [
+      "❌ NO vender sin verificar CyP y 360 completos",
+      "⚠️ NO permitir venta de vehículos sin fotos",
+      "✅ Confirmar datos del cliente - DNI, contacto, dirección",
+      "🔍 Verificar disponibilidad real del vehículo antes de vender"
+    ]
+  },
+  "Detalle Venta [id]": {
+    steps: [
+      "📄 **Información Completa:** Muestra todos los datos de la venta.",
+      "🚗 **Datos Vehículo:** Matrícula, modelo, precio, estado.",
+      "👤 **Datos Cliente:** Información de contacto y documentación.",
+      "📊 **Timeline:** Historial de cambios y eventos de la venta.",
+      "📄 **Documentos:** Descarga de contratos, facturas, etc."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de sales_vehicles por ID",
+      "📊 **Patrón:** Vista detalle de solo lectura + Acciones específicas",
+      "🔧 **Join:** Combina datos de sales, stock, cliente en una vista",
+      "📄 **Archivos:** Acceso a documentos desde Supabase Storage"
+    ],
+    validations: [
+      "✅ Revisar timeline para entender el proceso de venta",
+      "🔍 Verificar que todos los documentos estén disponibles",
+      "📊 Usar esta vista para auditorías y seguimiento",
+      "📄 Descargar documentos solo cuando sea necesario"
+    ]
+  },
+  "Estadísticas Ventas": {
+    steps: [
+      "📊 **Métricas Globales:** Total ventas, ingresos, promedio por venta.",
+      "📈 **Tendencias:** Evolución de ventas en el tiempo.",
+      "👤 **Por Vendedor:** Performance individual de cada vendedor.",
+      "🚗 **Por Tipo:** Desglose por marca, modelo, tipo de combustible.",
+      "💰 **Financiación:** Porcentaje de ventas financiadas vs. contado."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT con agregaciones complejas",
+      "📊 **Patrón:** Solo lectura - Dashboard de estadísticas + Gráficos (Recharts)",
+      "📈 **Agregaciones:** SUM, AVG, COUNT, GROUP BY en queries",
+      "🎨 **Visualización:** Cards + Line Charts + Bar Charts + Pie Charts"
+    ],
+    validations: [
+      "✅ Actualizar periódicamente para ver tendencias",
+      "🔍 Filtrar por períodos para análisis comparativos",
+      "📊 Usar para establecer objetivos y metas de ventas",
+      "💰 Analizar patrones de financiación para estrategias comerciales"
+    ]
+  },
+  "Gestión Entregas": {
+    steps: [
+      "🚚 **Tabla de Entregas:** Lista todas las entregas programadas y completadas.",
+      "📅 **Calendario:** Vista de entregas por fecha.",
+      "📍 **Estado:** Programada, en preparación, completada, cancelada.",
+      "🔍 **Filtros:** Por fecha, cliente, vehículo, centro de entrega.",
+      "✏️ **Edición:** Reprogramar o modificar datos de entrega."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de entregas + joins",
+      "🔧 **Mutaciones:** `/api/entregas/editar` para UPDATE (modificar entrega)",
+      "📅 **Reprogramar:** `/api/entregas/reprogramar` para UPDATE (cambiar fecha)",
+      "📊 **Patrón:** Tabla + Calendario + Modal de edición + API Routes"
+    ],
+    validations: [
+      "❌ NO entregar sin verificar documentación completa",
+      "⚠️ NO reprogramar sin notificar al cliente",
+      "✅ Confirmar disponibilidad de llaves y documentos antes de fecha",
+      "🔍 Verificar que el vehículo está preparado antes de entrega"
+    ]
+  },
+  "Nueva Entrega": {
+    steps: [
+      "📅 **Seleccionar Venta:** Elegir venta confirmada sin entrega.",
+      "🗓️ **Fecha y Hora:** Programar fecha y hora de entrega.",
+      "📍 **Centro Entrega:** Seleccionar ubicación de entrega.",
+      "📋 **Checklist:** Verificar requisitos: CyP, 360, llaves, docs.",
+      "✅ **Confirmación:** Se crea la entrega y se notifica al cliente."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de ventas sin entrega",
+      "🔧 **Mutaciones:** `/api/entregas/crear` para INSERT (nueva entrega)",
+      "📊 **Patrón:** Formulario con validaciones + Checklist + API Route",
+      "✅ **Validaciones:** Verifica todos los requisitos antes de permitir programar"
+    ],
+    validations: [
+      "❌ NO programar sin CyP y 360 validados",
+      "⚠️ NO programar sin confirmar disponibilidad de llaves/docs",
+      "✅ Verificar que el cliente puede asistir en fecha/hora seleccionada",
+      "🔍 Confirmar que el vehículo está en condiciones óptimas"
+    ]
+  },
+  "Detalle Entrega [id]": {
+    steps: [
+      "📄 **Información Completa:** Todos los datos de la entrega programada.",
+      "🚗 **Vehículo:** Datos completos del vehículo a entregar.",
+      "👤 **Cliente:** Información de contacto y documentación.",
+      "📋 **Checklist:** Estado de cada requisito (CyP, 360, llaves, docs).",
+      "📊 **Timeline:** Historial de eventos y cambios de la entrega."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de entregas por ID + joins",
+      "📊 **Patrón:** Vista detalle + Checklist visual + Timeline",
+      "✅ **Completar:** `/api/entregas/completar` para UPDATE (marcar como entregado)",
+      "🔧 **Join:** Combina datos de entregas, ventas, stock, cliente"
+    ],
+    validations: [
+      "✅ Verificar checklist completo antes de entregar",
+      "🔍 Revisar timeline para entender el proceso",
+      "📄 Confirmar que cliente ha firmado todos los documentos",
+      "🚗 Inspección final del vehículo antes de entrega"
+    ]
+  },
+  // FASE 3: OPERACIONES Y CONTROL
+  "Vehicle Keys": {
+    steps: [
+      "🔑 **Registro:** Se registra cada llave con su tipo (original, copia, mando).",
+      "📍 **Ubicación:** Se indica ubicación física específica.",
+      "✅ **Estado:** Disponible, en uso, extraviada, entregada.",
+      "🔄 **Movimientos:** Cada cambio de ubicación se registra automáticamente.",
+      "📊 **Trazabilidad:** Historial completo de todos los movimientos."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de vehicle_keys",
+      "🔧 **Mutaciones:** `/api/llaves/crear` para INSERT (nueva llave)",
+      "📊 **Patrón:** Tabla + Formulario + Sistema de ubicaciones + API Routes",
+      "🔄 **Trigger:** Movimientos se registran automáticamente en key_movements"
+    ],
+    validations: [
+      "❌ NO registrar llaves sin verificar existencia física",
+      "⚠️ NO cambiar ubicación sin registro de movimiento",
+      "✅ Actualizar estado inmediatamente al detectar pérdida",
+      "🔍 Revisar historial antes de marcar como extraviada"
+    ]
+  },
+  "Key Movements": {
+    steps: [
+      "📋 **Registro Automático:** Cada movimiento se registra con fecha, hora, usuario.",
+      "📍 **Ubicaciones:** Desde → Hasta con razón del movimiento.",
+      "👤 **Responsable:** Quién autoriza y ejecuta el movimiento.",
+      "📊 **Historial:** Lista completa de todos los movimientos.",
+      "🔍 **Auditoría:** Sistema inmutable para trazabilidad completa."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de key_movements",
+      "📊 **Patrón:** Solo lectura - Tabla de historial inmutable",
+      "🔧 **Creación:** Se crean automáticamente desde UPDATE de vehicle_keys",
+      "🔒 **Inmutable:** No se puede editar ni eliminar movimientos"
+    ],
+    validations: [
+      "✅ Revisar historial para encontrar llaves perdidas",
+      "🔍 Usar para auditorías y control de responsabilidades",
+      "📊 Analizar patrones para mejorar sistema de almacenamiento",
+      "🔒 Los movimientos son inmutables - no intentar modificar"
+    ]
+  },
+  "Vehicle Documents": {
+    steps: [
+      "📄 **Registro:** Permiso circulación, ITV, seguro, documentación legal.",
+      "📍 **Ubicación:** Dónde se almacena físicamente cada documento.",
+      "✅ **Estado:** Original, copia, pendiente, entregado.",
+      "📅 **Vigencia:** Fechas de expedición y vencimiento.",
+      "🔄 **Movimientos:** Trazabilidad de ubicación de cada documento."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de vehicle_documents",
+      "🔧 **Mutaciones:** `/api/documentos/crear` para INSERT (nuevo documento)",
+      "📊 **Patrón:** Tabla + Formulario + Control de vigencia + API Routes",
+      "🔄 **Trigger:** Movimientos se registran automáticamente en document_movements"
+    ],
+    validations: [
+      "❌ NO registrar documentos que no existen físicamente",
+      "⚠️ NO entregar sin verificar vigencia de todos los documentos",
+      "✅ Actualizar estado inmediatamente al vencimiento",
+      "🔍 Alertas automáticas para documentos próximos a vencer"
+    ]
+  },
+  "Document Movements": {
+    steps: [
+      "📋 **Registro Automático:** Cada movimiento de documento con metadata completa.",
+      "📍 **Ubicaciones:** Seguimiento completo de dónde está cada documento.",
+      "👤 **Responsable:** Quién maneja y autoriza cada movimiento.",
+      "📊 **Historial:** Lista inmutable de todos los movimientos.",
+      "🔍 **Auditoría:** Sistema de control total para documentación legal."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de document_movements",
+      "📊 **Patrón:** Solo lectura - Historial inmutable de movimientos",
+      "🔧 **Creación:** Automática desde UPDATE de vehicle_documents",
+      "🔒 **Inmutable:** Registro permanente no modificable"
+    ],
+    validations: [
+      "✅ Revisar historial para localizar documentos",
+      "🔍 Usar para auditorías legales y seguros",
+      "📊 Analizar para mejorar procesos de gestión documental",
+      "🔒 Sistema inmutable - no modificar registros históricos"
+    ]
+  },
+  "Key Document Requests": {
+    steps: [
+      "📝 **Solicitud:** Usuario solicita llaves/documentos para entrega o gestión.",
+      "📋 **Aprobación:** Sistema verifica disponibilidad y autoriza.",
+      "📍 **Preparación:** Se localizan y preparan llaves y documentos.",
+      "✅ **Entrega:** Se marca como entregado con responsable.",
+      "📊 **Seguimiento:** Estado de cada solicitud hasta completar."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de key_document_requests",
+      "🔧 **Mutaciones:** `/api/solicitudes/crear` para INSERT (nueva solicitud)",
+      "✅ **Aprobar:** `/api/solicitudes/aprobar` para UPDATE (aprobar/rechazar)",
+      "📊 **Patrón:** Workflow de aprobación + Estados + API Routes"
+    ],
+    validations: [
+      "❌ NO aprobar sin verificar disponibilidad física",
+      "⚠️ NO entregar sin registro completo del responsable",
+      "✅ Verificar que los materiales están preparados antes de marcar",
+      "🔍 Seguimiento completo hasta devolución o entrega final"
+    ]
+  },
+  "External Material Vehicles": {
+    steps: [
+      "📦 **Registro:** Materiales externos asociados al vehículo (rueda repuesto, etc).",
+      "📍 **Ubicación:** Dónde se almacena cada material.",
+      "✅ **Estado:** Disponible, en uso, entregado, faltante.",
+      "🔄 **Movimientos:** Trazabilidad de cada material externo.",
+      "📋 **Inventario:** Control de materiales antes de cada entrega."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de external_material_vehicles",
+      "🔧 **Mutaciones:** `/api/materiales/registrar` para INSERT (nuevo material)",
+      "📊 **Patrón:** Sistema de inventario + Ubicaciones + API Routes",
+      "🔄 **Control:** Verifica materiales completos antes de entregar"
+    ],
+    validations: [
+      "❌ NO entregar vehículo sin verificar materiales completos",
+      "⚠️ NO registrar materiales que no existen físicamente",
+      "✅ Actualizar ubicación en cada movimiento",
+      "🔍 Revisar inventario completo antes de cada entrega"
+    ]
+  },
+  "Circulation Permit Requests": {
+    steps: [
+      "📝 **Solicitud:** Se solicita permiso de circulación para gestiones.",
+      "📋 **Aprobación:** Sistema verifica disponibilidad del documento.",
+      "📍 **Entrega:** Se entrega el permiso al responsable.",
+      "⏱️ **Tiempo:** Control de tiempo de uso del documento.",
+      "✅ **Devolución:** Registro de devolución del documento."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de circulation_permit_requests",
+      "🔧 **Mutaciones:** `/api/permisos/solicitar` para INSERT (nueva solicitud)",
+      "✅ **Devolver:** `/api/permisos/devolver` para UPDATE (marcar devuelto)",
+      "📊 **Patrón:** Workflow de préstamo + Control temporal + API Routes"
+    ],
+    validations: [
+      "❌ NO prestar sin registro del responsable",
+      "⚠️ NO permitir múltiples préstamos del mismo documento",
+      "✅ Controlar tiempo de préstamo - alertas si excede plazo",
+      "🔍 Verificar devolución física antes de marcar como devuelto"
+    ]
+  },
+  "Historial Recogidas": {
+    steps: [
+      "🚗 **Registro Recogida:** Vehículo a recoger del cliente o proveedor.",
+      "📅 **Programación:** Fecha, hora y ubicación de recogida.",
+      "👤 **Responsable:** Quién realiza la recogida.",
+      "✅ **Completado:** Confirma recogida exitosa con detalles.",
+      "📊 **Estado:** Programada, en curso, completada, cancelada."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de recogidas_historial",
+      "🔧 **Mutaciones:** `/api/recogidas/crear` para INSERT (nueva recogida)",
+      "✅ **Completar:** `/api/recogidas/completar` para UPDATE (marcar completada)",
+      "📊 **Patrón:** Tabla + Formulario + Estados + API Routes"
+    ],
+    validations: [
+      "❌ NO marcar como completada sin verificar recogida física",
+      "⚠️ NO cancelar sin notificar al cliente",
+      "✅ Registrar detalles del vehículo al momento de recogida",
+      "🔍 Verificar documentación al recoger el vehículo"
+    ]
+  },
+  "Nueva Recogida": {
+    steps: [
+      "📝 **Datos Vehículo:** Matrícula, marca, modelo del vehículo a recoger.",
+      "👤 **Datos Cliente:** Información de contacto del propietario.",
+      "📍 **Ubicación:** Dirección donde se recogerá el vehículo.",
+      "📅 **Programación:** Fecha y hora de recogida.",
+      "✅ **Confirmación:** Se crea la recogida y notifica al responsable."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para validaciones",
+      "🔧 **Mutaciones:** `/api/recogidas/crear` para INSERT (nueva recogida)",
+      "📊 **Patrón:** Formulario multi-paso + Validaciones + API Route",
+      "🔔 **Notificación:** Envía notificación al responsable asignado"
+    ],
+    validations: [
+      "❌ NO programar sin confirmar disponibilidad del responsable",
+      "⚠️ NO crear sin verificar datos del cliente",
+      "✅ Confirmar ubicación y datos de contacto",
+      "🔍 Verificar que no existe recogida duplicada"
+    ]
+  },
+  "Detalle Recogida [id]": {
+    steps: [
+      "📄 **Información Completa:** Todos los datos de la recogida.",
+      "🚗 **Vehículo:** Detalles del vehículo a recoger.",
+      "👤 **Cliente:** Información de contacto completa.",
+      "📊 **Timeline:** Historial de eventos de la recogida.",
+      "📸 **Fotos:** Registro fotográfico al momento de recogida."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT por ID",
+      "📊 **Patrón:** Vista detalle + Timeline + Galería de fotos",
+      "✅ **Completar:** Acción para marcar como completada",
+      "🔧 **Join:** Combina datos de recogida + cliente + fotos"
+    ],
+    validations: [
+      "✅ Revisar timeline completo antes de cualquier acción",
+      "🔍 Verificar fotos al momento de recogida",
+      "📄 Confirmar documentación entregada por el cliente",
+      "🚗 Registrar estado físico del vehículo al recoger"
+    ]
+  },
+  "Gestión Incentivos": {
+    steps: [
+      "💰 **Tabla de Incentivos:** Lista todos los incentivos del sistema.",
+      "📊 **Tipos:** Por venta, por target, bonos especiales.",
+      "👤 **Asignados:** A qué vendedores o equipos están asignados.",
+      "📅 **Vigencia:** Período de validez del incentivo.",
+      "✏️ **Edición:** Modificar condiciones o montos."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de incentivos",
+      "🔧 **Mutaciones:** `/api/incentivos/editar` para UPDATE",
+      "🗑️ **Eliminar:** `/api/incentivos/eliminar` para DELETE",
+      "📊 **Patrón:** Tabla + Modal edición + Cálculos + API Routes"
+    ],
+    validations: [
+      "❌ NO modificar incentivos activos sin autorización",
+      "⚠️ NO eliminar incentivos con ventas asociadas",
+      "✅ Verificar cálculos antes de confirmar incentivos",
+      "🔍 Revisar impacto en ventas existentes antes de cambios"
+    ]
+  },
+  "Nuevo Incentivo": {
+    steps: [
+      "📝 **Tipo:** Seleccionar tipo de incentivo (por venta, por objetivo, etc).",
+      "💰 **Monto:** Definir cantidad o porcentaje del incentivo.",
+      "👤 **Destinatarios:** Asignar a vendedores o equipos.",
+      "📅 **Vigencia:** Establecer fechas de inicio y fin.",
+      "✅ **Confirmación:** Se crea el incentivo y se activa."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para validaciones",
+      "🔧 **Mutaciones:** `/api/incentivos/crear` para INSERT",
+      "📊 **Patrón:** Formulario + Calculadora + Validaciones + API Route",
+      "💰 **Cálculo:** Sistema calcula automáticamente valores proyectados"
+    ],
+    validations: [
+      "❌ NO crear sin definir claramente las condiciones",
+      "⚠️ NO activar sin verificar presupuesto disponible",
+      "✅ Confirmar que las condiciones son alcanzables",
+      "🔍 Verificar que no se solapa con otros incentivos"
+    ]
+  },
+  "Detalle Incentivo [id]": {
+    steps: [
+      "📄 **Información Completa:** Todos los datos del incentivo.",
+      "👥 **Participantes:** Lista de vendedores incluidos.",
+      "📊 **Performance:** Progreso hacia objetivos del incentivo.",
+      "💰 **Pagos:** Historial de pagos realizados.",
+      "📈 **Estadísticas:** Impacto en ventas y resultados."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT por ID + cálculos",
+      "📊 **Patrón:** Vista detalle + Dashboard de progreso",
+      "📈 **Agregaciones:** Cálculos en tiempo real de performance",
+      "💰 **Join:** Combina incentivo + ventas + pagos"
+    ],
+    validations: [
+      "✅ Revisar progreso regularmente para motivación",
+      "🔍 Verificar cálculos antes de aprobar pagos",
+      "📊 Analizar impacto en ventas para futuros incentivos",
+      "💰 Confirmar todos los pagos estén documentados"
+    ]
+  },
+  "Soporte Tickets": {
+    steps: [
+      "🎫 **Lista de Tickets:** Todos los tickets de soporte del sistema.",
+      "📊 **Estados:** Abierto, en progreso, resuelto, cerrado.",
+      "🔍 **Filtros:** Por prioridad, categoría, asignado, fecha.",
+      "✏️ **Gestión:** Asignar, comentar, cambiar estado.",
+      "📈 **Métricas:** Tiempo de resolución, satisfacción."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de soporte_tickets",
+      "🔧 **Mutaciones:** `/api/soporte/actualizar` para UPDATE",
+      "✅ **Cerrar:** `/api/soporte/cerrar` para UPDATE (marcar resuelto)",
+      "📊 **Patrón:** Sistema de ticketing + Asignación + API Routes"
+    ],
+    validations: [
+      "❌ NO cerrar tickets sin confirmar resolución con usuario",
+      "⚠️ NO ignorar tickets de alta prioridad",
+      "✅ Asignar responsable inmediatamente a tickets nuevos",
+      "🔍 Documentar solución para futura referencia"
+    ]
+  },
+  "Nuevo Ticket": {
+    steps: [
+      "📝 **Descripción:** Detalle completo del problema o solicitud.",
+      "📊 **Categoría:** Tipo de soporte (técnico, funcional, etc).",
+      "⚠️ **Prioridad:** Baja, media, alta, crítica.",
+      "👤 **Asignación:** Responsable del ticket (automático o manual).",
+      "✅ **Creación:** Se crea el ticket y notifica al responsable."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para validaciones",
+      "🔧 **Mutaciones:** `/api/soporte/crear` para INSERT",
+      "📊 **Patrón:** Formulario + Auto-asignación + Notificaciones + API Route",
+      "🔔 **Notificación:** Email/Push al responsable asignado"
+    ],
+    validations: [
+      "❌ NO crear tickets duplicados - buscar primero",
+      "⚠️ NO asignar sin verificar disponibilidad del responsable",
+      "✅ Incluir toda la información necesaria para resolución",
+      "🔍 Adjuntar capturas o archivos relevantes"
+    ]
+  },
+  "Incidencias Historial": {
+    steps: [
+      "📋 **Registro:** Todas las incidencias del sistema histórico.",
+      "🚗 **Por Vehículo:** Incidencias asociadas a cada vehículo.",
+      "📊 **Tipos:** Mecánicas, estéticas, documentales.",
+      "✅ **Resolución:** Estado y solución aplicada.",
+      "📈 **Análisis:** Patrones y frecuencia de incidencias."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de incidencias_historial",
+      "📊 **Patrón:** Solo lectura - Historial inmutable",
+      "🔧 **Join:** Combina con stock para contexto completo",
+      "📈 **Análisis:** Agregaciones para identificar patrones"
+    ],
+    validations: [
+      "✅ Revisar historial antes de vender/entregar vehículo",
+      "🔍 Analizar incidencias recurrentes para prevención",
+      "📊 Usar para mejorar procesos de inspección",
+      "🚗 Documentar bien cada incidencia para trazabilidad"
+    ]
+  },
+  // FASE 4: GARANTÍAS Y TASACIONES
+  "Garantías Brutas MM": {
+    steps: [
+      "📊 **Datos BMW/MINI:** Información de garantías para vehículos BMW y MINI.",
+      "💰 **Costes:** Registro de costes de garantía por vehículo.",
+      "📅 **Período:** Fechas de cobertura de garantía.",
+      "🔍 **Análisis:** Estadísticas de costes por modelo y período.",
+      "📈 **Tendencias:** Evolución de costes de garantía en el tiempo."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de garantias_brutas_mm",
+      "📊 **Patrón:** Solo lectura - Datos importados desde fuentes externas",
+      "📈 **Análisis:** Agregaciones para estadísticas de costes",
+      "🔧 **Join:** Combina con stock para análisis completo"
+    ],
+    validations: [
+      "✅ Datos de solo lectura - no modificar directamente",
+      "🔍 Usar para análisis de costes operativos",
+      "📊 Revisar regularmente para detectar patrones",
+      "💰 Considerar en pricing de vehículos con garantía"
+    ]
+  },
+  "Garantías Brutas MMC": {
+    steps: [
+      "📊 **Datos BMW Motorrad:** Información de garantías para motos BMW.",
+      "💰 **Costes:** Registro de costes de garantía por modelo.",
+      "📅 **Período:** Cobertura y vigencia de garantías.",
+      "🔍 **Comparativa:** Diferencias con vehículos BMW/MINI.",
+      "📈 **Tendencias:** Análisis de evolución de costes."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de garantias_brutas_mmc",
+      "📊 **Patrón:** Solo lectura - Datos importados de sistemas BMW",
+      "📈 **Análisis:** Estadísticas específicas para motos",
+      "🔧 **Join:** Relación con stock de motos"
+    ],
+    validations: [
+      "✅ Información de solo lectura - no editar",
+      "🔍 Análisis de costes para motos específicamente",
+      "📊 Comparar con garantías de coches para análisis completo",
+      "💰 Factor importante en pricing de motos"
+    ]
+  },
+  "Gestión Tasaciones": {
+    steps: [
+      "💰 **Tabla de Tasaciones:** Lista todas las tasaciones realizadas.",
+      "🚗 **Vehículo Tasado:** Datos del vehículo del cliente.",
+      "📊 **Valor:** Precio tasado y condiciones de compra.",
+      "👤 **Cliente:** Información de contacto del propietario.",
+      "✅ **Estado:** Pendiente, aceptada, rechazada, en negociación."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de tasaciones",
+      "🔧 **Mutaciones:** `/api/tasaciones/editar` para UPDATE",
+      "✅ **Aceptar:** `/api/tasaciones/aceptar` para UPDATE (confirmar compra)",
+      "📊 **Patrón:** Tabla + Modal edición + Workflow de aprobación + API Routes"
+    ],
+    validations: [
+      "❌ NO aceptar sin verificar fondos disponibles",
+      "⚠️ NO tasar sin inspección física del vehículo",
+      "✅ Verificar documentación completa del vehículo",
+      "🔍 Comparar con valores de mercado actuales"
+    ]
+  },
+  "Nueva Tasación": {
+    steps: [
+      "🚗 **Datos Vehículo:** Matrícula, marca, modelo, año, kilometraje.",
+      "👤 **Datos Cliente:** Información de contacto del propietario.",
+      "📸 **Fotos:** Registro fotográfico del estado del vehículo.",
+      "💰 **Valoración:** Sistema sugiere precio basado en mercado.",
+      "✅ **Confirmación:** Se crea la tasación y notifica al cliente."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para validaciones y referencias",
+      "🔧 **Mutaciones:** `/api/tasaciones/crear` para INSERT",
+      "📊 **Patrón:** Formulario multi-paso + Calculadora + Fotos + API Route",
+      "💰 **Cálculo:** Algoritmo de valoración basado en datos de mercado"
+    ],
+    validations: [
+      "❌ NO crear sin inspección visual mínima",
+      "⚠️ NO omitir fotos - son fundamentales para tasación",
+      "✅ Verificar datos del vehículo con DGT si es posible",
+      "🔍 Considerar estado real vs. kilometraje declarado"
+    ]
+  },
+  "Detalle Tasación [id]": {
+    steps: [
+      "📄 **Información Completa:** Todos los datos de la tasación.",
+      "🚗 **Vehículo:** Detalles completos del vehículo tasado.",
+      "👤 **Cliente:** Información de contacto y documentación.",
+      "📸 **Galería:** Fotos del vehículo en el momento de tasación.",
+      "💰 **Historial:** Cambios de precio y negociación."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT por ID",
+      "📊 **Patrón:** Vista detalle + Galería de fotos + Timeline",
+      "✅ **Acciones:** Aprobar, rechazar, renegociar precio",
+      "🔧 **Join:** Combina datos de tasación + cliente + fotos"
+    ],
+    validations: [
+      "✅ Revisar todas las fotos antes de aprobar precio",
+      "🔍 Verificar timeline de negociación",
+      "📊 Comparar con tasaciones similares recientes",
+      "💰 Confirmar margen de beneficio antes de aceptar"
+    ]
+  },
+  "Advisor Links": {
+    steps: [
+      "🔗 **Enlaces Comerciales:** Links personalizados para asesores comerciales.",
+      "📊 **Tracking:** Seguimiento de visitas y conversiones por link.",
+      "👤 **Asignación:** Cada asesor tiene su link único.",
+      "📈 **Performance:** Estadísticas de efectividad por asesor.",
+      "💰 **Comisiones:** Cálculo automático basado en ventas por link."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de advisor_links",
+      "🔧 **Mutaciones:** `/api/advisor-links/crear` para INSERT",
+      "📊 **Patrón:** Sistema de tracking + Analytics + Generación de links",
+      "🔗 **Generación:** Links únicos con códigos de seguimiento"
+    ],
+    validations: [
+      "❌ NO crear múltiples links para el mismo asesor sin razón",
+      "⚠️ NO modificar links activos - rompe el tracking",
+      "✅ Verificar que los links redirigen correctamente",
+      "🔍 Monitorear regularmente para detectar links rotos"
+    ]
+  },
+  "Estadísticas Garantías": {
+    steps: [
+      "📊 **Costes Totales:** Suma de todos los costes de garantía.",
+      "🚗 **Por Marca:** Desglose BMW, MINI, BMW Motorrad.",
+      "📅 **Evolución:** Tendencia de costes en el tiempo.",
+      "🔍 **Por Modelo:** Qué modelos tienen más costes de garantía.",
+      "💰 **Impacto:** Efecto en el margen de beneficio."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT con agregaciones",
+      "📊 **Patrón:** Solo lectura - Dashboard de estadísticas",
+      "📈 **Agregaciones:** SUM, AVG, COUNT, GROUP BY",
+      "🎨 **Visualización:** Cards + Charts (Recharts) para métricas"
+    ],
+    validations: [
+      "✅ Actualizar regularmente para decisiones informadas",
+      "🔍 Analizar modelos con costes altos de garantía",
+      "📊 Usar para ajustar pricing y política de compra",
+      "💰 Considerar en negociaciones con proveedores"
+    ]
+  },
+  "Configuración Garantías": {
+    steps: [
+      "⚙️ **Parámetros:** Configuración de umbrales y alertas de garantía.",
+      "📊 **Categorías:** Tipos de costes de garantía a trackear.",
+      "💰 **Límites:** Establecer límites de coste por categoría.",
+      "🔔 **Alertas:** Configurar notificaciones para costes altos.",
+      "✅ **Guardado:** Se aplican cambios a todo el sistema."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de configuración",
+      "🔧 **Mutaciones:** `/api/garantias/config` para UPDATE",
+      "📊 **Patrón:** Formulario de configuración + API Route",
+      "⚙️ **Settings:** Afecta cálculos y alertas del sistema"
+    ],
+    validations: [
+      "❌ NO modificar sin autorización de administración",
+      "⚠️ NO establecer límites irrealistas",
+      "✅ Probar configuración antes de aplicar en producción",
+      "🔍 Documentar cambios para auditoría"
+    ]
+  },
+  "Estadísticas Tasaciones": {
+    steps: [
+      "📊 **Totales:** Número de tasaciones, aceptadas, rechazadas.",
+      "💰 **Valores:** Promedio de tasación, rango de precios.",
+      "📈 **Conversión:** Porcentaje de tasaciones que se convierten en compra.",
+      "👤 **Por Asesor:** Performance de cada tasador.",
+      "📅 **Tendencias:** Evolución del mercado en el tiempo."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT con agregaciones",
+      "📊 **Patrón:** Solo lectura - Dashboard de estadísticas",
+      "📈 **Agregaciones:** Cálculos complejos para métricas",
+      "🎨 **Visualización:** Multiple charts y KPIs"
+    ],
+    validations: [
+      "✅ Revisar regularmente para ajustar estrategia de compra",
+      "🔍 Analizar tasaciones rechazadas para mejoras",
+      "📊 Usar para training de tasadores",
+      "💰 Comparar con mercado para pricing competitivo"
+    ]
+  },
+  "Configuración Tasaciones": {
+    steps: [
+      "⚙️ **Parámetros:** Factores de depreciación, ajustes por kilometraje.",
+      "📊 **Algoritmo:** Configurar cómo se calculan las tasaciones automáticas.",
+      "💰 **Márgenes:** Establecer márgenes mínimos de beneficio.",
+      "🔔 **Notificaciones:** Configurar alertas para tasaciones especiales.",
+      "✅ **Guardado:** Se aplican a todas las nuevas tasaciones."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de settings",
+      "🔧 **Mutaciones:** `/api/tasaciones/config` para UPDATE",
+      "📊 **Patrón:** Formulario avanzado + Calculadora + API Route",
+      "⚙️ **Impacto:** Afecta cálculos automáticos de valoración"
+    ],
+    validations: [
+      "❌ NO modificar sin conocimiento del mercado actual",
+      "⚠️ NO establecer parámetros que generen tasaciones irrealistas",
+      "✅ Validar cambios con tasaciones de prueba",
+      "🔍 Revisar impacto en tasaciones existentes"
+    ]
+  }
+}
 const pagesStructure = {
   "Dashboard Principal": {
     icon: "LayoutDashboard",
@@ -1380,12 +2362,48 @@ flowchart TB
               </div>
             )}
 
-            {/* Explicación detallada (próximamente) */}
-            <div className="p-4 bg-muted rounded-lg">
-              <p className="text-sm text-muted-foreground">
-                💡 <strong>Próximamente:</strong> Explicación detallada del flujo de datos, validaciones importantes y diagramas individuales para esta página.
-              </p>
-            </div>
+            {/* Explicación detallada */}
+            {pageExplanations[selectedPage.name] ? (
+              <div className="space-y-4">
+                {/* Flujo de Datos */}
+                <div className="p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
+                  <h4 className="font-semibold mb-2 text-blue-900 dark:text-blue-100">📋 Flujo de Datos</h4>
+                  <ul className="space-y-1 text-sm">
+                    {pageExplanations[selectedPage.name].steps.map((step: string, idx: number) => (
+                      <li key={idx} className="text-blue-800 dark:text-blue-200" dangerouslySetInnerHTML={{ __html: step }} />
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Información Técnica */}
+                {pageExplanations[selectedPage.name].technical && (
+                  <div className="p-4 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
+                    <h4 className="font-semibold mb-2 text-purple-900 dark:text-purple-100">💻 Patrón Técnico (según GUIA_CONSTRUCCION_PAGINAS)</h4>
+                    <ul className="space-y-1 text-sm">
+                      {pageExplanations[selectedPage.name].technical.map((tech: string, idx: number) => (
+                        <li key={idx} className="text-purple-800 dark:text-purple-200 font-mono text-xs" dangerouslySetInnerHTML={{ __html: tech }} />
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Validaciones Importantes */}
+                <div className="p-4 bg-red-50 dark:bg-red-950/30 rounded-lg">
+                  <h4 className="font-semibold mb-2 text-red-900 dark:text-red-100">⚠️ Validaciones Importantes - QUÉ NO HACER</h4>
+                  <ul className="space-y-1 text-sm">
+                    {pageExplanations[selectedPage.name].validations.map((validation: string, idx: number) => (
+                      <li key={idx} className="text-red-800 dark:text-red-200" dangerouslySetInnerHTML={{ __html: validation }} />
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground">
+                  💡 <strong>Próximamente:</strong> Explicación detallada del flujo de datos, validaciones importantes y diagramas individuales para esta página.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       ) : (
