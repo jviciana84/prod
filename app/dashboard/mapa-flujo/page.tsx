@@ -4,12 +4,310 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { Map, Network, GitBranch, Zap, AlertCircle, Battery, CheckCircle2, Key, AlertTriangle, MessageSquare, Printer } from "lucide-react"
+import { Map, Network, GitBranch, Zap, AlertCircle, Battery, CheckCircle2, Key, AlertTriangle, MessageSquare, Printer, Database, FolderTree, ChevronRight, ChevronDown, BarChart3, FileText, Code2, PanelsTopLeft, Server, Palette, FileCode2, Mail, ScanSearch, X } from "lucide-react"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { ScrollIndicator } from "@/components/ui/scroll-indicator"
+
+// Estructura completa de páginas del sistema
+const pagesStructure = {
+  "Dashboard Principal": {
+    icon: "LayoutDashboard",
+    pages: [
+      { name: "Dashboard", path: "/dashboard", description: "Panel principal con vista general del sistema" }
+    ]
+  },
+  "Gestión de Vehículos": {
+    icon: "Car",
+    pages: [
+      { name: "Stock (Vehicles)", path: "/dashboard/vehicles", description: "Tabla principal de vehículos en stock", tables: ["stock", "fotos", "sales_vehicles"], triggers: ["sync_duc_to_stock", "delete_stock_on_delivery"] },
+      { name: "DUC Scraper", path: "/dashboard/duc-scraper", description: "Datos del scraper DUC - Fuente de verdad", tables: ["duc_scraper", "battery_control"], triggers: ["sync_duc_to_stock", "sync_duc_to_nuevas_entradas"] },
+      { name: "Nuevas Entradas", path: "/dashboard/nuevas-entradas", description: "Registro de vehículos nuevos antes de recepción física", tables: ["nuevas_entradas", "stock", "fotos"], triggers: ["nuevas_entradas_to_stock", "handle_vehicle_received"] },
+      { name: "Añadir Nueva Entrada", path: "/dashboard/nuevas-entradas/add", description: "Formulario para crear nuevas entradas" },
+      { name: "Control de Baterías", path: "/dashboard/vehiculos/baterias", description: "Monitoreo de carga de vehículos BEV/PHEV", tables: ["battery_control", "battery_control_config", "duc_scraper"] },
+      { name: "Gestión de Vehículos", path: "/dashboard/vehicles/gestion", description: "Panel de gestión avanzada" },
+      { name: "Gestión (Vehiculos)", path: "/dashboard/vehiculos/gestion", description: "Gestión completa de flota" },
+      { name: "Tipos de Gasto", path: "/dashboard/vehicles/expense-types", description: "Configuración de tipos de gasto", tables: ["expense_types"] },
+      { name: "Estadísticas Vehículos", path: "/dashboard/vehicles/stats", description: "Estadísticas y métricas de vehículos" },
+      { name: "Detalle Vehículo", path: "/dashboard/vehicles/[id]", description: "Vista detallada de un vehículo específico" },
+      { name: "Movimientos", path: "/dashboard/vehicles/movements/[licensePlate]", description: "Historial de movimientos por matrícula" }
+    ]
+  },
+  "Fotografías": {
+    icon: "Camera",
+    pages: [
+      { name: "Fotos", path: "/dashboard/photos", description: "Gestión de fotografías de vehículos", tables: ["fotos", "stock"], triggers: ["sync_body_status_to_paint_status", "sync_sales_to_fotos_vendido"] },
+      { name: "Asignar Fotógrafo", path: "/dashboard/photos/asignar", description: "Asignación manual de fotógrafos" },
+      { name: "Asignación (Assignment)", path: "/dashboard/photos/assignment", description: "Sistema de asignación automática" },
+      { name: "Asignaciones", path: "/dashboard/photos/assignments", description: "Vista de todas las asignaciones" },
+      { name: "Estadísticas Fotos", path: "/dashboard/photos/stats", description: "Métricas de fotografías" },
+      { name: "Resumen Fotógrafos", path: "/dashboard/photos/summary", description: "Resumen por fotógrafo" },
+      { name: "Ventas Prematuras (Photos)", path: "/dashboard/photos/ventas-prematuras", description: "Vehículos vendidos sin fotos completas" },
+      { name: "Diagnóstico Fotos", path: "/dashboard/photos/diagnostico", description: "Debug de sistema de fotos" },
+      { name: "Diagnóstico Asignación", path: "/dashboard/photos/diagnostico-asignacion", description: "Debug de asignaciones" },
+      { name: "Test Fotos", path: "/dashboard/photos/test", description: "Página de pruebas" }
+    ]
+  },
+  "Ventas": {
+    icon: "DollarSign",
+    pages: [
+      { name: "Ventas", path: "/dashboard/ventas", description: "Gestión de ventas de vehículos", tables: ["sales_vehicles", "stock", "entregas", "incentivos"], triggers: ["sync_stock_on_sale_insert", "sync_stock_on_sale_delete"] },
+      { name: "Añadir Venta", path: "/dashboard/ventas/add", description: "Formulario de nueva venta" },
+      { name: "Subir PDF", path: "/dashboard/ventas/upload-pdf", description: "Carga de PDFs de venta para OCR", tables: ["pdf_extracted_data"] },
+      { name: "Estadísticas Ventas", path: "/dashboard/ventas/stats", description: "Métricas de ventas" },
+      { name: "Validados", path: "/dashboard/validados", description: "Pedidos validados - Copia inmutable", tables: ["pedidos_validados", "sales_vehicles"] },
+      { name: "Ventas Profesionales", path: "/dashboard/ventas-profesionales", description: "Ventas a profesionales", tables: ["professional_sales"] }
+    ]
+  },
+  "Entregas": {
+    icon: "Truck",
+    pages: [
+      { name: "Entregas", path: "/dashboard/entregas", description: "Gestión de entregas de vehículos", tables: ["entregas", "sales_vehicles", "incidencias_historial"], triggers: ["delete_stock_on_delivery"] },
+      { name: "Informes de Entregas", path: "/dashboard/entregas/informes", description: "Informes detallados de entregas" },
+      { name: "Diagnóstico Entregas", path: "/dashboard/entregas/diagnostico", description: "Debug de entregas" },
+      { name: "Detalle Entrega", path: "/dashboard/entregas/[id]", description: "Vista detallada de una entrega" },
+      { name: "Entregas Admin", path: "/dashboard/entregas-admin", description: "Panel admin de entregas" },
+      { name: "Entregas Fix", path: "/dashboard/entregas-fix", description: "Corrección de entregas" },
+      { name: "Confirmar Entrega", path: "/confirmar-entrega", description: "Confirmación de entrega (pública)" }
+    ]
+  },
+  "Incentivos": {
+    icon: "Award",
+    pages: [
+      { name: "Incentivos", path: "/dashboard/incentivos", description: "Gestión de incentivos comerciales", tables: ["incentivos", "garantias_brutas_mm", "garantias_brutas_mmc"], triggers: ["auto_update_garantia_incentivos"] },
+      { name: "Configurar Incentivos", path: "/dashboard/incentivos/config", description: "Configuración de incentivos" },
+      { name: "Incentivos (Alt)", path: "/incentivos", description: "Vista alternativa de incentivos" },
+      { name: "Config Incentivos (Alt)", path: "/incentivos/config", description: "Configuración alternativa" }
+    ]
+  },
+  "Llaves y Documentos": {
+    icon: "Key",
+    pages: [
+      { name: "Llaves y Documentos", path: "/dashboard/llaves", description: "Gestión completa de llaves y documentación", tables: ["vehicle_keys", "vehicle_documents", "key_movements", "document_movements", "key_document_requests"] },
+      { name: "Historial Llaves", path: "/dashboard/llaves/historial", description: "Historial de movimientos" },
+      { name: "Incidencias Llaves", path: "/dashboard/llaves/incidencias", description: "Incidencias relacionadas con llaves/docs" },
+      { name: "Diagnóstico Incidencias", path: "/dashboard/llaves/diagnostico-incidencias", description: "Debug de incidencias" },
+      { name: "Debug Card", path: "/dashboard/llaves/debug-card", description: "Debug de tarjetas" }
+    ]
+  },
+  "Recogidas": {
+    icon: "Package",
+    pages: [
+      { name: "Recogidas", path: "/dashboard/recogidas", description: "Solicitudes de recogida de documentación", tables: ["recogidas_historial"] },
+      { name: "Configuración Recogidas", path: "/dashboard/recogidas/configuracion", description: "Configurar centros y opciones" },
+      { name: "Seguimiento", path: "/dashboard/recogidas/seguimiento", description: "Seguimiento de recogidas" }
+    ]
+  },
+  "Soporte e Incidencias": {
+    icon: "Headphones",
+    pages: [
+      { name: "Soporte (Público)", path: "/soporte", description: "Portal público de soporte para clientes", tables: ["soporte_tickets", "entregas", "incidencias_historial"] },
+      { name: "Extornos", path: "/dashboard/extornos", description: "Gestión de extornos y devoluciones", tables: ["extornos"] },
+      { name: "Extornos Test", path: "/dashboard/extornos/test", description: "Pruebas de extornos" },
+      { name: "Confirmación Extorno", path: "/extornos/confirmacion", description: "Confirmación pública de extorno" },
+      { name: "Movimientos Pendientes", path: "/dashboard/movimientos-pendientes", description: "Movimientos pendientes de resolver" }
+    ]
+  },
+  "Reportes": {
+    icon: "BarChart",
+    pages: [
+      { name: "Reportes", path: "/dashboard/reports", description: "Centro de reportes del sistema" },
+      { name: "Días Preparación VO", path: "/dashboard/reports/dias-preparacion-vo", description: "Análisis de tiempos de preparación" },
+      { name: "Ventas Mensual", path: "/dashboard/reports/ventas-mensual", description: "Reporte mensual de ventas" }
+    ]
+  },
+  "Noticias": {
+    icon: "Newspaper",
+    pages: [
+      { name: "Noticias", path: "/dashboard/noticias", description: "Noticias del sector BMW", tables: ["bmw_noticias"] }
+    ]
+  },
+  "Tasaciones (Público)": {
+    icon: "FileText",
+    pages: [
+      { name: "Tasación", path: "/tasacion/[advisorSlug]", description: "Formulario público de tasación", tables: ["tasaciones", "advisor_links"] },
+      { name: "Tasación Completada", path: "/tasacion/completada", description: "Confirmación de tasación enviada" },
+      { name: "Test PDF Tasación", path: "/tasacion/test-pdf", description: "Prueba de PDF de tasación" },
+      { name: "Tasaciones (Dashboard)", path: "/dashboard/tasaciones", description: "Panel de gestión de tasaciones" }
+    ]
+  },
+  "OCR Scanner": {
+    icon: "Scan",
+    pages: [
+      { name: "OCR Scanner", path: "/dashboard/ocr-scanner", description: "Sistema de escaneo OCR de documentos" },
+      { name: "OCR Mobile", path: "/dashboard/ocr-scanner/mobile", description: "Scanner móvil" },
+      { name: "OCR Coming Soon", path: "/dashboard/ocr-scanner/coming-soon", description: "Próximamente" },
+      { name: "OCR Test", path: "/dashboard/ocr-scanner/ocr_test", description: "Pruebas OCR" }
+    ]
+  },
+  "Configuración": {
+    icon: "Settings",
+    pages: [
+      { name: "Configuración", path: "/dashboard/settings", description: "Configuración del sistema", tables: ["user_preferences", "footer_settings"] },
+      { name: "Notificaciones", path: "/dashboard/notifications", description: "Centro de notificaciones" },
+      { name: "Config Notificaciones", path: "/dashboard/notifications/settings", description: "Configurar notificaciones" },
+      { name: "Test Notificaciones", path: "/dashboard/notifications/test", description: "Probar notificaciones" },
+      { name: "Diagnóstico Notificaciones", path: "/dashboard/notifications/diagnostico", description: "Debug de notificaciones" },
+      { name: "Perfil", path: "/dashboard/profile", description: "Perfil de usuario", tables: ["profiles"] },
+      { name: "Perfil (Alt)", path: "/profile", description: "Perfil alternativo" },
+      { name: "Avatar", path: "/profile/avatar", description: "Gestión de avatar" },
+      { name: "Directorio", path: "/dashboard/directory", description: "Directorio de usuarios" },
+      { name: "Usuario Directorio", path: "/dashboard/directory/[userId]", description: "Perfil público de usuario" }
+    ]
+  },
+  "Administración": {
+    icon: "Shield",
+    pages: [
+      { name: "Usuarios", path: "/dashboard/admin/users", description: "Gestión de usuarios", tables: ["profiles"] },
+      { name: "Usuarios (Alt)", path: "/admin/users", description: "Panel alternativo de usuarios" },
+      { name: "User Mappings", path: "/admin/user-mappings", description: "Mapeo de usuarios" },
+      { name: "Soporte Admin", path: "/dashboard/admin/soporte", description: "Panel admin de soporte" },
+      { name: "Config Email Soporte", path: "/dashboard/admin/soporte-email-config", description: "Configurar emails de soporte" },
+      { name: "Avatares", path: "/dashboard/admin/avatares", description: "Gestión de avatares" },
+      { name: "Avatars", path: "/dashboard/admin/avatars", description: "Sistema de avatares" },
+      { name: "Diagnóstico Avatars", path: "/dashboard/admin/avatars/diagnostico", description: "Debug de avatares" },
+      { name: "Migración Avatars", path: "/dashboard/admin/avatars/migration", description: "Migrar avatares" },
+      { name: "Configuración Admin", path: "/dashboard/admin/configuracion", description: "Configuración general" },
+      { name: "Email Config", path: "/dashboard/admin/email-config", description: "Configurar emails del sistema" },
+      { name: "Footer Messages", path: "/dashboard/admin/footer-messages", description: "Mensajes del footer" },
+      { name: "Footer Settings", path: "/dashboard/admin/footer-messages/settings", description: "Configurar footer" },
+      { name: "Conversaciones", path: "/dashboard/admin/conversaciones", description: "Conversaciones del sistema" },
+      { name: "Objetivos", path: "/dashboard/admin/objetivos", description: "Gestión de objetivos" },
+      { name: "Blob Files", path: "/dashboard/admin/blob-files", description: "Gestión de archivos en blob" },
+      { name: "Column Mapping", path: "/dashboard/admin/column-mapping", description: "Mapeo de columnas para importación" },
+      { name: "Carga Masiva", path: "/dashboard/admin/carga-masiva", description: "Importación masiva de datos" },
+      { name: "Migrate Dates", path: "/dashboard/admin/migrate-dates", description: "Migración de fechas" },
+      { name: "Update Vehicle Types", path: "/dashboard/admin/update-vehicle-types", description: "Actualizar tipos de vehículos" },
+      { name: "Cleanup", path: "/dashboard/admin/cleanup", description: "Limpieza de datos" },
+      { name: "Diagnóstico Admin", path: "/dashboard/admin/diagnostico", description: "Panel de diagnóstico" },
+      { name: "Diagnóstico Extornos", path: "/dashboard/admin/diagnostico/extornos", description: "Debug de extornos" },
+      { name: "Payment Method Diagnostic", path: "/dashboard/admin/payment-method-diagnostic", description: "Diagnóstico de métodos de pago" },
+      { name: "Admin Notifications", path: "/dashboard/admin/notifications", description: "Notificaciones admin" }
+    ]
+  },
+  "Herramientas del Sistema": {
+    icon: "Wrench",
+    pages: [
+      { name: "Mapa de Flujo", path: "/dashboard/mapa-flujo", description: "Esta página - Documentación visual del sistema" },
+      { name: "Columnas", path: "/dashboard/columnas", description: "Gestión de columnas de tablas" },
+      { name: "Filter Config", path: "/dashboard/filter-config", description: "Configuración de filtros", tables: ["filter_configs"] },
+      { name: "Diagnóstico Tablas", path: "/dashboard/diagnostico-tablas", description: "Diagnóstico de estructura de tablas" },
+      { name: "Diagnostico", path: "/diagnostico", description: "Diagnóstico general del sistema" },
+      { name: "Automatic Cleanup", path: "/dashboard/automatic-cleanup", description: "Limpieza automática de datos" },
+      { name: "Cleanup Stock", path: "/dashboard/cleanup-stock", description: "Limpieza de stock" },
+      { name: "Reserved Sync", path: "/dashboard/reserved-sync", description: "Sincronización de reservas" },
+      { name: "Verify Sync", path: "/dashboard/verify-sync", description: "Verificar sincronización" },
+      { name: "Images", path: "/dashboard/images", description: "Gestión de imágenes" },
+      { name: "Images Gallery", path: "/dashboard/images/gallery", description: "Galería de imágenes" },
+      { name: "Demo SVG Mapper", path: "/demo-svg-mapper", description: "Demo de mapeo SVG" },
+      { name: "Test Map", path: "/dashboard/test-map", description: "Mapa de pruebas" },
+      { name: "PDF Debug", path: "/dashboard/pdf-debug", description: "Debug de PDFs" },
+      { name: "Test Save PDF", path: "/dashboard/test-save-pdf", description: "Prueba guardar PDF" },
+      { name: "Debug Coordenadas", path: "/dashboard/debug-coordenadas", description: "Debug de coordenadas" },
+      { name: "Debug Auto Resolve", path: "/dashboard/debug-auto-resolve", description: "Debug de resolución automática" },
+      { name: "Validación Debug", path: "/dashboard/validacion-debug", description: "Debug de validaciones" }
+    ]
+  },
+  "Páginas Públicas": {
+    icon: "Globe",
+    pages: [
+      { name: "About", path: "/about", description: "Acerca de la aplicación" },
+      { name: "Política de Privacidad", path: "/politica-privacidad", description: "Política de privacidad" },
+      { name: "Reset Password", path: "/reset-password", description: "Restablecer contraseña" },
+      { name: "Auth Reset Password", path: "/auth/reset-password", description: "Confirmar nueva contraseña" },
+      { name: "Force Password Change", path: "/force-password-change", description: "Cambio forzado de contraseña" },
+      { name: "Dashboard Cliente", path: "/dashboard-cliente", description: "Panel del cliente" }
+    ]
+  },
+  "Notificaciones Push": {
+    icon: "Bell",
+    pages: [
+      { name: "Activate Push", path: "/activate-push", description: "Activar notificaciones push" },
+      { name: "Force Activate Push", path: "/force-activate-push", description: "Forzar activación push" },
+      { name: "Check Subscriptions", path: "/check-my-subscriptions", description: "Verificar suscripciones" },
+      { name: "Clear SW", path: "/clear-sw", description: "Limpiar Service Worker" },
+      { name: "Process Emails", path: "/process-emails", description: "Procesar emails" }
+    ]
+  },
+  "Debug & Testing": {
+    icon: "Bug",
+    collapsed: true,
+    pages: [
+      { name: "Debug Auth", path: "/debug-auth", description: "Debug de autenticación" },
+      { name: "Debug Session", path: "/debug-session", description: "Debug de sesión" },
+      { name: "Debug Roles", path: "/debug-roles", description: "Debug de roles" },
+      { name: "Debug SMTP", path: "/debug-smtp", description: "Debug de SMTP" },
+      { name: "Debug SMTP Config", path: "/debug-smtp-config", description: "Config SMTP debug" },
+      { name: "Debug Stock Client", path: "/debug-stock-client", description: "Debug stock cliente" },
+      { name: "Debug Table Structure", path: "/debug-table-structure", description: "Debug estructura tablas" },
+      { name: "Debug Vehicle Data", path: "/debug-vehicle-data", description: "Debug datos vehículos" },
+      { name: "Debug VAPID Keys", path: "/debug-vapid-keys", description: "Debug claves VAPID" },
+      { name: "Debug User Lookup", path: "/debug-user-lookup", description: "Debug búsqueda usuarios" },
+      { name: "Debug Notifications", path: "/debug-notifications", description: "Debug notificaciones" },
+      { name: "Debug Push Processor", path: "/debug-push-processor", description: "Debug procesador push" },
+      { name: "Debug Subscriptions", path: "/debug-subscriptions", description: "Debug suscripciones" },
+      { name: "Debug Subscription Creation", path: "/debug-subscription-creation", description: "Debug creación suscripciones" },
+      { name: "Debug Add Column", path: "/debug-add-column", description: "Debug añadir columna" },
+      { name: "Debug Sales Dashboard", path: "/debug-sales-dashboard", description: "Debug dashboard ventas" },
+      { name: "Debug Test", path: "/debug-test", description: "Pruebas debug" },
+      { name: "Notifications Debug", path: "/notifications-debug", description: "Debug notificaciones" },
+      { name: "Notifications Fix", path: "/notifications-fix", description: "Fix notificaciones" },
+      { name: "Notifications Simple", path: "/notifications-simple", description: "Notificaciones simples" },
+      { name: "Debug Recogidas Config", path: "/debug-fix-recogidas-config", description: "Debug config recogidas" },
+      { name: "Debug Recogidas Email", path: "/debug-recogidas-email", description: "Debug email recogidas" },
+      { name: "Debug Recogidas Historial", path: "/debug-recogidas-historial", description: "Debug historial recogidas" },
+      { name: "Debug Recogidas Table", path: "/debug-recogidas-table", description: "Debug tabla recogidas" },
+      { name: "Debug Recogidas Tables", path: "/debug-recogidas-tables", description: "Debug tablas recogidas" },
+      { name: "Debug Recogidas Testing", path: "/debug-recogidas-testing", description: "Testing recogidas" },
+      { name: "Debug Test Add Recogida", path: "/debug-test-add-recogida", description: "Test añadir recogida" },
+      { name: "Debug Test Recogidas Email", path: "/debug-test-recogidas-email", description: "Test email recogidas" },
+      { name: "Debug Entregas", path: "/debug/entregas", description: "Debug entregas" },
+      { name: "Debug Email Preview", path: "/debug/email-preview", description: "Preview emails" },
+      { name: "Debug Fix Trigger", path: "/debug/fix-trigger", description: "Fix trigger" },
+      { name: "Test Auth", path: "/test-auth", description: "Test autenticación" },
+      { name: "Test SMTP", path: "/test-smtp", description: "Test SMTP" },
+      { name: "Test All SMTP", path: "/test-all-smtp", description: "Test todos SMTP" },
+      { name: "Test Notifications", path: "/test-notifications", description: "Test notificaciones" },
+      { name: "Test Notification API", path: "/test-notification-api", description: "Test API notificaciones" },
+      { name: "Test Push Manual", path: "/test-push-manual", description: "Test push manual" },
+      { name: "Test Simple", path: "/test-simple", description: "Test simple" },
+      { name: "Test Final", path: "/test-final", description: "Test final" },
+      { name: "Test New Sale", path: "/test-new-sale", description: "Test nueva venta" },
+      { name: "Test Failed Sale", path: "/test-failed-sale", description: "Test venta fallida" },
+      { name: "Test Vehicle Certification", path: "/test-vehicle-certification", description: "Test certificación vehículo" },
+      { name: "Test Email Docuware", path: "/test-email-docuware", description: "Test email docuware" },
+      { name: "Test Email Realizado", path: "/test-email-realizado", description: "Test email realizado" },
+      { name: "Test Entrega En Mano", path: "/test-entrega-en-mano", description: "Test entrega en mano" },
+      { name: "Test PDF Extract", path: "/test-pdf-extract", description: "Test extracción PDF" },
+      { name: "Test Photo Assignment", path: "/test-photo-assignment", description: "Test asignación fotos" },
+      { name: "Test Sales Layout", path: "/test-sales-layout", description: "Test layout ventas" }
+    ]
+  }
+}
 
 export default function MapaFlujoPage() {
   const [activeTab, setActiveTab] = useState("general")
   const [mermaidLoaded, setMermaidLoaded] = useState(false)
+  const [showExplorer, setShowExplorer] = useState(false)
+  const [selectedPage, setSelectedPage] = useState<any>(null)
+  const [expandedCategories, setExpandedCategories] = useState<string[]>([])
+
+  // Estadísticas del sistema
+  const totalTables = 40 // duc_scraper, nuevas_entradas, stock, fotos, sales_vehicles, pedidos_validados, entregas, incentivos, garantias_brutas_mm, garantias_brutas_mmc, vehicle_keys, key_movements, vehicle_documents, document_movements, key_document_requests, key_document_materials, external_material_vehicles, circulation_permit_requests, incidencias_historial, soporte_tickets, battery_control, battery_control_config, recogidas_historial, bmw_noticias, tasaciones, advisor_links, profiles, expense_types, locations, delivery_centers, pdf_extracted_data, user_preferences, footer_settings, forced_updates, user_forced_updates, filter_configs, filter_processing_log, column_mappings, avatar_mappings, professional_sales
+  const totalTriggers = 14
+  const totalPages = Object.values(pagesStructure).reduce((acc, cat: any) => acc + cat.pages.length, 0)
+  const totalAPIRoutes = 313 // de la estructura de archivos
+
+  const toggleCategory = (category: string) => {
+    setExpandedCategories(prev => 
+      prev.includes(category) ? prev.filter(c => c !== category) : [...prev, category]
+    )
+  }
+
+  const selectPage = (page: any) => {
+    setSelectedPage(page)
+    setShowExplorer(true)
+  }
 
   const handlePrint = () => {
     const printContents = document.querySelector('.mermaid-print-area')?.innerHTML
@@ -783,6 +1081,88 @@ flowchart TB
   }
 
   return (
+    <>
+      {/* Estilos para ocultar scrollbar */}
+      <style jsx global>{`
+        .explorer-scroll::-webkit-scrollbar {
+          display: none;
+        }
+        .explorer-scroll {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+      `}</style>
+
+      {/* Botón Fijo Colapsado - Más pequeño */}
+      {!showExplorer && (
+        <button
+          onClick={() => setShowExplorer(true)}
+          className="fixed left-[70px] top-20 z-50 bg-background hover:bg-accent rounded-md p-1 shadow-lg border border-border/50 transition-all duration-300 ease-in-out"
+          title="Abrir Explorador"
+        >
+          <FolderTree className="h-3 w-3" />
+        </button>
+      )}
+
+      {/* Explorador como Sidebar Translúcido - Sin bordes, se sobrepone */}
+      <div 
+        className={`fixed left-0 top-14 bottom-8 bg-background/80 backdrop-blur-lg z-50 overflow-hidden flex flex-col shadow-2xl ${showExplorer ? 'w-64' : 'w-0'}`}
+        style={{
+          transition: 'width 0.3s ease-in-out',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)'
+        }}
+        onMouseLeave={() => setShowExplorer(false)}
+      >
+          {showExplorer && (
+            <>
+              <div className="p-4 flex items-center gap-2">
+                <FolderTree className="h-5 w-5 text-blue-600" />
+                <h3 className="font-semibold">Explorador</h3>
+              </div>
+              
+              {/* Contenido con scroll nativo pero estilizado */}
+              <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-2 explorer-scroll" style={{position: 'relative'}}>
+            {Object.entries(pagesStructure).map(([category, data]: [string, any]) => (
+              <div key={category} className="space-y-1">
+                <button
+                  onClick={() => toggleCategory(category)}
+                  className="w-full flex items-center justify-between p-2 hover:bg-accent/50 rounded-lg text-sm font-medium transition-colors"
+                >
+                  <span className="truncate">{category}</span>
+                  {expandedCategories.includes(category) ? (
+                    <ChevronDown className="h-4 w-4 flex-shrink-0" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 flex-shrink-0" />
+                  )}
+                </button>
+                {expandedCategories.includes(category) && (
+                  <div className="ml-2 space-y-1">
+                    {data.pages.map((page: any) => (
+                      <button
+                        key={page.path}
+                        onClick={() => selectPage(page)}
+                        className={`w-full text-left p-2 rounded-lg text-xs hover:bg-accent/50 transition-colors ${
+                          selectedPage?.path === page.path ? 'bg-accent font-medium' : ''
+                        }`}
+                      >
+                        <div className="truncate">{page.name}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+              <div className="p-3 bg-background/70 backdrop-blur-sm text-xs text-muted-foreground">
+                {totalPages} páginas • {Object.keys(pagesStructure).length} categorías
+              </div>
+            </>
+          )}
+          <ScrollIndicator isExpanded={showExplorer} />
+      </div>
+
     <div className="p-4 md:p-6 space-y-6 pb-20">
       {/* Header */}
       <div className="space-y-2">
@@ -796,12 +1176,25 @@ flowchart TB
           <div className="flex items-center gap-3">
             <Map className="h-8 w-8 text-purple-600" />
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">Mapa de Flujo del Sistema</h1>
+              <h1 className="text-3xl font-bold tracking-tight">Mapa de Flujo del Sistema CVO</h1>
               <p className="text-muted-foreground">
-                Diagramas visuales del flujo de datos entre tablas
+                Documentación completa e interactiva - Libro de instrucciones del sistema
               </p>
             </div>
           </div>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => {
+                setShowExplorer(!showExplorer)
+                setSelectedPage(null)
+              }}
+              variant={showExplorer ? "default" : "outline"}
+              size="sm"
+              className="gap-2"
+            >
+              <FolderTree className="h-4 w-4" />
+              {showExplorer ? "Ocultar" : "Ver"} Explorador
+            </Button>
           <Button
             onClick={handlePrint}
             variant="outline"
@@ -809,55 +1202,195 @@ flowchart TB
             className="gap-2"
           >
             <Printer className="h-4 w-4" />
-            Imprimir Diagrama
+              Imprimir
           </Button>
+          </div>
         </div>
       </div>
 
-      {/* Leyenda */}
+      {/* Estadísticas del Sistema - Compactas */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Network className="h-5 w-5 text-blue-600" />
-            Leyenda
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center gap-3">
+              <Database className="h-6 w-6 text-blue-600 flex-shrink-0" />
+              <div>
+                <p className="text-xs text-muted-foreground">Tablas</p>
+                <h3 className="text-xl font-bold">{totalTables}</h3>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center gap-3">
+              <Zap className="h-6 w-6 text-yellow-600 flex-shrink-0" />
+              <div>
+                <p className="text-xs text-muted-foreground">Triggers</p>
+                <h3 className="text-xl font-bold">{totalTriggers}</h3>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center gap-3">
+              <FileText className="h-6 w-6 text-green-600 flex-shrink-0" />
+              <div>
+                <p className="text-xs text-muted-foreground">Páginas</p>
+                <h3 className="text-xl font-bold">{totalPages}</h3>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center gap-3">
+              <Network className="h-6 w-6 text-purple-600 flex-shrink-0" />
+              <div>
+                <p className="text-xs text-muted-foreground">API Routes</p>
+                <h3 className="text-xl font-bold">{totalAPIRoutes}</h3>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Stack Tecnológico */}
+      <div>
+        <div className="flex items-center gap-2 mb-2">
+          <BarChart3 className="h-5 w-5 text-purple-600" />
+          <h3 className="font-semibold text-lg">Stack Tecnológico</h3>
+        </div>
+        <Card>
+          <CardContent className="pt-4 pb-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-yellow-400 rounded border border-gray-700"></div>
-            <span>Scraper/Usuario</span>
+                  <Code2 className="h-5 w-5 text-blue-500" />
+                  <span className="text-sm font-medium">React 18</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-red-300 rounded border border-gray-700"></div>
-            <span>Tabla bruta</span>
+                  <PanelsTopLeft className="h-5 w-5 text-black dark:text-white" />
+                  <span className="text-sm font-medium">Next.js 15</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-green-300 rounded border border-gray-700"></div>
-            <span>Tabla central</span>
+                  <Database className="h-5 w-5 text-green-600" />
+                  <span className="text-sm font-medium">Supabase</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-sky-300 rounded border border-gray-700"></div>
-            <span>Tabla operacional</span>
+                  <FileCode2 className="h-5 w-5 text-blue-600" />
+                  <span className="text-sm font-medium">TypeScript</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="font-bold">→</span>
-            <span>Flujo directo</span>
+                  <Palette className="h-5 w-5 text-cyan-500" />
+                  <span className="text-sm font-medium">Tailwind</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="font-bold">- - -→</span>
-            <span>No conectado</span>
+                  <Server className="h-5 w-5 text-yellow-600" />
+                  <span className="text-sm font-medium">Python</span>
+          </div>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-purple-600" />
+                  <span className="text-sm font-medium">Recharts</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="font-bold">⚡</span>
-            <span>Trigger automático</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="font-bold">❌</span>
-            <span>Problema</span>
+                  <Zap className="h-5 w-5 text-pink-500" />
+                  <span className="text-sm font-medium">Framer Motion</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-red-600" />
+                  <span className="text-sm font-medium">PDF.js</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <ScanSearch className="h-5 w-5 text-orange-600" />
+                  <span className="text-sm font-medium">Tesseract OCR</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Mail className="h-5 w-5 text-blue-700" />
+                  <span className="text-sm font-medium">Nodemailer</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Network className="h-5 w-5 text-green-700" />
+                  <span className="text-sm font-medium">Selenium</span>
+                </div>
+              </div>
           </div>
         </CardContent>
       </Card>
+      </div>
 
+
+      {/* Contenido: Vista Individual o Diagramas */}
+      {selectedPage ? (
+        /* Vista Individual de Página */
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-xl">{selectedPage.name}</CardTitle>
+                <CardDescription className="mt-1">{selectedPage.description}</CardDescription>
+                <p className="text-sm text-muted-foreground mt-2">
+                  <strong>Ruta:</strong> <code className="bg-muted px-2 py-1 rounded">{selectedPage.path}</code>
+                </p>
+              </div>
+              <Button
+                onClick={() => setSelectedPage(null)}
+                variant="outline"
+                size="sm"
+              >
+                Volver a Diagramas
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Tablas que utiliza */}
+            {selectedPage.tables && selectedPage.tables.length > 0 && (
+              <div>
+                <h4 className="font-semibold mb-2 flex items-center gap-2">
+                  <Database className="h-4 w-4 text-blue-600" />
+                  Tablas que Utiliza
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {selectedPage.tables.map((table: string) => (
+                    <div key={table} className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded-full text-sm font-medium">
+                      {table}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Triggers relacionados */}
+            {selectedPage.triggers && selectedPage.triggers.length > 0 && (
+              <div>
+                <h4 className="font-semibold mb-2 flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-yellow-600" />
+                  Triggers Automáticos
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {selectedPage.triggers.map((trigger: string) => (
+                    <div key={trigger} className="px-3 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 rounded-full text-sm font-medium">
+                      ⚡ {trigger}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Explicación detallada (próximamente) */}
+            <div className="p-4 bg-muted rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                💡 <strong>Próximamente:</strong> Explicación detallada del flujo de datos, validaciones importantes y diagramas individuales para esta página.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        /* Vista de Diagramas (original) */
+        <>
       {/* Tabs con diagramas */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="space-y-2">
@@ -877,14 +1410,35 @@ flowchart TB
             <TabsTrigger value="soporte">Soporte</TabsTrigger>
             <TabsTrigger value="triggers">Triggers</TabsTrigger>
           </TabsList>
-          <div className="mt-2 text-center text-sm text-muted-foreground">
-            Total de tablas en el sistema: 40+ | <a href="/LISTADO_COMPLETO_TABLAS_CVO.md" target="_blank" className="text-blue-600 hover:underline">Ver listado completo</a>
+          <div className="mt-2 text-center text-sm text-muted-foreground flex items-center justify-center gap-3">
+            <Button
+              onClick={() => {
+                setShowExplorer(!showExplorer)
+                setSelectedPage(null)
+              }}
+              variant={showExplorer ? "default" : "outline"}
+              size="sm"
+              className="h-7 text-xs gap-1.5"
+            >
+              <FolderTree className="h-3.5 w-3.5" />
+              {showExplorer ? "Ocultar" : "Ver"} Explorador
+            </Button>
+            <span>Total de tablas en el sistema: 40</span>
+            <span className="text-muted-foreground">|</span>
+            <button 
+              onClick={() => window.open('/LISTADO_COMPLETO_TABLAS_CVO.md', '_blank')}
+              className="text-blue-600 hover:underline cursor-pointer"
+            >
+              Ver listado completo
+            </button>
           </div>
         </div>
 
         <TabsContent value="general" className="mt-6">
           <Card>
             <CardHeader>
+              <div className="flex items-start justify-between gap-6">
+                <div>
               <CardTitle className="flex items-center gap-2">
                 <Network className="h-5 w-5 text-blue-600" />
                 Vista General del Sistema
@@ -892,6 +1446,47 @@ flowchart TB
               <CardDescription>
                 Todas las tablas y cómo se conectan entre sí
               </CardDescription>
+                </div>
+                {/* Leyenda a la derecha */}
+                <div className="flex flex-col gap-2 text-xs">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 bg-yellow-400 rounded border border-gray-700 flex-shrink-0"></div>
+                      <span>Scraper/Usuario</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 bg-red-300 rounded border border-gray-700 flex-shrink-0"></div>
+                      <span>Tabla bruta</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 bg-green-300 rounded border border-gray-700 flex-shrink-0"></div>
+                      <span>Tabla central</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 bg-sky-300 rounded border border-gray-700 flex-shrink-0"></div>
+                      <span>Tabla operacional</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold">→</span>
+                      <span>Flujo directo</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold">- - -→</span>
+                      <span>No conectado</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold">⚡</span>
+                      <span>Trigger automático</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold">❌</span>
+                      <span>Problema</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="bg-white p-6 rounded-lg border overflow-x-auto mermaid-print-area">
@@ -1301,8 +1896,11 @@ flowchart TB
           </Card>
         </TabsContent>
       </Tabs>
+        </>
+      )}
 
     </div>
+    </>
   )
 }
 
