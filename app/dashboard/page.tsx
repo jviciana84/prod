@@ -385,13 +385,44 @@ export default async function Dashboard() {
   let stockError = null
   
   try {
-    // Obtener solo vehículos disponibles (no vendidos)
+    // 1. Obtener matrículas del CSV DUC
+    const { data: ducData } = await supabase
+      .from("duc_scraper")
+      .select('"Matrícula"')
+      .not('"Matrícula"', 'is', null)
+
+    const ducMatriculas = new Set(
+      (ducData || [])
+        .map((v) => v['Matrícula']?.toUpperCase().trim())
+        .filter(Boolean)
+    )
+
+    // 2. Obtener matrículas vendidas
+    const { data: salesData } = await supabase
+      .from("sales_vehicles")
+      .select("license_plate")
+
+    const salesMatriculas = new Set(
+      (salesData || [])
+        .map((v) => v.license_plate?.toUpperCase().trim())
+        .filter(Boolean)
+    )
+
+    // 3. Obtener solo vehículos disponibles (no vendidos)
     const result = await supabase
       .from("stock")
       .select("*")
       .eq("is_sold", false) // Solo vehículos no vendidos
     
-    stockData = result.data
+    // 4. Filtrar ausentes: SOLO mostrar si están en DUC
+    stockData = (result.data || []).filter((vehicle) => {
+      const matricula = vehicle.license_plate?.toUpperCase().trim()
+      if (!matricula) return false
+      
+      // Solo mostrar si está en DUC (excluir ausentes)
+      return ducMatriculas.has(matricula)
+    })
+    
     stockError = result.error
     
     if (stockError) {
@@ -399,6 +430,9 @@ export default async function Dashboard() {
       console.error("❌ Error details:", JSON.stringify(stockError, null, 2))
     } else {
       console.log("✅ Stock data obtenida correctamente")
+      console.log(`📊 Stock total sin filtrar: ${result.data?.length || 0}`)
+      console.log(`✅ Stock filtrado (sin ausentes): ${stockData?.length || 0}`)
+      console.log(`🚫 Ausentes excluidos: ${(result.data?.length || 0) - (stockData?.length || 0)}`)
     }
   } catch (error) {
     console.error("❌ Exception fetching stock data:", error)
@@ -436,13 +470,21 @@ export default async function Dashboard() {
       .gte("created_at", firstDayOfPreviousMonth)
       .lt("created_at", firstDayOfMonth)
     
-    previousStockData = previousResult.data
+    // Filtrar ausentes también en datos del mes anterior
+    previousStockData = (previousResult.data || []).filter((vehicle) => {
+      const matricula = vehicle.license_plate?.toUpperCase().trim()
+      if (!matricula) return false
+      // Solo mostrar si está en DUC (excluir ausentes)
+      return ducMatriculas.has(matricula)
+    })
+    
     previousStockError = previousResult.error
     
     if (previousStockError) {
       console.error("❌ Error fetching previous stock data:", previousStockError)
     } else {
       console.log("✅ Previous stock data obtenida correctamente")
+      console.log(`📊 Previous stock filtrado: ${previousStockData?.length || 0}`)
     }
   } catch (error) {
     console.error("❌ Exception fetching previous stock data:", error)

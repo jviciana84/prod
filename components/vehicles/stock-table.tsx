@@ -617,33 +617,37 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
     try {
       console.log("📡 Consultando tabla stock...")
       
-      // Test 1: Consulta simple sin ordenamiento
-      console.log("🔍 Test 1: Consulta simple...")
-      const { data: simpleData, error: simpleError } = await supabase
-        .from('stock')
-        .select('id, license_plate')
-        .limit(1)
+      // 1. Obtener matrículas del CSV DUC
+      const { data: ducData } = await supabase
+        .from('duc_scraper')
+        .select('"Matrícula"')
+        .not('"Matrícula"', 'is', null)
+
+      const ducMatriculas = new Set(
+        (ducData || [])
+          .map((v) => v['Matrícula']?.toUpperCase().trim())
+          .filter(Boolean)
+      )
+      console.log(`📋 Matrículas en DUC: ${ducMatriculas.size}`)
+
+      // 2. Obtener matrículas vendidas
+      const { data: salesData } = await supabase
+        .from('sales_vehicles')
+        .select('license_plate')
+
+      const salesMatriculas = new Set(
+        (salesData || [])
+          .map((v) => v.license_plate?.toUpperCase().trim())
+          .filter(Boolean)
+      )
+      console.log(`💰 Matrículas vendidas: ${salesMatriculas.size}`)
       
-      console.log("📊 Test 1 resultado:", simpleData?.length || 0, "error:", simpleError)
-      
-      if (simpleError) {
-        console.error("❌ Error en test simple:", simpleError)
-        toast({
-          title: "Error al cargar datos",
-          description: simpleError.message,
-          variant: "destructive"
-        })
-        return
-      }
-      
-      // Test 2: Consulta completa (excluyendo vehículos entregados)
-      console.log("🔍 Test 2: Consulta completa...")
+      // 3. Consulta completa de stock
+      console.log("🔍 Consultando stock completo...")
       const { data, error } = await supabase
         .from('stock')
         .select('*')
         .order('created_at', { ascending: false })
-      
-      console.log("📊 Test 2 resultado:", data?.length || 0, "error:", error)
       
       if (error) {
         console.error("❌ Error en fetchStock:", error)
@@ -655,9 +659,22 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
         return
       }
       
-      console.log("✅ Datos cargados exitosamente:", data?.length || 0, "registros")
-      console.log("🔍 Primeros 3 registros:", data?.slice(0, 3))
-      setStock(data || [])
+      // 4. Filtrar ausentes: SOLO mostrar si están en DUC O vendidos
+      const filteredData = (data || []).filter((vehicle) => {
+        const matricula = vehicle.license_plate?.toUpperCase().trim()
+        if (!matricula) return false
+
+        const enDuc = ducMatriculas.has(matricula)
+        const enVentas = salesMatriculas.has(matricula)
+
+        // Mostrar si está en DUC o si está vendido
+        return enDuc || enVentas
+      })
+      
+      console.log(`📊 Stock total: ${data?.length || 0}`)
+      console.log(`✅ Stock filtrado (sin ausentes): ${filteredData.length}`)
+      console.log(`🚫 Ausentes excluidos: ${(data?.length || 0) - filteredData.length}`)
+      setStock(filteredData)
       
     } catch (err) {
       console.error("💥 Excepción en fetchStock:", err)
@@ -831,18 +848,21 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
     if (!licensePlate) return
 
     try {
-      const supabase = createClientComponentClient()
-      const { error } = await supabase
-        .from("fotos")
-        .update({
-          estado_pintura: estado,
-          paint_status_date: date,
-          paint_apto_date: estado === "apto" ? date : null,
-        })
-        .eq("license_plate", licensePlate)
+      // ✅ Actualizar via API Route (MUTACIÓN)
+      const response = await fetch("/api/fotos/update-paint-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          licensePlate,
+          estado,
+          date,
+        }),
+      })
 
-      if (error) {
-        console.error("Error al actualizar tabla fotos:", error)
+      const result = await response.json()
+
+      if (!response.ok || result.error) {
+        console.error("Error al actualizar tabla fotos:", result.error)
         // No lanzamos el error para que no interrumpa el flujo principal
       }
     } catch (err) {
