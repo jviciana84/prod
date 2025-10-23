@@ -32,6 +32,7 @@ import {
   ArrowUpDown,
   RotateCcw,
   CheckCircle2,
+  TriangleAlert,
 } from "lucide-react"
 // Supabase client no necesario - todas las mutations usan API Routes
 import { differenceInDays } from "date-fns"
@@ -51,6 +52,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export interface PhotoVehicle {
   id: string
+  is_available?: boolean
   license_plate: string
   model: string
   disponible: string // Fecha en formato ISO
@@ -1202,6 +1204,53 @@ export default function PhotosTable() {
     }
   }
 
+  const toggleUnavailable = async (vehicleId: string) => {
+    const vehicle = vehicles.find(v => v.id === vehicleId)
+    if (!vehicle) return
+
+    const newUnavailableStatus = !vehicle.is_available
+    
+    try {
+      const response = await fetch("/api/fotos/toggle-availability", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: vehicleId }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || "Error al cambiar disponibilidad")
+      }
+
+      setVehicles((prev) =>
+        prev.map((v) =>
+          v.id === vehicleId
+            ? {
+                ...v,
+                is_available: result.data.is_available,
+              }
+            : v,
+        ),
+      )
+
+      toast({
+        title: result.data.is_available ? "Marcado como disponible" : "Marcado como no disponible",
+        description: result.data.is_available 
+          ? "El vehículo ahora aparece en fotos pendientes" 
+          : "El vehículo no aparecerá en fotos pendientes",
+      })
+    } catch (error) {
+      console.error("❌ Error:", error)
+      
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "No se pudo cambiar disponibilidad",
+        variant: "destructive",
+      })
+    }
+  }
+
   const handleDeleteVehicle = async (id: string, licensePlate: string) => {
     if (!confirm(`¿Estás seguro de que deseas eliminar el vehículo con matrícula ${licensePlate}?`)) {
       return
@@ -1979,21 +2028,60 @@ export default function PhotosTable() {
                           </Select>
                         </TableCell>
                         <TableCell className="py-0.5">
-                          {vehicle.photos_completed ? (
-                            <div className="flex items-center justify-center h-8 w-full border border-green-300 dark:border-green-700 rounded-md px-2 text-green-600">
-                              <CheckCircle className="h-4 w-4 mr-1" />
-                              {formatDate(vehicle.photos_completed_date)}
-                            </div>
-                          ) : (
-                            <button
-                              className="flex items-center justify-center h-8 w-full rounded-md px-2 bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-300 hover:text-amber-950 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700 dark:hover:bg-amber-800 dark:hover:text-amber-100 transition-colors"
+                          <div className="flex items-center gap-1">
+                            {/* Botón de estado (igual que battery-control) */}
+                            <Button
+                              size="sm"
+                              variant="outline"
                               onClick={() => handlePhotoStatusChange(vehicle.id, true)}
+                              disabled={vehicle.is_available === false}
+                              className={cn(
+                                "gap-1 w-[130px] justify-center",
+                                vehicle.is_available === false
+                                  ? "border-amber-500 text-amber-500 hover:bg-amber-500 hover:text-white"
+                                  : vehicle.photos_completed
+                                  ? "border-green-500 text-green-500 hover:bg-green-500 hover:text-white"
+                                  : "border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+                              )}
                               data-interactive
                             >
-                              <Clock className="h-4 w-4 mr-1" />
-                              Pendiente
-                            </button>
-                          )}
+                              {vehicle.is_available === false ? (
+                                <>
+                                  <AlertCircle className="h-3 w-3" />
+                                  <span className="text-sm">NO DISPONIBLE</span>
+                                </>
+                              ) : vehicle.photos_completed ? (
+                                <>
+                                  <CheckCircle className="h-3 w-3" />
+                                  <span className="text-sm">
+                                    {vehicle.photos_completed_date 
+                                      ? formatDate(vehicle.photos_completed_date)
+                                      : "Completado"
+                                    }
+                                  </span>
+                                </>
+                              ) : (
+                                <>
+                                  <Clock className="h-3 w-3" />
+                                  <span className="text-sm">Pendiente</span>
+                                </>
+                              )}
+                            </Button>
+                            
+                            {/* Botón pequeño de alerta (sin borde) */}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                toggleUnavailable(vehicle.id)
+                              }}
+                              className="h-6 w-6 p-0 hover:bg-muted/50 rounded"
+                              title="Marcar como no disponible"
+                            >
+                              <TriangleAlert className="h-3.5 w-3.5 text-amber-500" />
+                            </Button>
+                          </div>
                         </TableCell>
                         <TableCell className="py-0.5">
                           {typeof days === "number" ? (

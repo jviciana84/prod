@@ -617,33 +617,7 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
     try {
       console.log("📡 Consultando tabla stock...")
       
-      // 1. Obtener matrículas del CSV DUC
-      const { data: ducData } = await supabase
-        .from('duc_scraper')
-        .select('"Matrícula"')
-        .not('"Matrícula"', 'is', null)
-
-      const ducMatriculas = new Set(
-        (ducData || [])
-          .map((v) => v['Matrícula']?.toUpperCase().trim())
-          .filter(Boolean)
-      )
-      console.log(`📋 Matrículas en DUC: ${ducMatriculas.size}`)
-
-      // 2. Obtener matrículas vendidas
-      const { data: salesData } = await supabase
-        .from('sales_vehicles')
-        .select('license_plate')
-
-      const salesMatriculas = new Set(
-        (salesData || [])
-          .map((v) => v.license_plate?.toUpperCase().trim())
-          .filter(Boolean)
-      )
-      console.log(`💰 Matrículas vendidas: ${salesMatriculas.size}`)
-      
-      // 3. Consulta completa de stock
-      console.log("🔍 Consultando stock completo...")
+      // Consulta simple de stock (sin filtros externos que pueden bloquear)
       const { data, error } = await supabase
         .from('stock')
         .select('*')
@@ -659,24 +633,8 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
         return
       }
       
-      // 4. Filtrar ausentes: SOLO mostrar si están en DUC O vendidos
-      // 5. Filtrar disponibilidad: SOLO mostrar si is_available = true O vendidos
-      const filteredData = (data || []).filter((vehicle) => {
-        const matricula = vehicle.license_plate?.toUpperCase().trim()
-        if (!matricula) return false
-
-        const enDuc = ducMatriculas.has(matricula)
-        const enVentas = salesMatriculas.has(matricula)
-        const disponible = vehicle.is_available === true
-
-        // Mostrar si: (está en DUC Y disponible) O (está vendido)
-        return (enDuc && disponible) || enVentas
-      })
-      
-      console.log(`📊 Stock total: ${data?.length || 0}`)
-      console.log(`✅ Stock filtrado (sin ausentes): ${filteredData.length}`)
-      console.log(`🚫 Ausentes excluidos: ${(data?.length || 0) - filteredData.length}`)
-      setStock(filteredData)
+      console.log(`📊 Stock cargado: ${data?.length || 0} registros`)
+      setStock(data || [])
       
     } catch (err) {
       console.error("💥 Excepción en fetchStock:", err)
