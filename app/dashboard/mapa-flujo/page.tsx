@@ -990,6 +990,1505 @@ const pageExplanations: { [key: string]: { steps: string[], validations: string[
       "✅ Validar cambios con tasaciones de prueba",
       "🔍 Revisar impacto en tasaciones existentes"
     ]
+  },
+  // FASE 5: ADMINISTRACIÓN Y CONFIGURACIÓN
+  "Gestión Usuarios": {
+    steps: [
+      "👥 **Lista de Usuarios:** Todos los usuarios del sistema con sus roles.",
+      "🔒 **Roles:** Admin, Vendedor, Fotógrafo, Mecánico, etc.",
+      "✅ **Estado:** Activo, inactivo, bloqueado.",
+      "📧 **Contacto:** Email, teléfono, información adicional.",
+      "✏️ **Edición:** Modificar roles, permisos y estado."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de profiles",
+      "🔧 **Mutaciones:** `/api/admin/users/editar` para UPDATE (solo admin)",
+      "📊 **Patrón:** Tabla + Modal edición + Control de permisos + API Routes",
+      "🔒 **Seguridad:** Solo admin puede modificar roles y permisos"
+    ],
+    validations: [
+      "❌ NO modificar rol admin sin autorización del super admin",
+      "⚠️ NO desactivar usuarios sin verificar impact en procesos activos",
+      "✅ Verificar que el usuario tenga email válido antes de activar",
+      "🔍 Auditar cambios de roles regularmente"
+    ]
+  },
+  "Nuevo Usuario": {
+    steps: [
+      "📝 **Datos Básicos:** Nombre, apellidos, email, teléfono.",
+      "🔒 **Credenciales:** Email será el usuario, password temporal.",
+      "👤 **Rol:** Asignar rol según responsabilidades.",
+      "📧 **Notificación:** Se envía email de bienvenida con credenciales.",
+      "✅ **Activación:** Usuario puede acceder inmediatamente."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para validaciones",
+      "🔧 **Mutaciones:** `/api/admin/users/crear` para INSERT (auth + profile)",
+      "📊 **Patrón:** Formulario + Validaciones + Envío email + API Route",
+      "🔒 **Auth:** Crea usuario en Supabase Auth + profile en database"
+    ],
+    validations: [
+      "❌ NO crear sin email válido y único",
+      "⚠️ NO asignar rol admin sin autorización explícita",
+      "✅ Verificar que el email no existe previamente",
+      "🔍 Generar password temporal fuerte"
+    ]
+  },
+  "Editar Usuario [id]": {
+    steps: [
+      "📄 **Información Completa:** Todos los datos del usuario.",
+      "🔒 **Cambio de Rol:** Modificar permisos y accesos.",
+      "📧 **Datos de Contacto:** Actualizar email, teléfono.",
+      "✅ **Estado:** Activar, desactivar o bloquear usuario.",
+      "📊 **Actividad:** Historial de acciones del usuario."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT por ID",
+      "🔧 **Mutaciones:** `/api/admin/users/editar` para UPDATE",
+      "📊 **Patrón:** Formulario detalle + Timeline + API Route",
+      "🔒 **Permisos:** Solo admin puede acceder a esta vista"
+    ],
+    validations: [
+      "❌ NO cambiar email sin verificar nuevo email",
+      "⚠️ NO modificar tu propio rol admin",
+      "✅ Confirmar cambios críticos con el usuario",
+      "🔍 Revisar actividad antes de bloquear"
+    ]
+  },
+  "Gestión Avatares": {
+    steps: [
+      "🖼️ **Biblioteca de Avatares:** Todos los avatares disponibles.",
+      "📤 **Subir Nuevo:** Agregar nuevos avatares al sistema.",
+      "🎨 **Categorías:** Organizar por tipo (hombre, mujer, neutro).",
+      "✏️ **Asignación:** Asignar avatar predeterminado a usuarios.",
+      "🗑️ **Eliminar:** Remover avatares no utilizados."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de avatar list",
+      "🔧 **Mutaciones:** `/api/admin/avatares/subir` para INSERT + Storage",
+      "📊 **Patrón:** Galería + Upload + Supabase Storage + API Routes",
+      "🖼️ **Storage:** Archivos en Supabase Storage, URLs en database"
+    ],
+    validations: [
+      "❌ NO eliminar avatares asignados a usuarios activos",
+      "⚠️ NO subir imágenes muy grandes - optimizar primero",
+      "✅ Verificar formato de imagen (PNG, JPG, WebP)",
+      "🔍 Mantener biblioteca organizada y limpia"
+    ]
+  },
+  "Avatar Mappings": {
+    steps: [
+      "🔗 **Mapeo:** Relación entre usuarios y sus avatares.",
+      "🎨 **Asignación Automática:** Sistema asigna avatar por defecto.",
+      "✏️ **Personalización:** Usuario puede cambiar su avatar.",
+      "📊 **Estadísticas:** Avatares más usados, preferencias.",
+      "🔄 **Sincronización:** Actualización en tiempo real en UI."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de avatar_mappings",
+      "🔧 **Mutaciones:** `/api/avatares/asignar` para UPDATE",
+      "📊 **Patrón:** Sistema de preferencias + Update en tiempo real",
+      "🔄 **Cache:** Avatares se cachean para mejor performance"
+    ],
+    validations: [
+      "✅ Permitir a usuarios cambiar su propio avatar",
+      "🔍 Validar que el avatar existe antes de asignar",
+      "📊 No forzar avatar específico sin consentimiento",
+      "🎨 Ofrecer variedad de opciones"
+    ]
+  },
+  "Footer Settings": {
+    steps: [
+      "📝 **Texto Footer:** Editar texto de copyright y enlaces.",
+      "🔗 **Enlaces:** Configurar links a políticas, contacto, etc.",
+      "🎨 **Estilo:** Colores y formato del footer.",
+      "📊 **Información:** Versión del sistema, última actualización.",
+      "✅ **Guardado:** Cambios se aplican inmediatamente."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de footer_settings",
+      "🔧 **Mutaciones:** `/api/config/footer` para UPDATE",
+      "📊 **Patrón:** Formulario de configuración + Preview + API Route",
+      "🔄 **Cache:** Settings se cachean, se invalida al actualizar"
+    ],
+    validations: [
+      "❌ NO modificar sin autorización de administración",
+      "⚠️ NO eliminar información legal requerida",
+      "✅ Verificar que los links funcionan antes de guardar",
+      "🔍 Mantener información de versión actualizada"
+    ]
+  },
+  "Filter Configs": {
+    steps: [
+      "🔍 **Configuración de Filtros:** Definir filtros disponibles en cada tabla.",
+      "📊 **Campos:** Qué campos se pueden filtrar.",
+      "🎨 **Tipo:** Tipo de filtro (texto, fecha, select, etc).",
+      "✅ **Activar/Desactivar:** Habilitar o deshabilitar filtros.",
+      "💾 **Guardar:** Configuración se aplica a todas las tablas."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de filter_configs",
+      "🔧 **Mutaciones:** `/api/config/filters` para UPDATE",
+      "📊 **Patrón:** Sistema de configuración dinámico + JSON",
+      "🔄 **Aplicación:** Filtros se regeneran dinámicamente en tablas"
+    ],
+    validations: [
+      "❌ NO eliminar filtros críticos para operación",
+      "⚠️ NO cambiar tipos de filtro sin considerar datos existentes",
+      "✅ Probar filtros después de cada cambio",
+      "🔍 Documentar cambios para usuarios"
+    ]
+  },
+  "Filter Processing Log": {
+    steps: [
+      "📋 **Log de Procesamiento:** Historial de ejecución de filtros.",
+      "⏱️ **Performance:** Tiempo de ejecución de cada filtro.",
+      "❌ **Errores:** Registro de filtros que fallaron.",
+      "📊 **Estadísticas:** Filtros más usados, más lentos.",
+      "🔍 **Debug:** Información para optimización."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de filter_processing_log",
+      "📊 **Patrón:** Solo lectura - Log inmutable para análisis",
+      "📈 **Análisis:** Identificar cuellos de botella",
+      "🔍 **Debug:** Ayuda a optimizar queries lentas"
+    ],
+    validations: [
+      "✅ Revisar regularmente para optimización",
+      "🔍 Identificar filtros lentos y optimizarlos",
+      "📊 Usar para decisiones de caching",
+      "⏱️ Establecer alertas para filtros muy lentos"
+    ]
+  },
+  "Column Mappings": {
+    steps: [
+      "🗂️ **Mapeo de Columnas:** Relación entre columnas de diferentes fuentes.",
+      "🔄 **Sincronización:** Cómo se mapean datos entre tablas.",
+      "📊 **Transformaciones:** Reglas de conversión de datos.",
+      "✏️ **Edición:** Modificar reglas de mapeo.",
+      "✅ **Validación:** Verificar integridad de mapeos."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de column_mappings",
+      "🔧 **Mutaciones:** `/api/config/mappings` para UPDATE",
+      "📊 **Patrón:** Sistema de ETL + Validaciones + API Routes",
+      "🔄 **Crítico:** Afecta sincronización de datos entre sistemas"
+    ],
+    validations: [
+      "❌ NO modificar sin backup y plan de rollback",
+      "⚠️ NO cambiar mapeos activos sin testing exhaustivo",
+      "✅ Verificar que los datos se transforman correctamente",
+      "🔍 Documentar cada cambio detalladamente"
+    ]
+  },
+  "User Preferences": {
+    steps: [
+      "⚙️ **Preferencias Usuario:** Configuración personalizada por usuario.",
+      "🎨 **Tema:** Dark mode, light mode, colores.",
+      "📊 **Vista:** Preferencias de tablas, filtros guardados.",
+      "🔔 **Notificaciones:** Qué notificaciones recibir.",
+      "💾 **Auto-guardado:** Preferencias se guardan automáticamente."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de user_preferences",
+      "🔧 **Mutaciones:** `/api/preferences/update` para UPDATE",
+      "📊 **Patrón:** Sistema de preferencias + Auto-save + Local Storage",
+      "🔄 **Sync:** Sincroniza entre dispositivos del usuario"
+    ],
+    validations: [
+      "✅ Permitir usuarios personalizar su experiencia",
+      "🔍 Respetar preferencias de privacidad",
+      "📊 Ofrecer reset a valores predeterminados",
+      "💾 Guardar automáticamente sin molestar al usuario"
+    ]
+  },
+  "Forced Updates": {
+    steps: [
+      "🔄 **Actualizaciones Forzadas:** Control de versiones del frontend.",
+      "📊 **Versión Mínima:** Versión mínima requerida para usar el sistema.",
+      "⚠️ **Alertas:** Notificar a usuarios sobre actualizaciones.",
+      "🔒 **Bloqueo:** Bloquear acceso si versión es muy antigua.",
+      "✅ **Configuración:** Establecer políticas de actualización."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de forced_updates",
+      "🔧 **Mutaciones:** `/api/config/forced-updates` para UPDATE",
+      "📊 **Patrón:** Sistema de versionado + Verificación en startup",
+      "🔒 **Control:** Previene uso de versiones con bugs críticos"
+    ],
+    validations: [
+      "❌ NO forzar updates sin comunicación previa",
+      "⚠️ NO bloquear sin dar tiempo razonable para actualizar",
+      "✅ Proveer instrucciones claras de actualización",
+      "🔍 Usar solo para fixes críticos de seguridad"
+    ]
+  },
+  "Locations": {
+    steps: [
+      "📍 **Ubicaciones:** Gestión de ubicaciones físicas del negocio.",
+      "🏢 **Tipos:** Taller, almacén, showroom, parking.",
+      "📊 **Capacidad:** Número de vehículos por ubicación.",
+      "🗺️ **Coordenadas:** Dirección y ubicación en mapa.",
+      "✏️ **Edición:** Modificar detalles de ubicaciones."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de locations",
+      "🔧 **Mutaciones:** `/api/config/locations` para INSERT/UPDATE",
+      "📊 **Patrón:** CRUD completo + Mapas + API Routes",
+      "🗺️ **Integración:** Puede incluir Google Maps API"
+    ],
+    validations: [
+      "❌ NO eliminar ubicaciones con vehículos asignados",
+      "⚠️ NO modificar direcciones sin verificar",
+      "✅ Mantener capacidad actualizada",
+      "🔍 Verificar coordenadas en mapa antes de guardar"
+    ]
+  },
+  "Delivery Centers": {
+    steps: [
+      "🚚 **Centros de Entrega:** Ubicaciones donde se entregan vehículos.",
+      "📍 **Dirección:** Información completa de ubicación.",
+      "📅 **Horarios:** Horarios de operación del centro.",
+      "👥 **Personal:** Responsables de cada centro.",
+      "📊 **Estadísticas:** Entregas realizadas por centro."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de delivery_centers",
+      "🔧 **Mutaciones:** `/api/config/delivery-centers` para INSERT/UPDATE",
+      "📊 **Patrón:** CRUD + Horarios + Asignación + API Routes",
+      "🔄 **Relación:** Se usa en programación de entregas"
+    ],
+    validations: [
+      "❌ NO eliminar centros con entregas programadas",
+      "⚠️ NO modificar horarios sin notificar a clientes afectados",
+      "✅ Verificar que el personal asignado está activo",
+      "🔍 Mantener información de contacto actualizada"
+    ]
+  },
+  "Expense Types": {
+    steps: [
+      "💰 **Tipos de Gasto:** Categorías de gastos para vehículos.",
+      "📊 **Categorías:** Mecánica, pintura, documentación, etc.",
+      "✏️ **Descripción:** Detalle de cada tipo de gasto.",
+      "💵 **Presupuesto:** Límites por categoría (opcional).",
+      "📈 **Estadísticas:** Gastos por categoría y período."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de expense_types",
+      "🔧 **Mutaciones:** `/api/config/expense-types` para INSERT/UPDATE",
+      "📊 **Patrón:** CRUD + Presupuestos + API Routes",
+      "💰 **Uso:** Se usa en registro de gastos de vehículos"
+    ],
+    validations: [
+      "❌ NO eliminar tipos con gastos registrados",
+      "⚠️ NO modificar sin considerar reportes existentes",
+      "✅ Mantener categorías claras y específicas",
+      "🔍 Revisar regularmente para agregar nuevas necesarias"
+    ]
+  },
+  "Dashboard Reportes": {
+    steps: [
+      "📊 **Panel de Reportes:** Vista general de todos los reportes disponibles.",
+      "📈 **Categorías:** Ventas, stock, finanzas, fotos, etc.",
+      "🔍 **Búsqueda:** Buscar reportes específicos.",
+      "⭐ **Favoritos:** Marcar reportes más usados.",
+      "📥 **Exportar:** Exportar datos en diferentes formatos."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para múltiples queries",
+      "📊 **Patrón:** Dashboard de reportes + Navegación + Exportación",
+      "📈 **Agregaciones:** Múltiples queries complejas",
+      "📥 **Export:** Genera Excel, PDF, CSV según reporte"
+    ],
+    validations: [
+      "✅ Cachear reportes pesados para mejor performance",
+      "🔍 Validar rangos de fechas antes de generar",
+      "📊 Limitar exportaciones muy grandes",
+      "⏱️ Mostrar indicador de carga para reportes lentos"
+    ]
+  },
+  "Reportes Ventas": {
+    steps: [
+      "💰 **Reporte de Ventas:** Análisis detallado de ventas.",
+      "📅 **Período:** Seleccionar rango de fechas.",
+      "📊 **Desglose:** Por vendedor, marca, modelo, tipo.",
+      "📈 **Gráficos:** Visualizaciones de tendencias.",
+      "📥 **Exportar:** Descargar reporte completo."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` con agregaciones complejas",
+      "📊 **Patrón:** Reporte avanzado + Múltiples gráficos + Exportación",
+      "📈 **Charts:** Recharts para visualizaciones",
+      "📥 **Export:** Excel con múltiples hojas"
+    ],
+    validations: [
+      "✅ Validar que el rango de fechas es razonable",
+      "🔍 Mostrar advertencia para rangos muy amplios",
+      "📊 Ofrecer filtros adicionales para refinar datos",
+      "⏱️ Implementar paginación para datasets grandes"
+    ]
+  },
+  "Reportes Stock": {
+    steps: [
+      "🚗 **Reporte de Inventario:** Estado actual del stock.",
+      "📊 **Por Estado:** Disponible, vendido, en preparación.",
+      "📈 **Rotación:** Días promedio en stock.",
+      "💰 **Valoración:** Valor total del inventario.",
+      "📥 **Exportar:** Listado completo con detalles."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT con cálculos",
+      "📊 **Patrón:** Reporte de inventario + Cálculos financieros",
+      "📈 **Métricas:** Rotación, edad, valoración",
+      "📥 **Export:** Excel con fórmulas para análisis"
+    ],
+    validations: [
+      "✅ Actualizar valoración según precios de mercado",
+      "🔍 Identificar vehículos con rotación lenta",
+      "📊 Considerar depreciación en valoración",
+      "💰 Incluir costes de preparación en valoración total"
+    ]
+  },
+  "Reportes Financieros": {
+    steps: [
+      "💰 **Reporte Financiero:** Análisis de ingresos, gastos, márgenes.",
+      "📊 **Ingresos:** Desglose por fuente de ingreso.",
+      "💸 **Gastos:** Categorización de todos los gastos.",
+      "📈 **Márgenes:** Margen bruto y neto por vehículo.",
+      "📥 **Exportar:** Reporte contable completo."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` con múltiples joins",
+      "📊 **Patrón:** Reporte contable + Cálculos complejos",
+      "💰 **Finanzas:** Ingresos, gastos, márgenes, ROI",
+      "📥 **Export:** Excel formato contable"
+    ],
+    validations: [
+      "✅ Verificar que todos los gastos están registrados",
+      "🔍 Revisar márgenes negativos para análisis",
+      "📊 Incluir todos los costes ocultos",
+      "💰 Validar cálculos con departamento financiero"
+    ]
+  },
+  "Reportes Fotográficos": {
+    steps: [
+      "📸 **Reporte de Fotos:** Estadísticas del sistema fotográfico.",
+      "👤 **Por Fotógrafo:** Performance individual.",
+      "📊 **Completitud:** Vehículos con fotos completas vs. pendientes.",
+      "⏱️ **Tiempos:** Promedio de tiempo de completado.",
+      "📥 **Exportar:** Reporte de productividad."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` con agregaciones",
+      "📊 **Patrón:** Reporte de KPIs + Ranking + Gráficos",
+      "📈 **Métricas:** Completitud, velocidad, calidad",
+      "📥 **Export:** Excel con análisis de performance"
+    ],
+    validations: [
+      "✅ Considerar complejidad de vehículos al evaluar",
+      "🔍 Identificar cuellos de botella en el proceso",
+      "📊 Usar para distribución equitativa de carga",
+      "⏱️ Establecer benchmarks realistas"
+    ]
+  },
+  "Reportes Entregas": {
+    steps: [
+      "🚚 **Reporte de Entregas:** Análisis de entregas realizadas.",
+      "📅 **Puntualidad:** Entregas a tiempo vs. retrasadas.",
+      "📍 **Por Centro:** Performance de cada centro de entrega.",
+      "😊 **Satisfacción:** Feedback de clientes (si aplica).",
+      "📥 **Exportar:** Reporte de calidad de servicio."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` con cálculos de fechas",
+      "📊 **Patrón:** Reporte de servicio + Análisis temporal",
+      "📈 **Métricas:** Puntualidad, completitud, incidencias",
+      "📥 **Export:** Excel con análisis de calidad"
+    ],
+    validations: [
+      "✅ Revisar causas de retrasos para mejoras",
+      "🔍 Identificar patrones de incidencias",
+      "📊 Usar para optimización de procesos",
+      "📅 Considerar factores externos (festivos, clima)"
+    ]
+  },
+  "Reportes Recogidas": {
+    steps: [
+      "🚗 **Reporte de Recogidas:** Análisis de recogidas realizadas.",
+      "📊 **Éxito:** Recogidas completadas vs. canceladas.",
+      "⏱️ **Tiempos:** Eficiencia en el proceso de recogida.",
+      "👤 **Por Responsable:** Performance individual.",
+      "📥 **Exportar:** Reporte de operaciones."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` con análisis temporal",
+      "📊 **Patrón:** Reporte operacional + Métricas de eficiencia",
+      "📈 **Análisis:** Tasa de éxito, tiempos, costes",
+      "📥 **Export:** Excel con datos operacionales"
+    ],
+    validations: [
+      "✅ Analizar motivos de cancelaciones",
+      "🔍 Optimizar rutas y horarios",
+      "📊 Considerar costes de desplazamiento",
+      "⏱️ Establecer SLAs para recogidas"
+    ]
+  },
+  "Reportes Garantías": {
+    steps: [
+      "💰 **Reporte de Garantías:** Análisis de costes de garantía.",
+      "🚗 **Por Modelo:** Qué modelos tienen más costes.",
+      "📅 **Evolución:** Tendencia de costes en el tiempo.",
+      "📊 **Comparativa:** BMW vs. MINI vs. Motorrad.",
+      "📥 **Exportar:** Reporte de costes operativos."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` con agregaciones complejas",
+      "📊 **Patrón:** Reporte financiero + Análisis comparativo",
+      "📈 **Análisis:** Por marca, modelo, tipo de gasto",
+      "📥 **Export:** Excel con análisis de costes"
+    ],
+    validations: [
+      "✅ Usar para decisiones de compra",
+      "🔍 Identificar modelos problemáticos",
+      "📊 Considerar en pricing de vehículos",
+      "💰 Negociar con proveedores basado en datos"
+    ]
+  },
+  "Reportes Tasaciones": {
+    steps: [
+      "💰 **Reporte de Tasaciones:** Análisis del proceso de tasación.",
+      "📊 **Conversión:** Tasaciones que se convierten en compra.",
+      "🚗 **Valoración:** Precisión de las tasaciones.",
+      "👤 **Por Tasador:** Performance individual.",
+      "📥 **Exportar:** Reporte de efectividad."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` con cálculos de conversión",
+      "📊 **Patrón:** Reporte de sales + Análisis de conversión",
+      "📈 **Métricas:** Tasa de conversión, precisión, valores",
+      "📥 **Export:** Excel con análisis de efectividad"
+    ],
+    validations: [
+      "✅ Revisar tasaciones rechazadas para aprendizaje",
+      "🔍 Ajustar algoritmo de valoración según resultados",
+      "📊 Training de tasadores basado en datos",
+      "💰 Comparar con mercado real regularmente"
+    ]
+  },
+  "Reportes Personalizados": {
+    steps: [
+      "⚙️ **Crear Reporte:** Constructor de reportes personalizados.",
+      "📊 **Seleccionar Datos:** Elegir tablas y campos.",
+      "🔍 **Filtros:** Aplicar filtros personalizados.",
+      "📈 **Visualización:** Elegir tipo de gráfico.",
+      "💾 **Guardar:** Guardar configuración para reutilizar."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` con queries dinámicas",
+      "🔧 **Mutaciones:** `/api/reportes/crear` para INSERT (guardar config)",
+      "📊 **Patrón:** Query builder + Visualizaciones dinámicas",
+      "⚙️ **Complejo:** Requiere validación de queries para seguridad"
+    ],
+    validations: [
+      "❌ NO permitir queries sin límites - puede sobrecargar sistema",
+      "⚠️ NO exponer datos sensibles sin permisos",
+      "✅ Validar y sanitizar todas las queries",
+      "🔍 Limitar complejidad de queries permitidas"
+    ]
+  },
+  "Exportar Reportes": {
+    steps: [
+      "📥 **Seleccionar Formato:** Excel, PDF, CSV.",
+      "📊 **Configurar:** Qué datos incluir en la exportación.",
+      "🎨 **Formato:** Aplicar estilos y formato al export.",
+      "📧 **Enviar:** Opción de enviar por email.",
+      "💾 **Descargar:** Descargar archivo directamente."
+    ],
+    technical: [
+      "💻 **Consultas:** Usa datos del reporte actual",
+      "🔧 **Generación:** Libraries: ExcelJS, jsPDF, Papa Parse",
+      "📊 **Patrón:** Sistema de exportación + Generación de archivos",
+      "📧 **Email:** Opcional - envía archivo por correo"
+    ],
+    validations: [
+      "✅ Validar tamaño del export antes de generar",
+      "🔍 No exportar datos sensibles sin autorización",
+      "📊 Incluir metadatos (fecha generación, usuario)",
+      "💾 Limpiar archivos temporales después de descarga"
+    ]
+  },
+  // FASE 6: NOTICIAS Y COMUNICACIÓN
+  "Noticias BMW": {
+    steps: [
+      "📰 **Gestión de Noticias:** Publicación de noticias BMW para el equipo.",
+      "✏️ **Crear/Editar:** Redactar y publicar noticias.",
+      "📸 **Multimedia:** Agregar imágenes a las noticias.",
+      "📊 **Categorías:** Productos, eventos, promociones, etc.",
+      "✅ **Publicar:** Hacer visible la noticia para el equipo."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de bmw_noticias",
+      "🔧 **Mutaciones:** `/api/noticias/crear` para INSERT",
+      "✏️ **Editar:** `/api/noticias/editar` para UPDATE",
+      "📊 **Patrón:** CRUD completo + Editor de texto + Imágenes + API Routes"
+    ],
+    validations: [
+      "❌ NO publicar sin revisar contenido",
+      "⚠️ NO eliminar noticias importantes sin backup",
+      "✅ Verificar imágenes antes de publicar",
+      "🔍 Mantener archivo organizado de noticias pasadas"
+    ]
+  },
+  "Nueva Noticia": {
+    steps: [
+      "📝 **Título:** Título claro y descriptivo.",
+      "📄 **Contenido:** Cuerpo de la noticia con formato.",
+      "📸 **Imágenes:** Subir imágenes relacionadas.",
+      "🏷️ **Categoría:** Clasificar la noticia.",
+      "✅ **Publicar:** Hacer visible inmediatamente o programar."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para validaciones",
+      "🔧 **Mutaciones:** `/api/noticias/crear` para INSERT",
+      "📊 **Patrón:** Formulario + Editor de texto rico + Upload imágenes + API Route",
+      "🖼️ **Storage:** Imágenes en Supabase Storage"
+    ],
+    validations: [
+      "❌ NO publicar sin revisar ortografía y formato",
+      "⚠️ NO subir imágenes de baja calidad",
+      "✅ Verificar que los links funcionan",
+      "🔍 Programar noticias importantes para horario óptimo"
+    ]
+  },
+  "Editar Noticia [id]": {
+    steps: [
+      "📄 **Vista Completa:** Todos los datos de la noticia.",
+      "✏️ **Modificar:** Editar título, contenido, imágenes.",
+      "📊 **Estadísticas:** Visualizaciones, engagement.",
+      "🗑️ **Eliminar:** Opción de eliminar noticia.",
+      "✅ **Guardar:** Actualizar noticia publicada."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT por ID",
+      "🔧 **Mutaciones:** `/api/noticias/editar` para UPDATE",
+      "📊 **Patrón:** Formulario de edición + Preview + API Route",
+      "📈 **Analytics:** Tracking de visualizaciones opcional"
+    ],
+    validations: [
+      "❌ NO modificar noticias antiguas sin razón válida",
+      "⚠️ NO cambiar contenido radicalmente - mejor crear nueva",
+      "✅ Mantener historial de cambios",
+      "🔍 Verificar impacto en enlaces compartidos"
+    ]
+  },
+  "Configuración Notificaciones": {
+    steps: [
+      "🔔 **Tipos de Notificación:** Push, email, SMS, in-app.",
+      "⚙️ **Eventos:** Qué eventos generan notificaciones.",
+      "👥 **Destinatarios:** Quiénes reciben cada tipo de notificación.",
+      "📝 **Plantillas:** Editar plantillas de mensajes.",
+      "✅ **Activar/Desactivar:** Control global de notificaciones."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de config",
+      "🔧 **Mutaciones:** `/api/config/notifications` para UPDATE",
+      "📊 **Patrón:** Sistema de configuración + Plantillas + API Routes",
+      "🔔 **Integración:** Push API, Nodemailer, SMS gateway"
+    ],
+    validations: [
+      "❌ NO desactivar notificaciones críticas",
+      "⚠️ NO spam - respetar preferencias de usuarios",
+      "✅ Probar notificaciones antes de activar en producción",
+      "🔍 Monitorear tasa de entrega de notificaciones"
+    ]
+  },
+  "Email Templates": {
+    steps: [
+      "📧 **Plantillas de Email:** Gestión de plantillas de correo.",
+      "✏️ **Editor:** Editor visual para crear/editar plantillas.",
+      "🎨 **Diseño:** HTML + CSS para emails profesionales.",
+      "🔧 **Variables:** Usar variables dinámicas (nombre, fecha, etc).",
+      "📤 **Probar:** Enviar email de prueba antes de usar."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de templates",
+      "🔧 **Mutaciones:** `/api/config/email-templates` para INSERT/UPDATE",
+      "📊 **Patrón:** Editor de templates + Preview + Testing + API Routes",
+      "📧 **Render:** Usa librería de templating (Handlebars o similar)"
+    ],
+    validations: [
+      "❌ NO usar HTML no válido - puede romper visualización",
+      "⚠️ NO incluir imágenes externas que puedan fallar",
+      "✅ Probar en múltiples clientes de email",
+      "🔍 Verificar que las variables se reemplazan correctamente"
+    ]
+  },
+  "Activate Push": {
+    steps: [
+      "🔔 **Activar Push:** Proceso para habilitar notificaciones push.",
+      "📱 **Permisos:** Solicitar permisos del navegador.",
+      "📝 **Suscripción:** Crear suscripción de notificaciones.",
+      "✅ **Verificar:** Confirmar que funciona con notificación de prueba.",
+      "💾 **Guardar:** Suscripción se guarda en el servidor."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para verificar suscripción",
+      "🔧 **Mutaciones:** `/api/push/subscribe` para INSERT (nueva suscripción)",
+      "📊 **Patrón:** Service Worker + Push API + Suscripción + API Route",
+      "🔔 **Web Push:** Usa Web Push API y VAPID keys"
+    ],
+    validations: [
+      "✅ Solicitar permisos de forma amigable",
+      "🔍 Explicar beneficios de activar notificaciones",
+      "📱 Verificar compatibilidad del navegador",
+      "🔔 Enviar notificación de confirmación al activar"
+    ]
+  },
+  "Check Subscriptions": {
+    steps: [
+      "📊 **Ver Suscripciones:** Lista todas las suscripciones activas del usuario.",
+      "📱 **Por Dispositivo:** Muestra cada dispositivo suscrito.",
+      "✅ **Estado:** Activa, inactiva, expirada.",
+      "🗑️ **Eliminar:** Desuscribir dispositivos específicos.",
+      "🔄 **Renovar:** Renovar suscripciones expiradas."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de suscripciones",
+      "🔧 **Mutaciones:** `/api/push/unsubscribe` para DELETE",
+      "📊 **Patrón:** Lista de suscripciones + Gestión + API Routes",
+      "🔔 **Control:** Usuario controla sus propias suscripciones"
+    ],
+    validations: [
+      "✅ Permitir gestión fácil de suscripciones",
+      "🔍 Limpiar suscripciones expiradas automáticamente",
+      "📱 Identificar claramente cada dispositivo",
+      "🔔 Confirmar antes de eliminar suscripciones"
+    ]
+  },
+  "Process Emails": {
+    steps: [
+      "📧 **Procesador de Emails:** Sistema que procesa emails entrantes.",
+      "📥 **Inbox:** Recibe emails de clientes, proveedores.",
+      "🔍 **Clasificación:** Clasifica automáticamente por tipo.",
+      "⚡ **Acciones:** Dispara acciones automáticas según contenido.",
+      "📊 **Log:** Registro de todos los emails procesados."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de email log",
+      "🔧 **Procesamiento:** Background job + Email parsing",
+      "📊 **Patrón:** Sistema de automatización + Reglas + Triggers",
+      "📧 **IMAP:** Conexión a servidor de email para recibir"
+    ],
+    validations: [
+      "✅ Revisar regularmente que el procesamiento funciona",
+      "🔍 Verificar reglas de clasificación",
+      "📊 Monitorear errores en el proceso",
+      "📧 Mantener credenciales de email actualizadas"
+    ]
+  },
+  "Noticias": {
+    steps: [
+      "📰 **Vista Pública:** Página donde se muestran las noticias publicadas.",
+      "📊 **Filtros:** Por categoría, fecha, relevancia.",
+      "📖 **Lectura:** Vista de lectura optimizada.",
+      "💬 **Comentarios:** Opción de comentar (si está habilitado).",
+      "📱 **Responsive:** Optimizada para móvil y desktop."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de noticias públicas",
+      "📊 **Patrón:** Solo lectura - Vista de noticias + Paginación",
+      "🎨 **UI:** Diseño limpio y legible",
+      "📱 **Responsive:** Adaptada a diferentes dispositivos"
+    ],
+    validations: [
+      "✅ Mantener diseño limpio y profesional",
+      "🔍 Cargar imágenes de forma optimizada",
+      "📊 Implementar paginación para mejor performance",
+      "📱 Probar en múltiples dispositivos"
+    ]
+  },
+  "BMW Noticias": {
+    steps: [
+      "📰 **Noticias BMW:** Gestión de noticias BMW específicas.",
+      "🔍 **Filtrado:** Solo noticias relacionadas con BMW.",
+      "📊 **Categorías:** Nuevos modelos, actualizaciones, eventos.",
+      "✏️ **Gestión:** Crear, editar, eliminar noticias BMW.",
+      "📥 **Exportar:** Exportar archivo de noticias."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT filtrado por marca",
+      "🔧 **Mutaciones:** Usa las mismas API Routes que noticias generales",
+      "📊 **Patrón:** Vista filtrada + CRUD + API Routes",
+      "🔍 **Filtro:** WHERE marca = 'BMW'"
+    ],
+    validations: [
+      "✅ Mantener coherencia con branding BMW",
+      "🔍 Verificar información oficial BMW",
+      "📊 Actualizar regularmente con novedades",
+      "🎨 Usar colores y estilo BMW oficial"
+    ]
+  },
+  // FASE 7: TRANSACCIONES Y PÁGINAS PÚBLICAS
+  "Professional Sales": {
+    steps: [
+      "💼 **Ventas Profesionales:** Sistema de ventas para clientes B2B.",
+      "🏢 **Empresas:** Registro de empresas clientes.",
+      "📊 **Volumen:** Ventas múltiples y descuentos por volumen.",
+      "💰 **Condiciones:** Términos especiales para profesionales.",
+      "📄 **Contratos:** Gestión de contratos empresariales."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de professional_sales",
+      "🔧 **Mutaciones:** `/api/professional/crear` para INSERT",
+      "📊 **Patrón:** Sistema B2B + Contratos + Descuentos + API Routes",
+      "💼 **Especial:** Lógica de pricing diferente a ventas normales"
+    ],
+    validations: [
+      "❌ NO aplicar descuentos sin autorización",
+      "⚠️ NO crear contratos sin verificación legal",
+      "✅ Validar datos fiscales de la empresa",
+      "🔍 Revisar términos antes de finalizar contrato"
+    ]
+  },
+  "PDF Extracted Data": {
+    steps: [
+      "📄 **Datos Extraídos:** Información extraída de PDFs automáticamente.",
+      "🔍 **OCR:** Tesseract extrae texto de certificados.",
+      "📊 **Validación:** Sistema verifica datos extraídos.",
+      "✏️ **Corrección:** Permite corregir errores de OCR.",
+      "✅ **Aplicar:** Datos se aplican a vehículos correspondientes."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de pdf_extracted_data",
+      "🔧 **Mutaciones:** `/api/pdf/validar` para UPDATE (corregir datos)",
+      "📊 **Patrón:** OCR + Validación + Corrección manual + API Routes",
+      "🔍 **Tesseract:** Extracción automática de texto de PDFs"
+    ],
+    validations: [
+      "❌ NO confiar 100% en OCR - siempre revisar",
+      "⚠️ NO aplicar datos sin validación humana",
+      "✅ Corregir errores de extracción antes de aplicar",
+      "🔍 Mejorar templates de extracción según patrones"
+    ]
+  },
+  "About": {
+    steps: [
+      "ℹ️ **Acerca de:** Página de información de la aplicación.",
+      "📖 **Descripción:** Qué es y para qué sirve el sistema.",
+      "👥 **Equipo:** Información del equipo de desarrollo.",
+      "📧 **Contacto:** Información de contacto y soporte.",
+      "📄 **Versión:** Versión actual del sistema."
+    ],
+    technical: [
+      "💻 **Consultas:** Ninguna - contenido estático",
+      "📊 **Patrón:** Página estática + Componentes de UI",
+      "🎨 **Diseño:** Página informativa profesional",
+      "📄 **Versión:** Se lee de archivo de configuración"
+    ],
+    validations: [
+      "✅ Mantener información actualizada",
+      "🔍 Verificar que los links de contacto funcionan",
+      "📊 Actualizar versión automáticamente",
+      "🎨 Diseño profesional y claro"
+    ]
+  },
+  "Política de Privacidad": {
+    steps: [
+      "📋 **Política Legal:** Términos de uso y privacidad.",
+      "🔒 **GDPR:** Cumplimiento con regulaciones de datos.",
+      "📄 **Contenido:** Texto legal completo.",
+      "✏️ **Edición:** Solo admin puede modificar.",
+      "📅 **Versiones:** Historial de cambios en la política."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de policy content",
+      "🔧 **Mutaciones:** `/api/admin/policy` para UPDATE (solo admin)",
+      "📊 **Patrón:** Contenido legal + Versionado + Editor + API Routes",
+      "🔒 **Legal:** Requiere aprobación legal antes de publicar"
+    ],
+    validations: [
+      "❌ NO modificar sin revisión legal",
+      "⚠️ NO publicar cambios sin notificar a usuarios",
+      "✅ Mantener versiones anteriores archivadas",
+      "🔍 Verificar cumplimiento GDPR"
+    ]
+  },
+  "Reset Password": {
+    steps: [
+      "🔒 **Solicitud:** Usuario solicita reset de contraseña.",
+      "📧 **Email:** Se envía link de recuperación al email.",
+      "⏱️ **Token:** Link temporal con expiración.",
+      "🔑 **Nueva Contraseña:** Usuario establece nueva contraseña.",
+      "✅ **Confirmación:** Se actualiza y se puede acceder."
+    ],
+    technical: [
+      "💻 **Consultas:** Ninguna - flujo de Supabase Auth",
+      "🔧 **Auth:** Usa sistema de reset de Supabase Auth",
+      "📊 **Patrón:** Formulario + Email + Supabase Auth API",
+      "🔒 **Seguridad:** Tokens temporales, expiración, validación"
+    ],
+    validations: [
+      "✅ Validar que el email existe antes de enviar",
+      "🔍 Tokens deben expirar en tiempo razonable",
+      "🔒 Requerir contraseña fuerte",
+      "📧 Notificar al usuario del cambio de contraseña"
+    ]
+  },
+  "Auth Reset Password": {
+    steps: [
+      "🔑 **Confirmar Nueva Contraseña:** Página de confirmación del reset.",
+      "✅ **Validar Token:** Verificar que el token es válido.",
+      "🔒 **Nueva Contraseña:** Ingresar y confirmar nueva contraseña.",
+      "📧 **Notificación:** Confirmar cambio por email.",
+      "✅ **Redirect:** Redirigir al login después de completar."
+    ],
+    technical: [
+      "💻 **Consultas:** Validación de token de Supabase Auth",
+      "🔧 **Auth:** Usa updateUser de Supabase Auth",
+      "📊 **Patrón:** Formulario + Validación + Supabase Auth API",
+      "🔒 **Seguridad:** Verificación de token, validación de contraseña"
+    ],
+    validations: [
+      "✅ Validar fortaleza de nueva contraseña",
+      "🔍 Verificar que las contraseñas coinciden",
+      "🔒 Limpiar token después de usar",
+      "📧 Enviar confirmación de cambio exitoso"
+    ]
+  },
+  "Force Password Change": {
+    steps: [
+      "🔒 **Cambio Forzado:** Usuario debe cambiar contraseña obligatoriamente.",
+      "⚠️ **Razón:** Por seguridad, primera vez, política.",
+      "🔑 **Nueva Contraseña:** Establecer contraseña fuerte.",
+      "✅ **Confirmación:** Después de cambiar puede acceder al sistema.",
+      "📧 **Notificación:** Confirmar cambio por email."
+    ],
+    technical: [
+      "💻 **Consultas:** Verifica metadata del usuario (force_password_change)",
+      "🔧 **Auth:** updateUser de Supabase Auth + metadata",
+      "📊 **Patrón:** Formulario obligatorio + Middleware + Auth API",
+      "🔒 **Middleware:** Verifica en cada request si necesita cambiar"
+    ],
+    validations: [
+      "✅ No permitir bypass del cambio forzado",
+      "🔍 Validar fortaleza de contraseña",
+      "🔒 Limpiar flag después de cambiar exitosamente",
+      "📧 Notificar al admin del cambio"
+    ]
+  },
+  "Dashboard Cliente": {
+    steps: [
+      "👤 **Panel del Cliente:** Vista simplificada para clientes.",
+      "🚗 **Sus Vehículos:** Lista de vehículos que ha comprado.",
+      "📄 **Documentación:** Acceso a contratos y documentos.",
+      "📅 **Citas:** Entregas programadas y servicios.",
+      "📧 **Mensajes:** Comunicación con el concesionario."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` filtrado por cliente actual",
+      "📊 **Patrón:** Dashboard simplificado + Solo lectura mayormente",
+      "🔒 **Seguridad:** RLS para que solo vea sus propios datos",
+      "🎨 **UI:** Diseño simple y amigable para clientes"
+    ],
+    validations: [
+      "✅ Mostrar solo información relevante para el cliente",
+      "🔍 No exponer datos internos del negocio",
+      "📊 Diseño intuitivo para usuarios no técnicos",
+      "🔒 Verificar RLS funciona correctamente"
+    ]
+  },
+  "Transacciones (Públicas)": {
+    steps: [
+      "💳 **Transacciones Públicas:** Ventas y operaciones para vista pública.",
+      "📊 **Listado:** Vehículos vendidos recientemente (opcional).",
+      "💰 **Transparencia:** Información pública de transacciones.",
+      "🔍 **Filtros:** Búsqueda por tipo, fecha, marca.",
+      "📄 **Detalles:** Información general sin datos sensibles."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` con RLS público",
+      "📊 **Patrón:** Vista pública + Filtros + Sin datos sensibles",
+      "🔒 **RLS:** Políticas estrictas para datos públicos",
+      "🎨 **UI:** Diseño profesional para vista externa"
+    ],
+    validations: [
+      "❌ NO exponer precios reales sin autorización",
+      "⚠️ NO mostrar datos de clientes",
+      "✅ Solo información general y estadísticas",
+      "🔍 Verificar que RLS funciona correctamente"
+    ]
+  },
+  "Clear SW": {
+    steps: [
+      "🔧 **Limpiar Service Worker:** Utilidad para limpiar cache del SW.",
+      "📱 **Propósito:** Resolver problemas de cache y versiones.",
+      "🔄 **Proceso:** Desregistra SW y limpia cache.",
+      "✅ **Reload:** Recarga la página con versión fresca.",
+      "📊 **Debug:** Herramienta de troubleshooting."
+    ],
+    technical: [
+      "💻 **Consultas:** Ninguna - operación del navegador",
+      "🔧 **SW:** navigator.serviceWorker.getRegistrations()",
+      "📊 **Patrón:** Utilidad de mantenimiento del cliente",
+      "🔄 **Cache:** Limpia caches del Service Worker"
+    ],
+    validations: [
+      "✅ Usar solo cuando hay problemas de cache",
+      "🔍 Advertir al usuario que se limpiará cache",
+      "📊 Recargar automáticamente después de limpiar",
+      "🔧 Útil para debugging de versiones"
+    ]
+  },
+  // FASE 8: DEBUG & TESTING (Versión simplificada - Solo para desarrollo)
+  "Debug Auth": {
+    steps: [
+      "🔍 **Propósito:** Verificar autenticación y sesión del usuario.",
+      "🧪 **Prueba:** Estado de auth, tokens, permisos.",
+      "✅ **Resultado:** Muestra información de debug de autenticación."
+    ],
+    technical: ["🔧 **Solo desarrollo** - Muestra estado interno de Supabase Auth"],
+    validations: ["⚠️ NO usar en producción - solo para debugging"]
+  },
+  "Debug Session": {
+    steps: ["🔍 Verificar estado de sesión actual", "🧪 Prueba tokens y expiración", "✅ Debug de problemas de sesión"],
+    technical: ["🔧 Solo desarrollo - Estado de sesión de Supabase"],
+    validations: ["⚠️ No usar en producción"]
+  },
+  "Debug Roles": {
+    steps: ["🔍 Verificar roles y permisos", "🧪 Prueba asignación de roles", "✅ Debug de RLS"],
+    technical: ["🔧 Solo desarrollo - Verifica roles del usuario"],
+    validations: ["⚠️ No usar en producción"]
+  },
+  "Debug SMTP": {
+    steps: ["🔍 Probar configuración SMTP", "🧪 Enviar emails de prueba", "✅ Verificar conexión servidor email"],
+    technical: ["🔧 Solo desarrollo - Testing de Nodemailer config"],
+    validations: ["⚠️ No enviar emails reales desde debug"]
+  },
+  "Debug SMTP Config": {
+    steps: ["🔍 Ver configuración SMTP actual", "🧪 Validar credenciales", "✅ Probar conexión"],
+    technical: ["🔧 Solo desarrollo - Muestra config de email"],
+    validations: ["⚠️ No exponer credenciales en producción"]
+  },
+  "Debug Stock Client": {
+    steps: ["🔍 Verificar datos de stock", "🧪 Probar queries de stock", "✅ Debug de sincronización"],
+    technical: ["🔧 Solo desarrollo - Testing de queries de stock"],
+    validations: ["⚠️ No modificar datos reales"]
+  },
+  "Debug Table Structure": {
+    steps: ["🔍 Ver estructura de tablas", "🧪 Verificar columnas y tipos", "✅ Debug de schema"],
+    technical: ["🔧 Solo desarrollo - Introspección de database schema"],
+    validations: ["⚠️ Solo lectura - no modificar estructura"]
+  },
+  "Debug Vehicle Data": {
+    steps: ["🔍 Verificar datos de vehículos", "🧪 Probar integridad de datos", "✅ Debug de inconsistencias"],
+    technical: ["🔧 Solo desarrollo - Validación de datos de vehículos"],
+    validations: ["⚠️ No modificar datos sin autorización"]
+  },
+  "Debug VAPID Keys": {
+    steps: ["🔍 Verificar claves VAPID", "🧪 Probar push notifications", "✅ Debug de configuración push"],
+    technical: ["🔧 Solo desarrollo - Testing de Web Push"],
+    validations: ["⚠️ No exponer claves privadas"]
+  },
+  "Debug User Lookup": {
+    steps: ["🔍 Buscar usuarios", "🧪 Verificar datos de usuarios", "✅ Debug de auth"],
+    technical: ["🔧 Solo desarrollo - Búsqueda de usuarios"],
+    validations: ["⚠️ No exponer datos sensibles"]
+  },
+  "Debug Notifications": {
+    steps: ["🔍 Probar sistema de notificaciones", "🧪 Enviar notificaciones de prueba", "✅ Verificar entrega"],
+    technical: ["🔧 Solo desarrollo - Testing de notificaciones"],
+    validations: ["⚠️ No enviar a usuarios reales"]
+  },
+  "Debug Push Processor": {
+    steps: ["🔍 Verificar procesador de push", "🧪 Probar envío de push", "✅ Debug de queue"],
+    technical: ["🔧 Solo desarrollo - Testing de push queue"],
+    validations: ["⚠️ No sobrecargar con tests masivos"]
+  },
+  "Debug Subscriptions": {
+    steps: ["🔍 Ver todas las suscripciones", "🧪 Verificar estado", "✅ Debug de suscripciones"],
+    technical: ["🔧 Solo desarrollo - Listado de suscripciones push"],
+    validations: ["⚠️ No modificar suscripciones reales"]
+  },
+  "Debug Subscription Creation": {
+    steps: ["🔍 Probar creación de suscripciones", "🧪 Verificar proceso", "✅ Debug de registro"],
+    technical: ["🔧 Solo desarrollo - Testing de creación"],
+    validations: ["⚠️ Limpiar suscripciones de prueba"]
+  },
+  "Debug Sales Dashboard": {
+    steps: ["🔍 Verificar dashboard de ventas", "🧪 Probar cálculos", "✅ Debug de métricas"],
+    technical: ["🔧 Solo desarrollo - Testing de agregaciones"],
+    validations: ["⚠️ Usar datos de prueba"]
+  },
+  "Debug Test": {
+    steps: ["🔍 Pruebas generales del sistema", "🧪 Testing de funcionalidades", "✅ Debug general"],
+    technical: ["🔧 Solo desarrollo - Sandbox de pruebas"],
+    validations: ["⚠️ No afectar datos de producción"]
+  },
+  "Test Auth": {
+    steps: ["🔍 Probar autenticación", "🧪 Login/logout/refresh", "✅ Verificar flujo completo"],
+    technical: ["🔧 Testing de Supabase Auth flows"],
+    validations: ["⚠️ Usar usuarios de prueba"]
+  },
+  "Test SMTP": {
+    steps: ["🔍 Probar envío de emails", "🧪 Templates y destinatarios", "✅ Verificar entrega"],
+    technical: ["🔧 Testing de Nodemailer"],
+    validations: ["⚠️ No enviar a clientes reales"]
+  },
+  "Test Notifications": {
+    steps: ["🔍 Probar notificaciones", "🧪 Push, email, in-app", "✅ Verificar todos los tipos"],
+    technical: ["🔧 Testing de sistema de notificaciones completo"],
+    validations: ["⚠️ No spam a usuarios reales"]
+  },
+  "Test Photo Assignment": {
+    steps: ["🔍 Probar asignación de fotos", "🧪 Algoritmo automático", "✅ Verificar distribución"],
+    technical: ["🔧 Testing de asignación automática de fotógrafos"],
+    validations: ["⚠️ Usar datos de prueba"]
+  },
+  "Diagnostico Fotos": {
+    steps: ["🔍 Diagnóstico del sistema de fotos", "🧪 Verificar estados", "✅ Identificar problemas"],
+    technical: ["🔧 Debug de sistema fotográfico"],
+    validations: ["⚠️ Solo lectura para diagnóstico"]
+  },
+  "Diagnostico Asignación": {
+    steps: ["🔍 Diagnóstico de asignaciones", "🧪 Verificar algoritmo", "✅ Identificar errores"],
+    technical: ["🔧 Debug de asignación de fotógrafos"],
+    validations: ["⚠️ No modificar asignaciones reales"]
+  },
+  "Test Fotos": {
+    steps: ["🔍 Pruebas del sistema de fotos", "🧪 Upload, delete, update", "✅ Verificar funcionalidad"],
+    technical: ["🔧 Testing de CRUD de fotos"],
+    validations: ["⚠️ Limpiar fotos de prueba"]
+  },
+  "Debug Recogidas": {
+    steps: ["🔍 Debug del sistema de recogidas", "🧪 Verificar flujo completo", "✅ Identificar problemas"],
+    technical: ["🔧 Debug de recogidas"],
+    validations: ["⚠️ Usar datos de prueba"]
+  },
+  "Debug Entregas": {
+    steps: ["🔍 Debug del sistema de entregas", "🧪 Verificar workflow", "✅ Identificar errores"],
+    technical: ["🔧 Debug de entregas y triggers"],
+    validations: ["⚠️ No crear entregas falsas"]
+  },
+  "Debug Email Preview": {
+    steps: ["🔍 Preview de templates de email", "🧪 Ver renderizado", "✅ Verificar variables"],
+    technical: ["🔧 Testing de email templates"],
+    validations: ["⚠️ No enviar, solo preview"]
+  },
+  "PDF Debug": {
+    steps: ["🔍 Debug de procesamiento de PDFs", "🧪 Probar OCR", "✅ Verificar extracción"],
+    technical: ["🔧 Testing de Tesseract OCR"],
+    validations: ["⚠️ Usar PDFs de prueba"]
+  },
+  "Test Save PDF": {
+    steps: ["🔍 Probar guardado de PDFs", "🧪 Storage y metadata", "✅ Verificar integridad"],
+    technical: ["🔧 Testing de Supabase Storage para PDFs"],
+    validations: ["⚠️ Limpiar archivos de prueba"]
+  },
+  "Debug Coordenadas": {
+    steps: ["🔍 Debug de coordenadas en mapas", "🧪 Probar geolocalización", "✅ Verificar precisión"],
+    technical: ["🔧 Testing de mapeo de coordenadas"],
+    validations: ["⚠️ Usar ubicaciones de prueba"]
+  },
+  "Validación Debug": {
+    steps: ["🔍 Debug del sistema de validaciones", "🧪 Probar reglas", "✅ Verificar cumplimiento"],
+    technical: ["🔧 Testing de validaciones de negocio"],
+    validations: ["⚠️ No saltarse validaciones en producción"]
+  },
+  "Test Map": {
+    steps: ["🔍 Probar funcionalidad de mapas", "🧪 Renderizado y markers", "✅ Verificar interacción"],
+    technical: ["🔧 Testing de componentes de mapa"],
+    validations: ["⚠️ Verificar API keys de mapas"]
+  },
+  "Images Gallery": {
+    steps: ["🔍 Galería de imágenes de prueba", "🧪 Testing de visualización", "✅ Verificar carga"],
+    technical: ["🔧 Testing de galería de imágenes"],
+    validations: ["⚠️ Optimizar imágenes antes de subir"]
+  },
+  "Demo SVG Mapper": {
+    steps: ["🔍 Demo de mapeo SVG", "🧪 Probar coordenadas en SVG", "✅ Verificar precisión"],
+    technical: ["🔧 Demo de sistema de mapeo de daños"],
+    validations: ["⚠️ Solo para demostración"]
+  },
+  // FASE 9: DASHBOARD Y PÁGINAS ESPECIALES
+  "Dashboard": {
+    steps: [
+      "📊 **Panel Principal:** Vista general del estado del negocio.",
+      "🚗 **Stock:** Total de vehículos, disponibles, vendidos.",
+      "💰 **Ventas:** Ventas del mes, ingresos, tendencias.",
+      "📸 **Fotos:** Estado del sistema fotográfico.",
+      "⏱️ **Taller:** Promedio de días en taller, saturación.",
+      "📈 **KPIs:** Métricas clave del negocio en tiempo real."
+    ],
+    technical: [
+      "💻 **Consultas:** Múltiples `createClientComponentClient()` para diferentes agregaciones",
+      "📊 **Patrón:** Dashboard complejo + Múltiples componentes + Real-time",
+      "📈 **Componentes:** Cards, Charts, Rankings, Activity Feed",
+      "🔄 **Real-time:** Se actualiza automáticamente con Supabase Realtime"
+    ],
+    validations: [
+      "✅ Optimizar queries para carga rápida",
+      "🔍 Cachear datos que no cambian frecuentemente",
+      "📊 Mostrar indicadores de carga para datos pesados",
+      "🎨 Diseño claro y profesional - primera impresión del sistema"
+    ]
+  },
+  "Mapa de Flujo": {
+    steps: [
+      "🗺️ **Manual de Instrucciones:** Esta página - Documentación completa del sistema.",
+      "📊 **Estadísticas:** Tablas, triggers, páginas, API routes.",
+      "🔍 **Explorador:** Navegación por todas las páginas del sistema.",
+      "📋 **Explicaciones:** Flujo de datos, validaciones, patrones técnicos.",
+      "⚡ **Diagramas:** Visualización del flujo de datos entre componentes."
+    ],
+    technical: [
+      "💻 **Consultas:** Ninguna - documentación estática",
+      "📊 **Patrón:** Página de documentación + Diagramas Mermaid.js",
+      "🗺️ **Mermaid:** Renderizado de diagramas de flujo",
+      "🎨 **Explorador:** Sidebar navegable con estructura completa"
+    ],
+    validations: [
+      "✅ Mantener actualizada con cambios del sistema",
+      "🔍 Verificar que todos los diagramas renderizan correctamente",
+      "📊 Actualizar estadísticas cuando se agregan tablas/triggers",
+      "📝 Documentar nuevas páginas inmediatamente al crearlas"
+    ]
+  },
+  "Búsqueda Global": {
+    steps: [
+      "🔍 **Búsqueda Universal:** Buscar en vehículos, clientes, ventas, etc.",
+      "⚡ **Rápida:** Resultados en tiempo real mientras escribe.",
+      "📊 **Categorías:** Resultados agrupados por tipo.",
+      "🔗 **Navegación:** Click para ir directamente al registro.",
+      "📱 **Responsive:** Funciona en modal compacto en móvil."
+    ],
+    technical: [
+      "💻 **Consultas:** Múltiples `createClientComponentClient()` en paralelo",
+      "🔧 **Search:** Búsqueda full-text en múltiples tablas",
+      "📊 **Patrón:** Componente global + Modal + Debounce + Múltiples queries",
+      "⚡ **Performance:** Debounce, límite de resultados, índices en DB"
+    ],
+    validations: [
+      "✅ Implementar debounce para no sobrecargar",
+      "🔍 Limitar resultados para mejor performance",
+      "📊 Usar índices en columnas buscadas",
+      "⚡ Mostrar indicador de carga durante búsqueda"
+    ]
+  },
+  "Chat AI": {
+    steps: [
+      "💬 **Chat con IA:** Asistente virtual para consultas del sistema.",
+      "🤖 **OpenAI:** Integración con GPT para respuestas inteligentes.",
+      "📊 **Contexto:** IA tiene acceso a datos del sistema.",
+      "🔍 **Consultas:** Puede buscar información en la base de datos.",
+      "💾 **Historial:** Guarda conversaciones para referencia."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` según necesite la IA",
+      "🔧 **API:** `/api/chat` para comunicación con OpenAI",
+      "📊 **Patrón:** Chat UI + Streaming + OpenAI API + Function calling",
+      "🤖 **Functions:** IA puede ejecutar funciones para consultar datos"
+    ],
+    validations: [
+      "❌ NO exponer datos sensibles a la IA sin permisos",
+      "⚠️ NO permitir a la IA modificar datos",
+      "✅ Validar respuestas de la IA antes de mostrar",
+      "🔍 Monitorear costes de API de OpenAI"
+    ]
+  },
+  "Notificaciones (Centro)": {
+    steps: [
+      "🔔 **Centro de Notificaciones:** Lista todas las notificaciones del usuario.",
+      "📊 **Tipos:** Ventas, entregas, asignaciones, alertas.",
+      "✅ **Leídas/No leídas:** Marcar como leído.",
+      "🗑️ **Eliminar:** Limpiar notificaciones antiguas.",
+      "⚙️ **Preferencias:** Link a configuración de notificaciones."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de notificaciones del usuario",
+      "🔧 **Mutaciones:** `/api/notifications/mark-read` para UPDATE",
+      "📊 **Patrón:** Lista de notificaciones + Real-time + API Routes",
+      "🔔 **Real-time:** Se actualizan en tiempo real con Supabase Realtime"
+    ],
+    validations: [
+      "✅ Mostrar notificaciones más recientes primero",
+      "🔍 Agrupar notificaciones similares",
+      "📊 Auto-marcar como leído al hacer click",
+      "🗑️ Auto-eliminar notificaciones muy antiguas"
+    ]
+  },
+  // PÁGINAS ADICIONALES IMPORTANTES
+  "Pedidos Validados": {
+    steps: [
+      "✅ **Vehículos Validados:** Lista de vehículos con CyP y 360 completos.",
+      "📋 **Listo para Vender:** Vehículos que cumplen todos los requisitos.",
+      "📊 **Estado:** Validado, en venta, vendido.",
+      "🔍 **Filtros:** Por marca, modelo, precio, ubicación.",
+      "💰 **Disponibilidad:** Solo vehículos listos para entrega inmediata."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de pedidos_validados",
+      "📊 **Patrón:** Tabla filtrada + Solo lectura",
+      "✅ **Validación:** WHERE cyp_completo = true AND 360_completo = true",
+      "🔄 **Fuente:** Se alimenta automáticamente desde stock validado"
+    ],
+    validations: [
+      "✅ Solo vehículos con documentación completa",
+      "🔍 Verificar estado antes de mostrar al cliente",
+      "📊 Actualizar automáticamente cuando se validan nuevos",
+      "💰 Usar esta vista para ventas rápidas"
+    ]
+  },
+  "Añadir Nueva Entrada": {
+    steps: [
+      "📝 **Formulario Manual:** Crear entrada nueva sin esperar a DUC.",
+      "🚗 **Datos Vehículo:** Matrícula, marca, modelo, etc.",
+      "📅 **Fecha Entrada:** Cuándo se espera el vehículo.",
+      "👤 **Responsable:** Quién recepciona el vehículo.",
+      "✅ **Crear:** Se crea en nuevas_entradas para tracking."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para validaciones",
+      "🔧 **Mutaciones:** `/api/nuevas-entradas/crear` para INSERT",
+      "📊 **Patrón:** Formulario + Validaciones + API Route",
+      "🔄 **Alternativa:** Permite entrada manual si DUC no tiene el vehículo"
+    ],
+    validations: [
+      "❌ NO duplicar vehículos que ya están en DUC",
+      "⚠️ NO crear sin verificar que el vehículo llegará",
+      "✅ Verificar que la matrícula no existe en el sistema",
+      "🔍 Confirmar datos con proveedor antes de crear"
+    ]
+  },
+  "Estadísticas Recogidas": {
+    steps: [
+      "📊 **Métricas de Recogidas:** KPIs del proceso de recogida.",
+      "📈 **Tendencias:** Evolución en el tiempo.",
+      "👤 **Por Responsable:** Performance individual.",
+      "💰 **Costes:** Análisis de costes de recogida.",
+      "📥 **Exportar:** Reporte completo."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` con agregaciones",
+      "📊 **Patrón:** Dashboard de estadísticas + Gráficos",
+      "📈 **Análisis:** Tasa de éxito, tiempos, costes",
+      "🎨 **Visualización:** Charts de tendencias y comparativas"
+    ],
+    validations: [
+      "✅ Revisar regularmente para optimizar proceso",
+      "🔍 Analizar causas de cancelaciones",
+      "📊 Usar para planificación de recursos",
+      "💰 Optimizar rutas para reducir costes"
+    ]
+  },
+  "Estadísticas Recogidas": {
+    steps: [
+      "📊 **KPIs Recogidas:** Métricas operacionales.",
+      "📈 **Performance:** Tasa de éxito, tiempos promedio.",
+      "💰 **Eficiencia:** Costes vs. beneficios.",
+      "👤 **Rankings:** Mejores responsables de recogida.",
+      "📅 **Histórico:** Tendencias a largo plazo."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` con agregaciones complejas",
+      "📊 **Patrón:** Dashboard analítico + KPIs + Ranking",
+      "📈 **Métricas:** Múltiples agregaciones y cálculos",
+      "🎨 **Charts:** Líneas, barras, tortas según métrica"
+    ],
+    validations: [
+      "✅ Actualizar datos regularmente",
+      "🔍 Identificar oportunidades de mejora",
+      "📊 Benchmarking contra objetivos",
+      "💰 Análisis coste-beneficio periódico"
+    ]
+  },
+  "Configuración Recogidas": {
+    steps: [
+      "⚙️ **Config de Recogidas:** Parámetros del sistema de recogidas.",
+      "📍 **Zonas:** Definir zonas de recogida y costes.",
+      "⏱️ **SLAs:** Tiempos máximos de respuesta.",
+      "👥 **Asignación:** Reglas de asignación automática.",
+      "✅ **Guardar:** Aplicar configuración al sistema."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de config",
+      "🔧 **Mutaciones:** `/api/recogidas/config` para UPDATE",
+      "📊 **Patrón:** Formulario de configuración + Validaciones",
+      "⚙️ **Afecta:** Cálculos de costes y asignación automática"
+    ],
+    validations: [
+      "❌ NO modificar sin considerar impacto operacional",
+      "⚠️ NO establecer SLAs irrealistas",
+      "✅ Probar con casos de prueba antes de aplicar",
+      "🔍 Documentar cambios para el equipo"
+    ]
+  },
+  "Estadísticas Incentivos": {
+    steps: [
+      "📊 **Métricas de Incentivos:** Performance del sistema de incentivos.",
+      "💰 **Pagado vs. Proyectado:** Análisis de pagos.",
+      "📈 **Efectividad:** Impacto en ventas.",
+      "👤 **Por Vendedor:** Quién ha ganado más incentivos.",
+      "📥 **Exportar:** Reporte de incentivos."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` con cálculos complejos",
+      "📊 **Patrón:** Dashboard financiero + Análisis de ROI",
+      "💰 **Cálculos:** Suma de pagos, proyecciones, efectividad",
+      "📈 **Visualización:** Charts de impacto en ventas"
+    ],
+    validations: [
+      "✅ Validar cálculos con finanzas",
+      "🔍 Analizar ROI de cada incentivo",
+      "📊 Usar para diseñar futuros incentivos",
+      "💰 Verificar presupuesto vs. gastado"
+    ]
+  },
+  "Configuración Incentivos": {
+    steps: [
+      "⚙️ **Config de Incentivos:** Parámetros del sistema.",
+      "💰 **Tipos:** Definir tipos de incentivos disponibles.",
+      "📊 **Cálculos:** Fórmulas de cálculo automático.",
+      "🔔 **Notificaciones:** Cuándo notificar logros.",
+      "✅ **Guardar:** Aplicar configuración."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de config",
+      "🔧 **Mutaciones:** `/api/incentivos/config` para UPDATE",
+      "📊 **Patrón:** Sistema de configuración + Calculadora",
+      "💰 **Impacto:** Afecta cálculos automáticos de incentivos"
+    ],
+    validations: [
+      "❌ NO modificar fórmulas sin validación matemática",
+      "⚠️ NO cambiar tipos activos sin migración de datos",
+      "✅ Probar cálculos con datos históricos",
+      "🔍 Documentar fórmulas claramente"
+    ]
+  },
+  "Gestión de Vehículos": {
+    steps: [
+      "🚗 **Panel de Gestión:** Vista avanzada de todos los vehículos.",
+      "📊 **Múltiples vistas:** Tabla, tarjetas, calendario.",
+      "🔍 **Filtros Avanzados:** Filtros complejos y combinados.",
+      "📈 **Analytics:** Análisis en tiempo real del inventario.",
+      "⚡ **Acciones Masivas:** Operaciones en múltiples vehículos."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` con joins complejos",
+      "🔧 **Mutaciones:** `/api/vehicles/batch-update` para UPDATE masivo",
+      "📊 **Patrón:** Panel avanzado + Múltiples vistas + Operaciones batch",
+      "⚡ **Performance:** Paginación, virtual scroll, lazy loading"
+    ],
+    validations: [
+      "❌ NO hacer operaciones masivas sin confirmación",
+      "⚠️ NO aplicar cambios sin preview",
+      "✅ Validar cada operación individualmente",
+      "🔍 Permitir deshacer operaciones masivas"
+    ]
+  },
+  "Detalle Vehículo": {
+    steps: [
+      "📄 **Vista Completa:** Toda la información del vehículo.",
+      "📸 **Galería:** Todas las fotos del vehículo.",
+      "📊 **Historial:** Timeline de todos los eventos.",
+      "💰 **Financiero:** Costes, precio venta, margen.",
+      "🔗 **Relaciones:** Ventas, entregas, incidencias asociadas."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT por ID con joins múltiples",
+      "📊 **Patrón:** Vista detalle completa + Joins + Timeline",
+      "🔧 **Joins:** stock + fotos + sales + entregas + incidencias + gastos",
+      "📈 **Visualización:** Layout complejo con múltiples secciones"
+    ],
+    validations: [
+      "✅ Mostrar información completa y organizada",
+      "🔍 Timeline cronológico de eventos",
+      "📊 Cálculos financieros precisos",
+      "🔗 Links directos a registros relacionados"
+    ]
+  },
+  "Movimientos": {
+    steps: [
+      "📋 **Historial de Movimientos:** Todos los movimientos del vehículo por matrícula.",
+      "📍 **Ubicaciones:** Cambios de ubicación física.",
+      "👤 **Responsables:** Quién autorizó cada movimiento.",
+      "📅 **Timeline:** Vista cronológica completa.",
+      "🔍 **Trazabilidad:** Sistema inmutable de auditoría."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT por matrícula",
+      "📊 **Patrón:** Vista de historial + Timeline + Solo lectura",
+      "🔒 **Inmutable:** Datos históricos no editables",
+      "🔍 **Auditoría:** Para trazabilidad completa"
+    ],
+    validations: [
+      "✅ Usar para encontrar vehículos",
+      "🔍 Revisar en caso de problemas de ubicación",
+      "📊 Análisis de patrones de movimiento",
+      "🔒 Sistema inmutable - no modificar"
+    ]
+  },
+  "Asignaciones": {
+    steps: [
+      "📸 **Todas las Asignaciones:** Vista completa de asignaciones fotográficas.",
+      "👤 **Por Fotógrafo:** Desglose de carga de trabajo.",
+      "📊 **Estado:** Pendiente, en proceso, completado.",
+      "📅 **Calendario:** Vista de asignaciones por fecha.",
+      "⚡ **Reasignar:** Cambiar asignaciones si es necesario."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de assignments",
+      "🔧 **Mutaciones:** `/api/photos/reasignar` para UPDATE",
+      "📊 **Patrón:** Vista múltiple (tabla + calendario) + Gestión",
+      "🔄 **Real-time:** Actualiza en tiempo real al completar fotos"
+    ],
+    validations: [
+      "❌ NO reasignar sin notificar al fotógrafo afectado",
+      "⚠️ NO sobrecargar a un solo fotógrafo",
+      "✅ Balancear carga equitativamente",
+      "🔍 Considerar ubicación al reasignar"
+    ]
+  },
+  "Estadísticas Vehículos": {
+    steps: [
+      "📊 **Métricas de Vehículos:** KPIs del inventario.",
+      "🚗 **Por Tipo:** Coches vs. motos, BMW vs. MINI.",
+      "📈 **Rotación:** Velocidad de venta por categoría.",
+      "💰 **Valoración:** Valor del inventario por segmento.",
+      "📥 **Exportar:** Reporte de inventario."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` con múltiples agregaciones",
+      "📊 **Patrón:** Dashboard analítico + Segmentación",
+      "📈 **Análisis:** Por marca, tipo, precio, antigüedad",
+      "🎨 **Charts:** Múltiples visualizaciones comparativas"
+    ],
+    validations: [
+      "✅ Actualizar valoración regularmente",
+      "🔍 Identificar segmentos con rotación lenta",
+      "📊 Usar para decisiones de compra",
+      "💰 Ajustar pricing según análisis"
+    ]
+  },
+  "Gestión (Vehiculos)": {
+    steps: [
+      "🚗 **Gestión Completa:** Panel de gestión de flota completo.",
+      "📊 **Dashboard:** Métricas y KPIs generales.",
+      "🔍 **Búsqueda Avanzada:** Múltiples criterios.",
+      "⚡ **Acciones Rápidas:** Operaciones frecuentes.",
+      "📈 **Analytics:** Análisis profundo del inventario."
+    ],
+    technical: [
+      "💻 **Consultas:** Múltiples queries complejas en paralelo",
+      "📊 **Patrón:** Dashboard super complejo + Múltiples componentes",
+      "🔧 **Integración:** Combina funcionalidad de múltiples páginas",
+      "⚡ **Performance:** Lazy loading, paginación, caching"
+    ],
+    validations: [
+      "✅ Optimizar carga inicial",
+      "🔍 Implementar búsqueda eficiente",
+      "📊 Balance entre funcionalidad y performance",
+      "🎨 UI intuitiva a pesar de la complejidad"
+    ]
   }
 }
 const pagesStructure = {
