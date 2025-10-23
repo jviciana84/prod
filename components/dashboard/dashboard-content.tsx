@@ -145,7 +145,11 @@ export function DashboardContent({
                 <div className="flex items-center gap-3 mt-2">
                   <div className="flex items-center gap-1">
                     <Car className="h-3 w-3 text-blue-500" />
-                    <span className="text-xs font-semibold">{stats.disponiblesInStock}</span>
+                    <span className="text-xs">{stats.carsInStock}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Bike className="h-3 w-3 text-red-500" />
+                    <span className="text-xs">{stats.motorcyclesInStock > 0 ? stats.motorcyclesInStock : 'N/D'}</span>
                   </div>
                 </div>
               </div>
@@ -178,6 +182,10 @@ export function DashboardContent({
               <div className="flex items-center gap-1">
                 <MINILogo className="h-4 w-4 text-gray-800" />
                 <span className="text-xs font-medium">{stats.miniStockCount}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <BMWMotorradLogo className="h-8 w-8 text-red-600" />
+                <span className="text-xs font-medium">{stats.motorcyclesInStock > 0 ? stats.motorcyclesInStock : 'N/D'}</span>
               </div>
             </div>
           </CardContent>
