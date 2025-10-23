@@ -62,7 +62,20 @@ const pageExplanations: { [key: string]: { steps: string[], validations: string[
       "⚠️ NO saltarse la carga de PDFs - son obligatorios para entregas",
       "✅ Verificar que los datos coinciden con la documentación física antes de recibir",
       "🔍 Revisar fotos asignadas - deben completarse antes de vender"
-    ]
+    ],
+    diagram: `
+    graph TD
+      A[📝 Crear Entrada<br/>DUC o Manual] --> B[📋 nuevas_entradas]
+      B --> C[📸 Asignar Fotógrafo]
+      B --> D[📁 Subir PDFs<br/>CyP, 360]
+      B --> E{✅ Recibido?}
+      E -->|NO| B
+      E -->|SÍ| F[⚡ Trigger]
+      F --> G[🚗 stock disponible]
+      style B fill:#ccffcc
+      style G fill:#ccffcc
+      style F fill:#ffffcc
+    `
   },
   "Stock (Vehicles)": {
     steps: [
@@ -83,7 +96,22 @@ const pageExplanations: { [key: string]: { steps: string[], validations: string[
       "⚠️ NO cambiar estado manualmente sin seguir el flujo completo",
       "✅ Verificar que CyP y 360 estén completos antes de marcar como 'validado'",
       "🔍 Revisar fotos completas antes de vender - evita ventas prematuras"
-    ]
+    ],
+    diagram: `
+    graph TD
+      A[📊 duc_scraper] -->|Trigger| B[🚗 stock disponible]
+      B --> C[📸 fotos]
+      B --> D{✅ Validado?<br/>CyP + 360}
+      D -->|SÍ| E[✅ pedidos_validados]
+      E --> F[💰 Venta]
+      F --> G[📋 sales_vehicles]
+      G --> H[🚚 Entrega]
+      H -->|Trigger| I[🗑️ DELETE stock]
+      style B fill:#ccffcc
+      style E fill:#ccffcc
+      style G fill:#cce5ff
+      style I fill:#ffcccc
+    `
   },
   "Fotos": {
     steps: [
@@ -104,7 +132,20 @@ const pageExplanations: { [key: string]: { steps: string[], validations: string[
       "⚠️ NO vender sin fotos completas - genera 'ventas prematuras'",
       "✅ Verificar calidad y cantidad de fotos antes de publicar",
       "🔍 Revisar 'ventas-prematuras' para recuperar fotos pendientes"
-    ]
+    ],
+    diagram: `
+    graph TD
+      A[🚗 stock] --> B{📸 Tiene fotos?}
+      B -->|NO| C[👤 Asignar Fotógrafo]
+      C --> D[📸 fotos asignado]
+      D --> E[🖼️ Subir Fotos]
+      E --> F[✅ fotos_completadas]
+      F --> G{💰 Vendido?}
+      G -->|SÍ| H[⚡ Trigger vendido]
+      style D fill:#cce5ff
+      style F fill:#ccffcc
+      style H fill:#ffffcc
+    `
   },
   "Ventas": {
     steps: [
@@ -125,7 +166,22 @@ const pageExplanations: { [key: string]: { steps: string[], validations: string[
       "⚠️ NO vender vehículos sin fotos completas",
       "✅ Verificar que el cliente tiene todos los datos completos",
       "🔍 Confirmar precio y condiciones antes de finalizar venta"
-    ]
+    ],
+    diagram: `
+    graph TD
+      A[✅ pedidos_validados] --> B{📋 Crear Venta}
+      B --> C[👤 Datos Cliente]
+      B --> D[💰 Precio + Condiciones]
+      C --> E{✅ Todo OK?}
+      D --> E
+      E -->|SÍ| F[💾 sales_vehicles]
+      E -->|NO| G[❌ Bloquear venta]
+      F --> H[🚚 Preparar Entrega]
+      style A fill:#ccffcc
+      style F fill:#cce5ff
+      style G fill:#ffcccc
+      style H fill:#ffffcc
+    `
   },
   "Entregas": {
     steps: [
@@ -146,7 +202,23 @@ const pageExplanations: { [key: string]: { steps: string[], validations: string[
       "⚠️ NO entregar sin llaves y documentos físicos disponibles",
       "✅ Verificar que el cliente ha firmado todos los documentos",
       "🔍 Confirmar que el vehículo está en condiciones óptimas antes de entregar"
-    ]
+    ],
+    diagram: `
+    graph TD
+      A[💰 sales_vehicles] --> B{📋 Programar Entrega}
+      B --> C{✅ CyP + 360?}
+      C -->|NO| D[❌ Bloqueado]
+      C -->|SÍ| E{🔑 Llaves/Docs?}
+      E -->|NO| D
+      E -->|SÍ| F[📅 entregas programada]
+      F --> G[✅ Marcar Entregado]
+      G --> H[⚡ Trigger DELETE]
+      H --> I[🗑️ Eliminar de stock]
+      style F fill:#cce5ff
+      style D fill:#ffcccc
+      style H fill:#ffffcc
+      style I fill:#ffcccc
+    `
   },
   "Llaves y Documentos": {
     steps: [
@@ -167,7 +239,24 @@ const pageExplanations: { [key: string]: { steps: string[], validations: string[
       "⚠️ NO entregar sin confirmar ubicación física de llaves y docs",
       "✅ Actualizar ubicación en cada movimiento para evitar pérdidas",
       "🔍 Revisar historial de movimientos si no se encuentran"
-    ]
+    ],
+    diagram: `
+    graph TD
+      A[🚗 Vehículo llega] --> B[🔑 Registrar Llaves]
+      A --> C[📄 Registrar Docs]
+      B --> D[📍 Ubicación]
+      C --> D
+      D --> E[📋 vehicle_keys<br/>vehicle_documents]
+      E --> F{🔄 Movimiento?}
+      F -->|SÍ| G[📝 Registrar en<br/>key_movements<br/>document_movements]
+      G --> D
+      E --> H{🚚 Entrega?}
+      H -->|SÍ| I[✅ Verificar<br/>Disponibilidad]
+      I -->|OK| J[📦 Preparar Entrega]
+      style E fill:#cce5ff
+      style G fill:#ffffcc
+      style J fill:#ccffcc
+    `
   },
   // FASE 2: FLUJO COMPLETO DE VEHÍCULOS
   "Control de Baterías": {
@@ -3873,6 +3962,25 @@ flowchart TB
                     ))}
                   </ul>
                 </div>
+
+                {/* Diagrama Individual */}
+                {pageExplanations[selectedPage.name].diagram && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Network className="h-5 w-5 text-green-600" />
+                        Diagrama de Flujo - {selectedPage.name}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="mermaid-print-area">
+                        <pre className="mermaid">
+                          {pageExplanations[selectedPage.name].diagram}
+                        </pre>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* Información Técnica */}
                 {pageExplanations[selectedPage.name].technical && (
