@@ -1,4 +1,5 @@
-import { supabaseAdmin } from "@/lib/supabaseClient"
+import { createServerClient } from "@/lib/supabase/server"
+import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { getUserRoles } from "@/lib/auth/permissions"
 import FooterMessageManager from "@/components/admin/footer-message-manager"
@@ -12,8 +13,10 @@ export default async function FooterMessagesPage() {
     redirect("/dashboard")
   }
 
+  const supabase = await createServerClient(await cookies())
+
   // Obtener mensajes del footer
-  const { data: messages, error } = await supabaseAdmin
+  const { data: messages, error } = await supabase
     .from("footer_messages")
     .select("*")
     .order("created_at", { ascending: false })

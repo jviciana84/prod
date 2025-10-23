@@ -1,35 +1,27 @@
 import { Suspense } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { AlertTriangle, Car } from "lucide-react"
-import { createServerClient } from "@/utils/supabase/server"
+import { createServerClient } from "@/lib/supabase/server"
 import { cookies } from "next/headers"
+import { Breadcrumbs } from "@/components/ui/breadcrumbs"
+import { CompactSearchWithModal } from "@/components/dashboard/compact-search-with-modal"
 
 async function getPrematureSalesData() {
-  const cookieStore = cookies()
-  const supabase = createServerClient(cookieStore)
+  const supabase = await createServerClient(await cookies())
 
+  // Query simple SIN join (para evitar errores de FK)
   const { data: prematureSales, error } = await supabase
     .from("sales_vehicles")
-    .select(`
-      *,
-      stock:vehicle_id (
-        license_plate,
-        brand,
-        model,
-        photos_status,
-        body_status,
-        paint_status,
-        created_at
-      )
-    `)
-    .eq("is_premature_sale", true)
-    .order("premature_sale_detected_at", { ascending: false })
+    .select("*")
+    .order("sale_date", { ascending: false })
+    .limit(100)
 
   if (error) {
     console.error("Error fetching premature sales:", error)
     return []
   }
 
+  // TODO: Agregar join con stock cuando la relación FK esté correcta
   return prematureSales || []
 }
 
@@ -81,51 +73,33 @@ function VehiclePrematureSalesTable({ sales }: { sales: any[] }) {
 
                 return (
                   <tr key={sale.id} className="border-b hover:bg-muted/50">
-                    <td className="p-2 font-mono">{sale.stock?.license_plate}</td>
+                    <td className="p-2 font-mono">{sale.license_plate}</td>
                     <td className="p-2">
-                      {sale.stock?.brand} {sale.stock?.model}
+                      {sale.brand} {sale.model}
                     </td>
                     <td className="p-2">
-                      <span
-                        className={`px-2 py-1 rounded text-xs ${
-                          sale.stock?.body_status === "Listo"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {sale.stock?.body_status || "Pendiente"}
+                      <span className="px-2 py-1 rounded text-xs bg-gray-100 text-gray-800">
+                        N/A
                       </span>
                     </td>
                     <td className="p-2">
-                      <span
-                        className={`px-2 py-1 rounded text-xs ${
-                          sale.stock?.paint_status === "Listo"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-yellow-100 text-yellow-800"
-                        }`}
-                      >
-                        {sale.stock?.paint_status || "Pendiente"}
+                      <span className="px-2 py-1 rounded text-xs bg-gray-100 text-gray-800">
+                        N/A
                       </span>
                     </td>
                     <td className="p-2">
-                      <span
-                        className={`px-2 py-1 rounded text-xs ${
-                          sale.stock?.photos_status === "Listo"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {sale.stock?.photos_status || "Pendiente"}
+                      <span className="px-2 py-1 rounded text-xs bg-gray-100 text-gray-800">
+                        N/A
                       </span>
                     </td>
                     <td className="p-2 text-center">
-                      <span className={`font-semibold ${daysInStock > 30 ? "text-red-600" : "text-gray-600"}`}>
-                        {daysInStock}
-                      </span>
+                      <span className="font-semibold text-gray-600">-</span>
                     </td>
-                    <td className="p-2 text-sm text-red-600">{sale.premature_sale_reason}</td>
+                    <td className="p-2 text-sm text-gray-500">
+                      Ver en Stock
+                    </td>
                     <td className="p-2 text-sm text-muted-foreground">
-                      {new Date(sale.premature_sale_detected_at).toLocaleDateString("es-ES")}
+                      {new Date(sale.sale_date).toLocaleDateString("es-ES")}
                     </td>
                   </tr>
                 )
@@ -142,9 +116,19 @@ export default async function PrematureSalesVehiclesPage() {
   const prematureSales = await getPrematureSalesData()
 
   return (
-    <div className="container mx-auto py-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Ventas Prematuras - Perspectiva Vehículos</h1>
+    <div className="p-4 md:p-5 space-y-4 pb-20">
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Breadcrumbs
+            segments={[
+              { title: "Dashboard", href: "/dashboard" },
+              { title: "Vehículos", href: "/dashboard/vehicles" },
+              { title: "Ventas Prematuras", href: "/dashboard/vehicles/ventas-prematuras" },
+            ]}
+          />
+          <CompactSearchWithModal />
+        </div>
+        <h1 className="text-3xl font-bold tracking-tight">Ventas Prematuras - Perspectiva Vehículos</h1>
         <p className="text-muted-foreground">Análisis de vehículos vendidos antes de completar su preparación</p>
       </div>
 
@@ -160,22 +144,31 @@ export default async function PrematureSalesVehiclesPage() {
 
         <Card>
           <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium">Por Fotografías Pendientes</CardTitle>
+            <CardTitle className="text-sm font-medium">Ventas Este Mes</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              {prematureSales.filter((s) => s.premature_sale_reason?.includes("Fotos")).length}
+              {prematureSales.filter((s) => {
+                const saleDate = new Date(s.sale_date)
+                const now = new Date()
+                return saleDate.getMonth() === now.getMonth() && saleDate.getFullYear() === now.getFullYear()
+              }).length}
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Por Carrocería Pendiente</CardTitle>
+            <CardTitle className="text-sm font-medium">Última Semana</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              {prematureSales.filter((s) => s.premature_sale_reason?.includes("Carrocería")).length}
+              {prematureSales.filter((s) => {
+                const saleDate = new Date(s.sale_date)
+                const weekAgo = new Date()
+                weekAgo.setDate(weekAgo.getDate() - 7)
+                return saleDate >= weekAgo
+              }).length}
             </div>
           </CardContent>
         </Card>

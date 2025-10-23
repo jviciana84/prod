@@ -1451,11 +1451,19 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
           <TabsList className="h-9 bg-muted/50">
             <TabsTrigger value="all" className="px-3 py-1 h-7 data-[state=active]:bg-background">
               <Filter className="h-3.5 w-3.5 mr-1" />
-              <span>Todos</span>
+              <span>TOTAL</span>
             </TabsTrigger>
             <TabsTrigger value="disponible" className="px-3 py-1 h-7 data-[state=active]:bg-background">
-              <Car className="h-3.5 w-3.5 mr-1" />
-              <span>Disponible</span>
+              <CheckCircle className="h-3.5 w-3.5 mr-1" />
+              <span>DISPONIBLE</span>
+            </TabsTrigger>
+            <TabsTrigger value="reservado" className="px-3 py-1 h-7 data-[state=active]:bg-background">
+              <Tag className="h-3.5 w-3.5 mr-1" />
+              <span>RESERVADO</span>
+            </TabsTrigger>
+            <TabsTrigger value="no_disponible" className="px-3 py-1 h-7 data-[state=active]:bg-background">
+              <AlertTriangle className="h-3.5 w-3.5 mr-1" />
+              <span>NO DISPONIBLE</span>
             </TabsTrigger>
             <TabsTrigger value="pending" className="px-3 py-1 h-7 data-[state=active]:bg-background">
               <Clock className="h-3.5 w-3.5 mr-1" />
@@ -1468,24 +1476,6 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
             <TabsTrigger value="completed" className="px-3 py-1 h-7 data-[state=active]:bg-background">
               <CheckCircle className="h-3.5 w-3.5 mr-1" />
               <span>Completados</span>
-            </TabsTrigger>
-            <TabsTrigger value="vendido" className="px-3 py-1 h-7 data-[state=active]:bg-background">
-              <svg className="h-3.5 w-3.5 mr-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span>Vendido</span>
-            </TabsTrigger>
-            <TabsTrigger value="profesionales" className="px-3 py-1 h-7 data-[state=active]:bg-background">
-              <Tag className="h-3.5 w-3.5 mr-1" />
-              <span>No Retail</span>
-            </TabsTrigger>
-            <TabsTrigger value="premature_sales" className="px-3 py-1 h-7 data-[state=active]:bg-background">
-              <AlertTriangle className="h-3.5 w-3.5 mr-1" />
-              <span>Ventas Prematuras</span>
-            </TabsTrigger>
-            <TabsTrigger value="entregados" className="px-3 py-1 h-7 data-[state=active]:bg-background">
-              <Truck className="h-3.5 w-3.5 mr-1" />
-              <span>Entregados</span>
             </TabsTrigger>
           </TabsList>
         </div>
@@ -2736,306 +2726,6 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
           </div>
         </TabsContent>
 
-        {/* Pestaña Vendido */}
-        <TabsContent value="vendido" className="mt-0">
-          <div className="rounded-lg border shadow-sm overflow-hidden mb-0">
-            <Table>
-              <TableHeader className="bg-muted/50">
-                <TableRow className="hover:bg-transparent border-b border-border">
-                  <TableHead className="text-xs py-2">MATRÍCULA</TableHead>
-                  <TableHead className="text-xs py-2">MODELO</TableHead>
-                  <TableHead className="text-xs py-2">TIPO</TableHead>
-                  <TableHead className="text-xs py-2">VENTA</TableHead>
-                  <TableHead className="text-xs py-2">DÍAS</TableHead>
-                  <TableHead className="text-xs py-2">OR</TableHead>
-                  <TableHead className="text-xs py-2">CARGO GASTOS</TableHead>
-                  <TableHead className="text-xs py-2">ESTADO CARROCERIA</TableHead>
-                  <TableHead className="text-xs py-2">ESTADO MECÁNICA</TableHead>
-                  <TableHead className="text-xs py-2">PERITADO</TableHead>
-                  <TableHead className="text-xs py-2">CENTRO TRABAJO</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={16} className="text-center py-8">
-                      <div className="flex justify-center items-center">
-                        <BMWMSpinner size={20} />
-                        <span className="ml-2">Cargando datos...</span>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : displayedStock.length === 0 ? (
-                  <NoDataMessage />
-                ) : (
-                  displayedStock.map((item, index) => {
-                    const isUpdating = pendingUpdates.has(item.id)
-                    const isEditing = editingId === item.id
-                    const isEditingOR = editingOR === item.id
-                    const isPhotographed = photoStatus[item.license_plate] || false
-                    const paintStatusValue = paintStatus[item.license_plate] || ""
-
-                    return (
-                      <TableRow
-                        key={item.id}
-                        className={cn("h-8 hover:bg-muted/30", index % 2 === 0 ? "bg-black/5 dark:bg-black/20" : "", isEditing && "bg-blue-50 dark:bg-blue-900/20")}
-                      >
-                        <TableCell className="py-0.5 font-medium">
-                          <div className="flex items-center gap-2">
-                            {(item as StockItemWithPriority).calculatedPriority === Priority.HIGH && (
-                              <div className={priorityStyles.container}>
-                                <div className={priorityStyles.high.dot} title="Prioridad alta" />
-                                <div className={priorityStyles.high.wave} />
-                              </div>
-                            )}
-                            {(item as StockItemWithPriority).calculatedPriority === Priority.MEDIUM && (
-                              <div className={priorityStyles.container}>
-                                <div className={priorityStyles.medium.dot} title="Prioridad media" />
-                                <div className={priorityStyles.medium.wave} />
-                              </div>
-                            )}
-                            {(item as StockItemWithPriority).calculatedPriority === Priority.LOW && (
-                              <div className={priorityStyles.container}>
-                                <div className={priorityStyles.low.dot} title="Prioridad baja" />
-                                <div className={priorityStyles.low.wave} />
-                              </div>
-                            )}
-                            {item.license_plate}
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-0.5">{item.model}</TableCell>
-                        <TableCell className="py-0.5">{item.vehicle_type || "-"}</TableCell>
-                        <TableCell className="py-0.5">
-                          <div className="flex items-center gap-1">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                                </TooltipTrigger>
-                                <TooltipContent>Fecha de venta</TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                            <span>{formatDate(item.reception_date)}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-0.5">
-                          {item.reception_date
-                            ? Math.ceil(
-                                (new Date().getTime() - new Date(item.reception_date).getTime()) / (1000 * 60 * 60 * 24),
-                              )
-                            : "-"}
-                        </TableCell>
-                        <TableCell className="py-0.5 w-32">
-                          {isEditingOR ? (
-                            <div className="flex items-center">
-                              <Input
-                                ref={orInputRef}
-                                value={orValues[item.id] || "ORT"}
-                                onChange={(e) => handleORChange(item.id, e.target.value)}
-                                onBlur={() => handleORSave(item.id)}
-                                onKeyDown={(e) => handleORKeyDown(e, item.id)}
-                                className="h-8 text-sm font-mono"
-                                style={{ minWidth: "14ch", width: "14ch" }}
-                                autoFocus
-                              />
-                            </div>
-                          ) : (
-                            <div
-                              className="h-8 flex items-center px-2 border border-gray-300 rounded-md cursor-pointer font-mono overflow-hidden"
-                              style={{ minWidth: "14ch", width: "auto", maxWidth: "14ch" }}
-                              onClick={() => handleOREdit(item.id)}
-                            >
-                              <span className="truncate w-full" title={orValues[item.id] || "ORT"}>
-                                {orValues[item.id] || "ORT"}
-                              </span>
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="py-0.5">{item.expense_type_name || item.expense_charge || "-"}</TableCell>
-                        <TableCell className="py-0.5">
-                          {isEditing ? (
-                            <Select
-                              value={editFormData.body_status || item.body_status}
-                              onValueChange={(value) => handleEditFormChange("body_status", value)}
-                            >
-                              <SelectTrigger className="h-8 text-sm">
-                                <SelectValue placeholder="Seleccionar estado" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {STATUS_OPTIONS.map((option) => (
-                                  <SelectItem key={option.value} value={option.value}>
-                                    {option.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          ) : item.body_status === "apto" ? (
-                            <div className="flex flex-col">
-                              <div className="flex items-center justify-center h-8 w-full border border-green-300 dark:border-green-700 rounded-md px-2 text-green-600">
-                                <CheckCircle className="h-4 w-4 mr-1" />
-                                {item.body_status_date ? formatDate(item.body_status_date) : "Apto"}
-                              </div>
-                            </div>
-                          ) : item.body_status === "en_proceso" ? (
-                            <div className="flex items-center">
-                              <button
-                                className="flex items-center justify-center h-8 w-full rounded-md px-2 bg-blue-100 text-blue-800 border border-blue-300 hover:bg-blue-300 hover:text-blue-950 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700 dark:hover:bg-blue-800 dark:hover:text-blue-100 transition-colors"
-                                onClick={() => handleBodyStatusToggle(item)}
-                                disabled={isUpdating || isEditing}
-                              >
-                                <Wrench className="h-4 w-4 mr-1" />
-                                <span className="whitespace-nowrap">En proceso</span>
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              className="flex items-center justify-center h-8 w-full rounded-md px-2 bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-300 hover:text-amber-950 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700 dark:hover:bg-amber-800 dark:hover:text-amber-100 transition-colors"
-                              onClick={() => handleBodyStatusToggle(item)}
-                              disabled={isUpdating || isEditing}
-                            >
-                              <Clock className="h-4 w-4 mr-1" />
-                              Pendiente
-                            </button>
-                          )}
-                        </TableCell>
-                        <TableCell className="py-0.5">
-                          {isEditing ? (
-                            <Select
-                              value={editFormData.mechanical_status || item.mechanical_status}
-                              onValueChange={(value) => handleEditFormChange("mechanical_status", value)}
-                            >
-                              <SelectTrigger className="h-8 text-sm">
-                                <SelectValue placeholder="Seleccionar estado" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {STATUS_OPTIONS.map((option) => (
-                                  <SelectItem key={option.value} value={option.value}>
-                                    {option.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          ) : item.mechanical_status === "apto" ? (
-                            <div className="flex flex-col">
-                              <div className="flex items-center justify-center h-8 w-full border border-green-300 dark:border-green-700 rounded-md px-2 text-green-600">
-                                <CheckCircle className="h-4 w-4 mr-1" />
-                                {item.mechanical_status_date ? formatDate(item.mechanical_status_date) : "Apto"}
-                              </div>
-                            </div>
-                          ) : item.mechanical_status === "en_proceso" ? (
-                            <div className="flex items-center">
-                              <button
-                                className="flex items-center justify-center h-8 w-full rounded-md px-2 bg-blue-100 text-blue-800 border border-blue-300 hover:bg-blue-300 hover:text-blue-950 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700 dark:hover:bg-blue-800 dark:hover:text-blue-100 transition-colors"
-                                onClick={() => handleMechanicalStatusToggle(item)}
-                                disabled={isUpdating || isEditing}
-                              >
-                                <Wrench className="h-4 w-4 mr-1" />
-                                <span className="whitespace-nowrap">En proceso</span>
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              className="flex items-center justify-center h-8 w-full rounded-md px-2 bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-300 hover:text-amber-950 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700 dark:hover:bg-amber-800 dark:hover:text-amber-100 transition-colors"
-                              onClick={() => handleMechanicalStatusToggle(item)}
-                              disabled={isUpdating || isEditing}
-                            >
-                              <Clock className="h-4 w-4 mr-1" />
-                              Pendiente
-                            </button>
-                          )}
-                        </TableCell>
-                        <TableCell className="py-0.5">
-                          {item.inspection_date ? (
-                            <div className="flex items-center justify-center h-8 w-full border border-green-300 dark:border-green-700 rounded-md px-2 text-green-600">
-                              <CheckCircle className="h-4 w-4 mr-1" />
-                              {formatDate(item.inspection_date)}
-                            </div>
-                          ) : (
-                            <button
-                              className="flex items-center justify-center h-8 w-full rounded-md px-2 bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-300 hover:text-amber-950 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700 dark:hover:bg-amber-800 dark:hover:text-amber-100 transition-colors"
-                              onClick={() => handleInspectionToggle(item)}
-                              disabled={isUpdating || isEditing}
-                            >
-                              <Clock className="h-4 w-4 mr-1" />
-                              Pendiente
-                            </button>
-                          )}
-                        </TableCell>
-                        <TableCell className="py-0.5">
-                          {isEditing ? (
-                            <div className="space-y-2">
-                              <Select
-                                value={editFormData.work_center || item.work_center || ""}
-                                onValueChange={(value) => handleEditFormChange("work_center", value)}
-                              >
-                                <SelectTrigger className="h-8 text-sm">
-                                  <SelectValue placeholder="Seleccionar centro" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {WORK_CENTER_OPTIONS.map((option) => (
-                                    <SelectItem key={option.value} value={option.value}>
-                                      {option.label}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-
-                              {(editFormData.work_center === "Externo" ||
-                                (item.work_center === "Externo" && editFormData.work_center === undefined)) && (
-                                <Input
-                                  ref={externalProviderInputRef}
-                                  placeholder="Nombre del proveedor"
-                                  value={editFormData.external_provider || item.external_provider || ""}
-                                  onChange={(e) => handleEditFormChange("external_provider", e.target.value)}
-                                  className="h-8 text-sm"
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter") {
-                                      e.preventDefault()
-                                      handleSaveEdit()
-                                    }
-                                  }}
-                                  onBlur={handleSaveEdit}
-                                />
-                              )}
-                            </div>
-                          ) : (
-                            <Select
-                              value={item.work_center || "Terrassa"}
-                              onValueChange={(value) => handleWorkCenterChange(item, value)}
-                            >
-                              <SelectTrigger className="h-8 text-sm">
-                                <SelectValue placeholder="Seleccionar centro">
-                                  <div className="flex items-center gap-1">
-                                    <span>
-                                      {item.work_center || "Terrassa"}
-                                      {item.work_center === "Externo" && item.external_provider && (
-                                        <span className="text-xs text-muted-foreground ml-1">
-                                          ({item.external_provider})
-                                        </span>
-                                      )}
-                                    </span>
-                                  </div>
-                                </SelectValue>
-                              </SelectTrigger>
-                              <SelectContent>
-                                {WORK_CENTER_OPTIONS.map((option) => (
-                                  <SelectItem key={option.value} value={option.value}>
-                                    {option.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </TabsContent>
-
         {/* Pestaña Disponible */}
         <TabsContent value="disponible" className="mt-0">
           <div className="rounded-lg border shadow-sm overflow-hidden mb-0">
@@ -3355,45 +3045,8 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
           )}
         </TabsContent>
 
-        {/* Pestaña No Retail (Profesionales) */}
-        <TabsContent value="profesionales" className="mt-0">
-          <div className="rounded-lg border shadow-sm overflow-hidden mb-0">
-            <Table>
-              <TableHeader className="bg-muted/50">
-                <TableRow className="hover:bg-transparent border-b border-border">
-                  <TableHead className="text-xs py-2">MATRÍCULA</TableHead>
-                  <TableHead className="text-xs py-2">MODELO</TableHead>
-                  <TableHead className="text-xs py-2">TIPO</TableHead>
-                  <TableHead className="text-xs py-2">VENTA</TableHead>
-                  <TableHead className="text-xs py-2">DÍAS</TableHead>
-                  <TableHead className="text-xs py-2">OR</TableHead>
-                  <TableHead className="text-xs py-2">CARGO GASTOS</TableHead>
-                  <TableHead className="text-xs py-2">ESTADO CARROCERIA</TableHead>
-                  <TableHead className="text-xs py-2">ESTADO MECÁNICA</TableHead>
-                  <TableHead className="text-xs py-2">PERITADO</TableHead>
-                  <TableHead className="text-xs py-2">CENTRO TRABAJO</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableRow>
-                  <TableCell colSpan={16} className="text-center py-12">
-                    <div className="flex flex-col items-center justify-center text-muted-foreground">
-                      <Tag className="h-12 w-12 mb-4 text-muted-foreground/50" />
-                      <h3 className="text-lg font-semibold mb-2">En Desarrollo</h3>
-                      <p className="text-sm text-center max-w-md">
-                        Esta sección estará disponible en futuras actualizaciones. 
-                        Aquí se mostrarán las ventas profesionales y no retail.
-                      </p>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </div>
-        </TabsContent>
-
-        {/* Pestaña Ventas Prematuras */}
-        <TabsContent value="premature_sales" className="mt-0">
+        {/* Pestaña RESERVADO */}
+        <TabsContent value="reservado" className="mt-0">
           <div className="rounded-lg border shadow-sm overflow-hidden mb-0">
             <Table>
               <TableHeader className="bg-muted/50">
@@ -3422,7 +3075,7 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
                     </TableCell>
                   </TableRow>
                 ) : displayedStock.length === 0 ? (
-                  <NoDataMessage message="No hay ventas prematuras disponibles" />
+                  <NoDataMessage message="No hay vehículos reservados" />
                 ) : (
                   displayedStock.map((item, index) => {
                     const isUpdating = pendingUpdates.has(item.id)
@@ -3639,7 +3292,7 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
             </Table>
           </div>
           
-          {/* Paginación para Ventas Prematuras */}
+          {/* Paginación para Reservados */}
           {!isLoading && displayedStock.length > 0 && (
             <div className="mt-4">
               <ReusablePagination
@@ -3654,8 +3307,8 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
           )}
         </TabsContent>
 
-        {/* Pestaña Entregados */}
-        <TabsContent value="entregados" className="mt-0">
+        {/* Pestaña NO DISPONIBLE */}
+        <TabsContent value="no_disponible" className="mt-0">
           <div className="rounded-lg border shadow-sm overflow-hidden mb-0">
             <Table>
               <TableHeader className="bg-muted/50">
@@ -3678,7 +3331,7 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
                     </TableCell>
                   </TableRow>
                 ) : displayedStock.length === 0 ? (
-                  <NoDataMessage message="No hay vehículos entregados" />
+                  <NoDataMessage message="No hay vehículos no disponibles" />
                 ) : (
                   displayedStock.map((item, index) => (
                     <TableRow
@@ -3697,7 +3350,7 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
             </Table>
           </div>
           
-          {/* Paginación para Entregados */}
+          {/* Paginación para No Disponibles */}
           {!isLoading && displayedStock.length > 0 && (
             <div className="mt-4">
               <ReusablePagination

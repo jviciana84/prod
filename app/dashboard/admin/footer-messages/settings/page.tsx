@@ -1,4 +1,5 @@
-import { supabaseAdmin } from "@/lib/supabaseClient"
+import { createServerClient } from "@/lib/supabase/server"
+import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { getUserRoles } from "@/lib/auth/permissions"
 import FooterSettingsManager from "@/components/admin/footer-settings-manager"
@@ -12,8 +13,10 @@ export default async function FooterSettingsPage() {
     redirect("/dashboard")
   }
 
+  const supabase = await createServerClient(await cookies())
+
   // Obtener configuración actual del footer
-  const { data: settings, error } = await supabaseAdmin.from("settings").select("*").eq("key", "footer_settings").single()
+  const { data: settings, error } = await supabase.from("settings").select("*").eq("key", "footer_settings").single()
 
   if (error && error.code !== "PGRST116") {
     console.error("Error al obtener configuración del footer:", error)

@@ -1,33 +1,27 @@
 import { Suspense } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { AlertTriangle } from "lucide-react"
-import { createServerClient } from "@/utils/supabase/server"
+import { createServerClient } from "@/lib/supabase/server"
 import { cookies } from "next/headers"
+import { Breadcrumbs } from "@/components/ui/breadcrumbs"
+import { CompactSearchWithModal } from "@/components/dashboard/compact-search-with-modal"
 
 async function getPrematureSalesData() {
-  const cookieStore = cookies()
-  const supabase = createServerClient(cookieStore)
+  const supabase = await createServerClient(await cookies())
 
+  // Query simple SIN join
   const { data: prematureSales, error } = await supabase
     .from("sales_vehicles")
-    .select(`
-      *,
-      stock:vehicle_id (
-        license_plate,
-        brand,
-        model,
-        photos_status,
-        body_status
-      )
-    `)
-    .eq("is_premature_sale", true)
-    .order("premature_sale_detected_at", { ascending: false })
+    .select("*")
+    .order("sale_date", { ascending: false })
+    .limit(100)
 
   if (error) {
     console.error("Error fetching premature sales:", error)
     return []
   }
 
+  // TODO: Filtrar por photos_status cuando el join funcione
   return prematureSales || []
 }
 
@@ -70,33 +64,23 @@ function PrematureSalesTable({ sales }: { sales: any[] }) {
             <tbody>
               {sales.map((sale) => (
                 <tr key={sale.id} className="border-b hover:bg-muted/50">
-                  <td className="p-2 font-mono">{sale.stock?.license_plate}</td>
+                  <td className="p-2 font-mono">{sale.license_plate}</td>
                   <td className="p-2">
-                    {sale.stock?.brand} {sale.stock?.model}
+                    {sale.brand} {sale.model}
                   </td>
                   <td className="p-2">
-                    <span
-                      className={`px-2 py-1 rounded text-xs ${
-                        sale.stock?.photos_status === "Listo"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
-                      }`}
-                    >
-                      {sale.stock?.photos_status || "Sin estado"}
+                    <span className="px-2 py-1 rounded text-xs bg-gray-100 text-gray-800">
+                      N/A
                     </span>
                   </td>
                   <td className="p-2">
-                    <span
-                      className={`px-2 py-1 rounded text-xs ${
-                        sale.stock?.body_status === "Listo" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                      }`}
-                    >
-                      {sale.stock?.body_status || "Sin estado"}
+                    <span className="px-2 py-1 rounded text-xs bg-gray-100 text-gray-800">
+                      N/A
                     </span>
                   </td>
-                  <td className="p-2 text-sm text-muted-foreground">{sale.premature_sale_reason}</td>
+                  <td className="p-2 text-sm text-muted-foreground">Ver en Stock/Fotos</td>
                   <td className="p-2 text-sm text-muted-foreground">
-                    {new Date(sale.premature_sale_detected_at).toLocaleDateString("es-ES")}
+                    {new Date(sale.sale_date).toLocaleDateString("es-ES")}
                   </td>
                 </tr>
               ))}
@@ -112,9 +96,19 @@ export default async function PrematureSalesPhotosPage() {
   const prematureSales = await getPrematureSalesData()
 
   return (
-    <div className="container mx-auto py-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Ventas Prematuras - Perspectiva Fotografías</h1>
+    <div className="p-4 md:p-5 space-y-4 pb-20">
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Breadcrumbs
+            segments={[
+              { title: "Dashboard", href: "/dashboard" },
+              { title: "Fotos", href: "/dashboard/photos" },
+              { title: "Ventas Prematuras", href: "/dashboard/photos/ventas-prematuras" },
+            ]}
+          />
+          <CompactSearchWithModal />
+        </div>
+        <h1 className="text-3xl font-bold tracking-tight">Ventas Prematuras - Perspectiva Fotografías</h1>
         <p className="text-muted-foreground">Vehículos vendidos antes de completar el proceso de fotografías</p>
       </div>
 
