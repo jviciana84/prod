@@ -155,23 +155,31 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
     const fetchPhotoAndPaintStatus = async () => {
       if (stock.length === 0) return
 
-      const licensePlates = stock.map((item) => item.license_plate)
+      // Limitar a primeros 100 para evitar bloqueos
+      const licensePlates = stock.slice(0, 100).map((item) => item.license_plate)
 
       try {
+        // Timeout de 5 segundos para no bloquear
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 5000)
+
         const { data, error } = await supabase
           .from("fotos")
           .select("license_plate, photos_completed, estado_pintura")
           .in("license_plate", licensePlates)
+          .abortSignal(controller.signal)
+
+        clearTimeout(timeoutId)
 
         if (error) {
-          console.error("Error al obtener estado de fotos:", error)
+          console.error("Error al obtener estado de fotos (no crítico):", error)
           return
         }
 
         const photoStatusMap: Record<string, boolean> = {}
         const paintStatusMap: Record<string, string> = {}
 
-        data.forEach((item) => {
+        data?.forEach((item) => {
           photoStatusMap[item.license_plate] = item.photos_completed || false
           paintStatusMap[item.license_plate] = item.estado_pintura || ""
         })
@@ -179,7 +187,9 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
         setPhotoStatus(photoStatusMap)
         setPaintStatus(paintStatusMap)
       } catch (err) {
-        console.error("Error al procesar estado de fotos:", err)
+        if ((err as Error).name !== 'AbortError') {
+          console.error("Error al procesar estado de fotos (no crítico):", err)
+        }
       }
     }
 

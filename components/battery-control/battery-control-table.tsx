@@ -217,17 +217,26 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
         console.log(`🗑️ Eliminando ${orphanedVehicles.length} vehículos huérfanos:`, 
           orphanedVehicles.map(v => v.vehicle_chassis))
         
-        const { error: deleteError } = await supabase
-          .from("battery_control")
-          .delete()
-          .in("id", orphanedVehicles.map(v => v.id))
-        
-        if (deleteError) {
-          console.error("❌ Error eliminando vehículos huérfanos:", deleteError)
-          toast.error("Error al limpiar vehículos obsoletos")
-        } else {
+        try {
+          const response = await fetch("/api/battery/cleanup-orphaned", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              orphanedIds: orphanedVehicles.map(v => v.id)
+            }),
+          })
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`)
+          }
+
           console.log("✅ Vehículos huérfanos eliminados correctamente")
           toast.success(`${orphanedVehicles.length} vehículos obsoletos eliminados`)
+        } catch (error) {
+          console.error("❌ Error eliminando vehículos huérfanos:", error)
+          toast.error("Error al limpiar vehículos obsoletos")
         }
       } else {
         console.log("✅ No hay vehículos huérfanos")

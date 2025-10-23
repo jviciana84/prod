@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useCallback } from "react"
-import { supabaseAdmin } from "@/lib/supabaseClient"
 import StockTable from "@/components/vehicles/stock-table"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { CompactSearchWithModal } from "@/components/dashboard/compact-search-with-modal"
