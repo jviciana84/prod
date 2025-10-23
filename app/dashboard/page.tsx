@@ -387,11 +387,10 @@ export default async function Dashboard() {
   let stockError = null
   
   try {
-    // Obtener solo vehículos disponibles (no vendidos)
+    // NUEVO SISTEMA: Obtener TODOS los vehículos en stock (Stock = DUC)
     const result = await supabase
       .from("stock")
       .select("*")
-      .eq("is_sold", false) // Solo vehículos no vendidos
     
     stockData = result.data || []
     stockError = result.error
@@ -410,18 +409,22 @@ export default async function Dashboard() {
   console.log("Raw stock data:", stockData) // Añadido para depuración
   console.log("Number of items in stockData:", stockData?.length) // Añadido para depuración
 
-  // Si hay error, usar valores por defecto
-  const stockCount = stockError ? 0 : (stockData?.length || 0)
+  // NUEVO SISTEMA: Total = todos en stock, Disponibles = is_available true
+  const totalStock = stockError ? 0 : (stockData?.length || 0)
+  const disponiblesStock = stockError ? 0 : stockData?.filter(v => v.is_available === true).length || 0
+  
+  // Separar por tipo (solo disponibles)
+  const stockDisponible = stockData?.filter(v => v.is_available === true) || []
+  
   const carsCount = stockError ? 0 : 
-    stockData?.filter((item) => {
-      const type = item.vehicle_type?.trim().toLowerCase() // Añadido .trim()
-      console.log(`Processing stock item: ID=${item.id}, vehicle_type='${item.vehicle_type}', trimmed_lower='${type}'`) // Debugging individual items
+    stockDisponible.filter((item) => {
+      const type = item.vehicle_type?.trim().toLowerCase()
       return type === "coche" || type === "car" || type === "turismo"
     }).length || 0
 
   const motorcyclesCount = stockError ? 0 :
-    stockData?.filter((item) => {
-      const type = item.vehicle_type?.trim().toLowerCase() // Añadido .trim()
+    stockDisponible.filter((item) => {
+      const type = item.vehicle_type?.trim().toLowerCase()
       return type === "moto" || type === "motorcycle"
     }).length || 0
 
@@ -456,9 +459,9 @@ export default async function Dashboard() {
   console.log("Calculated carsCount:", carsCount) // Añadido para depuración
   console.log("Calculated motorcyclesCount:", motorcyclesCount) // Añadido para depuración
   
-  // Calcular contadores de marca para stock disponible (usando el campo model)
+  // Calcular contadores de marca (SOLO DISPONIBLES)
   const bmwStockCount = stockError ? 0 : 
-    stockData?.filter((item) => {
+    stockDisponible.filter((item) => {
       const model = item.model?.toLowerCase() || ""
       // Identificar BMW por prefijos comunes: i, X, M, Serie, etc.
       const isBMW = model.startsWith("i") || 
@@ -470,13 +473,12 @@ export default async function Dashboard() {
                     model.includes("edrive") ||
                     (model.includes("bmw") && !model.includes("motorrad"))
       
-      console.log(`🔍 Checking BMW: "${item.model}" -> isBMW: ${isBMW}`)
-      return isBMW && !model.includes("motorrad") // Excluir motos BMW
+      return isBMW && !model.includes("motorrad") && !model.includes("mini") // Excluir motos y MINI
     }).length || 0
+    
   const miniStockCount = stockError ? 0 :
-    stockData?.filter((item) => {
+    stockDisponible.filter((item) => {
       const model = item.model?.toLowerCase() || ""
-      console.log(`🔍 Checking MINI: "${item.model}" -> includes("mini"): ${model.includes("mini")}`)
       return model.includes("mini")
     }).length || 0
   
@@ -501,9 +503,8 @@ export default async function Dashboard() {
       return model.includes("mini")
     }).length || 0
 
-  // Calcular total correcto (solo BMW + MINI disponibles)
-  // Los datos ya están filtrados por is_sold = false, así que son los disponibles
-  const totalStockCount = bmwStockCount + miniStockCount
+  // NUEVO SISTEMA: Total = todos, pero mostramos solo disponibles en desglose
+  const totalStockCount = totalStock // Todos los vehículos en stock (77)
   const previousTotalStockCount = previousBmwStockCount + previousMiniStockCount
 
   console.log("BMW stock count:", bmwStockCount)
@@ -745,11 +746,12 @@ export default async function Dashboard() {
 
   // Estadísticas reales o valores de respaldo si no se pueden obtener
   const stats = {
-    vehiclesInStock: totalStockCount, // Usar el total real (BMW + MINI disponibles)
+    vehiclesInStock: totalStock, // Total en stock (77)
+    disponiblesInStock: disponiblesStock, // Disponibles (68)
     carsInStock: carsCount,
     motorcyclesInStock: motorcyclesCount,
-    bmwStockCount: bmwStockCount, // Usar el valor real
-    miniStockCount: miniStockCount, // Usar el valor real
+    bmwStockCount: bmwStockCount, // Solo BMW disponibles
+    miniStockCount: miniStockCount, // Solo MINI disponibles
     salesThisMonth: salesThisMonth,
     salesCarsCount: salesCarsCount,
     salesMotorcyclesCount: salesMotorcyclesCount,

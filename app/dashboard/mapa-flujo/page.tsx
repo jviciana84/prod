@@ -317,15 +317,15 @@ flowchart TB
 flowchart LR
     DUC["<i class='fa-solid fa-globe'></i> DUC Web<br/>gestionbmw.motorflash.com"]
     SCRAPER["<i class='fa-solid fa-robot'></i> Scraper Python<br/>main.py<br/>Cada 8 horas"]
-    CSV["<i class='fa-solid fa-file-csv'></i> CSV Descargado<br/>stock_551_0_*.csv"]
+    CSV["<i class='fa-solid fa-file-csv'></i> CSV Descargado<br/>stock_551_0_*.csv<br/>77 vehículos"]
     PANDAS["<i class='fa-brands fa-python'></i> pandas.read_csv<br/>Limpieza de datos"]
     DELETE["<i class='fa-solid fa-trash'></i> DELETE ALL<br/>duc_scraper"]
-    INSERT["<i class='fa-solid fa-plus'></i> INSERT nuevos registros"]
-    DUC_SCRAPER[("<i class='fa-solid fa-database'></i> duc_scraper<br/>Detecta fotos en URLs")]
-    TRIGGER["<i class='fa-solid fa-bolt'></i> TRIGGER<br/>sync_duc_to_all_tables<br/>Detección automática"]
-    STOCK[("<i class='fa-solid fa-warehouse'></i> stock<br/>+physical_reception_date<br/>+is_available")]
-    FOTOS[("<i class='fa-solid fa-camera'></i> fotos<br/>+auto_completed")]
-    NUEVAS[("<i class='fa-solid fa-database'></i> nuevas_entradas<br/>+reception_date")]
+    INSERT["<i class='fa-solid fa-plus'></i> INSERT nuevos registros<br/>Columna: Disponibilidad"]
+    DUC_SCRAPER[("<i class='fa-solid fa-database'></i> duc_scraper<br/>77 vehículos<br/>FUENTE ÚNICA")]
+    TRIGGER_SYNC["<i class='fa-solid fa-bolt'></i> TRIGGER<br/>sync_duc_to_stock<br/>Stock = DUC"]
+    STOCK[("<i class='fa-solid fa-warehouse'></i> stock<br/>77 vehículos<br/>is_available = f(Disponibilidad)")]
+    FOTOS[("<i class='fa-solid fa-camera'></i> fotos<br/>Sincronizado")]
+    ENTREGAS[("<i class='fa-solid fa-truck'></i> entregas<br/>fecha_entrega → DELETE stock")]
     
     DUC -->|Selenium| SCRAPER
     SCRAPER --> CSV
@@ -333,10 +333,12 @@ flowchart LR
     PANDAS --> DELETE
     DELETE --> INSERT
     INSERT --> DUC_SCRAPER
-    DUC_SCRAPER -->|⚡ AUTOMÁTICO| TRIGGER
-    TRIGGER -->|Si tiene fotos: -2 días| STOCK
-    TRIGGER -->|Si tiene fotos: completado| FOTOS
-    TRIGGER -->|Si tiene fotos: recibido| NUEVAS
+    DUC_SCRAPER -->|⚡ AUTOMÁTICO| TRIGGER_SYNC
+    TRIGGER_SYNC -->|Crea/Actualiza| STOCK
+    TRIGGER_SYNC -->|Disponibilidad = DISPONIBLE<br/>→ is_available = TRUE| STOCK
+    TRIGGER_SYNC -->|Disponibilidad ≠ DISPONIBLE<br/>→ is_available = FALSE| STOCK
+    STOCK --> FOTOS
+    ENTREGAS -->|⚡ DELETE| STOCK
     
     classDef external fill:#e1f5ff,stroke:#01579b,stroke-width:2px
     classDef process fill:#fff3e0,stroke:#e65100,stroke-width:2px
@@ -345,8 +347,8 @@ flowchart LR
     
     class DUC external
     class SCRAPER,PANDAS,DELETE,INSERT process
-    class CSV,DUC_SCRAPER,STOCK,FOTOS,NUEVAS tabla
-    class TRIGGER trigger
+    class CSV,DUC_SCRAPER,STOCK,FOTOS,ENTREGAS tabla
+    class TRIGGER_SYNC trigger
 `,
     paso2: `
 flowchart TB
@@ -387,9 +389,15 @@ flowchart TB
 `,
     triggers: `
 flowchart TD
-    TITLE["<i class='fa-solid fa-bolt'></i> TODOS LOS TRIGGERS ACTIVOS - 9 TRIGGERS"]
+    TITLE["<i class='fa-solid fa-bolt'></i> TODOS LOS TRIGGERS ACTIVOS - 12 TRIGGERS"]
     
-    subgraph NUEVOS["<i class='fa-solid fa-star'></i> NUEVOS - SISTEMA RECEPCIÓN FÍSICA"]
+    subgraph NUEVOS_STOCK["<i class='fa-solid fa-star'></i> NUEVO SISTEMA STOCK (Oct 2025)"]
+        T10["<i class='fa-solid fa-bolt'></i> delete_stock_on_delivery<br/>WHEN: entregas.fecha_entrega ≠ NULL<br/>ACTION: DELETE FROM stock<br/>Vehículo entregado sale del sistema"]
+        T11["<i class='fa-solid fa-bolt'></i> sync_duc_to_stock<br/>WHEN: INSERT/UPDATE duc_scraper<br/>ACTION: Crea/actualiza stock<br/>is_available según Disponibilidad"]
+        T12["<i class='fa-solid fa-bolt'></i> sync_sales_to_fotos_vendido<br/>WHEN: INSERT sales_vehicles<br/>ACTION: fotos estado = vendido<br/>photos_completed = TRUE"]
+    end
+    
+    subgraph NUEVOS_RECEPCION["<i class='fa-solid fa-star'></i> SISTEMA RECEPCIÓN FÍSICA"]
         T7["<i class='fa-solid fa-bolt'></i> sync_duc_to_all_tables<br/>WHEN: INSERT en duc_scraper<br/>ACTION: INSERT stock+fotos+nuevas_entradas<br/>Detección automática de fotos"]
         T8["<i class='fa-solid fa-bolt'></i> auto_mark_received_on_photos_complete<br/>WHEN: photos_completed = TRUE<br/>ACTION: Marca recibido -2 días (prevalece)"]
         T9["<i class='fa-solid fa-bolt'></i> sync_received_status<br/>WHEN: is_received = TRUE<br/>ACTION: UPDATE stock+fotos (respeta auto)"]
@@ -404,8 +412,13 @@ flowchart TD
         T6["<i class='fa-solid fa-bolt'></i> update_garantia_incentivos<br/>WHEN: INSERT en garantias<br/>ACTION: UPDATE incentivos"]
     end
     
-    TITLE --> NUEVOS
+    TITLE --> NUEVOS_STOCK
+    TITLE --> NUEVOS_RECEPCION
     TITLE --> EXISTENTES
+    
+    T10 --> STOCK10[("<i class='fa-solid fa-trash'></i> stock<br/>DELETE")]
+    T11 --> STOCK11[("<i class='fa-solid fa-warehouse'></i> stock<br/>CREATE/UPDATE")]
+    T12 --> FOTOS12[("<i class='fa-solid fa-camera'></i> fotos<br/>vendido")]
     
     T7 --> STOCK7[("<i class='fa-solid fa-warehouse'></i> stock")]
     T7 --> FOTOS7[("<i class='fa-solid fa-camera'></i> fotos")]
@@ -423,11 +436,13 @@ flowchart TD
     
     classDef trigger fill:#ff7043,stroke:#bf360c,stroke-width:2px
     classDef triggerNuevo fill:#66bb6a,stroke:#2e7d32,stroke-width:3px
+    classDef triggerNuevoStock fill:#2196f3,stroke:#0d47a1,stroke-width:3px
     classDef tabla fill:#90caf9,stroke:#1565c0,stroke-width:2px
     
     class T1,T2,T3,T4,T5,T6 trigger
     class T7,T8,T9 triggerNuevo
-    class STOCK1,STOCK2,STOCK3,STOCK7,STOCK8,STOCK9,FOTOS1,FOTOS2,FOTOS7,FOTOS8,INC1,NUEVAS7 tabla
+    class T10,T11,T12 triggerNuevoStock
+    class STOCK1,STOCK2,STOCK3,STOCK7,STOCK8,STOCK9,STOCK10,STOCK11,FOTOS1,FOTOS2,FOTOS7,FOTOS8,FOTOS12,INC1,NUEVAS7 tabla
 `,
     problema: `
 flowchart TB
@@ -913,18 +928,32 @@ flowchart TB
                 Paso 1: Scraper DUC → Sistema Automático
               </CardTitle>
               <CardDescription>
-                Scraper actualiza duc_scraper y trigger automático sincroniza con stock, fotos y nuevas_entradas
+                NUEVO SISTEMA: Stock = SOLO lo que está en DUC. Sincronización automática con Disponibilidad. Entrega elimina de stock.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="bg-white p-6 rounded-lg border overflow-x-auto mermaid-print-area">
                 <pre className="mermaid">{diagramas.paso1}</pre>
               </div>
-              <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                <p className="text-sm text-green-800">
-                  <strong>✅ RESUELTO:</strong> duc_scraper ahora alimenta automáticamente a stock, fotos y nuevas_entradas.
-                  Detecta si tiene fotos y marca recepción física hace 2 días. Sistema completamente automático.
-                </p>
+              <div className="mt-4 space-y-3">
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-sm text-green-800">
+                    <strong>✅ NUEVO SISTEMA (23 Oct 2025):</strong> Stock = SOLO lo que está en DUC (77 vehículos).
+                    Trigger sync_duc_to_stock sincroniza automáticamente is_available según columna "Disponibilidad" de DUC.
+                  </p>
+                </div>
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    <strong>🔄 Sincronización:</strong> DISPONIBLE → is_available=TRUE, cualquier otro → is_available=FALSE.
+                    Stock limpiado de 88 vehículos ausentes (ya no en DUC).
+                  </p>
+                </div>
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-800">
+                    <strong>🚚 Al entregar:</strong> Trigger delete_stock_on_delivery elimina vehículo de stock cuando
+                    se registra fecha_entrega en entregas (vehículo ya no está físicamente).
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -1202,7 +1231,7 @@ flowchart TB
                 Todos los Triggers del Sistema
               </CardTitle>
               <CardDescription>
-                9 triggers automáticos que sincronizan las tablas (3 nuevos para recepción física)
+                12 triggers automáticos que sincronizan las tablas (6 nuevos: 3 recepción física + 3 nuevo sistema stock)
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -1210,11 +1239,14 @@ flowchart TB
                 <pre className="mermaid">{diagramas.triggers}</pre>
               </div>
               <div className="mt-4 space-y-2 text-sm">
-                <p><strong>Triggers activos:</strong></p>
+                <p><strong>Triggers activos (12 total):</strong></p>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                  <li><strong className="text-green-600">NUEVO:</strong> duc_scraper → stock+fotos+nuevas_entradas (detección de fotos automática)</li>
-                  <li><strong className="text-green-600">NUEVO:</strong> fotos.photos_completed → marca recibido -2 días (prevalece sobre manual)</li>
-                  <li><strong className="text-green-600">NUEVO:</strong> nuevas_entradas.is_received → stock+fotos (respeta automático)</li>
+                  <li><strong className="text-blue-600">NUEVO STOCK:</strong> delete_stock_on_delivery → Borra stock cuando se entrega (fecha_entrega ≠ NULL)</li>
+                  <li><strong className="text-blue-600">NUEVO STOCK:</strong> sync_duc_to_stock → Sincroniza stock con DUC (is_available según Disponibilidad)</li>
+                  <li><strong className="text-blue-600">NUEVO STOCK:</strong> sync_sales_to_fotos_vendido → Marca fotos como vendido al vender</li>
+                  <li><strong className="text-green-600">RECEPCIÓN FÍSICA:</strong> sync_duc_to_all_tables → Detección de fotos automática</li>
+                  <li><strong className="text-green-600">RECEPCIÓN FÍSICA:</strong> auto_mark_received_on_photos_complete → Marca recibido -2 días</li>
+                  <li><strong className="text-green-600">RECEPCIÓN FÍSICA:</strong> sync_received_status → Actualiza stock+fotos (respeta auto)</li>
                   <li>nuevas_entradas → stock (cuando is_received = true)</li>
                   <li>nuevas_entradas → fotos (cuando is_received = true)</li>
                   <li>stock.body_status → fotos.estado_pintura (sincronización)</li>

@@ -32,23 +32,11 @@ export default function VehiclesPage() {
         .from('stock')
         .select('is_available, license_plate')
 
-      const { data: salesData } = await supabase
-        .from('sales_vehicles')
-        .select('license_plate')
-
-      const { data: entregasData } = await supabase
-        .from('entregas')
-        .select('license_plate, fecha_entrega')
-        .not('fecha_entrega', 'is', null)
-
-      const entregados = new Set((entregasData || []).map(e => e.license_plate))
-      const salesSinEntregar = (salesData || []).filter(s => !entregados.has(s.license_plate))
-
       setStockStats({
         total: stockData?.length || 0,
         disponible: stockData?.filter(v => v.is_available === true).length || 0,
         noDisponible: stockData?.filter(v => v.is_available === false).length || 0,
-        reservado: salesSinEntregar.length
+        reservado: 0
       })
     }
     loadStats()
@@ -100,7 +88,7 @@ export default function VehiclesPage() {
       </div>
 
       {/* Mini Cards de Resumen */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <Card className="p-4 relative">
           <div className="flex items-center justify-between">
             <div>
@@ -132,21 +120,7 @@ export default function VehiclesPage() {
         <Card className="p-4 relative">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-muted-foreground">Reservado</p>
-              <p className="text-2xl font-bold text-amber-500">
-                {stockStats.reservado}
-              </p>
-            </div>
-            <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-full">
-              <Tag className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-4 relative">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">No Disponible</p>
+              <p className="text-sm text-muted-foreground">No disponible</p>
               <p className="text-2xl font-bold text-red-500">
                 {stockStats.noDisponible}
               </p>

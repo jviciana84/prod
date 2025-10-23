@@ -34,6 +34,7 @@ interface DashboardContentProps {
   incidentPercentage: string
   stats: {
     vehiclesInStock: number
+    disponiblesInStock: number
     carsInStock: number
     motorcyclesInStock: number
     bmwStockCount: number
@@ -137,15 +138,14 @@ export function DashboardContent({
             <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-muted-foreground truncate">Vehículos en Stock</p>
-                <h3 className="text-2xl font-bold mt-1">{stats.vehiclesInStock}</h3>
+                <h3 className="text-2xl font-bold mt-1">
+                  {stats.vehiclesInStock} / <span className="text-green-600 font-bold">{stats.disponiblesInStock}</span>
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1">Disponibles</p>
                 <div className="flex items-center gap-3 mt-2">
                   <div className="flex items-center gap-1">
                     <Car className="h-3 w-3 text-blue-500" />
-                    <span className="text-xs">{stats.carsInStock}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Bike className="h-3 w-3 text-red-500" />
-                    <span className="text-xs">{stats.motorcyclesInStock}</span>
+                    <span className="text-xs font-semibold">{stats.disponiblesInStock}</span>
                   </div>
                 </div>
               </div>
@@ -178,10 +178,6 @@ export function DashboardContent({
               <div className="flex items-center gap-1">
                 <MINILogo className="h-4 w-4 text-gray-800" />
                 <span className="text-xs font-medium">{stats.miniStockCount}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <BMWMotorradLogo className="h-8 w-8 text-red-600" />
-                <span className="text-xs font-medium">{stats.motorcyclesInStock}</span>
               </div>
             </div>
           </CardContent>
