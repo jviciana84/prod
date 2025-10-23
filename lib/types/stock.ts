@@ -68,6 +68,10 @@ export interface StockItem {
   updated_at?: string
   or_value?: string
   is_sold?: boolean
+  // Nuevos campos para sistema de recepción física
+  physical_reception_date?: string
+  is_available?: boolean
+  auto_marked_received?: boolean
 }
 
 export interface StockHistory {

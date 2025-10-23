@@ -206,7 +206,9 @@ flowchart TD
     %% FLUJO SCRAPER DUC
     DUC_WEB -->|Descarga CSV| SCRAPER_DUC
     SCRAPER_DUC -->|INSERT| DUC_SCRAPER
-    DUC_SCRAPER -.->|❌ NO CONECTA| STOCK
+    DUC_SCRAPER -->|⚡ TRIGGER AUTO| STOCK
+    DUC_SCRAPER -->|⚡ TRIGGER AUTO| FOTOS
+    DUC_SCRAPER -->|⚡ TRIGGER AUTO| NUEVAS_ENTRADAS
     DUC_SCRAPER -->|✅ Filtra BEV/PHEV| BATERIAS
     
     %% FLUJO SCRAPER CMS
@@ -319,9 +321,11 @@ flowchart LR
     PANDAS["<i class='fa-brands fa-python'></i> pandas.read_csv<br/>Limpieza de datos"]
     DELETE["<i class='fa-solid fa-trash'></i> DELETE ALL<br/>duc_scraper"]
     INSERT["<i class='fa-solid fa-plus'></i> INSERT nuevos registros"]
-    DUC_SCRAPER[("<i class='fa-solid fa-database'></i> duc_scraper")]
-    STOCK[("<i class='fa-solid fa-warehouse'></i> stock")]
-    NOCONEXION["<i class='fa-solid fa-circle-xmark'></i> NO HAY CONEXIÓN<br/>TABLA AISLADA"]
+    DUC_SCRAPER[("<i class='fa-solid fa-database'></i> duc_scraper<br/>Detecta fotos en URLs")]
+    TRIGGER["<i class='fa-solid fa-bolt'></i> TRIGGER<br/>sync_duc_to_all_tables<br/>Detección automática"]
+    STOCK[("<i class='fa-solid fa-warehouse'></i> stock<br/>+physical_reception_date<br/>+is_available")]
+    FOTOS[("<i class='fa-solid fa-camera'></i> fotos<br/>+auto_completed")]
+    NUEVAS[("<i class='fa-solid fa-database'></i> nuevas_entradas<br/>+reception_date")]
     
     DUC -->|Selenium| SCRAPER
     SCRAPER --> CSV
@@ -329,18 +333,20 @@ flowchart LR
     PANDAS --> DELETE
     DELETE --> INSERT
     INSERT --> DUC_SCRAPER
-    DUC_SCRAPER -.->|NO ALIMENTA| NOCONEXION
-    NOCONEXION -.-> STOCK
+    DUC_SCRAPER -->|⚡ AUTOMÁTICO| TRIGGER
+    TRIGGER -->|Si tiene fotos: -2 días| STOCK
+    TRIGGER -->|Si tiene fotos: completado| FOTOS
+    TRIGGER -->|Si tiene fotos: recibido| NUEVAS
     
     classDef external fill:#e1f5ff,stroke:#01579b,stroke-width:2px
     classDef process fill:#fff3e0,stroke:#e65100,stroke-width:2px
     classDef tabla fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
-    classDef problema fill:#ffcdd2,stroke:#c62828,stroke-width:3px
+    classDef trigger fill:#ff7043,stroke:#bf360c,stroke-width:3px
     
     class DUC external
     class SCRAPER,PANDAS,DELETE,INSERT process
-    class CSV,DUC_SCRAPER,STOCK tabla
-    class NOCONEXION problema
+    class CSV,DUC_SCRAPER,STOCK,FOTOS,NUEVAS tabla
+    class TRIGGER trigger
 `,
     paso2: `
 flowchart TB
@@ -381,21 +387,32 @@ flowchart TB
 `,
     triggers: `
 flowchart TD
-    TITLE["<i class='fa-solid fa-bolt'></i> TODOS LOS TRIGGERS ACTIVOS"]
+    TITLE["<i class='fa-solid fa-bolt'></i> TODOS LOS TRIGGERS ACTIVOS - 9 TRIGGERS"]
     
-    T1["<i class='fa-solid fa-bolt'></i> nuevas_entradas_to_stock<br/>WHEN: is_received = TRUE<br/>ACTION: INSERT INTO stock"]
-    T2["<i class='fa-solid fa-bolt'></i> handle_vehicle_received<br/>WHEN: is_received = TRUE<br/>ACTION: INSERT INTO fotos"]
-    T3["<i class='fa-solid fa-bolt'></i> sync_body_status_to_paint_status<br/>WHEN: body_status = apto<br/>ACTION: UPDATE fotos"]
-    T4["<i class='fa-solid fa-bolt'></i> sync_stock_on_sale_insert<br/>WHEN: INSERT en sales_vehicles<br/>ACTION: UPDATE stock.is_sold = TRUE"]
-    T5["<i class='fa-solid fa-bolt'></i> sync_stock_on_sale_delete<br/>WHEN: DELETE en sales_vehicles<br/>ACTION: UPDATE stock.is_sold = FALSE"]
-    T6["<i class='fa-solid fa-bolt'></i> update_garantia_incentivos<br/>WHEN: INSERT en garantias<br/>ACTION: UPDATE incentivos"]
+    subgraph NUEVOS["<i class='fa-solid fa-star'></i> NUEVOS - SISTEMA RECEPCIÓN FÍSICA"]
+        T7["<i class='fa-solid fa-bolt'></i> sync_duc_to_all_tables<br/>WHEN: INSERT en duc_scraper<br/>ACTION: INSERT stock+fotos+nuevas_entradas<br/>Detección automática de fotos"]
+        T8["<i class='fa-solid fa-bolt'></i> auto_mark_received_on_photos_complete<br/>WHEN: photos_completed = TRUE<br/>ACTION: Marca recibido -2 días (prevalece)"]
+        T9["<i class='fa-solid fa-bolt'></i> sync_received_status<br/>WHEN: is_received = TRUE<br/>ACTION: UPDATE stock+fotos (respeta auto)"]
+    end
     
-    TITLE --> T1
-    TITLE --> T2
-    TITLE --> T3
-    TITLE --> T4
-    TITLE --> T5
-    TITLE --> T6
+    subgraph EXISTENTES["<i class='fa-solid fa-check'></i> EXISTENTES"]
+        T1["<i class='fa-solid fa-bolt'></i> nuevas_entradas_to_stock<br/>WHEN: is_received = TRUE<br/>ACTION: INSERT INTO stock"]
+        T2["<i class='fa-solid fa-bolt'></i> handle_vehicle_received<br/>WHEN: is_received = TRUE<br/>ACTION: INSERT INTO fotos"]
+        T3["<i class='fa-solid fa-bolt'></i> sync_body_status_to_paint_status<br/>WHEN: body_status = apto<br/>ACTION: UPDATE fotos"]
+        T4["<i class='fa-solid fa-bolt'></i> sync_stock_on_sale_insert<br/>WHEN: INSERT en sales_vehicles<br/>ACTION: UPDATE stock.is_sold = TRUE"]
+        T5["<i class='fa-solid fa-bolt'></i> sync_stock_on_sale_delete<br/>WHEN: DELETE en sales_vehicles<br/>ACTION: UPDATE stock.is_sold = FALSE"]
+        T6["<i class='fa-solid fa-bolt'></i> update_garantia_incentivos<br/>WHEN: INSERT en garantias<br/>ACTION: UPDATE incentivos"]
+    end
+    
+    TITLE --> NUEVOS
+    TITLE --> EXISTENTES
+    
+    T7 --> STOCK7[("<i class='fa-solid fa-warehouse'></i> stock")]
+    T7 --> FOTOS7[("<i class='fa-solid fa-camera'></i> fotos")]
+    T7 --> NUEVAS7[("<i class='fa-solid fa-database'></i> nuevas_entradas")]
+    T8 --> STOCK8[("<i class='fa-solid fa-warehouse'></i> stock<br/>-2 días")]
+    T8 --> FOTOS8[("<i class='fa-solid fa-camera'></i> fotos<br/>-2 días")]
+    T9 --> STOCK9[("<i class='fa-solid fa-warehouse'></i> stock")]
     
     T1 --> STOCK1[("<i class='fa-solid fa-warehouse'></i> stock")]
     T2 --> FOTOS1[("<i class='fa-solid fa-camera'></i> fotos")]
@@ -405,32 +422,51 @@ flowchart TD
     T6 --> INC1[("<i class='fa-solid fa-coins'></i> incentivos")]
     
     classDef trigger fill:#ff7043,stroke:#bf360c,stroke-width:2px
+    classDef triggerNuevo fill:#66bb6a,stroke:#2e7d32,stroke-width:3px
     classDef tabla fill:#90caf9,stroke:#1565c0,stroke-width:2px
     
     class T1,T2,T3,T4,T5,T6 trigger
-    class STOCK1,STOCK2,STOCK3,FOTOS1,FOTOS2,INC1 tabla
+    class T7,T8,T9 triggerNuevo
+    class STOCK1,STOCK2,STOCK3,STOCK7,STOCK8,STOCK9,FOTOS1,FOTOS2,FOTOS7,FOTOS8,INC1,NUEVAS7 tabla
 `,
     problema: `
-flowchart LR
-    DUC[("<i class='fa-solid fa-database'></i> duc_scraper<br/>~10 RESERVADOS")]
-    PROBLEMA["<i class='fa-solid fa-circle-xmark'></i> PROBLEMA<br/>No hay trigger<br/>Tabla aislada"]
-    STOCK[("<i class='fa-solid fa-warehouse'></i> stock<br/>RESERVADOS no marcados")]
-    SOLUCION["<i class='fa-solid fa-lightbulb'></i> SOLUCIÓN NECESARIA<br/>Crear trigger"]
-    TRIGGER["<i class='fa-solid fa-bolt'></i> TRIGGER PROPUESTO<br/>sync_duc_to_stock<br/>IF Disponibilidad = RESERVADO<br/>THEN stock.is_sold = TRUE"]
+flowchart TB
+    DUC[("<i class='fa-solid fa-database'></i> duc_scraper<br/>Scraper cada 8h")]
     
-    DUC -.->|NO CONECTA| PROBLEMA
-    PROBLEMA -.-> STOCK
-    PROBLEMA --> SOLUCION
-    SOLUCION --> TRIGGER
-    TRIGGER --> STOCK
+    TRIGGER["<i class='fa-solid fa-bolt'></i> sync_duc_to_all_tables<br/>Detección de fotos automática"]
     
-    classDef problema fill:#ef5350,stroke:#c62828,stroke-width:3px
-    classDef solucion fill:#66bb6a,stroke:#2e7d32,stroke-width:3px
+    CONFOTOS["<i class='fa-solid fa-circle-check'></i> CON FOTOS (DUC)<br/>URL foto 1/2/3 ≠ NULL"]
+    SINFOTOS["<i class='fa-solid fa-clock'></i> SIN FOTOS (DUC)<br/>Aún en tránsito"]
+    
+    STOCK1[("<i class='fa-solid fa-warehouse'></i> stock<br/>physical_reception_date = -2 días<br/>is_available = TRUE")]
+    FOTOS1[("<i class='fa-solid fa-camera'></i> fotos<br/>photos_completed = TRUE<br/>estado_pintura = completado")]
+    NUEVAS1[("<i class='fa-solid fa-database'></i> nuevas_entradas<br/>is_received = TRUE")]
+    
+    STOCK2[("<i class='fa-solid fa-warehouse'></i> stock<br/>physical_reception_date = NULL<br/>is_available = FALSE")]
+    FOTOS2[("<i class='fa-solid fa-camera'></i> fotos<br/>photos_completed = FALSE<br/>estado_pintura = pendiente<br/>NO visible hasta recibir")]
+    NUEVAS2[("<i class='fa-solid fa-database'></i> nuevas_entradas<br/>is_received = FALSE")]
+    
+    DUC --> TRIGGER
+    TRIGGER --> CONFOTOS
+    TRIGGER --> SINFOTOS
+    
+    CONFOTOS -->|Contador desde -2 días| STOCK1
+    CONFOTOS -->|Completado automático| FOTOS1
+    CONFOTOS -->|Marcado recibido| NUEVAS1
+    
+    SINFOTOS -->|NO cuenta días aún| STOCK2
+    SINFOTOS -->|NO aparece pendiente| FOTOS2
+    SINFOTOS -->|Esperando llegada| NUEVAS2
+    
+    classDef exito fill:#66bb6a,stroke:#2e7d32,stroke-width:3px
+    classDef espera fill:#ffd54f,stroke:#f57f17,stroke-width:2px
     classDef tabla fill:#90caf9,stroke:#1565c0,stroke-width:2px
+    classDef trigger fill:#ff7043,stroke:#bf360c,stroke-width:3px
     
-    class PROBLEMA problema
-    class SOLUCION,TRIGGER solucion
-    class DUC,STOCK tabla
+    class CONFOTOS exito
+    class SINFOTOS espera
+    class DUC,STOCK1,STOCK2,FOTOS1,FOTOS2,NUEVAS1,NUEVAS2 tabla
+    class TRIGGER trigger
 `,
     baterias: `
 flowchart TB
@@ -655,6 +691,79 @@ flowchart TB
     class ENTREGAS,HISTORIAL,SALES tabla
     class SOPORTE soporte
     class CLIENTE,ADMIN,VER,RESPUESTA usuario
+`,
+    fotos: `
+flowchart TB
+    subgraph CREACION["<i class='fa-solid fa-plus-circle'></i> CREACIÓN DEL REGISTRO"]
+        NE[("<i class='fa-solid fa-database'></i> nuevas_entradas<br/>is_received = TRUE")]
+        TRIGGER1["<i class='fa-solid fa-bolt'></i> handle_vehicle_received<br/>INSERT INTO fotos"]
+        FOTOS_NEW[("<i class='fa-solid fa-camera'></i> fotos<br/>estado_pintura: pendiente<br/>photos_completed: false")]
+    end
+    
+    subgraph SINCRONIZACION["<i class='fa-solid fa-arrows-rotate'></i> SINCRONIZACIÓN CON STOCK"]
+        STOCK[("<i class='fa-solid fa-warehouse'></i> stock<br/>body_status: apto")]
+        TRIGGER2["<i class='fa-solid fa-bolt'></i> sync_body_status<br/>UPDATE fotos"]
+        FOTOS_APTO[("<i class='fa-solid fa-camera'></i> fotos<br/>estado_pintura: apto")]
+    end
+    
+    subgraph AUTOMATICO["<i class='fa-solid fa-robot'></i> SISTEMA AUTOMÁTICO"]
+        DUC[("<i class='fa-solid fa-database'></i> duc_scraper<br/>URL foto 9 ≠ NULL")]
+        GITHUB["<i class='fa-brands fa-github'></i> GitHub Actions<br/>Cada 15 minutos"]
+        FUNCION["<i class='fa-solid fa-code'></i> mark_photos_as_completed()"]
+        FOTOS_AUTO[("<i class='fa-solid fa-camera'></i> fotos<br/>photos_completed: TRUE<br/>Marcado automático")]
+    end
+    
+    subgraph MANUAL["<i class='fa-solid fa-user-pen'></i> GESTIÓN MANUAL"]
+        USUARIO["<i class='fa-solid fa-user'></i> Usuario/Fotógrafo"]
+        API1["<i class='fa-solid fa-plug'></i> /api/photos/update-photo-status"]
+        API2["<i class='fa-solid fa-plug'></i> /api/photos/update-paint-status"]
+        API3["<i class='fa-solid fa-plug'></i> /api/photos/update-photographer"]
+        API4["<i class='fa-solid fa-plug'></i> /api/photos/mark-error"]
+        FOTOS_MAN[("<i class='fa-solid fa-camera'></i> fotos<br/>Estado actualizado")]
+    end
+    
+    subgraph VENDIDO["<i class='fa-solid fa-hand-holding-dollar'></i> VEHÍCULO VENDIDO"]
+        VENTA[("<i class='fa-solid fa-hand-holding-dollar'></i> sales_vehicles<br/>Venta registrada")]
+        STOCK_SOLD[("<i class='fa-solid fa-warehouse'></i> stock<br/>is_sold: TRUE")]
+        FOTOS_SOLD[("<i class='fa-solid fa-camera'></i> fotos<br/>Registro se MANTIENE<br/>estado_pintura: vendido<br/>Filtrado en interfaz")]
+    end
+    
+    NE --> TRIGGER1
+    TRIGGER1 --> FOTOS_NEW
+    
+    FOTOS_NEW --> STOCK
+    STOCK --> TRIGGER2
+    TRIGGER2 --> FOTOS_APTO
+    
+    DUC --> GITHUB
+    GITHUB --> FUNCION
+    FUNCION --> FOTOS_AUTO
+    
+    FOTOS_APTO --> USUARIO
+    USUARIO --> API1
+    USUARIO --> API2
+    USUARIO --> API3
+    USUARIO --> API4
+    API1 --> FOTOS_MAN
+    API2 --> FOTOS_MAN
+    API3 --> FOTOS_MAN
+    API4 --> FOTOS_MAN
+    
+    FOTOS_MAN --> VENTA
+    VENTA --> STOCK_SOLD
+    STOCK_SOLD --> FOTOS_SOLD
+    
+    classDef tabla fill:#90caf9,stroke:#1565c0,stroke-width:2px
+    classDef trigger fill:#ef5350,stroke:#c62828,stroke-width:3px
+    classDef auto fill:#66bb6a,stroke:#2e7d32,stroke-width:3px
+    classDef api fill:#81d4fa,stroke:#0277bd,stroke-width:2px
+    classDef usuario fill:#ffd54f,stroke:#f57f17,stroke-width:2px
+    
+    class NE,FOTOS_NEW,STOCK,FOTOS_APTO,DUC,FOTOS_AUTO,FOTOS_MAN,VENTA,STOCK_SOLD,FOTOS_SOLD tabla
+    class TRIGGER1,TRIGGER2 trigger
+    class GITHUB,FUNCION auto
+    class API1,API2,API3,API4 api
+    class USUARIO usuario
 `
   }
 
@@ -742,9 +851,10 @@ flowchart TB
             <TabsTrigger value="cascada">Cascada</TabsTrigger>
             <TabsTrigger value="paso1">DUC</TabsTrigger>
             <TabsTrigger value="paso2">Entrada</TabsTrigger>
-            <TabsTrigger value="problema">Problema</TabsTrigger>
+            <TabsTrigger value="problema">Auto-Sync</TabsTrigger>
           </TabsList>
-          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 gap-1">
+          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7 gap-1">
+            <TabsTrigger value="fotos">Fotos</TabsTrigger>
             <TabsTrigger value="baterias">Baterías</TabsTrigger>
             <TabsTrigger value="validados">Validados</TabsTrigger>
             <TabsTrigger value="llaves">Llaves/Docs</TabsTrigger>
@@ -799,21 +909,21 @@ flowchart TB
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-red-600" />
-                Paso 1: Scraper DUC → duc_scraper
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                Paso 1: Scraper DUC → Sistema Automático
               </CardTitle>
               <CardDescription>
-                Primer paso del sistema - Tabla aislada sin conexión a stock
+                Scraper actualiza duc_scraper y trigger automático sincroniza con stock, fotos y nuevas_entradas
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="bg-white p-6 rounded-lg border overflow-x-auto mermaid-print-area">
                 <pre className="mermaid">{diagramas.paso1}</pre>
               </div>
-              <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-800">
-                  <strong>⚠️ Problema:</strong> duc_scraper NO alimenta a stock. Los vehículos RESERVADOS
-                  no se marcan automáticamente como vendidos.
+              <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-sm text-green-800">
+                  <strong>✅ RESUELTO:</strong> duc_scraper ahora alimenta automáticamente a stock, fotos y nuevas_entradas.
+                  Detecta si tiene fotos y marca recepción física hace 2 días. Sistema completamente automático.
                 </p>
               </div>
             </CardContent>
@@ -840,6 +950,66 @@ flowchart TB
                   <strong>✅ Funcionando:</strong> Cuando is_received = TRUE, dos triggers automáticos
                   crean registros en stock y fotos.
                 </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="fotos" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="h-5 w-5 text-yellow-600" />
+                Tabla Fotos - Sistema Completo
+              </CardTitle>
+              <CardDescription>
+                Gestión de fotografías, estado de pintura y asignación de fotógrafos
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-white p-6 rounded-lg border overflow-x-auto mermaid-print-area">
+                <pre className="mermaid">{diagramas.fotos}</pre>
+              </div>
+              <div className="mt-4 space-y-3">
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-sm text-green-800">
+                    <strong>✅ Creación Automática:</strong> Cuando un vehículo es marcado como recibido (is_received = TRUE), 
+                    se crea automáticamente un registro en fotos con estado_pintura = 'pendiente'.
+                  </p>
+                </div>
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    <strong>📸 Sistema Automático de Fotos:</strong> GitHub Actions ejecuta cada 15 minutos la función 
+                    mark_photos_as_completed() que detecta vehículos con fotos en duc_scraper (columna "URL foto 9") 
+                    y marca automáticamente photos_completed = TRUE.
+                  </p>
+                </div>
+                <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                  <p className="text-sm text-purple-800">
+                    <strong>🔄 Sincronización con Stock:</strong> Cuando body_status cambia a 'apto' en stock, 
+                    se actualiza automáticamente estado_pintura = 'apto' en fotos mediante trigger.
+                  </p>
+                </div>
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                  <p className="text-sm text-amber-800">
+                    <strong>🚗 Vehículos Vendidos:</strong> Cuando un vehículo se vende, el registro en fotos SE MANTIENE 
+                    (no se elimina). Se actualiza estado_pintura = 'vendido' y se filtra en la interfaz para no aparecer 
+                    en listas de pendientes.
+                  </p>
+                </div>
+                <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+                  <p className="text-sm text-indigo-800">
+                    <strong>🔌 API Routes Disponibles:</strong> /api/photos/update-photo-status (marcar completado), 
+                    /api/photos/update-paint-status (cambiar estado), /api/photos/update-photographer (asignar fotógrafo), 
+                    /api/photos/mark-error (reportar error), /api/photos/subsanate-error (resolver error).
+                  </p>
+                </div>
+                <div className="p-4 bg-rose-50 border border-rose-200 rounded-lg">
+                  <p className="text-sm text-rose-800">
+                    <strong>⚠️ Gestión de Errores:</strong> Sistema de contador de errores (error_count) con posibilidad 
+                    de subsanación (error_subsanated). Cada error incrementa el contador y el vehículo vuelve a estado pendiente.
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -1032,7 +1202,7 @@ flowchart TB
                 Todos los Triggers del Sistema
               </CardTitle>
               <CardDescription>
-                6 triggers automáticos que sincronizan las tablas
+                9 triggers automáticos que sincronizan las tablas (3 nuevos para recepción física)
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -1042,6 +1212,9 @@ flowchart TB
               <div className="mt-4 space-y-2 text-sm">
                 <p><strong>Triggers activos:</strong></p>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                  <li><strong className="text-green-600">NUEVO:</strong> duc_scraper → stock+fotos+nuevas_entradas (detección de fotos automática)</li>
+                  <li><strong className="text-green-600">NUEVO:</strong> fotos.photos_completed → marca recibido -2 días (prevalece sobre manual)</li>
+                  <li><strong className="text-green-600">NUEVO:</strong> nuevas_entradas.is_received → stock+fotos (respeta automático)</li>
                   <li>nuevas_entradas → stock (cuando is_received = true)</li>
                   <li>nuevas_entradas → fotos (cuando is_received = true)</li>
                   <li>stock.body_status → fotos.estado_pintura (sincronización)</li>
@@ -1058,11 +1231,11 @@ flowchart TB
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-red-600" />
-                Problema: duc_scraper Aislado
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                duc_scraper: Sincronización Automática
               </CardTitle>
               <CardDescription>
-                Visualización del problema y solución propuesta
+                Sistema de detección automática de fotos y sincronización con stock, fotos y nuevas_entradas
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -1070,16 +1243,25 @@ flowchart TB
                 <pre className="mermaid">{diagramas.problema}</pre>
               </div>
               <div className="mt-4 space-y-3">
-                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-sm text-red-800">
-                    <strong>Problema actual:</strong> Los vehículos RESERVADOS en duc_scraper no actualizan
-                    stock.is_sold automáticamente.
-                  </p>
-                </div>
                 <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                   <p className="text-sm text-green-800">
-                    <strong>Solución propuesta:</strong> Crear un trigger que sincronice duc_scraper.Disponibilidad
-                    con stock.is_sold.
+                    <strong>✅ SISTEMA AUTOMÁTICO COMPLETO:</strong> duc_scraper ahora sincroniza automáticamente
+                    con stock, fotos y nuevas_entradas. Detecta si tiene fotos (URL foto 1/2/3) y marca
+                    recepción física hace 2 días automáticamente.
+                  </p>
+                </div>
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    <strong>📸 Detección Inteligente:</strong> Si el vehículo tiene fotos en DUC, el sistema
+                    asume que llegó hace 2 días y marca todo como completado. Si no tiene fotos, queda
+                    pendiente hasta confirmación manual o hasta que se completen las fotos.
+                  </p>
+                </div>
+                <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                  <p className="text-sm text-purple-800">
+                    <strong>🎯 DEMOS Resueltos:</strong> Vehículos DEMO que se matriculan directamente en Terrassa
+                    y aparecen con fotos en DUC se detectan automáticamente y marcan con backdating de 2 días,
+                    eliminando completamente el factor humano.
                   </p>
                 </div>
               </div>

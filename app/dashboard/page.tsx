@@ -415,12 +415,16 @@ export default async function Dashboard() {
       .eq("is_sold", false) // Solo vehículos no vendidos
     
     // 4. Filtrar ausentes: SOLO mostrar si están en DUC
+    // 5. Filtrar disponibilidad: SOLO mostrar si is_available = true
     stockData = (result.data || []).filter((vehicle) => {
       const matricula = vehicle.license_plate?.toUpperCase().trim()
       if (!matricula) return false
       
-      // Solo mostrar si está en DUC (excluir ausentes)
-      return ducMatriculas.has(matricula)
+      const enDuc = ducMatriculas.has(matricula)
+      const disponible = vehicle.is_available === true
+      
+      // Solo mostrar si está en DUC Y disponible (excluir ausentes y en tránsito)
+      return enDuc && disponible
     })
     
     stockError = result.error

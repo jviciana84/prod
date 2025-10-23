@@ -49,15 +49,17 @@ export async function GET() {
     }
 
     // 4. Filtrar: SOLO mostrar vehículos que estén en DUC O vendidos
+    // 5. Filtrar disponibilidad: SOLO mostrar si is_available = true
     const filteredStock = (stock || []).filter((vehicle) => {
       const matricula = vehicle.license_plate?.toUpperCase().trim()
       if (!matricula) return false
 
       const enDuc = ducMatriculas.has(matricula)
       const enVentas = salesMatriculas.has(matricula)
+      const disponible = vehicle.is_available === true
 
-      // Mostrar si está en DUC o si está vendido
-      return enDuc || enVentas
+      // Mostrar si: (está en DUC Y disponible) O (está vendido)
+      return (enDuc && disponible) || enVentas
     })
 
     console.log(`📊 Stock total: ${stock?.length || 0}`)

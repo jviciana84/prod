@@ -660,15 +660,17 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
       }
       
       // 4. Filtrar ausentes: SOLO mostrar si están en DUC O vendidos
+      // 5. Filtrar disponibilidad: SOLO mostrar si is_available = true O vendidos
       const filteredData = (data || []).filter((vehicle) => {
         const matricula = vehicle.license_plate?.toUpperCase().trim()
         if (!matricula) return false
 
         const enDuc = ducMatriculas.has(matricula)
         const enVentas = salesMatriculas.has(matricula)
+        const disponible = vehicle.is_available === true
 
-        // Mostrar si está en DUC o si está vendido
-        return enDuc || enVentas
+        // Mostrar si: (está en DUC Y disponible) O (está vendido)
+        return (enDuc && disponible) || enVentas
       })
       
       console.log(`📊 Stock total: ${data?.length || 0}`)
