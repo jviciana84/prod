@@ -158,6 +158,8 @@ export default async function Dashboard() {
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single()
   const displayName = profile?.full_name || session.user.user_metadata.full_name || session.user.email
 
+  console.log("✅ Usuario cargado:", displayName)
+
   // Fetch sales vehicles data for workshop days calculations - CONSULTA CORREGIDA
   const { data: salesVehiclesData, error: salesVehiclesError } = await supabase
     .from("sales_vehicles")
@@ -385,58 +387,20 @@ export default async function Dashboard() {
   let stockError = null
   
   try {
-    // 1. Obtener matrículas del CSV DUC
-    const { data: ducData } = await supabase
-      .from("duc_scraper")
-      .select('"Matrícula"')
-      .not('"Matrícula"', 'is', null)
-
-    const ducMatriculas = new Set(
-      (ducData || [])
-        .map((v) => v['Matrícula']?.toUpperCase().trim())
-        .filter(Boolean)
-    )
-
-    // 2. Obtener matrículas vendidas
-    const { data: salesData } = await supabase
-      .from("sales_vehicles")
-      .select("license_plate")
-
-    const salesMatriculas = new Set(
-      (salesData || [])
-        .map((v) => v.license_plate?.toUpperCase().trim())
-        .filter(Boolean)
-    )
-
-    // 3. Obtener solo vehículos disponibles (no vendidos)
+    // Obtener solo vehículos disponibles (no vendidos)
     const result = await supabase
       .from("stock")
       .select("*")
       .eq("is_sold", false) // Solo vehículos no vendidos
     
-    // 4. Filtrar ausentes: SOLO mostrar si están en DUC
-    // 5. Filtrar disponibilidad: SOLO mostrar si is_available = true
-    stockData = (result.data || []).filter((vehicle) => {
-      const matricula = vehicle.license_plate?.toUpperCase().trim()
-      if (!matricula) return false
-      
-      const enDuc = ducMatriculas.has(matricula)
-      const disponible = vehicle.is_available === true
-      
-      // Solo mostrar si está en DUC Y disponible (excluir ausentes y en tránsito)
-      return enDuc && disponible
-    })
-    
+    stockData = result.data || []
     stockError = result.error
     
     if (stockError) {
       console.error("❌ Error fetching stock data:", stockError)
       console.error("❌ Error details:", JSON.stringify(stockError, null, 2))
     } else {
-      console.log("✅ Stock data obtenida correctamente")
-      console.log(`📊 Stock total sin filtrar: ${result.data?.length || 0}`)
-      console.log(`✅ Stock filtrado (sin ausentes): ${stockData?.length || 0}`)
-      console.log(`🚫 Ausentes excluidos: ${(result.data?.length || 0) - (stockData?.length || 0)}`)
+      console.log("✅ Stock data obtenida correctamente:", stockData?.length || 0, "registros")
     }
   } catch (error) {
     console.error("❌ Exception fetching stock data:", error)
@@ -474,14 +438,7 @@ export default async function Dashboard() {
       .gte("created_at", firstDayOfPreviousMonth)
       .lt("created_at", firstDayOfMonth)
     
-    // Filtrar ausentes también en datos del mes anterior
-    previousStockData = (previousResult.data || []).filter((vehicle) => {
-      const matricula = vehicle.license_plate?.toUpperCase().trim()
-      if (!matricula) return false
-      // Solo mostrar si está en DUC (excluir ausentes)
-      return ducMatriculas.has(matricula)
-    })
-    
+    previousStockData = previousResult.data || []
     previousStockError = previousResult.error
     
     if (previousStockError) {
