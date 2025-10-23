@@ -627,11 +627,18 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
     try {
       console.log("📡 Consultando tabla stock...")
       
+      // Timeout de 10 segundos
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000)
+      
       // Consulta simple de stock (sin filtros externos que pueden bloquear)
       const { data, error } = await supabase
         .from('stock')
         .select('*')
         .order('created_at', { ascending: false })
+        .abortSignal(controller.signal)
+      
+      clearTimeout(timeoutId)
       
       if (error) {
         console.error("❌ Error en fetchStock:", error)
@@ -640,6 +647,7 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
           description: error.message,
           variant: "destructive"
         })
+        setIsLoading(false)
         return
       }
       
@@ -648,11 +656,19 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
       
     } catch (err) {
       console.error("💥 Excepción en fetchStock:", err)
-      toast({
-        title: "Error inesperado",
-        description: "Error al cargar los datos del stock",
-        variant: "destructive"
-      })
+      if ((err as Error).name === 'AbortError') {
+        toast({
+          title: "Tiempo de espera agotado",
+          description: "La consulta tardó demasiado. Intenta refrescar (F5)",
+          variant: "destructive"
+        })
+      } else {
+        toast({
+          title: "Error inesperado",
+          description: "Error al cargar los datos del stock",
+          variant: "destructive"
+        })
+      }
     } finally {
       console.log("🏁 fetchStock completado")
       setIsLoading(false)
