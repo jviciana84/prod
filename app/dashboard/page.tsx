@@ -455,9 +455,10 @@ export default async function Dashboard() {
     previousStockError = error as any
   }
 
-  console.log("Calculated stockCount:", stockCount) // Añadido para depuración
-  console.log("Calculated carsCount:", carsCount) // Añadido para depuración
-  console.log("Calculated motorcyclesCount:", motorcyclesCount) // Añadido para depuración
+  console.log("Calculated totalStock:", totalStock) // Total en stock
+  console.log("Calculated disponiblesStock:", disponiblesStock) // Disponibles
+  console.log("Calculated carsCount:", carsCount) // Coches disponibles
+  console.log("Calculated motorcyclesCount:", motorcyclesCount) // Motos disponibles
   
   // Calcular contadores de marca (SOLO DISPONIBLES)
   const bmwStockCount = stockError ? 0 : 
