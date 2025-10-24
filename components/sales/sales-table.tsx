@@ -1058,7 +1058,6 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
       // Reordenar después de actualizar la validación
       setFilteredVehicles(sortVehicles(updatedFilteredVehicles))
       toast.success(`Vehículo ${newValidated ? "validado" : "pendiente de validación"}`)
-    }
     } catch (err) {
       console.error("Error en la actualización:", err)
       toast.error("Error al actualizar la validación")
