@@ -20,23 +20,18 @@ export async function POST(request: NextRequest) {
 
     const now = new Date().toISOString()
     
-    // Solo guardar fecha cuando el estado es "completado"
-    const updates: any = { cyp_status: status }
-    if (status === "completado") {
-      updates.cyp_date = now
-    } else if (status === "pendiente") {
-      updates.cyp_date = null
-    }
-    
     const { data, error } = await supabase
       .from("sales_vehicles")
-      .update(updates)
+      .update({
+        payment_status: status,
+        updated_at: now,
+      })
       .eq("id", id)
       .select()
       .single()
 
     if (error) {
-      console.error("❌ [API] Error updating CYP status:", error)
+      console.error("❌ [API] Error updating payment status:", error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 

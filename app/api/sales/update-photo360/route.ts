@@ -20,12 +20,17 @@ export async function POST(request: NextRequest) {
 
     const now = new Date().toISOString()
     
+    // Solo guardar fecha cuando el estado es "completado"
+    const updates: any = { photo_360_status: status }
+    if (status === "completado") {
+      updates.photo_360_date = now
+    } else if (status === "pendiente") {
+      updates.photo_360_date = null
+    }
+    
     const { data, error } = await supabase
       .from("sales_vehicles")
-      .update({
-        photo360_status: status,
-        photo360_status_date: now,
-      })
+      .update(updates)
       .eq("id", id)
       .select()
       .single()

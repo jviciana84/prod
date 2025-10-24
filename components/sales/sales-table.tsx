@@ -768,6 +768,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
   }
 
   // Función para actualizar el estado de pago
+  // Función para actualizar el estado de pago - MIGRADA A API ROUTE
   async function updatePaymentStatus(id: string, status: string) {
     setSelectedRowId(id)
     setUpdatingId(id)
@@ -778,39 +779,38 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
         throw new Error("Vehículo no encontrado")
       }
 
-      // Actualizar el estado de pago en la base de datos (sin incluir priority)
-      const { error } = await supabase
-        .from("sales_vehicles")
-        .update({
-          payment_status: status,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", id)
+      // ✅ MUTACIÓN → API Route
+      const response = await fetch("/api/sales/update-payment-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status }),
+      })
 
-      if (error) {
-        console.error("Error al actualizar estado de pago:", error)
-        toast.error("Error al actualizar el estado de pago")
-      } else {
-        // Actualizar el estado local, incluyendo la prioridad calculada
-        const updatedVehicle = { ...currentVehicle, payment_status: status }
-        const newPriority = calculatePriority(updatedVehicle)
+      const result = await response.json()
 
-        setVehicles(
-          vehicles.map((v) =>
-            v.id === id
-              ? { ...v, payment_status: status, priority: newPriority, updated_at: new Date().toISOString() }
-              : v,
-          ),
-        )
-        const updatedFilteredVehicles = filteredVehicles.map((v) =>
-          v.id === id
-            ? { ...v, payment_status: status, priority: newPriority, updated_at: new Date().toISOString() }
-            : v,
-        )
-        // Reordenar después de actualizar la prioridad
-        setFilteredVehicles(sortVehicles(updatedFilteredVehicles))
-        toast.success("Estado de pago actualizado")
+      if (!response.ok || result.error) {
+        throw new Error(result.error || "Error al actualizar estado de pago")
       }
+
+      // Actualizar el estado local, incluyendo la prioridad calculada
+      const updatedVehicle = { ...currentVehicle, payment_status: status }
+      const newPriority = calculatePriority(updatedVehicle)
+
+      setVehicles(
+        vehicles.map((v) =>
+          v.id === id
+            ? { ...v, payment_status: status, priority: newPriority, updated_at: result.timestamp }
+            : v,
+        ),
+      )
+      const updatedFilteredVehicles = filteredVehicles.map((v) =>
+        v.id === id
+          ? { ...v, payment_status: status, priority: newPriority, updated_at: result.timestamp }
+          : v,
+      )
+      // Reordenar después de actualizar la prioridad
+      setFilteredVehicles(sortVehicles(updatedFilteredVehicles))
+      toast.success("Estado de pago actualizado")
     } catch (err) {
       console.error("Error en la actualización:", err)
       toast.error("Error al actualizar el estado de pago")
@@ -987,11 +987,10 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
     }
   }
 
-  // Función para validar un vehículo
+  // Función para validar un vehículo - MIGRADA A API ROUTE
   async function toggleValidation(id: string, currentValidated?: boolean) {
     setSelectedRowId(id)
     setUpdatingId(id)
-    const now = new Date().toISOString()
 
     try {
       // Encontrar el vehículo actual
@@ -1000,65 +999,66 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
         throw new Error("Vehículo no encontrado")
       }
 
-      // Actualizar el estado de validación en la base de datos (sin incluir priority)
-      const { error } = await supabase
-        .from("sales_vehicles")
-        .update({
-          validated: !currentValidated,
-          validation_date: !currentValidated ? now : null,
-          updated_at: now,
-        })
-        .eq("id", id)
+      const newValidated = !currentValidated
 
-      if (error) {
-        console.error("Error al actualizar validación:", error)
-        toast.error("Error al actualizar la validación")
-      } else {
-        // Sincronizar con la tabla pedidos_validados
-        const syncResult = await syncValidatedVehicle(id, !currentValidated, !currentValidated ? now : null)
+      // ✅ MUTACIÓN → API Route
+      const response = await fetch("/api/sales/update-validation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, validated: newValidated }),
+      })
 
-        if (!syncResult.success) {
-          console.error("Error al sincronizar con pedidos_validados:", syncResult.message)
-          toast.error("Error al sincronizar con pedidos validados")
-        }
+      const result = await response.json()
 
-        // Actualizar el estado local, incluyendo la prioridad calculada
-        const updatedVehicle = {
-          ...currentVehicle,
-          validated: !currentValidated,
-          validation_date: !currentValidated ? now : null,
-        }
+      if (!response.ok || result.error) {
+        throw new Error(result.error || "Error al actualizar validación")
+      }
 
-        const newPriority = calculatePriority(updatedVehicle)
+      // Sincronizar con la tabla pedidos_validados
+      const syncResult = await syncValidatedVehicle(id, newValidated, newValidated ? result.timestamp : null)
 
-        setVehicles(
-          vehicles.map((v) =>
-            v.id === id
-              ? {
-                  ...v,
-                  validated: !currentValidated,
-                  validation_date: !currentValidated ? now : null,
-                  priority: newPriority,
-                  updated_at: now,
-                }
-              : v,
-          ),
-        )
-        const updatedFilteredVehicles = filteredVehicles.map((v) =>
+      if (!syncResult.success) {
+        console.error("Error al sincronizar con pedidos_validados:", syncResult.message)
+        toast.error("Error al sincronizar con pedidos validados")
+      }
+
+      // Actualizar el estado local, incluyendo la prioridad calculada
+      const updatedVehicle = {
+        ...currentVehicle,
+        validated: newValidated,
+        validation_date: newValidated ? result.timestamp : null,
+      }
+
+      const newPriority = calculatePriority(updatedVehicle)
+
+      setVehicles(
+        vehicles.map((v) =>
           v.id === id
             ? {
                 ...v,
-                validated: !currentValidated,
-                validation_date: !currentValidated ? now : null,
+                validated: newValidated,
+                validation_date: newValidated ? result.timestamp : null,
                 priority: newPriority,
-                updated_at: now,
+                updated_at: result.timestamp,
               }
             : v,
-        )
-        // Reordenar después de actualizar la validación
-        setFilteredVehicles(sortVehicles(updatedFilteredVehicles))
-        toast.success(`Vehículo ${!currentValidated ? "validado" : "pendiente de validación"}`)
-      }
+        ),
+      )
+      const updatedFilteredVehicles = filteredVehicles.map((v) =>
+        v.id === id
+          ? {
+              ...v,
+              validated: newValidated,
+              validation_date: newValidated ? result.timestamp : null,
+              priority: newPriority,
+              updated_at: result.timestamp,
+            }
+          : v,
+      )
+      // Reordenar después de actualizar la validación
+      setFilteredVehicles(sortVehicles(updatedFilteredVehicles))
+      toast.success(`Vehículo ${newValidated ? "validado" : "pendiente de validación"}`)
+    }
     } catch (err) {
       console.error("Error en la actualización:", err)
       toast.error("Error al actualizar la validación")
@@ -1155,6 +1155,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
   }
 
   // Función para guardar el proveedor externo
+  // Función para guardar proveedor externo - MIGRADA A API ROUTE
   async function saveExternalProvider(id: string) {
     if (!externalProvider.trim()) {
       toast.error("Debe ingresar un nombre de proveedor")
@@ -1165,17 +1166,17 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
     setUpdatingId(id)
 
     try {
-      const { error } = await supabase
-        .from("sales_vehicles")
-        .update({
-          external_provider: externalProvider,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", id)
+      // ✅ MUTACIÓN → API Route
+      const response = await fetch("/api/sales/update-external-provider", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, provider: externalProvider }),
+      })
 
-      if (error) {
-        console.error("Error al guardar proveedor externo:", error)
-        throw new Error(error.message)
+      const result = await response.json()
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || "Error al guardar proveedor externo")
       }
 
       // Actualizar la UI
@@ -1185,7 +1186,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
             return {
               ...item,
               external_provider: externalProvider,
-              updated_at: new Date().toISOString(),
+              updated_at: result.timestamp,
             }
           }
           return item
@@ -1198,7 +1199,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
             return {
               ...item,
               external_provider: externalProvider,
-              updated_at: new Date().toISOString(),
+              updated_at: result.timestamp,
             }
           }
           return item
@@ -1540,49 +1541,32 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
     loadSoldVehicles()
   }
 
+  // Función para confirmar eliminación de venta - MIGRADA A API ROUTE
   const handleConfirmDelete = async () => {
     if (!deleteVehicleId) return
 
     setIsDeleting(true)
     try {
-      // 1. Marcar como venta caída en pedidos_validados
-      const { error: pedidosError } = await supabase
-        .from("pedidos_validados")
-        .update({
-          is_failed_sale: true,
-          failed_reason: deleteObservations || null,
-          failed_date: new Date().toISOString()
-        })
-        .eq("vehicle_id", deleteVehicleId)
+      const vehicle = vehicles.find(v => v.id === deleteVehicleId)
 
-      if (pedidosError) {
-        console.error("Error al marcar como venta caída:", pedidosError)
-        toast.error("Error al marcar como venta caída")
+      // ✅ MUTACIÓN → API Route
+      const response = await fetch("/api/sales/delete-sale", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          id: deleteVehicleId,
+          observations: deleteObservations || null,
+          licensePlate: vehicle?.license_plate
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || "Error al eliminar la venta")
       }
 
-      // 2. Eliminar de sales_vehicles
-      const { error: salesError } = await supabase
-        .from("sales_vehicles")
-        .delete()
-        .eq("id", deleteVehicleId)
-
-      if (salesError) {
-        console.error("Error al eliminar de sales_vehicles:", salesError)
-        toast.error("Error al eliminar la venta")
-      }
-
-      // 3. Eliminar de entregas si existe
-      const { error: entregasError } = await supabase
-        .from("entregas")
-        .delete()
-        .eq("matricula", vehicles.find(v => v.id === deleteVehicleId)?.license_plate)
-
-      if (entregasError) {
-        console.error("Error al eliminar de entregas:", entregasError)
-        // No mostrar error si no existe en entregas
-      }
-
-      // 4. Actualizar la UI
+      // Actualizar la UI
       setVehicles(prev => prev.filter(v => v.id !== deleteVehicleId))
       setFilteredVehicles(prev => prev.filter(v => v.id !== deleteVehicleId))
       setFilteredByDate(prev => prev.filter(v => v.id !== deleteVehicleId))
@@ -1596,9 +1580,9 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
       if (onRefreshRequest) {
         onRefreshRequest()
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error inesperado:", error)
-      toast.error("Error inesperado al eliminar la venta")
+      toast.error(error.message || "Error inesperado al eliminar la venta")
     } finally {
       setIsDeleting(false)
       // Limpiar modal siempre, incluso con errores

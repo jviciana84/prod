@@ -9,9 +9,9 @@ export async function POST(request: NextRequest) {
     )
 
     const body = await request.json()
-    const { id, status } = body
+    const { id, validated } = body
 
-    if (!id || !status) {
+    if (!id || validated === undefined) {
       return NextResponse.json(
         { error: "Faltan parámetros requeridos" },
         { status: 400 }
@@ -20,23 +20,19 @@ export async function POST(request: NextRequest) {
 
     const now = new Date().toISOString()
     
-    // Solo guardar fecha cuando el estado es "completado"
-    const updates: any = { cyp_status: status }
-    if (status === "completado") {
-      updates.cyp_date = now
-    } else if (status === "pendiente") {
-      updates.cyp_date = null
-    }
-    
     const { data, error } = await supabase
       .from("sales_vehicles")
-      .update(updates)
+      .update({
+        validated: validated,
+        validation_date: validated ? now : null,
+        updated_at: now,
+      })
       .eq("id", id)
       .select()
       .single()
 
     if (error) {
-      console.error("❌ [API] Error updating CYP status:", error)
+      console.error("❌ [API] Error updating validation:", error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
