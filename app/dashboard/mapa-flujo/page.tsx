@@ -2283,6 +2283,71 @@ const pageExplanations: { [key: string]: { steps: string[], validations: string[
     technical: ["🔧 Demo de sistema de mapeo de daños"],
     validations: ["⚠️ Solo para demostración"]
   },
+  "Debug Add Column": {
+    steps: ["🔧 Herramienta para agregar columnas a tablas", "🧪 Testing de migraciones"],
+    technical: ["⚠️ Solo desarrollo - No usar en producción"],
+    validations: ["❌ Puede romper la estructura de datos"]
+  },
+  "Notifications Debug": {
+    steps: ["🔔 Debug avanzado de notificaciones", "🧪 Testing de envío"],
+    technical: ["🔧 Herramienta de troubleshooting"],
+    validations: ["⚠️ No enviar a usuarios reales"]
+  },
+  "Notifications Fix": {
+    steps: ["🔧 Reparar problemas de notificaciones", "🧪 Fix de bugs"],
+    technical: ["🔧 Utilidad de mantenimiento"],
+    validations: ["⚠️ Hacer backup antes de usar"]
+  },
+  "Notifications Simple": {
+    steps: ["📨 Test de notificaciones simples", "✅ Verificar entrega"],
+    technical: ["🔧 Testing básico de notificaciones"],
+    validations: ["⚠️ Solo para pruebas"]
+  },
+  "Test Sales Layout": {
+    steps: ["🎨 Probar layout de ventas", "🧪 Testing de UI"],
+    technical: ["🔧 Testing de componentes visuales"],
+    validations: ["✅ No afecta datos reales"]
+  },
+  "Test PDF Extract": {
+    steps: ["📄 Probar extracción de PDFs", "🔍 Testing OCR"],
+    technical: ["🔧 Testing de Tesseract"],
+    validations: ["⚠️ Usar PDFs de prueba"]
+  },
+  "Test Email Docuware": {
+    steps: ["📧 Test de emails Docuware", "✅ Verificar integración"],
+    technical: ["🔧 Testing de integración externa"],
+    validations: ["⚠️ No enviar a clientes"]
+  },
+  "Test Email Realizado": {
+    steps: ["📧 Test de email realizado", "✅ Verificar template"],
+    technical: ["🔧 Testing de templates"],
+    validations: ["⚠️ Solo emails de prueba"]
+  },
+  "Test Entrega En Mano": {
+    steps: ["🤝 Test de entrega en mano", "✅ Verificar workflow"],
+    technical: ["🔧 Testing de proceso especial"],
+    validations: ["⚠️ Usar datos de prueba"]
+  },
+  "Test New Sale": {
+    steps: ["💰 Test de nueva venta", "✅ Verificar notificaciones"],
+    technical: ["🔧 Testing de notificaciones de venta"],
+    validations: ["⚠️ No crear ventas reales"]
+  },
+  "Test Failed Sale": {
+    steps: ["❌ Test de venta fallida", "✅ Verificar manejo de errores"],
+    technical: ["🔧 Testing de error handling"],
+    validations: ["⚠️ Casos de error controlados"]
+  },
+  "Test Vehicle Certification": {
+    steps: ["📋 Test de certificación", "✅ Verificar workflow"],
+    technical: ["🔧 Testing de proceso de certificación"],
+    validations: ["⚠️ Datos de prueba"]
+  },
+  "Force Activate Push": {
+    steps: ["🔔 Forzar activación de push", "⚠️ Bypass de validaciones"],
+    technical: ["🔧 Solo para troubleshooting"],
+    validations: ["❌ Solo usar si normal falla"]
+  },
   // FASE 9: DASHBOARD Y PÁGINAS ESPECIALES
   "Dashboard": {
     steps: [
