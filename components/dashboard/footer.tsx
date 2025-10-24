@@ -4,6 +4,7 @@ import { VersionBadge } from "@/components/version-badge"
 import { useEffect, useState } from "react"
 import { createClientComponentClient } from "@/lib/supabase/client"
 import { PerformanceMonitor } from "@/components/ui/performance-monitor"
+import { MapaFlowButton } from "@/components/ui/mapa-flow-button"
 import { GothicEIcon } from "@/components/ui/gothic-e-icon"
 
 // Definir la versión actual de la aplicación
@@ -63,6 +64,7 @@ export function DashboardFooter() {
           <div className="relative">
             <PerformanceMonitor />
           </div>
+          <MapaFlowButton />
           <GothicEIcon />
         </div>
       </div>
