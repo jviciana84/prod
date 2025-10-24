@@ -278,7 +278,23 @@ const pageExplanations: { [key: string]: { steps: string[], validations: string[
       "⚠️ NO ignorar alertas de batería - puede dañar el vehículo",
       "✅ Cargar al menos cada 15 días para mantener salud de batería",
       "🔍 Revisar configuración de días máximos sin carga"
-    ]
+    ],
+    diagram: `
+    graph TD
+      A[📊 duc_scraper] --> B{🔋 BEV/PHEV?}
+      B -->|SÍ| C[🔄 Auto-crear en<br/>battery_control]
+      B -->|NO| D[⏭️ Skip]
+      C --> E[📊 Monitorear<br/>días sin carga]
+      E --> F{⚠️ >15 días?}
+      F -->|SÍ| G[🔔 Alerta Usuario]
+      F -->|NO| E
+      G --> H[⚡ Usuario Carga]
+      H --> I[💾 Actualizar<br/>fecha_carga]
+      I --> E
+      style C fill:#ccffcc
+      style G fill:#ffcccc
+      style I fill:#cce5ff
+    `
   },
   "Asignar Fotógrafo": {
     steps: [
@@ -404,7 +420,24 @@ const pageExplanations: { [key: string]: { steps: string[], validations: string[
       "⚠️ NO modificar precios después de confirmar sin autorización",
       "✅ Verificar datos del cliente antes de confirmar venta",
       "🔍 Mantener documentación completa para auditorías"
-    ]
+    ],
+    diagram: `
+    graph TD
+      A[📊 sales_vehicles<br/>pendiente] --> B{✏️ Acción?}
+      B -->|Confirmar| C[✅ estado:<br/>confirmada]
+      B -->|Editar| D[📝 Modificar<br/>datos]
+      B -->|Cancelar| E[❌ estado:<br/>cancelada]
+      C --> F[📄 Generar<br/>Documentos]
+      F --> G[🚚 Programar<br/>Entrega]
+      D --> A
+      E --> H[📊 Actualizar<br/>métricas]
+      G --> I[📋 entregas]
+      I --> J[✅ Entrega<br/>completada]
+      J --> K[💰 Calcular<br/>Incentivos]
+      style C fill:#ccffcc
+      style E fill:#ffcccc
+      style J fill:#ccffcc
+    `
   },
   "Nueva Venta": {
     steps: [
@@ -720,7 +753,26 @@ const pageExplanations: { [key: string]: { steps: string[], validations: string[
       "⚠️ NO crear sin verificar datos del cliente",
       "✅ Confirmar ubicación y datos de contacto",
       "🔍 Verificar que no existe recogida duplicada"
-    ]
+    ],
+    diagram: `
+    graph TD
+      A[📝 Formulario<br/>Recogida] --> B[🚗 Datos Vehículo]
+      A --> C[👤 Datos Cliente]
+      A --> D[📍 Ubicación]
+      B --> E{✅ Validar}
+      C --> E
+      D --> E
+      E -->|OK| F[📅 Programar<br/>Fecha/Hora]
+      E -->|Error| G[❌ Corregir datos]
+      F --> H[💾 INSERT<br/>recogidas_historial]
+      H --> I[🔔 Notificar<br/>Responsable]
+      I --> J[📊 Estado:<br/>programada]
+      J --> K[🚗 Realizar<br/>Recogida]
+      K --> L[✅ Marcar<br/>completada]
+      style H fill:#ccffcc
+      style G fill:#ffcccc
+      style L fill:#ccffcc
+    `
   },
   "Detalle Recogida [id]": {
     steps: [
@@ -762,7 +814,23 @@ const pageExplanations: { [key: string]: { steps: string[], validations: string[
       "⚠️ NO eliminar incentivos con ventas asociadas",
       "✅ Verificar cálculos antes de confirmar incentivos",
       "🔍 Revisar impacto en ventas existentes antes de cambios"
-    ]
+    ],
+    diagram: `
+    graph TD
+      A[📋 Crear Incentivo] --> B[💰 Definir Tipo<br/>y Monto]
+      B --> C[👥 Asignar<br/>Vendedores]
+      C --> D[📅 Establecer<br/>Vigencia]
+      D --> E[💾 incentivos<br/>activo]
+      E --> F[💰 Venta realizada]
+      F --> G{✅ Cumple<br/>condiciones?}
+      G -->|SÍ| H[💵 Calcular<br/>incentivo]
+      G -->|NO| I[⏭️ Skip]
+      H --> J[📊 Registrar<br/>en historial]
+      J --> K[🔔 Notificar<br/>Vendedor]
+      style E fill:#ccffcc
+      style H fill:#cce5ff
+      style K fill:#ffffcc
+    `
   },
   "Nuevo Incentivo": {
     steps: [
@@ -931,7 +999,24 @@ const pageExplanations: { [key: string]: { steps: string[], validations: string[
       "⚠️ NO tasar sin inspección física del vehículo",
       "✅ Verificar documentación completa del vehículo",
       "🔍 Comparar con valores de mercado actuales"
-    ]
+    ],
+    diagram: `
+    graph TD
+      A[👤 Cliente solicita<br/>tasación] --> B[📝 Crear Tasación]
+      B --> C[🚗 Datos Vehículo<br/>+ Fotos]
+      C --> D[💰 Sistema calcula<br/>valor mercado]
+      D --> E[📋 tasaciones<br/>pendiente]
+      E --> F{✅ Decisión?}
+      F -->|Aceptar| G[💾 Actualizar<br/>estado: aceptada]
+      F -->|Rechazar| H[❌ estado: rechazada]
+      F -->|Negociar| I[💬 Modificar precio]
+      G --> J[🚗 Pasar a Stock]
+      I --> E
+      style E fill:#cce5ff
+      style G fill:#ccffcc
+      style H fill:#ffcccc
+      style J fill:#ccffcc
+    `
   },
   "Nueva Tasación": {
     steps: [
