@@ -315,6 +315,11 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
   }
 
   const handleCellClick = (entrega: Entrega, field: "fecha_entrega" | "observaciones") => {
+    // Si ya estamos editando esta celda, no hacer nada
+    if (editingCell?.id === entrega.id && editingCell?.field === field) {
+      return
+    }
+    
     setEditingCell({ id: entrega.id, field })
     if (field === "fecha_entrega") {
       setEditValue(entrega.fecha_entrega ? formatDateDisplay(entrega.fecha_entrega) : "")
@@ -348,20 +353,48 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
     }
   }
 
+  // Ref para controlar el blur y evitar conflictos con Enter
+  const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const isProcessingEnterRef = useRef(false)
+
+  // Cleanup del timeout cuando se desmonta o cambia editingCell
+  useEffect(() => {
+    return () => {
+      if (blurTimeoutRef.current) {
+        clearTimeout(blurTimeoutRef.current)
+        blurTimeoutRef.current = null
+      }
+    }
+  }, [editingCell])
+
   const handleInputBlur = () => {
-    // Esperar 100ms para dar tiempo a que Enter se procese primero
-    setTimeout(() => {
-      if (editingCell) {
+    // Esperar 150ms para dar tiempo a que Enter se procese primero
+    blurTimeoutRef.current = setTimeout(() => {
+      // Solo cerrar si no estamos procesando Enter
+      if (editingCell && !isProcessingEnterRef.current) {
         setEditingCell(null)
         setEditValue("")
       }
-    }, 100)
+    }, 150)
   }
 
   const handleInputKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault()
-      if (!editingCell) return
+      
+      // Cancelar el blur pendiente
+      if (blurTimeoutRef.current) {
+        clearTimeout(blurTimeoutRef.current)
+        blurTimeoutRef.current = null
+      }
+      
+      // Marcar que estamos procesando Enter
+      isProcessingEnterRef.current = true
+      
+      if (!editingCell) {
+        isProcessingEnterRef.current = false
+        return
+      }
 
       const { id, field } = editingCell
       const updateData: Partial<Entrega> = {}
@@ -370,11 +403,13 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
       if (field === "fecha_entrega") {
         if (!editValue.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
           toast.error("Formato de fecha inválido. Use DD/MM/AAAA.")
+          isProcessingEnterRef.current = false
           return
         }
         const parsedDate = parse(editValue, "dd/MM/yyyy", new Date())
         if (!isValid(parsedDate)) {
           toast.error("Fecha inválida.")
+          isProcessingEnterRef.current = false
           return
         }
 
@@ -383,6 +418,7 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
         today.setHours(23, 59, 59, 999) // Final del día actual
         if (parsedDate > today) {
           toast.error("No se puede establecer una fecha de entrega futura.")
+          isProcessingEnterRef.current = false
           return
         }
 
@@ -413,8 +449,15 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
         setEditValue("")
       } catch (error: any) {
         toast.error(`Error al actualizar: ${error.message}`)
+      } finally {
+        isProcessingEnterRef.current = false
       }
     } else if (e.key === "Escape") {
+      // Cancelar el blur pendiente
+      if (blurTimeoutRef.current) {
+        clearTimeout(blurTimeoutRef.current)
+        blurTimeoutRef.current = null
+      }
       setEditingCell(null)
       setEditValue("")
     }
@@ -717,7 +760,14 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
                             </TableCell>
                             <TableCell
                               className="py-1 cursor-pointer"
-                              onClick={() => handleCellClick(entrega, "fecha_entrega")}
+                              onClick={(e) => {
+                                // No ejecutar si ya estamos editando
+                                if (editingCell?.id === entrega.id && editingCell?.field === "fecha_entrega") {
+                                  e.stopPropagation()
+                                  return
+                                }
+                                handleCellClick(entrega, "fecha_entrega")
+                              }}
                             >
                               {editingCell?.id === entrega.id && editingCell?.field === "fecha_entrega" ? (
                                 <Input
@@ -727,6 +777,7 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
                                   onChange={handleInputChange}
                                   onKeyDown={handleInputKeyDown}
                                   onBlur={handleInputBlur}
+                                  onClick={(e) => e.stopPropagation()}
                                   className="h-7 text-xs p-1 w-full"
                                   placeholder="DD/MM/AAAA"
                                 />
