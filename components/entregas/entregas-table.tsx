@@ -349,8 +349,13 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
   }
 
   const handleInputBlur = () => {
-    setEditingCell(null)
-    setEditValue("")
+    // Esperar 100ms para dar tiempo a que Enter se procese primero
+    setTimeout(() => {
+      if (editingCell) {
+        setEditingCell(null)
+        setEditValue("")
+      }
+    }, 100)
   }
 
   const handleInputKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
