@@ -377,9 +377,38 @@ export function useGlobalSearch() {
     }
   }, [supabase])
 
+  // Nueva función para obtener datos completos de DUC
+  const searchDucDetails = useCallback(async (matricula: string) => {
+    if (!matricula) return null
+    
+    try {
+      const { data, error } = await supabase
+        .from('duc_scraper')
+        .select('*')
+        .ilike('Matrícula', matricula)
+        .limit(1)
+      
+      if (error) {
+        console.error('Error en query DUC:', error)
+        return null
+      }
+      
+      // Si no hay datos o el array está vacío, retornar null sin error
+      if (!data || data.length === 0) {
+        return null
+      }
+      
+      return data[0]
+    } catch (error) {
+      console.error('Error buscando detalles de DUC:', error)
+      return null
+    }
+  }, [supabase])
+
   return {
     search,
     results,
-    isLoading
+    isLoading,
+    searchDucDetails
   }
 }

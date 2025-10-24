@@ -2,7 +2,7 @@
 
 import React from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Car, Calendar, Euro, User, Phone, Mail, MapPin, Clock, CheckCircle, AlertCircle, Camera, Wrench, FileText, Key, Package, Truck } from "lucide-react"
+import { Car, Calendar, Euro, User, Phone, Mail, MapPin, Clock, CheckCircle, AlertCircle, Camera, Wrench, FileText, Key, Package, Truck, Tag, BookOpen } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -25,6 +25,7 @@ interface SearchResultsModalProps {
   results: SearchResult[]
   query: string
   isLoading?: boolean
+  ducDetails?: any
 }
 
 export function SearchResultsModal({ 
@@ -32,7 +33,8 @@ export function SearchResultsModal({
   onClose, 
   results, 
   query, 
-  isLoading = false 
+  isLoading = false,
+  ducDetails
 }: SearchResultsModalProps) {
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -279,6 +281,225 @@ export function SearchResultsModal({
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span>{results.length} resultado{results.length !== 1 ? 's' : ''} encontrado{results.length !== 1 ? 's' : ''}</span>
               </div>
+              
+              {/* CARD DE DUC - PRIMERO */}
+              {ducDetails ? (
+                <Card className="border-l-4 border-l-cyan-500 hover:shadow-lg transition-all duration-300">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-full border-2 bg-cyan-100 text-cyan-700 border-cyan-300 dark:bg-cyan-900/30 dark:text-cyan-300 dark:border-cyan-600">
+                          <FileText className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1 mb-0.5">
+                            <Badge 
+                              variant="secondary" 
+                              className="text-xs border-l-4 border-l-cyan-500 px-1.5 py-0.5"
+                            >
+                              DUC
+                            </Badge>
+                            {ducDetails.Disponibilidad && (
+                              <div className="flex items-center gap-1">
+                                <Clock className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground lowercase">
+                                  {ducDetails.Disponibilidad}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <CardTitle className="text-base">
+                            {ducDetails.Matrícula || results[0]?.license_plate || "N/A"}
+                          </CardTitle>
+                        </div>
+                      </div>
+                      {ducDetails.Precio && (
+                        <div className="text-base font-normal flex items-center gap-2">
+                          <Tag className="h-4 w-4 text-green-600" />
+                          <span className="font-bold">Precio:</span> {(() => {
+                            const precio = ducDetails.Precio.toString().replace(/[^\d,.-]/g, '')
+                            const numero = parseFloat(precio.replace(',', '.'))
+                            return isNaN(numero) ? ducDetails.Precio : new Intl.NumberFormat('es-ES', {
+                              minimumFractionDigits: 0,
+                              maximumFractionDigits: 0
+                            }).format(numero) + ' €'
+                          })()}
+                        </div>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex gap-4">
+                      {/* 60% - SUBCARD CON DOS COLUMNAS DE DATOS */}
+                      <div className="w-[60%]">
+                        <Card className="border border-border/50">
+                          <CardHeader className="pb-2 pt-3 px-3">
+                            <div className="flex items-center gap-1.5">
+                              <BookOpen className="h-3.5 w-3.5 text-cyan-500" />
+                              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                                Información completa DUC
+                              </span>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="px-3 pt-2 pb-3">
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                        {/* Columna 1 - Siguiendo orden de imagen */}
+                        <div>
+                          <div className="mb-0.5">
+                            <span className="font-bold text-cyan-500">Creado DUC:</span>
+                            <span className="ml-1 font-normal">{ducDetails["Fecha creación"] || "N/A"}</span>
+                          </div>
+                          <div className="mb-0.5">
+                            <span className="font-bold text-cyan-500">Modificado DUC:</span>
+                            <span className="ml-1 font-normal">{ducDetails["Fecha modificación"] || "N/A"}</span>
+                          </div>
+                          <div className="mb-0.5">
+                            <span className="font-bold text-cyan-500">Días creado:</span>
+                            <span className="ml-1 font-normal">{ducDetails["Días creado"] || "N/A"}</span>
+                          </div>
+                          <div className="mb-0.5">
+                            <span className="font-bold text-cyan-500">Primera publicación:</span>
+                            <span className="ml-1 font-normal">{ducDetails["Fecha primera publicación"] || "N/A"}</span>
+                          </div>
+                          <div className="mb-0.5">
+                            <span className="font-bold text-cyan-500">Días publicado:</span>
+                            <span className="ml-1 font-normal">{ducDetails["Días publicado"] || "N/A"}</span>
+                          </div>
+                          <div className="mb-0.5">
+                            <span className="font-bold text-cyan-500">Referencia:</span>
+                            <span className="ml-1 font-normal text-[10px]">{ducDetails["Referencia"] || "N/A"}</span>
+                          </div>
+                          <div className="mb-0.5">
+                            <span className="font-bold text-cyan-500">Referencia cliente:</span>
+                            <span className="ml-1 font-normal text-[10px]">{ducDetails["Referencia interna"] || ducDetails["Chasis"] || "N/A"}</span>
+                          </div>
+                          <div className="mb-0.5">
+                            <span className="font-bold text-cyan-500">Creado con:</span>
+                            <span className="ml-1 font-normal text-[10px]">{ducDetails["Creado con"] || "N/A"}</span>
+                          </div>
+                          <div className="mb-0.5">
+                            <span className="font-bold text-cyan-500">Compra DMS:</span>
+                            <span className="ml-1 font-normal">{ducDetails["Fecha compra DMS"] || "-"}</span>
+                          </div>
+                          <div className="mb-0.5">
+                            <span className="font-bold text-cyan-500">Días stock:</span>
+                            <span className="ml-1 font-normal">{ducDetails["Días stock"] || "N/A"}</span>
+                          </div>
+                        </div>
+                        
+                        {/* Columna 2 - Siguiendo orden de imagen */}
+                        <div>
+                          <div className="mb-0.5">
+                            <span className="font-bold text-cyan-500">Fecha fabricación:</span>
+                            <span className="ml-1 font-normal">{ducDetails["Fecha fabricación"] || "N/A"}</span>
+                          </div>
+                          <div className="mb-0.5">
+                            <span className="font-bold text-cyan-500">1ª matriculación:</span>
+                            <span className="ml-1 font-normal">{ducDetails["Fecha primera matriculación"] || "N/A"}</span>
+                          </div>
+                          <div className="mb-0.5">
+                            <span className="font-bold text-cyan-500">Km:</span>
+                            <span className="ml-1 font-normal">{ducDetails["KM"] ? new Intl.NumberFormat('es-ES').format(parseFloat(String(ducDetails["KM"]).replace(/[^\d]/g, ''))) : "N/A"}</span>
+                          </div>
+                          <div className="mb-0.5">
+                            <span className="font-bold text-cyan-500">Matrícula:</span>
+                            <span className="ml-1 font-normal">{ducDetails["Matrícula"] || "N/A"}</span>
+                          </div>
+                          <div className="mb-0.5">
+                            <span className="font-bold text-cyan-500">Chasis:</span>
+                            <span className="ml-1 font-normal text-[10px]">{ducDetails["Chasis"] || "N/A"}</span>
+                          </div>
+                          <div className="mb-0.5">
+                            <span className="font-bold text-cyan-500">Color:</span>
+                            <span className="ml-1 font-normal">{ducDetails["Color Carrocería"] || "N/A"}</span>
+                          </div>
+                          <div className="mb-0.5">
+                            <span className="font-bold text-cyan-500">Combustible:</span>
+                            <span className="ml-1 font-normal">{ducDetails["Combustible"] || "N/A"}</span>
+                          </div>
+                          <div className="mb-0.5">
+                            <span className="font-bold text-cyan-500">Tipo motor:</span>
+                            <span className="ml-1 font-normal text-[10px]">{ducDetails["Tipo motor"] || "N/A"}</span>
+                          </div>
+                          <div className="mb-0.5">
+                            <span className="font-bold text-cyan-500">Distintivo ambiental:</span>
+                            <span className="ml-1 font-normal text-[10px]">{ducDetails["Distintivo ambiental"] || "N/A"}</span>
+                          </div>
+                          <div className="mb-0.5">
+                            <span className="font-bold text-cyan-500">Cambio:</span>
+                            <span className="ml-1 font-normal">{ducDetails["Cambio"] || "N/A"}</span>
+                          </div>
+                          <div className="mb-0.5">
+                            <span className="font-bold text-cyan-500">Régimen fiscal:</span>
+                            <span className="ml-1 font-normal text-[10px]">{ducDetails["Regimen fiscal"] || "N/A"}</span>
+                          </div>
+                          <div className="mb-0.5">
+                            <span className="font-bold text-cyan-500">Precio nuevo:</span>
+                            <span className="ml-1 font-normal">
+                              {ducDetails["Precio vehículo nuevo"] ? 
+                                new Intl.NumberFormat('es-ES').format(parseFloat(String(ducDetails["Precio vehículo nuevo"]).replace(/[^\d,.-]/g, '').replace(',', '.'))) + ' €' 
+                                : "N/A"
+                              }
+                            </span>
+                          </div>
+                        </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                      
+                      {/* 40% - IMAGEN */}
+                      <div className="w-[40%] flex items-stretch">
+                        {ducDetails["URL foto 1"] ? (
+                          <img 
+                            src={ducDetails["URL foto 1"]} 
+                            alt="Vehículo" 
+                            className="w-full h-full rounded-lg border border-border object-cover"
+                            onError={(e) => {
+                              e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="150"%3E%3Crect fill="%23ddd" width="200" height="150"/%3E%3Ctext fill="%23999" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3ESin imagen%3C/text%3E%3C/svg%3E'
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-muted rounded-lg flex items-center justify-center text-muted-foreground border border-border">
+                            <Camera className="h-8 w-8" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                results.length > 0 && (
+                  <Card className="border-l-4 border-l-gray-400">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-full border-2 bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-900/30 dark:text-gray-300 dark:border-gray-600">
+                          <FileText className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1 mb-0.5">
+                            <Badge 
+                              variant="secondary" 
+                              className="text-xs border-l-4 border-l-gray-500 px-1.5 py-0.5"
+                            >
+                              DUC
+                            </Badge>
+                            <div className="flex items-center gap-1">
+                              <AlertCircle className="h-4 w-4 text-red-500" />
+                              <span className="text-xs text-red-500">
+                                No está en DUC
+                              </span>
+                            </div>
+                          </div>
+                          <CardTitle className="text-base">
+                            {results[0]?.license_plate || "N/A"}
+                          </CardTitle>
+                        </div>
+                      </div>
+                    </CardHeader>
+                  </Card>
+                )
+              )}
               
               <div className="space-y-2">
                 {results.map((result, index) => {
