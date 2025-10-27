@@ -28,10 +28,27 @@ export async function GET() {
       return NextResponse.json({ error: locationsError.message }, { status: 500 })
     }
 
+    // Consulta auxiliar: estado de fotos para badges (limitar a primeros 100)
+    const licensePlates = stock?.slice(0, 100).map((item) => item.license_plate) || []
+    let photoStatus: any = null
+
+    if (licensePlates.length > 0) {
+      const { data: photoData, error: photoError } = await supabase
+        .from("fotos")
+        .select("license_plate, photos_completed, estado_pintura")
+        .in("license_plate", licensePlates)
+
+      // No crítico si falla, continuamos sin datos de fotos
+      if (!photoError && photoData) {
+        photoStatus = photoData
+      }
+    }
+
     return NextResponse.json({
       data: {
         stock: stock || [],
         locations: locations || [],
+        photoStatus: photoStatus || [],
       },
     })
   } catch (error) {

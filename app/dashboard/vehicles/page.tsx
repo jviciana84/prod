@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useCallback, useEffect } from "react"
-import { createClientComponentClient } from "@/lib/supabase/client"
+// ✅ SIGUIENDO GUÍA: Cliente NO necesario - consultas van a API Routes
+// import { createClientComponentClient } from "@/lib/supabase/client"
 import StockTable from "@/components/vehicles/stock-table"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { CompactSearchWithModal } from "@/components/dashboard/compact-search-with-modal"
@@ -17,29 +18,47 @@ import { CarFrontDoubleIcon } from "@/components/ui/icons"
 import { Filter, CheckCircle, Tag, AlertTriangle } from "lucide-react"
 
 export default function VehiclesPage() {
-  const supabase = createClientComponentClient()
   const [refreshKey, setRefreshKey] = useState(0)
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
   const [stockStats, setStockStats] = useState({ total: 0, disponible: 0, noDisponible: 0, reservado: 0 })
+  const [stockData, setStockData] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
   
   // Usar preferencias guardadas
   const { preferences, isLoaded, setEnabled, setInterval } = useAutoRefreshPreferences()
 
-  // Cargar estadísticas de stock
+  // ✅ SIGUIENDO GUÍA: Cargar datos desde API Route
   useEffect(() => {
-    async function loadStats() {
-      const { data: stockData } = await supabase
-        .from('stock')
-        .select('is_available, license_plate')
-
-      setStockStats({
-        total: stockData?.length || 0,
-        disponible: stockData?.filter(v => v.is_available === true).length || 0,
-        noDisponible: stockData?.filter(v => v.is_available === false).length || 0,
-        reservado: 0
-      })
+    async function loadData() {
+      try {
+        console.log("🚗 Cargando stock desde API Route...")
+        setIsLoading(true)
+        
+        const response = await fetch('/api/stock/list')
+        if (!response.ok) {
+          throw new Error(`Error en API: ${response.status}`)
+        }
+        
+        const { data } = await response.json()
+        const stock = data.stock || []
+        
+        console.log("✅ Stock cargado desde API:", stock.length, "vehículos")
+        
+        // Actualizar datos y estadísticas
+        setStockData(stock)
+        setStockStats({
+          total: stock.length,
+          disponible: stock.filter((v: any) => v.is_available === true).length,
+          noDisponible: stock.filter((v: any) => v.is_available === false).length,
+          reservado: 0
+        })
+      } catch (error) {
+        console.error("❌ Error cargando stock:", error)
+      } finally {
+        setIsLoading(false)
+      }
     }
-    loadStats()
+    loadData()
   }, [refreshKey])
 
   const handleRefresh = useCallback(() => {
@@ -188,7 +207,16 @@ export default function VehiclesPage() {
               </TabsList>
             </Tabs>
           </div>
-          <StockTable key={refreshKey} onRefresh={handleRefresh} />
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                <p className="text-sm text-muted-foreground">Cargando inventario...</p>
+              </div>
+            </div>
+          ) : (
+            <StockTable key={refreshKey} initialStock={stockData} onRefresh={handleRefresh} />
+          )}
         </CardContent>
       </Card>
       {/* Componente de notificaciones de auto refresh */}

@@ -17,7 +17,8 @@ interface SearchResult {
 export function useGlobalSearch() {
   const [isLoading, setIsLoading] = useState(false)
   const [results, setResults] = useState<SearchResult[]>([])
-  const supabase = createClientComponentClient()
+  // ✅ SIGUIENDO GUÍA: Cliente creado dentro de funciones para evitar dependencias problemáticas
+  // const supabase = createClientComponentClient()
 
   // Función auxiliar para resolver el nombre completo del asesor
   const resolveAsesorName = async (asesorAlias: string | null | undefined): Promise<string> => {
@@ -29,6 +30,9 @@ export function useGlobalSearch() {
     }
     
     try {
+      // ✅ SIGUIENDO GUÍA: Cliente creado aquí localmente
+      const supabase = createClientComponentClient()
+      
       // Buscar en la tabla profiles por alias
       const { data: profileByAlias, error: aliasError } = await supabase
         .from("profiles")
@@ -82,6 +86,8 @@ export function useGlobalSearch() {
     const allResults: SearchResult[] = []
 
     try {
+      // ✅ SIGUIENDO GUÍA: Cliente creado aquí para evitar problemas en dependencias
+      const supabase = createClientComponentClient()
       // Buscar en sales_vehicles (ventas)
       const { data: salesData } = await supabase
         .from('sales_vehicles')
@@ -375,13 +381,15 @@ export function useGlobalSearch() {
     } finally {
       setIsLoading(false)
     }
-  }, [supabase])
+  }, []) // ✅ Sin dependencia de supabase para evitar re-renders infinitos
 
   // Nueva función para obtener datos completos de DUC
   const searchDucDetails = useCallback(async (matricula: string) => {
     if (!matricula) return null
     
     try {
+      // ✅ SIGUIENDO GUÍA: Cliente creado aquí
+      const supabase = createClientComponentClient()
       const { data, error } = await supabase
         .from('duc_scraper')
         .select('*')
@@ -403,7 +411,7 @@ export function useGlobalSearch() {
       console.error('Error buscando detalles de DUC:', error)
       return null
     }
-  }, [supabase])
+  }, []) // ✅ Sin dependencia de supabase
 
   return {
     search,

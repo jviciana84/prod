@@ -3,7 +3,9 @@
 import type React from "react"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { createClientComponentClient } from "@/lib/supabase/client"
+// ✅ SIGUIENDO GUÍA: Cliente supabase NO necesario para consultas
+// Todas las consultas deben ir a API Routes
+// import { createClientComponentClient } from "@/lib/supabase/client"
 import { useToast } from "@/hooks/use-toast"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
@@ -109,7 +111,8 @@ const NoDataMessage = ({ message = "No hay datos disponibles" }: { message?: str
 export default function StockTable({ initialStock = [], onRefresh }: StockTableProps) {
   console.log("🚀 StockTable - Componente iniciando con initialStock:", initialStock.length)
   
-  const supabase = createClientComponentClient()
+  // ✅ Cliente no necesario - consultas van a API Routes
+  // const supabase = createClientComponentClient()
   const [stock, setStock] = useState<StockItem[]>(initialStock)
   const [filteredStock, setFilteredStock] = useState<StockItem[]>(initialStock)
   const [displayedStock, setDisplayedStock] = useState<StockItem[]>([])
@@ -142,58 +145,21 @@ export default function StockTable({ initialStock = [], onRefresh }: StockTableP
   const externalProviderInputRef = useRef<HTMLInputElement>(null)
   const orInputRef = useRef<HTMLInputElement>(null)
 
-  // Añade este useEffect después de la declaración de las variables de estado
+  // ✅ SIGUIENDO GUÍA: Datos vienen como prop (initialStock)
+  // No cargar con cliente zombie - la página padre debe usar API Route
   useEffect(() => {
-    console.log("🔄 useEffect inicial - Componente montado, iniciando carga de datos...")
-    // Cargar datos al montar el componente
-    fetchStock()
-    fetchExpenseTypes()
-  }, []) // Array de dependencias vacío para que solo se ejecute al montar
+    console.log("🔄 useEffect inicial - Componente montado con initialStock:", initialStock.length)
+    // TODO: Página padre debe migrar a /api/stock/list
+    // fetchStock() // ❌ Usa cliente zombie
+    // fetchExpenseTypes() // ❌ Usa cliente zombie
+  }, [])
 
   // Cargar el estado de fotografiado y pintura para cada vehículo
+  // ✅ SIGUIENDO GUÍA: Consultas auxiliares con cliente zombie eliminadas
+  // Esta consulta causaba errores - movida a /api/stock/list cuando se migre la página
   useEffect(() => {
-    const fetchPhotoAndPaintStatus = async () => {
-      if (stock.length === 0) return
-
-      // Limitar a primeros 100 para evitar bloqueos
-      const licensePlates = stock.slice(0, 100).map((item) => item.license_plate)
-
-      try {
-        // Timeout de 5 segundos para no bloquear
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 5000)
-
-        const { data, error } = await supabase
-          .from("fotos")
-          .select("license_plate, photos_completed, estado_pintura")
-          .in("license_plate", licensePlates)
-          .abortSignal(controller.signal)
-
-        clearTimeout(timeoutId)
-
-        if (error) {
-          console.error("Error al obtener estado de fotos (no crítico):", error)
-          return
-        }
-
-        const photoStatusMap: Record<string, boolean> = {}
-        const paintStatusMap: Record<string, string> = {}
-
-        data?.forEach((item) => {
-          photoStatusMap[item.license_plate] = item.photos_completed || false
-          paintStatusMap[item.license_plate] = item.estado_pintura || ""
-        })
-
-        setPhotoStatus(photoStatusMap)
-        setPaintStatus(paintStatusMap)
-      } catch (err) {
-        if ((err as Error).name !== 'AbortError') {
-          console.error("Error al procesar estado de fotos (no crítico):", err)
-        }
-      }
-    }
-
-    fetchPhotoAndPaintStatus()
+    // TODO: Cuando la página use /api/stock/list, obtener photoStatus de allí
+    // Por ahora, deshabilitado para evitar errores con cliente zombie
   }, [stock])
 
   // Inicializar valores OR

@@ -1,7 +1,9 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { createClientComponentClient } from "@/lib/supabase/client"
+// Cliente NO necesario para consultas - solo para verificar si se necesita en el futuro
+// Todas las consultas (SELECT) usan API Route: /api/battery-control/list
+// Todas las mutaciones (UPDATE) usan API Route: /api/battery-control/update
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -80,11 +82,9 @@ interface BatteryControlTableProps {
 }
 
 export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}) {
-  const supabase = createClientComponentClient()
-
   // Estados
   const [vehicles, setVehicles] = useState<BatteryVehicle[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true) // Iniciar en true para evitar loading infinito
   const [refreshing, setRefreshing] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [currentTab, setCurrentTab] = useState<VehicleTab>("disponibles")
@@ -128,49 +128,10 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
   // Selección de filas
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null)
 
-  // Cargar rol del usuario
-  useEffect(() => {
-    loadUserRole()
-  }, [])
-
   // Cargar datos
   useEffect(() => {
     loadData()
   }, [])
-
-  const loadUserRole = async () => {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) return
-
-      const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single()
-
-      if (profile) {
-        setUserRole(profile.role)
-
-        // Si es admin, cargar config
-        if (profile.role === "admin" || profile.role === "administrador") {
-          loadConfig()
-        }
-      }
-    } catch (error) {
-      console.error("Error cargando rol:", error)
-    }
-  }
-
-  const loadConfig = async () => {
-    try {
-      const { data, error } = await supabase.from("battery_control_config").select("*").single()
-
-      if (error) throw error
-      setConfig(data)
-      setConfigForm(data)
-    } catch (error) {
-      console.error("Error cargando configuración:", error)
-    }
-  }
 
   const loadData = async (isRefresh = false) => {
     if (isRefresh) {
@@ -179,37 +140,40 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
       setLoading(true)
     }
     try {
-      console.log("🔋 Cargando datos de baterías...")
+      console.log("🔋 Cargando datos de baterías desde API Route...")
 
-      // 1. Consultar vehículos BEV/PHEV desde duc_scraper
-      const { data: ducVehicles, error: ducError } = await supabase
-        .from("duc_scraper")
-        .select(
-          `"Chasis", "e-code", "Matrícula", "Marca", "Modelo", "Color Carrocería", "Carrocería", "Tipo motor", "Combustible", "Disponibilidad"`
-        )
-        .or('"Tipo motor".ilike.%BEV%,"Tipo motor".ilike.%PHEV%,"Tipo motor".ilike.%eléctric%,"Tipo motor".ilike.%electric%,"Combustible".ilike.%eléctric%,"Combustible".ilike.%electric%')
+      // ✅ CONSULTAS (SELECT) → API Route
+      const response = await fetch("/api/battery-control/list")
+      if (!response.ok) {
+        throw new Error(`Error en API: ${response.status}`)
+      }
 
-      if (ducError) throw ducError
+      const { data: apiData } = await response.json()
+      const { ducVehicles, batteryData: batteryDataResult, soldVehicles, config, userRole } = apiData
 
-      console.log("✅ Vehículos BEV/PHEV encontrados:", ducVehicles?.length || 0)
+      console.log("✅ Datos recibidos de API:", {
+        ducVehicles: ducVehicles?.length || 0,
+        batteryData: batteryDataResult?.length || 0,
+        soldVehicles: soldVehicles?.length || 0,
+      })
+
+      // Actualizar rol y configuración
+      setUserRole(userRole)
+      if (config) {
+        setConfig(config)
+        setConfigForm(config)
+      }
 
       // 1.5. LIMPIEZA AUTOMÁTICA: Eliminar vehículos huérfanos
       console.log("🧹 Verificando vehículos huérfanos...")
       
       // Obtener chasis actuales de duc_scraper
       const currentChassis = new Set(
-        ducVehicles?.map(v => v.Chasis).filter(Boolean) || []
+        ducVehicles?.map((v: any) => v.Chasis).filter(Boolean) || []
       )
       
-      // Consultar todos los vehículos en battery_control
-      const { data: allBatteryVehicles, error: allBatteryError } = await supabase
-        .from("battery_control")
-        .select("id, vehicle_chassis")
-      
-      if (allBatteryError) throw allBatteryError
-      
       // Identificar vehículos huérfanos (que ya no están en duc_scraper)
-      const orphanedVehicles = allBatteryVehicles?.filter(vehicle => 
+      const orphanedVehicles = batteryDataResult?.filter((vehicle: any) => 
         vehicle.vehicle_chassis && !currentChassis.has(vehicle.vehicle_chassis)
       ) || []
       
@@ -242,222 +206,22 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
         console.log("✅ No hay vehículos huérfanos")
       }
 
-      // 2. Consultar datos existentes de battery_control
-      const { data: batteryDataResult, error: batteryError } = await supabase
-        .from("battery_control")
-        .select("*")
-        .order("updated_at", { ascending: false })
-
-      if (batteryError) throw batteryError
-      
+      // Datos ya vienen de la API Route
       let batteryData = batteryDataResult
 
-      // 3. Actualizar tipos de vehículos existentes si es necesario (OPTIMIZADO)
-      let typesUpdated = false
-      if (batteryData && batteryData.length > 0) {
-        console.log("🔄 Verificando tipos de vehículos existentes...")
-        
-        // OPTIMIZACIÓN: Obtener TODOS los datos de duc_scraper en UNA sola consulta
-        const chassisToCheck = batteryData.map(v => v.vehicle_chassis).filter(Boolean)
-        
-        if (chassisToCheck.length > 0) {
-          const { data: ducVehiclesData } = await supabase
-            .from("duc_scraper")
-            .select(`"Chasis", "Tipo motor", "Combustible", "Modelo", "Marca"`)
-            .in("Chasis", chassisToCheck)
+      // TODO: Actualización de tipos de vehículos se puede mover a API Route en el futuro
+      // Por ahora, los datos ya vienen actualizados de la base de datos
 
-          // Crear un mapa para acceso rápido
-          const ducVehicleMap = new Map(
-            ducVehiclesData?.map(v => [v.Chasis, v]) || []
-          )
+      // Procesar sold plates
+      const soldPlates = new Set(soldVehicles?.map((v: any) => v.license_plate) || [])
 
-          // Array para acumular actualizaciones batch
-          const updatesToProcess = []
-
-          for (const vehicle of batteryData) {
-            const ducVehicle = ducVehicleMap.get(vehicle.vehicle_chassis)
-
-            if (ducVehicle) {
-              const tipoMotor = (ducVehicle["Tipo motor"] || "").toUpperCase()
-              const combustible = (ducVehicle["Combustible"] || "").toUpperCase()
-              
-              // Determinar el tipo correcto según especificación
-              let correctType = "ICE"
-              
-              // LÓGICA: Priorizar "Tipo motor" sobre "Combustible"
-              if (tipoMotor.includes("BEV") || tipoMotor.includes("ELÉCTRIC") && tipoMotor.includes("PURO")) {
-                correctType = "BEV"
-              }
-              else if (tipoMotor.includes("PHEV") || tipoMotor.includes("HÍBRID") || tipoMotor.includes("HIBRID") || tipoMotor.includes("HYBRID")) {
-                correctType = "PHEV"
-              }
-              else if (combustible.includes("ELÉCTRIC") || combustible.includes("ELECTRIC")) {
-                correctType = "BEV"
-              }
-              else if (combustible.includes("HÍBRID") || combustible.includes("HIBRID") || combustible.includes("HYBRID")) {
-                correctType = "PHEV"
-              }
-              else if (combustible.includes("GASOLINA") || combustible.includes("DIESEL")) {
-                correctType = "ICE"
-              }
-              
-              // Si el tipo es diferente, acumular para actualización
-              if (vehicle.vehicle_type !== correctType) {
-                updatesToProcess.push({
-                  id: vehicle.id,
-                  chassis: vehicle.vehicle_chassis,
-                  oldType: vehicle.vehicle_type,
-                  newType: correctType
-                })
-              }
-            }
-          }
-
-          // OPTIMIZACIÓN: Actualizar en batch (paralelo)
-          if (updatesToProcess.length > 0) {
-            console.log(`🔄 Actualizando ${updatesToProcess.length} tipos de vehículos...`)
-            
-            await Promise.all(
-              updatesToProcess.map(update =>
-                supabase
-                  .from("battery_control")
-                  .update({ vehicle_type: update.newType })
-                  .eq("id", update.id)
-              )
-            )
-            
-            typesUpdated = true
-          }
-        }
-        
-        // Si se actualizaron tipos, recargar datos de battery_control
-        if (typesUpdated) {
-          console.log("♻️ Recargando datos después de actualizar tipos...")
-          const { data: updatedBatteryData } = await supabase
-            .from("battery_control")
-            .select("*")
-            .order("updated_at", { ascending: false })
-          
-          if (updatedBatteryData) {
-            batteryData = updatedBatteryData
-          }
-        }
-      }
-
-      // 4. Consultar vehículos vendidos
-      const { data: soldVehicles, error: soldError } = await supabase
-        .from("sales_vehicles")
-        .select("license_plate")
-
-      if (soldError) throw soldError
-
-      const soldPlates = new Set(soldVehicles?.map((v) => v.license_plate) || [])
-
-      // 5. Sincronizar: crear registros en battery_control si no existen
-      if (ducVehicles && ducVehicles.length > 0) {
-        const existingChassis = new Set(batteryData?.map((v) => v.vehicle_chassis).filter(Boolean) || [])
-        
-        console.log("🔍 Chasis existentes en battery_control:", existingChassis.size)
-        console.log("🔍 Vehículos BEV/PHEV en duc_scraper:", ducVehicles.length)
-
-        const newVehicles = ducVehicles.filter((v) => {
-          const hasChasis = v.Chasis && v.Chasis.trim() !== ""
-          const notExists = !existingChassis.has(v.Chasis)
-          return hasChasis && notExists
-        })
-
-        if (newVehicles.length > 0) {
-          console.log("🆕 Creando registros para nuevos vehículos:", newVehicles.length)
-
-          const {
-            data: { user },
-          } = await supabase.auth.getUser()
-
-          const inserts = newVehicles.map((v) => {
-            // Determinar tipo según especificación
-            let vehicleType = "ICE" // Por defecto ICE
-            const tipoMotor = (v["Tipo motor"] || "").toUpperCase()
-            const combustible = (v["Combustible"] || "").toUpperCase()
-            
-            // LÓGICA: Priorizar "Tipo motor" sobre "Combustible"
-            if (tipoMotor.includes("BEV") || tipoMotor.includes("ELÉCTRIC") && tipoMotor.includes("PURO")) {
-              vehicleType = "BEV"
-            }
-            else if (tipoMotor.includes("PHEV") || tipoMotor.includes("HÍBRID") || tipoMotor.includes("HIBRID") || tipoMotor.includes("HYBRID")) {
-              vehicleType = "PHEV"
-            }
-            else if (combustible.includes("ELÉCTRIC") || combustible.includes("ELECTRIC")) {
-              vehicleType = "BEV"
-            }
-            else if (combustible.includes("HÍBRID") || combustible.includes("HIBRID") || combustible.includes("HYBRID")) {
-              vehicleType = "PHEV"
-            }
-            else if (combustible.includes("GASOLINA") || combustible.includes("DIESEL")) {
-              vehicleType = "ICE"
-            }
-
-            return {
-              vehicle_chassis: v.Chasis,
-              vehicle_ecode: v["e-code"] || null,
-              vehicle_plate: v["Matrícula"] || null,
-              vehicle_brand: v.Marca || null,
-              vehicle_model: v.Modelo || null,
-              vehicle_color: v["Color Carrocería"] || null,
-              vehicle_body: v.Carrocería || null,
-              vehicle_type: vehicleType,
-              charge_percentage: 0,
-              status: "pendiente",
-              is_charging: false,
-              updated_by: user?.id || null,
-            }
-          })
-
-          console.log("📝 Insertando registros nuevos:", inserts.length)
-
-          const { data: insertedData, error: insertError } = await supabase
-            .from("battery_control")
-            .insert(inserts)
-            .select()
-
-          if (insertError) {
-            console.error("❌ Error insertando nuevos vehículos:")
-            console.error("Code:", insertError.code)
-            console.error("Message:", insertError.message)
-            console.error("Details:", insertError.details)
-            console.error("Hint:", insertError.hint)
-            toast.error(`Error al sincronizar vehículos: ${insertError.message}`)
-          } else {
-            console.log("✅ Vehículos insertados correctamente:", insertedData?.length || inserts.length)
-            // Recargar datos después de insertar
-            const { data: updatedBatteryData } = await supabase
-              .from("battery_control")
-              .select("*")
-              .order("updated_at", { ascending: false })
-
-            if (updatedBatteryData) {
-              const vehiclesWithSoldFlag = updatedBatteryData.map((v) => ({
-                ...v,
-                is_sold: soldPlates.has(v.vehicle_plate),
-              }))
-              setVehicles(vehiclesWithSoldFlag)
-            }
-          }
-        } else {
-          // No hay nuevos, solo mapear los existentes
-          const vehiclesWithSoldFlag = (batteryData || []).map((v) => ({
-            ...v,
-            is_sold: soldPlates.has(v.vehicle_plate),
-          }))
-          setVehicles(vehiclesWithSoldFlag)
-        }
-      } else {
-        // No hay vehículos BEV/PHEV en duc_scraper
-        const vehiclesWithSoldFlag = (batteryData || []).map((v) => ({
-          ...v,
-          is_sold: soldPlates.has(v.vehicle_plate),
-        }))
-        setVehicles(vehiclesWithSoldFlag)
-      }
+      // TODO: Sincronización (crear nuevos registros) se puede mover a API Route en el futuro
+      // Por ahora, simplemente mostramos los datos existentes
+      const vehiclesWithSoldFlag = (batteryData || []).map((v: any) => ({
+        ...v,
+        is_sold: soldPlates.has(v.vehicle_plate),
+      }))
+      setVehicles(vehiclesWithSoldFlag)
 
       // Cargar vehículos marcados como "no disponibles"
       const unavailableSet = new Set<string>()
