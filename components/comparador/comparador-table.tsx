@@ -262,7 +262,7 @@ export default function ComparadorTable({ onRefresh }: ComparadorTableProps) {
     new Set(vehiculos.flatMap(v => v.equipacion))
   ).sort()
 
-  // Generar recomendación con detalles
+  // Generar recomendación con detalles (ponderada por calidad de opcionales)
   const getRecomendacionDetallada = () => {
     if (vehiculos.length === 0) return null
 
@@ -270,10 +270,19 @@ export default function ComparadorTable({ onRefresh }: ComparadorTableProps) {
       let puntuacion = 0
       const desglose: any = {}
 
-      // Más equipación = más puntos
-      const equipacionPuntos = vehiculo.equipacion.length * 2
+      // Equipación PONDERADA por calidad (no solo cantidad)
+      let equipacionPuntos = 0
+      vehiculo.equipacion.forEach(opcional => {
+        const score = getEquipmentScore(opcional)
+        equipacionPuntos += score
+      })
+      
       puntuacion += equipacionPuntos
-      desglose.equipacion = { puntos: equipacionPuntos, valor: vehiculo.equipacion.length }
+      desglose.equipacion = { 
+        puntos: Math.round(equipacionPuntos * 10) / 10, 
+        valor: vehiculo.equipacion.length,
+        calidad: Math.round((equipacionPuntos / vehiculo.equipacion.length) * 10) / 10 || 0
+      }
 
       // Menos KM = más puntos
       if (vehiculo.kilometros) {
@@ -309,6 +318,54 @@ export default function ComparadorTable({ onRefresh }: ComparadorTableProps) {
     return resultados
   }
 
+  // Función para puntuar calidad de opcionales
+  const getEquipmentScore = (equipment: string): number => {
+    const eqLower = equipment.toLowerCase()
+    
+    // Premium máximo (10 pts)
+    if (
+      eqLower.includes('john cooper works') ||
+      eqLower.includes('jcw') ||
+      eqLower.includes('deportivos') ||
+      eqLower.includes('favoured')
+    ) return 10
+    
+    // Alto valor (8-9 pts)
+    if (
+      eqLower.includes('paquete m') ||
+      eqLower.includes('head-up display') ||
+      eqLower.includes('driving assistant') ||
+      eqLower.includes('parking assistant') ||
+      eqLower.includes('cámara')
+    ) return 9
+    
+    // Classic y confort (6-7 pts)
+    if (
+      eqLower.includes('classic') ||
+      eqLower.includes('calefacción') ||
+      eqLower.includes('calefactable') ||
+      eqLower.includes('cuero')
+    ) return 7
+    
+    // Seguridad y tech (5-6 pts)
+    if (
+      eqLower.includes('alarma') ||
+      eqLower.includes('led') ||
+      eqLower.includes('active guard') ||
+      eqLower.includes('wireless')
+    ) return 6
+    
+    // Estándar (3-4 pts)
+    if (
+      eqLower.includes('neumáticos') ||
+      eqLower.includes('tornillos') ||
+      eqLower.includes('triángulo')
+    ) return 3
+    
+    // Default
+    return 5
+  }
+  
   const recomendaciones = getRecomendacionDetallada()
   const topRecomendaciones = recomendaciones ? recomendaciones.slice(0, topN) : []
   const vehiculoRecomendado = recomendaciones && recomendaciones.length > 0 ? recomendaciones[0].vehiculo : null

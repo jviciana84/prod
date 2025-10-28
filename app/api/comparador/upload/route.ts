@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 import { put } from "@vercel/blob"
-import { parseBMWMiniPDF } from "@/lib/pdf-parser"
+import { parseBMWMiniPDF } from "@/utils/pdf-parser"
 
 export async function POST(request: NextRequest) {
   const supabase = await createServerClient()
