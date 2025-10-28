@@ -2056,7 +2056,9 @@ export default function PhotosTable() {
                                   <span className="text-sm">
                                     {vehicle.photos_completed_date 
                                       ? formatDate(vehicle.photos_completed_date)
-                                      : "Completado"
+                                      : vehicle.updated_at 
+                                        ? formatDate(vehicle.updated_at)
+                                        : "Completado"
                                     }
                                   </span>
                                 </>

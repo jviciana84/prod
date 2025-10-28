@@ -36,6 +36,7 @@ import {
   Tag,
   Scan,
   Battery,
+  Scale,
 } from "lucide-react"
 import { AddCarIcon, CarFrontDoubleIcon } from "@/components/ui/icons"
 import { Button } from "@/components/ui/button"
@@ -279,7 +280,7 @@ export default function DashboardSidebar({ roles }: DashboardSidebarProps) {
         <SidebarGroup
           title="Vehículos"
           icon={<CarFrontDoubleIcon className="h-5 w-5" />}
-          defaultOpen={pathname.startsWith("/dashboard/vehicles") || pathname.startsWith("/dashboard/vehiculos")}
+          defaultOpen={pathname.startsWith("/dashboard/vehicles") || pathname.startsWith("/dashboard/vehiculos") || pathname.startsWith("/dashboard/comparador")}
           isExpanded={isExpanded}
         >
           <SidebarItem
@@ -294,6 +295,13 @@ export default function DashboardSidebar({ roles }: DashboardSidebarProps) {
             icon={<Battery size={18} />}
             title="Control Baterías"
             isActive={pathname === "/dashboard/vehiculos/baterias"}
+            isExpanded={isExpanded}
+          />
+          <SidebarItem
+            href="/dashboard/comparador"
+            icon={<Scale size={18} />}
+            title="Comparador"
+            isActive={pathname === "/dashboard/comparador"}
             isExpanded={isExpanded}
           />
         </SidebarGroup>
