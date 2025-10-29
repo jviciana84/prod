@@ -130,6 +130,8 @@ function CustomTooltip({ active, payload }: any) {
 }
 
 function CompetitorDetailModal({ vehicle, open, onClose }: { vehicle: any, open: boolean, onClose: () => void }) {
+  const [mostrarDesglose, setMostrarDesglose] = useState(false)
+  
   if (!vehicle) return null
 
   // Preparar datos para el gráfico con 3 tipos: nuestro, quadis, competencia
@@ -173,67 +175,150 @@ function CompetitorDetailModal({ vehicle, open, onClose }: { vehicle: any, open:
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-        {/* Header con título a la izquierda y recomendación a la derecha */}
-        <div className="grid grid-cols-[1fr,auto] gap-4 pb-4 border-b">
-          {/* Columna izquierda: Título */}
-          <div className="space-y-1">
-            <DialogTitle className="text-xl flex items-center gap-2">
-              Análisis Competitivo - {vehicle.matricula}
-              {vehicle.enlaceAnuncio && (
-                <Button size="sm" variant="outline" asChild>
-                  <a href={vehicle.enlaceAnuncio} target="_blank" rel="noopener noreferrer">
-                    <LinkIcon className="w-3 h-3 mr-1" />
-                    Ver nuestro anuncio
-                  </a>
-                </Button>
-              )}
-            </DialogTitle>
-            <DialogDescription className="text-sm">
-              {vehicle.modelo} • {vehicle.año} • {vehicle.km.toLocaleString()} km • Precio nuevo: {vehicle.precioNuevo.toLocaleString()}€
-            </DialogDescription>
+        {/* Header: Título (2 líneas) + Recomendación clickable (2 líneas) */}
+        <div className="space-y-3 pb-4 border-b">
+          <div className="grid grid-cols-[1fr,auto] gap-4">
+            {/* Columna izquierda: Título en 2 líneas */}
+            <div className="space-y-0.5">
+              {/* Línea 1: Título + botón */}
+              <div className="flex items-center gap-2">
+                <DialogTitle className="text-xl">
+                  Análisis Competitivo - {vehicle.matricula}
+                </DialogTitle>
+                {vehicle.enlaceAnuncio && (
+                  <Button size="sm" variant="outline" asChild className="h-6 text-xs">
+                    <a href={vehicle.enlaceAnuncio} target="_blank" rel="noopener noreferrer">
+                      <LinkIcon className="w-3 h-3 mr-1" />
+                      Ver anuncio
+                    </a>
+                  </Button>
+                )}
+              </div>
+              {/* Línea 2: Subtítulo */}
+              <DialogDescription className="text-sm">
+                {vehicle.modelo} • {vehicle.año} • {vehicle.km.toLocaleString()} km • Precio nuevo: {vehicle.precioNuevo.toLocaleString()}€
+              </DialogDescription>
+            </div>
+
+            {/* Columna derecha: Recomendación CLICKABLE (2 líneas) */}
+            <Card 
+              className={`min-w-[400px] cursor-pointer transition-all hover:scale-[1.02] ${
+                vehicle.posicion === 'competitivo' 
+                  ? 'shadow-[0_0_20px_rgba(34,197,94,0.4)] border-green-500/50 hover:shadow-[0_0_25px_rgba(34,197,94,0.6)]' 
+                  : vehicle.posicion === 'alto'
+                  ? 'shadow-[0_0_20px_rgba(239,68,68,0.4)] border-red-500/50 hover:shadow-[0_0_25px_rgba(239,68,68,0.6)]'
+                  : 'shadow-[0_0_20px_rgba(234,179,8,0.4)] border-yellow-500/50 hover:shadow-[0_0_25px_rgba(234,179,8,0.6)]'
+              }`}
+              onClick={() => setMostrarDesglose(!mostrarDesglose)}
+            >
+              <CardContent className="p-3 space-y-0.5">
+                {/* Línea 1: Etiqueta + hint */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Target className="w-3.5 h-3.5" />
+                    <span className="text-sm font-semibold">Recomendación Estratégica</span>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">(click para desglose)</span>
+                </div>
+                {/* Línea 2: Badge + Precio recomendado */}
+                <div className="flex items-center gap-2">
+                  {vehicle.posicion === "competitivo" && <Badge className="bg-green-500 text-[10px] h-5 shrink-0">✓ Competitivo</Badge>}
+                  {vehicle.posicion === "alto" && <Badge variant="destructive" className="text-[10px] h-5 shrink-0">⚠ Alto</Badge>}
+                  {vehicle.posicion === "justo" && <Badge className="bg-yellow-500 text-[10px] h-5 shrink-0">≈ Justo</Badge>}
+                  <span className="text-xs">
+                    Precio sugerido: <strong className="text-foreground text-base">{vehicle.precioRecomendado?.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</strong>
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Columna derecha: Recomendación */}
-          <Card className={`min-w-[380px] ${
-            vehicle.posicion === 'competitivo' 
-              ? 'shadow-[0_0_20px_rgba(34,197,94,0.4)] border-green-500/50' 
-              : vehicle.posicion === 'alto'
-              ? 'shadow-[0_0_20px_rgba(239,68,68,0.4)] border-red-500/50'
-              : 'shadow-[0_0_20px_rgba(234,179,8,0.4)] border-yellow-500/50'
-          }`}>
-            <CardContent className="p-3 space-y-1">
-              {/* Línea 1: Etiqueta */}
-              <div className="flex items-center gap-1.5">
-                <Target className="w-4 h-4" />
-                <span className="text-sm font-semibold">Recomendación Estratégica</span>
-              </div>
-              {/* Línea 2: Badge + Texto */}
-              {vehicle.posicion === "competitivo" && (
-                <div className="flex items-center gap-2">
-                  <Badge className="bg-green-500 text-[10px] h-5 shrink-0">✓ Competitivo</Badge>
-                  <p className="text-xs text-muted-foreground">
-                    {vehicle.recomendacion || `Precio mejor que mercado. Valor esperado: ${vehicle.valorEsperadoNuestro?.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}€`}
-                  </p>
+          {/* Desglose del Cálculo (se muestra al hacer click) */}
+          {mostrarDesglose && (
+            <Card className="border-2 border-primary/20">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Euro className="w-4 h-4" />
+                  Desglose del Análisis de Precio
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {/* Paso 1: Valor teórico */}
+                {vehicle.valorEsperadoTeorico && (
+                  <div className="bg-muted/50 p-3 rounded-md space-y-2">
+                    <div className="text-xs font-semibold text-foreground">1️⃣ Valor Teórico por Depreciación</div>
+                    <div className="space-y-1 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Precio nuevo original:</span>
+                        <span className="font-medium">{vehicle.precioNuevo?.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
+                      </div>
+                      {vehicle.ajusteAño > 0 && (
+                        <div className="flex justify-between text-orange-500">
+                          <span>- Depreciación por antigüedad ({vehicle.año}):</span>
+                          <span>-{vehicle.ajusteAño.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
+                        </div>
+                      )}
+                      {vehicle.ajusteKm > 0 && (
+                        <div className="flex justify-between text-orange-500">
+                          <span>- Depreciación por km ({vehicle.km.toLocaleString()} km):</span>
+                          <span>-{vehicle.ajusteKm.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between font-semibold pt-1 border-t">
+                        <span>= Valor teórico esperado:</span>
+                        <span>{vehicle.valorEsperadoTeorico.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Paso 2: Mercado real */}
+                <div className="bg-blue-500/10 p-3 rounded-md space-y-2">
+                  <div className="text-xs font-semibold text-foreground">2️⃣ Precio Real del Mercado</div>
+                  <div className="space-y-1 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Precio medio competencia ({vehicle.competidores} coches):</span>
+                      <span className="font-medium text-blue-400">{vehicle.precioRealMercado?.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
+                    </div>
+                    {vehicle.analisisMercado && (
+                      <div className="text-xs text-muted-foreground italic pt-1 border-t">
+                        {vehicle.analisisMercado}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-              {vehicle.posicion === "alto" && (
-                <div className="flex items-center gap-2">
-                  <Badge variant="destructive" className="text-[10px] h-5 shrink-0">⚠ Alto</Badge>
-                  <p className="text-xs text-muted-foreground">
-                    {vehicle.recomendacion || `Precio elevado. Valor esperado: ${vehicle.valorEsperadoNuestro?.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}€`}
-                  </p>
+
+                {/* Paso 3: Tu precio vs mercado */}
+                <div className={`p-3 rounded-md space-y-2 ${
+                  vehicle.posicion === 'competitivo' ? 'bg-green-500/10' :
+                  vehicle.posicion === 'alto' ? 'bg-red-500/10' : 'bg-yellow-500/10'
+                }`}>
+                  <div className="text-xs font-semibold text-foreground">3️⃣ Tu Posicionamiento</div>
+                  <div className="space-y-1 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Tu precio actual:</span>
+                      <span className="font-medium">{vehicle.nuestroPrecio.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Diferencia vs mercado:</span>
+                      <span className={`font-medium ${vehicle.diferencia < 0 ? 'text-green-500' : 'text-red-500'}`}>
+                        {vehicle.diferencia > 0 ? '+' : ''}{vehicle.diferencia.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€ ({vehicle.porcentajeDif?.toFixed(1)}%)
+                      </span>
+                    </div>
+                    <div className="flex justify-between font-semibold pt-1 border-t">
+                      <span>💡 Precio recomendado:</span>
+                      <span className="text-foreground">{vehicle.precioRecomendado?.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
+                    </div>
+                    {vehicle.recomendacion && (
+                      <div className="text-xs text-muted-foreground italic pt-2">
+                        {vehicle.recomendacion}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-              {vehicle.posicion === "justo" && (
-                <div className="flex items-center gap-2">
-                  <Badge className="bg-yellow-500 text-[10px] h-5 shrink-0">≈ Justo</Badge>
-                  <p className="text-xs text-muted-foreground">
-                    {vehicle.recomendacion || 'En línea con mercado. Precio adecuado.'}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <div className="space-y-4">
@@ -277,102 +362,19 @@ function CompetitorDetailModal({ vehicle, open, onClose }: { vehicle: any, open:
             </Card>
           </div>
 
-          {/* Desglose del Cálculo */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Euro className="w-4 h-4" />
-                Desglose del Análisis de Precio
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {/* Paso 1: Valor teórico */}
-              {vehicle.valorEsperadoTeorico && (
-                <div className="bg-muted/50 p-3 rounded-md space-y-2">
-                  <div className="text-xs font-semibold text-foreground">1️⃣ Valor Teórico por Depreciación</div>
-                  <div className="space-y-1 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Precio nuevo original:</span>
-                      <span className="font-medium">{vehicle.precioNuevo?.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
-                    </div>
-                    {vehicle.ajusteAño > 0 && (
-                      <div className="flex justify-between text-orange-500">
-                        <span>- Depreciación por antigüedad ({vehicle.año}):</span>
-                        <span>-{vehicle.ajusteAño.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
-                      </div>
-                    )}
-                    {vehicle.ajusteKm > 0 && (
-                      <div className="flex justify-between text-orange-500">
-                        <span>- Depreciación por km ({vehicle.km.toLocaleString()} km):</span>
-                        <span>-{vehicle.ajusteKm.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between font-semibold pt-1 border-t">
-                      <span>= Valor teórico esperado:</span>
-                      <span>{vehicle.valorEsperadoTeorico.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Paso 2: Mercado real */}
-              <div className="bg-blue-500/10 p-3 rounded-md space-y-2">
-                <div className="text-xs font-semibold text-foreground">2️⃣ Precio Real del Mercado</div>
-                <div className="space-y-1 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Precio medio competencia ({vehicle.competidores} coches):</span>
-                    <span className="font-medium text-blue-400">{vehicle.precioRealMercado?.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
-                  </div>
-                  {vehicle.analisisMercado && (
-                    <div className="text-xs text-muted-foreground italic pt-1 border-t">
-                      {vehicle.analisisMercado}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Paso 3: Tu precio vs mercado */}
-              <div className={`p-3 rounded-md space-y-2 ${
-                vehicle.posicion === 'competitivo' ? 'bg-green-500/10' :
-                vehicle.posicion === 'alto' ? 'bg-red-500/10' : 'bg-yellow-500/10'
-              }`}>
-                <div className="text-xs font-semibold text-foreground">3️⃣ Tu Posicionamiento</div>
-                <div className="space-y-1 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Tu precio actual:</span>
-                    <span className="font-medium">{vehicle.nuestroPrecio.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Diferencia vs mercado:</span>
-                    <span className={`font-medium ${vehicle.diferencia < 0 ? 'text-green-500' : 'text-red-500'}`}>
-                      {vehicle.diferencia > 0 ? '+' : ''}{vehicle.diferencia.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€ ({vehicle.porcentajeDif?.toFixed(1)}%)
-                    </span>
-                  </div>
-                  <div className="flex justify-between font-semibold pt-1 border-t">
-                    <span>💡 Precio recomendado:</span>
-                    <span className="text-foreground">{vehicle.precioRecomendado?.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
-                  </div>
-                  {vehicle.recomendacion && (
-                    <div className="text-xs text-muted-foreground italic pt-2">
-                      {vehicle.recomendacion}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Gráfico de Dispersión */}
+          {/* Gráfico de Dispersión + Mejor Oferta */}
           {vehicle.competidoresDetalle.length > 0 && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4" />
-                  Comparativa de Resultados RED
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={350}>
+            <div className="grid grid-cols-[1fr,300px] gap-4 items-start">
+              {/* Gráfico */}
+              <Card className="h-full">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4" />
+                    Comparativa de Resultados RED
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
                   <ScatterChart margin={{ top: 30, right: 10, bottom: 35, left: 10 }}>
                     <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
                     <XAxis 
@@ -436,6 +438,132 @@ function CompetitorDetailModal({ vehicle, open, onClose }: { vehicle: any, open:
                 </p>
               </CardContent>
             </Card>
+
+            {/* Mejor Oferta de la RED */}
+            <Card className="h-full flex flex-col">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <TrendingDown className="w-4 h-4 text-green-500" />
+                  Mejor Oferta RED
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 flex-1 flex flex-col">
+                {(() => {
+                  // Encontrar el competidor con mejor relación calidad-precio
+                  // Excluir Quadis y calcular score basado en precio vs características
+                  const competidoresReales = vehicle.competidoresDetalle.filter((c: any) => {
+                    if (!c.concesionario) return false
+                    const concLower = c.concesionario.toLowerCase()
+                    return !concLower.includes('quadis') && !concLower.includes('duc')
+                  })
+                  
+                  if (competidoresReales.length === 0) return <p className="text-xs text-muted-foreground">No hay competidores disponibles</p>
+                  
+                  // Ordenar por mejor precio (más barato con buen descuento)
+                  const mejorOferta = competidoresReales
+                    .filter((c: any) => c.precio && c.km)
+                    .sort((a: any, b: any) => {
+                      // Score: menor precio + menor km = mejor
+                      const scoreA = a.precio + (a.km * 0.01) // Pequeño peso a los km
+                      const scoreB = b.precio + (b.km * 0.01)
+                      return scoreA - scoreB
+                    })[0]
+                  
+                  if (!mejorOferta) return <p className="text-xs text-muted-foreground">Sin datos suficientes</p>
+                  
+                  const descuento = mejorOferta.precioNuevo 
+                    ? ((mejorOferta.precioNuevo - mejorOferta.precio) / mejorOferta.precioNuevo * 100)
+                    : null
+                  
+                  return (
+                    <div className="space-y-3 flex-1 flex flex-col">
+                      {/* Card visual de mejor oferta - ajustado al espacio */}
+                      <div 
+                        className="aspect-video bg-gradient-to-br from-green-500/10 via-emerald-500/10 to-green-600/10 rounded-md relative group cursor-pointer border border-green-500/30 hover:border-green-500/50 transition-all flex items-center justify-center"
+                        onClick={() => mejorOferta.url && window.open(mejorOferta.url, '_blank')}
+                      >
+                        <div className="text-center p-3 w-full">
+                          {/* Icono + etiqueta compactos */}
+                          <div className="mb-2">
+                            <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-green-500/20 mb-1">
+                              <TrendingDown className="w-6 h-6 text-green-500" />
+                            </div>
+                            <p className="text-[10px] font-semibold text-green-500">🏆 MEJOR OFERTA</p>
+                          </div>
+                          
+                          {/* Precio destacado */}
+                          <p className="text-2xl font-bold mb-1">{mejorOferta.precio?.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</p>
+                          
+                          {/* Km y descuento */}
+                          <p className="text-xs text-muted-foreground mb-1">{mejorOferta.km?.toLocaleString()} km</p>
+                          {descuento && (
+                            <Badge className="bg-green-500 text-white text-[10px] h-4">{descuento.toFixed(0)}% desc.</Badge>
+                          )}
+                        </div>
+                        
+                        {/* Overlay al hover */}
+                        {mejorOferta.url && (
+                          <div className="absolute inset-0 bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <div className="text-center text-white px-2">
+                              <ExternalLink className="w-8 h-8 mx-auto mb-2" />
+                              <p className="text-sm font-semibold">Abrir Anuncio</p>
+                              <p className="text-xs text-white/70 mt-1 truncate">{mejorOferta.concesionario}</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Info del competidor */}
+                      <div className="space-y-2">
+                        <div>
+                          <div className="text-xs font-semibold text-green-500 mb-1">
+                            🏆 Mejor Precio/Calidad
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {mejorOferta.concesionario}
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-1 text-xs">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Precio:</span>
+                            <span className="font-semibold text-lg">{mejorOferta.precio?.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Kilometraje:</span>
+                            <span>{mejorOferta.km?.toLocaleString()} km</span>
+                          </div>
+                          {descuento && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Descuento:</span>
+                              <span className="text-green-500">{descuento.toFixed(1)}%</span>
+                            </div>
+                          )}
+                          {mejorOferta.dias > 0 && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Días publicado:</span>
+                              <span>{mejorOferta.dias}d</span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {mejorOferta.url && (
+                          <Button 
+                            size="sm" 
+                            className="w-full h-8 text-xs mt-auto"
+                            onClick={() => window.open(mejorOferta.url, '_blank')}
+                          >
+                            <ExternalLink className="w-3 h-3 mr-1" />
+                            Abrir Anuncio Completo
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })()}
+              </CardContent>
+            </Card>
+          </div>
           )}
 
           {/* Lista de Competidores */}
