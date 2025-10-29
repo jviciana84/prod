@@ -164,7 +164,7 @@ export default function RecepcionPage() {
               {isLoading ? (
                 <Loader2 className="h-12 w-12 animate-spin text-gray-400" />
               ) : (
-                asesor ? asesor.full_name.split(' ')[0].toUpperCase() : 'AUSENTE'
+                asesor ? asesor.full_name.toUpperCase() : 'AUSENTE'
               )}
             </div>
           </div>
@@ -203,6 +203,7 @@ export default function RecepcionPage() {
             src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/cvo-KUNh8rXJGJ38lK00MJ9JTEci2nGA5o.png" 
             alt="CVO Logo" 
             className="h-10 mb-4"
+            style={{ width: 'auto', height: '2.5rem' }}
           />
           <h1 className="text-7xl font-black text-white text-center leading-tight">
             ¿Qué necesita el cliente?
