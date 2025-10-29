@@ -4,7 +4,8 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { CompactSearchWithModal } from "@/components/dashboard/compact-search-with-modal"
-import { TrendingDown, TrendingUp, Minus, Target, Euro, AlertCircle, ExternalLink, Search, Filter, RefreshCw, BarChart3, Edit, Trash2, Link as LinkIcon, Settings } from "lucide-react"
+import { InformeComparador } from "@/components/dashboard/informe-comparador"
+import { TrendingDown, TrendingUp, Minus, Target, Euro, AlertCircle, ExternalLink, Search, Filter, RefreshCw, BarChart3, Edit, Trash2, Link as LinkIcon, Settings, FileText, Printer } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -635,6 +636,7 @@ export default function ComparadorPreciosPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [configOpen, setConfigOpen] = useState(false)
+  const [informeOpen, setInformeOpen] = useState(false)
   
   // Datos reales de la API (NO usar datos mock)
   const [stats, setStats] = useState({
@@ -907,6 +909,14 @@ export default function ComparadorPreciosPage() {
                 ? `Actualizado: ${ultimaActualizacion.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`
                 : 'Cargando...'}
             </Badge>
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => setInformeOpen(true)}
+              title="Generar informe detallado"
+            >
+              <FileText className="w-4 h-4" />
+            </Button>
             <Button 
               size="sm" 
               variant="outline"
@@ -1247,6 +1257,15 @@ export default function ComparadorPreciosPage() {
         vehicle={selectedVehicle}
         open={!!selectedVehicle}
         onClose={() => setSelectedVehicle(null)}
+      />
+
+      {/* Modal de Informe */}
+      <InformeComparador
+        open={informeOpen}
+        onClose={() => setInformeOpen(false)}
+        vehiculos={vehiculos}
+        stats={stats}
+        filter={filter}
       />
     </div>
     </>
