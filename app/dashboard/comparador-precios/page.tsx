@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { createClientComponentClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { CompactSearchWithModal } from "@/components/dashboard/compact-search-with-modal"
@@ -629,6 +631,9 @@ function CompetitorDetailModal({ vehicle, open, onClose }: { vehicle: any, open:
 }
 
 export default function ComparadorPreciosPage() {
+  const router = useRouter()
+  const supabase = createClientComponentClient()
+  
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null)
   const [filter, setFilter] = useState<"all" | "competitivo" | "justo" | "alto">("all")
   const [searchTerm, setSearchTerm] = useState("")
@@ -637,6 +642,10 @@ export default function ComparadorPreciosPage() {
   const [error, setError] = useState<string | null>(null)
   const [configOpen, setConfigOpen] = useState(false)
   const [informeOpen, setInformeOpen] = useState(false)
+  
+  // Estados para restricción de acceso
+  const [mostrarRestriccion, setMostrarRestriccion] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
   
   // Datos reales de la API (NO usar datos mock)
   const [stats, setStats] = useState({
@@ -664,6 +673,33 @@ export default function ComparadorPreciosPage() {
   const [toleranciaKm, setToleranciaKm] = useState("10000")
   const [toleranciaMeses, setToleranciaMeses] = useState("9")
   const [toleranciaCV, setToleranciaCV] = useState("20")
+
+  // Verificar si es admin y aplicar restricción
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (user && user.email === 'viciana84@gmail.com') {
+        setIsAdmin(true)
+      } else {
+        // NO es admin → Iniciar timer de 10s
+        const timer10s = setTimeout(() => {
+          setMostrarRestriccion(true)
+          
+          // Después de 3s más → redirect
+          const timer3s = setTimeout(() => {
+            router.push('/dashboard')
+          }, 3000)
+          
+          return () => clearTimeout(timer3s)
+        }, 10000)
+        
+        return () => clearTimeout(timer10s)
+      }
+    }
+    
+    checkUser()
+  }, [])
 
   // Cargar parámetros desde localStorage
   useEffect(() => {
@@ -745,6 +781,24 @@ export default function ComparadorPreciosPage() {
 
   return (
     <>
+      {/* Overlay de Restricción de Acceso */}
+      {mostrarRestriccion && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="text-center space-y-4 animate-in fade-in duration-500">
+            <AlertCircle className="w-20 h-20 text-red-500 mx-auto animate-pulse" />
+            <h1 className="text-4xl font-bold text-white">
+              Página Restringida
+            </h1>
+            <p className="text-2xl text-white/80">
+              Jordi Viciana
+            </p>
+            <p className="text-sm text-white/60">
+              Redirigiendo al dashboard...
+            </p>
+          </div>
+        </div>
+      )}
+      
       {/* Modal de Configuración */}
       <Dialog open={configOpen} onOpenChange={setConfigOpen}>
         <DialogContent className="max-w-2xl">
