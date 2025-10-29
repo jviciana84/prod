@@ -956,7 +956,10 @@ export default function ComparadorPreciosPage() {
           <CompactSearchWithModal className="mt-4" />
         </div>
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight">Comparador de Precios</h1>
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+            <BarChart3 className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+            Comparador de Precios
+          </h1>
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="text-xs">
               {ultimaActualizacion 

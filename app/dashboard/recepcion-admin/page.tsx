@@ -83,7 +83,8 @@ export default function RecepcionAdminPage() {
           <Breadcrumbs className="mt-4" />
           <CompactSearchWithModal className="mt-4" />
         </div>
-        <h1 className="text-3xl font-bold tracking-tight">
+        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+          <Users className="h-8 w-8 text-primary" />
           Administración de Recepción
         </h1>
         <p className="text-muted-foreground">
