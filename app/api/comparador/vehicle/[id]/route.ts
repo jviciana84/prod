@@ -482,6 +482,37 @@ export async function GET(
       ajusteAño = analisis.ajustePorAño
     }
     
+    // Calcular KM medio de competidores para ajuste
+    const kmsCompetencia = competidoresSinQuadis
+      .map((c: any) => parseKm(c.km))
+      .filter((km): km is number => km !== null)
+    
+    const kmMedioCompetencia = kmsCompetencia.length > 0
+      ? kmsCompetencia.reduce((sum, km) => sum + km, 0) / kmsCompetencia.length
+      : nuestrosKm
+    
+    // NUEVA LÓGICA: Ajustar precio recomendado por diferencia de KM
+    let precioRecomendado = precioMedioCompetencia
+    
+    if (precioMedioCompetencia && kmMedioCompetencia) {
+      // Calcular diferencia de KM
+      const diferenciaKm = nuestrosKm - kmMedioCompetencia
+      
+      // Ajustar precio por diferencia de KM (€0.10/km es más realista para usado)
+      const ajustePorKm = diferenciaKm * 0.10
+      
+      // Precio recomendado = precio medio mercado - ajuste por tus KM extras
+      precioRecomendado = precioMedioCompetencia - ajustePorKm
+      
+      // Aplicar límites razonables
+      if (precioRecomendado < nuestroPrecio * 0.8) {
+        precioRecomendado = nuestroPrecio * 0.8 // No recomendar más de 20% de bajada
+      }
+      if (precioRecomendado > precioMedioCompetencia * 1.1) {
+        precioRecomendado = precioMedioCompetencia * 1.1 // No recomendar más de 10% de subida
+      }
+    }
+    
     // Calcular diferencia contra mercado REAL
     const diferencia = nuestroPrecio && precioMedioCompetencia 
       ? nuestroPrecio - precioMedioCompetencia 
@@ -491,27 +522,36 @@ export async function GET(
       ? (diferencia / precioMedioCompetencia) * 100
       : null
     
-    // LÓGICA CORREGIDA: Comparar contra MERCADO REAL (no teórico)
+    // Calcular diferencia contra precio AJUSTADO por KM
+    const diferenciaAjustada = nuestroPrecio && precioRecomendado
+      ? nuestroPrecio - precioRecomendado
+      : null
+    
+    const porcentajeDifAjustado = diferenciaAjustada && precioRecomendado
+      ? (diferenciaAjustada / precioRecomendado) * 100
+      : null
+    
+    // Determinar posición basada en precio AJUSTADO por KM
     let posicion = 'justo'
     let recomendacion = ''
-    let precioRecomendado = precioMedioCompetencia
     
-    if (porcentajeDif !== null && precioMedioCompetencia) {
-      if (porcentajeDif <= -5) {
-        // Nuestro precio es 5%+ MÁS BARATO que el mercado
+    if (porcentajeDifAjustado !== null) {
+      const diferenciaKmTexto = nuestrosKm > kmMedioCompetencia 
+        ? `${(nuestrosKm - kmMedioCompetencia).toLocaleString()} km más` 
+        : `${(kmMedioCompetencia - nuestrosKm).toLocaleString()} km menos`
+      
+      if (porcentajeDifAjustado <= -3) {
+        // Precio competitivo considerando TUS KM
         posicion = 'competitivo'
-        precioRecomendado = precioMedioCompetencia // Podríamos subir hasta el mercado
-        recomendacion = `Tu precio está ${Math.abs(porcentajeDif).toFixed(1)}% por debajo del mercado. Excelente posicionamiento - puedes mantenerlo o incrementar hasta ${precioRecomendado.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€`
-      } else if (porcentajeDif >= 5) {
-        // Nuestro precio es 5%+ MÁS CARO que el mercado
+        recomendacion = `Excelente precio. Tienes ${diferenciaKmTexto} que la competencia, tu precio ajustado es ${Math.abs(porcentajeDifAjustado).toFixed(1)}% mejor. Puedes mantener o subir hasta ${precioRecomendado.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€`
+      } else if (porcentajeDifAjustado >= 3) {
+        // Precio alto considerando TUS KM
         posicion = 'alto'
-        precioRecomendado = precioMedioCompetencia * 0.98 // Recomendamos 2% por debajo del mercado
-        recomendacion = `Tu precio está ${porcentajeDif.toFixed(1)}% por encima del mercado. Considera reducir a ${precioRecomendado.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€ para ser competitivo`
+        recomendacion = `Precio elevado. Con ${diferenciaKmTexto} que la competencia, deberías estar en ${precioRecomendado.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€ (${Math.abs(porcentajeDifAjustado).toFixed(1)}% menos)`
       } else {
-        // Precio dentro del rango del mercado
+        // Precio justo
         posicion = 'justo'
-        precioRecomendado = precioMedioCompetencia
-        recomendacion = `Tu precio está en línea con el mercado (${Math.abs(porcentajeDif).toFixed(1)}% de diferencia). Precio adecuado`
+        recomendacion = `Precio adecuado considerando tus ${nuestrosKm.toLocaleString()} km vs ${kmMedioCompetencia.toLocaleString()} km de media del mercado`
       }
     }
     
@@ -571,25 +611,42 @@ export async function GET(
       
       // Análisis detallado (para mostrar en el modal)
       valorEsperadoTeorico,  // Lo que DEBERÍA valer por depreciación
-      precioRealMercado: precioMedioCompetencia, // Lo que REALMENTE se vende
-      precioRecomendado, // Lo que recomendamos cobrar
-      ajusteKm, // Cuánto resta el kilometraje
-      ajusteAño, // Cuánto resta la antigüedad
+      precioRealMercado: precioMedioCompetencia, // Lo que REALMENTE se vende (medio)
+      kmMedioCompetencia, // KM medio de competidores
+      precioRecomendado, // Lo que recomendamos cobrar (AJUSTADO por tus KM)
+      diferenciaAjustada, // Diferencia vs precio ajustado
+      porcentajeDifAjustado, // % diferencia vs ajustado
+      ajusteKm, // Cuánto resta el kilometraje (depreciación)
+      ajusteAño, // Cuánto resta la antigüedad (depreciación)
       diasEnStock,
       recomendacion,
       analisisMercado, // Si el mercado está inflado/deflactado
       
       // Detalles de TODOS los competidores (incluye Quadis para el gráfico)
-      competidoresDetalle: competidoresSimilares.map((comp: any) => ({
-        id: comp.id,
-        concesionario: normalizeConcesionario(comp.concesionario),
-        precio: parsePrice(comp.precio),
-        precioNuevo: comp.precio_nuevo_original || parsePrice(comp.precio_nuevo),
-        km: parseKm(comp.km),
-        dias: comp.dias_publicado || 0,
-        url: comp.url,
-        año: comp.año
-      })),
+      competidoresDetalle: competidoresSimilares.map((comp: any) => {
+        const precioComp = parsePrice(comp.precio)
+        const precioNuevoComp = comp.precio_nuevo_original || parsePrice(comp.precio_nuevo)
+        const kmComp = parseKm(comp.km)
+        const añoComp = comp.año ? parseInt(comp.año) : null
+        
+        // Calcular score normalizado del competidor
+        let scoreComp = null
+        if (precioComp && precioNuevoComp && añoComp && kmComp !== null) {
+          scoreComp = calcularScoreValor(precioComp, precioNuevoComp, añoComp, kmComp).score
+        }
+        
+        return {
+          id: comp.id,
+          concesionario: normalizeConcesionario(comp.concesionario),
+          precio: precioComp,
+          precioNuevo: precioNuevoComp,
+          km: kmComp,
+          dias: comp.dias_publicado || 0,
+          url: comp.url,
+          año: comp.año,
+          score: scoreComp // Score normalizado (negativo = buen precio)
+        }
+      }),
       
       // Historial de cambios
       historialCambios: historial

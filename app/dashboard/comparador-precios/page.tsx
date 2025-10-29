@@ -277,9 +277,21 @@ function CompetitorDetailModal({ vehicle, open, onClose }: { vehicle: any, open:
                   <div className="text-xs font-semibold text-foreground">2️⃣ Precio Real del Mercado</div>
                   <div className="space-y-1 text-xs">
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Precio medio competencia ({vehicle.competidores} coches):</span>
+                      <span className="text-muted-foreground">Precio medio ({vehicle.competidores} coches):</span>
                       <span className="font-medium text-blue-400">{vehicle.precioRealMercado?.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
                     </div>
+                    {vehicle.kmMedioCompetencia && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">KM medio competencia:</span>
+                        <span className="font-medium">{vehicle.kmMedioCompetencia.toLocaleString()} km</span>
+                      </div>
+                    )}
+                    {vehicle.kmMedioCompetencia && vehicle.km && (
+                      <div className="flex justify-between text-orange-500">
+                        <span>Ajuste por diferencia KM ({(vehicle.km - vehicle.kmMedioCompetencia).toLocaleString()} km):</span>
+                        <span>{((vehicle.km - vehicle.kmMedioCompetencia) * 0.10).toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
+                      </div>
+                    )}
                     {vehicle.analisisMercado && (
                       <div className="text-xs text-muted-foreground italic pt-1 border-t">
                         {vehicle.analisisMercado}
@@ -449,8 +461,8 @@ function CompetitorDetailModal({ vehicle, open, onClose }: { vehicle: any, open:
               </CardHeader>
               <CardContent className="space-y-3 flex-1 flex flex-col">
                 {(() => {
-                  // Encontrar el competidor con mejor relación calidad-precio
-                  // Excluir Quadis y calcular score basado en precio vs características
+                  // Encontrar el competidor con MEJOR SCORE NORMALIZADO
+                  // (más barato considerando km, año y opcionales)
                   const competidoresReales = vehicle.competidoresDetalle.filter((c: any) => {
                     if (!c.concesionario) return false
                     const concLower = c.concesionario.toLowerCase()
@@ -459,15 +471,12 @@ function CompetitorDetailModal({ vehicle, open, onClose }: { vehicle: any, open:
                   
                   if (competidoresReales.length === 0) return <p className="text-xs text-muted-foreground">No hay competidores disponibles</p>
                   
-                  // Ordenar por mejor precio (más barato con buen descuento)
-                  const mejorOferta = competidoresReales
-                    .filter((c: any) => c.precio && c.km)
-                    .sort((a: any, b: any) => {
-                      // Score: menor precio + menor km = mejor
-                      const scoreA = a.precio + (a.km * 0.01) // Pequeño peso a los km
-                      const scoreB = b.precio + (b.km * 0.01)
-                      return scoreA - scoreB
-                    })[0]
+                  // Ordenar por MEJOR SCORE (más negativo = mejor oferta)
+                  const competidoresConScore = competidoresReales.filter((c: any) => c.score !== null && c.precio && c.km)
+                  
+                  const mejorOferta = competidoresConScore.length > 0
+                    ? competidoresConScore.sort((a: any, b: any) => a.score - b.score)[0] // Score más negativo primero
+                    : competidoresReales.filter((c: any) => c.precio && c.km)[0] // Fallback si no hay scores
                   
                   if (!mejorOferta) return <p className="text-xs text-muted-foreground">Sin datos suficientes</p>
                   
@@ -514,10 +523,10 @@ function CompetitorDetailModal({ vehicle, open, onClose }: { vehicle: any, open:
                       </div>
                       
                       {/* Info del competidor */}
-                      <div className="space-y-2">
+                      <div className="space-y-2 flex-1">
                         <div>
-                          <div className="text-xs font-semibold text-green-500 mb-1">
-                            🏆 Mejor Precio/Calidad
+                          <div className="text-xs font-semibold text-green-500 mb-0.5">
+                            🏆 Mejor Relación Precio/Calidad
                           </div>
                           <div className="text-xs text-muted-foreground">
                             {mejorOferta.concesionario}
@@ -527,22 +536,30 @@ function CompetitorDetailModal({ vehicle, open, onClose }: { vehicle: any, open:
                         <div className="space-y-1 text-xs">
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">Precio:</span>
-                            <span className="font-semibold text-lg">{mejorOferta.precio?.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
+                            <span className="font-semibold text-base">{mejorOferta.precio?.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">Kilometraje:</span>
                             <span>{mejorOferta.km?.toLocaleString()} km</span>
                           </div>
+                          {mejorOferta.precioNuevo && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Precio nuevo:</span>
+                              <span className="text-xs">{mejorOferta.precioNuevo.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
+                            </div>
+                          )}
                           {descuento && (
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">Descuento:</span>
-                              <span className="text-green-500">{descuento.toFixed(1)}%</span>
+                              <span className="text-green-500 font-medium">{descuento.toFixed(1)}%</span>
                             </div>
                           )}
-                          {mejorOferta.dias > 0 && (
+                          {mejorOferta.score !== null && mejorOferta.score !== undefined && (
                             <div className="flex justify-between">
-                              <span className="text-muted-foreground">Días publicado:</span>
-                              <span>{mejorOferta.dias}d</span>
+                              <span className="text-muted-foreground">Score valor:</span>
+                              <span className={`font-medium ${mejorOferta.score < 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                {mejorOferta.score.toFixed(1)}%
+                              </span>
                             </div>
                           )}
                         </div>
@@ -635,9 +652,9 @@ export default function ComparadorPreciosPage() {
     depreciacionAño1: 15,
     depreciacionAño2: 25,
     depreciacionAño3Plus: 10,
-    costoPorKm: 0.15,
-    umbralCompetitivo: -5,
-    umbralAlto: 5,
+    costoPorKm: 0.10,  // Ajustado a realidad mercado ocasión
+    umbralCompetitivo: -3,  // Ajustado (antes -5)
+    umbralAlto: 3,  // Ajustado (antes 5)
     diasStockAlerta: 60
   })
   
@@ -848,9 +865,9 @@ export default function ComparadorPreciosPage() {
                     depreciacionAño1: 15,
                     depreciacionAño2: 25,
                     depreciacionAño3Plus: 10,
-                    costoPorKm: 0.15,
-                    umbralCompetitivo: -5,
-                    umbralAlto: 5,
+                    costoPorKm: 0.10,  // Ajustado
+                    umbralCompetitivo: -3,  // Ajustado
+                    umbralAlto: 3,  // Ajustado
                     diasStockAlerta: 60
                   })
                 }}
