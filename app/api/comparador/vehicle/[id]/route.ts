@@ -576,13 +576,11 @@ export async function GET(
       }
     }
     
-    // Factor días en stock (desde fecha primera publicación)
-    const diasEnStock = vehiculo.dias_en_stock || 0
-    
-    // Ajustar recomendación si lleva más de 60 días
-    if (diasEnStock > 60 && posicion !== 'competitivo') {
+    // Ajustar recomendación si lleva más de 60 días en stock
+    const diasEnStockActual = vehiculo.dias_en_stock || 0
+    if (diasEnStockActual > 60 && posicion !== 'competitivo') {
       const descuentoUrgente = precioRecomendado * 0.95 // 5% adicional
-      recomendacion += `. ⚠️ URGENTE: Lleva ${diasEnStock} días sin vender. Considera ${descuentoUrgente.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€ para venta rápida`
+      recomendacion += `. ⚠️ URGENTE: Lleva ${diasEnStockActual} días sin vender. Considera ${descuentoUrgente.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€ para venta rápida`
       precioRecomendado = descuentoUrgente
     }
     
@@ -634,7 +632,7 @@ export async function GET(
       porcentajeDifAjustado, // % diferencia vs ajustado
       ajusteKm, // Cuánto resta el kilometraje (depreciación)
       ajusteAño, // Cuánto resta la antigüedad (depreciación)
-      diasEnStock,
+      diasEnStock: diasEnStockActual,
       recomendacion,
       analisisMercado, // Si el mercado está inflado/deflactado
       
