@@ -356,3 +356,4 @@ const response = await fetch('/api/advisors/create', {
 3. Probar desde `/recepcion`
 4. ¡Listo para producción! 🚀
 
+

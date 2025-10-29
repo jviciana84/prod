@@ -14,6 +14,7 @@ import { ChatProvider } from "@/contexts/chat-context"
 import { GlobalChat } from "@/components/global-chat"
 import { NewsToastContainer } from "@/components/noticias/news-toast"
 import { ForcedUpdatePopup } from "@/components/forced-update-popup"
+import { DashboardBackground } from "@/components/dashboard/dashboard-background"
 import "@/styles/dashboard-layout.css"
 
 export default async function DashboardLayout({
@@ -45,8 +46,8 @@ export default async function DashboardLayout({
     <ChatProvider>
       <SidebarProvider>
         <div className="dashboard-layout">
-          {/* Fondo sólido solo en modo oscuro */}
-          <div className="fixed inset-0 -z-10 pointer-events-none dark:block hidden" style={{background: '#111A23'}} />
+          {/* Fondo gradiente premium CVO */}
+          <DashboardBackground />
 
           {/* Header siempre visible en la parte superior */}
           <div className="dashboard-header">

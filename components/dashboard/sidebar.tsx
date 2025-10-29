@@ -37,6 +37,7 @@ import {
   Scan,
   Battery,
   Scale,
+  UserCog,
 } from "lucide-react"
 import { AddCarIcon, CarFrontDoubleIcon } from "@/components/ui/icons"
 import { Button } from "@/components/ui/button"
@@ -186,6 +187,13 @@ export default function DashboardSidebar({ roles }: DashboardSidebarProps) {
               icon={<Target className="h-5 w-5" />}
               title="Objetivos"
               isActive={pathname === "/dashboard/admin/objetivos"}
+              isExpanded={isExpanded}
+            />
+            <SidebarItem
+              href="/dashboard/recepcion-admin"
+              icon={<UserCog className="h-5 w-5" />}
+              title="Recepción Visitas"
+              isActive={pathname === "/dashboard/recepcion-admin"}
               isExpanded={isExpanded}
             />
             <SidebarItem

@@ -260,3 +260,4 @@ export function VacationManager({ onUpdate }: VacationManagerProps) {
   )
 }
 
+

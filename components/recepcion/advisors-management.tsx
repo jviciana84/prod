@@ -38,8 +38,6 @@ interface Advisor {
   is_on_vacation: boolean
   total_visits: number
   visits_today: number
-  office_location?: string
-  desk_number?: string
   current_turn_priority: number
 }
 
@@ -60,8 +58,6 @@ export function AdvisorsManagement({ onUpdate }: AdvisorsManagementProps) {
     full_name: "",
     email: "",
     phone: "",
-    office_location: "",
-    desk_number: "",
     specialization: [] as string[]
   })
 
@@ -230,8 +226,6 @@ export function AdvisorsManagement({ onUpdate }: AdvisorsManagementProps) {
       full_name: advisor.full_name,
       email: advisor.email || "",
       phone: advisor.phone || "",
-      office_location: advisor.office_location || "",
-      desk_number: advisor.desk_number || "",
       specialization: advisor.specialization
     })
     setDialogOpen(true)
@@ -244,8 +238,6 @@ export function AdvisorsManagement({ onUpdate }: AdvisorsManagementProps) {
       full_name: "",
       email: "",
       phone: "",
-      office_location: "",
-      desk_number: "",
       specialization: []
     })
   }
@@ -272,18 +264,22 @@ export function AdvisorsManagement({ onUpdate }: AdvisorsManagementProps) {
             </DialogHeader>
 
             <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="full_name">Nombre Completo *</Label>
+                <Input
+                  id="full_name"
+                  value={formData.full_name}
+                  onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                  placeholder="Juan Pérez"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Para VN: agregar asesor sin vincularlo a usuario del sistema
+                </p>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="full_name">Nombre Completo *</Label>
-                  <Input
-                    id="full_name"
-                    value={formData.full_name}
-                    onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                    placeholder="Juan Pérez"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">Email (Opcional)</Label>
                   <Input
                     id="email"
                     type="email"
@@ -292,11 +288,8 @@ export function AdvisorsManagement({ onUpdate }: AdvisorsManagementProps) {
                     placeholder="juan@example.com"
                   />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Teléfono</Label>
+                  <Label htmlFor="phone">Teléfono (Opcional)</Label>
                   <Input
                     id="phone"
                     value={formData.phone}
@@ -304,25 +297,6 @@ export function AdvisorsManagement({ onUpdate }: AdvisorsManagementProps) {
                     placeholder="666 123 456"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="office_location">Ubicación</Label>
-                  <Input
-                    id="office_location"
-                    value={formData.office_location}
-                    onChange={(e) => setFormData({ ...formData, office_location: e.target.value })}
-                    placeholder="Planta 2, Zona A"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="desk_number">Número de Puesto</Label>
-                <Input
-                  id="desk_number"
-                  value={formData.desk_number}
-                  onChange={(e) => setFormData({ ...formData, desk_number: e.target.value })}
-                  placeholder="Puesto 15"
-                />
               </div>
 
               <div className="space-y-3">
@@ -379,8 +353,8 @@ export function AdvisorsManagement({ onUpdate }: AdvisorsManagementProps) {
             <TableHeader>
               <TableRow>
                 <TableHead>Nombre</TableHead>
+                <TableHead>Email/Teléfono</TableHead>
                 <TableHead>Especializaciones</TableHead>
-                <TableHead>Ubicación</TableHead>
                 <TableHead>Visitas Hoy</TableHead>
                 <TableHead>Total Visitas</TableHead>
                 <TableHead>Estado</TableHead>
@@ -392,6 +366,13 @@ export function AdvisorsManagement({ onUpdate }: AdvisorsManagementProps) {
                 <TableRow key={advisor.id}>
                   <TableCell className="font-medium">{advisor.full_name}</TableCell>
                   <TableCell>
+                    <div className="text-sm text-muted-foreground">
+                      {advisor.email && <div>{advisor.email}</div>}
+                      {advisor.phone && <div>{advisor.phone}</div>}
+                      {!advisor.email && !advisor.phone && <span>-</span>}
+                    </div>
+                  </TableCell>
+                  <TableCell>
                     <div className="flex flex-wrap gap-1">
                       {advisor.specialization.map(spec => (
                         <Badge key={spec} variant="outline" className="text-xs">
@@ -399,14 +380,6 @@ export function AdvisorsManagement({ onUpdate }: AdvisorsManagementProps) {
                         </Badge>
                       ))}
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    {advisor.office_location && (
-                      <div className="text-sm">
-                        {advisor.office_location}
-                        {advisor.desk_number && ` - ${advisor.desk_number}`}
-                      </div>
-                    )}
                   </TableCell>
                   <TableCell>{advisor.visits_today}</TableCell>
                   <TableCell>{advisor.total_visits}</TableCell>
@@ -459,4 +432,5 @@ export function AdvisorsManagement({ onUpdate }: AdvisorsManagementProps) {
     </Card>
   )
 }
+
 
