@@ -25,6 +25,7 @@ import {
   ScanLine,
   Newspaper,
   Map,
+  TrendingUp,
 } from "lucide-react"
 import { createClientComponentClient } from "@/lib/supabase/client"
 import { Badge } from "@/components/ui/badge"
@@ -630,6 +631,17 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
           </div>
         </div>
         <div className="flex items-center">
+          {/* Comparador de Precios */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative hover:bg-accent"
+            onClick={() => router.push("/dashboard/comparador-precios")}
+            title="Comparador de Precios - Análisis de competencia"
+          >
+            <TrendingUp className="h-5 w-5" />
+          </Button>
+
           {/* Scanner OCR */}
           <Button
             variant="ghost"
