@@ -24,14 +24,12 @@ interface UpdateAdvisorRequest {
     vacation_start?: string | null
     vacation_end?: string | null
     vacation_notes?: string
-    office_location?: string
-    desk_number?: string
   }
 }
 
 export async function POST(request: NextRequest) {
   const cookieStore = await cookies()
-  const supabase = createServerClient(cookieStore)
+  const supabase = await createServerClient(cookieStore)
 
   // Verificar autenticación
   const { data: { session } } = await supabase.auth.getSession()
@@ -90,15 +88,9 @@ export async function POST(request: NextRequest) {
       if (advisor && advisor.is_on_vacation) {
         console.log('🏖️ Procesando regreso de vacaciones...')
         
-        // Llamar a la función SQL para procesar regreso
-        const { data: returnResult, error: returnError } = await supabase
-          .rpc('process_vacation_return', { advisor_uuid: advisor_id })
-
-        if (returnError) {
-          console.error('❌ Error procesando regreso:', returnError)
-        } else {
-          console.log('✅ Regreso procesado:', returnResult)
-        }
+        // TODO: Implementar proceso de regreso de vacaciones
+        // Requiere crear función SQL process_vacation_return en Supabase
+        console.log('⚠️ Función process_vacation_return no implementada aún')
       }
     }
 

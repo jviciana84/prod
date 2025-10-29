@@ -35,6 +35,7 @@ export function Logo({ size = "md", showText = true, className, linkTo, showFull
         width={width}
         height={height}
         className="object-contain"
+        sizes={`${width}px`}
         priority
       />
     </div>

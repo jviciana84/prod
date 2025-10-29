@@ -194,17 +194,20 @@ export default function RecepcionPage() {
   }
 
   return (
-    <div className="h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black p-4 overflow-hidden flex items-center justify-center">
+    <div className="h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black p-4 overflow-hidden flex items-center justify-center relative">
+      {/* Logo en esquina superior izquierda */}
+      <div className="absolute top-2 left-2 z-10">
+        <img 
+          src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/cvo-KUNh8rXJGJ38lK00MJ9JTEci2nGA5o.png" 
+          alt="CVO Logo" 
+          className="h-10"
+          style={{ width: 'auto', height: '2.5rem' }}
+        />
+      </div>
+
       <div className="max-w-6xl w-full">
-        
-        {/* Header con logo */}
+        {/* Título principal */}
         <div className="mb-6">
-          <img 
-            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/cvo-KUNh8rXJGJ38lK00MJ9JTEci2nGA5o.png" 
-            alt="CVO Logo" 
-            className="h-10 mb-4"
-            style={{ width: 'auto', height: '2.5rem' }}
-          />
           <h1 className="text-7xl font-black text-white text-center leading-tight">
             ¿Qué necesita el cliente?
           </h1>

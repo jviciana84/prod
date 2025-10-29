@@ -20,7 +20,7 @@ interface RedirectRequest {
 
 export async function POST(request: NextRequest) {
   const cookieStore = await cookies()
-  const supabase = createServerClient(cookieStore)
+  const supabase = await createServerClient(cookieStore)
 
   // Verificar autenticación
   const { data: { session } } = await supabase.auth.getSession()

@@ -61,6 +61,22 @@ export function AdvisorsManagement({ onUpdate }: AdvisorsManagementProps) {
     specialization: [] as string[]
   })
 
+  // Función para obtener el color de la especialización
+  const getSpecColor = (spec: string) => {
+    switch(spec) {
+      case 'COCHE_VN':
+        return 'bg-gradient-to-r from-blue-600 to-blue-800 text-white border-blue-600'
+      case 'COCHE_VO':
+        return 'bg-gradient-to-r from-emerald-600 to-emerald-800 text-white border-emerald-600'
+      case 'MOTO_VN':
+        return 'bg-gradient-to-r from-purple-600 to-purple-800 text-white border-purple-600'
+      case 'MOTO_VO':
+        return 'bg-gradient-to-r from-orange-600 to-orange-800 text-white border-orange-600'
+      default:
+        return 'bg-gray-600 text-white'
+    }
+  }
+
   // ✅ CONSULTA - Cliente directo (correcto según guía)
   useEffect(() => {
     loadAdvisors()
@@ -375,7 +391,10 @@ export function AdvisorsManagement({ onUpdate }: AdvisorsManagementProps) {
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
                       {advisor.specialization.map(spec => (
-                        <Badge key={spec} variant="outline" className="text-xs">
+                        <Badge 
+                          key={spec} 
+                          className={`text-xs font-semibold ${getSpecColor(spec)}`}
+                        >
                           {spec.replace('_', ' ')}
                         </Badge>
                       ))}
@@ -392,7 +411,7 @@ export function AdvisorsManagement({ onUpdate }: AdvisorsManagementProps) {
                         <Badge variant="destructive">Ocupado</Badge>
                       )}
                       {advisor.is_on_vacation && (
-                        <Badge variant="outline" className="bg-orange-100">Vacaciones</Badge>
+                        <Badge className="bg-orange-500 text-white border-orange-600">Vacaciones</Badge>
                       )}
                     </div>
                   </TableCell>

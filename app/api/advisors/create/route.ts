@@ -17,13 +17,11 @@ interface CreateAdvisorRequest {
   email?: string
   phone?: string
   specialization: string[]
-  office_location?: string
-  desk_number?: string
 }
 
 export async function POST(request: NextRequest) {
   const cookieStore = await cookies()
-  const supabase = createServerClient(cookieStore)
+  const supabase = await createServerClient(cookieStore)
 
   // Verificar autenticación
   const { data: { session } } = await supabase.auth.getSession()

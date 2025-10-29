@@ -168,7 +168,7 @@ export function VacationManager({ onUpdate }: VacationManagerProps) {
                   <TableCell className="font-medium">{advisor.full_name}</TableCell>
                   <TableCell>
                     {advisor.is_on_vacation ? (
-                      <Badge variant="outline" className="bg-orange-100">De Vacaciones</Badge>
+                      <Badge className="bg-orange-500 text-white border-orange-600">De Vacaciones</Badge>
                     ) : (
                       <Badge variant="default">Activo</Badge>
                     )}
