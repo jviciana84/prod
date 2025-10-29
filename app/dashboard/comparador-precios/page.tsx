@@ -277,6 +277,91 @@ function CompetitorDetailModal({ vehicle, open, onClose }: { vehicle: any, open:
             </Card>
           </div>
 
+          {/* Desglose del Cálculo */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Euro className="w-4 h-4" />
+                Desglose del Análisis de Precio
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {/* Paso 1: Valor teórico */}
+              {vehicle.valorEsperadoTeorico && (
+                <div className="bg-muted/50 p-3 rounded-md space-y-2">
+                  <div className="text-xs font-semibold text-foreground">1️⃣ Valor Teórico por Depreciación</div>
+                  <div className="space-y-1 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Precio nuevo original:</span>
+                      <span className="font-medium">{vehicle.precioNuevo?.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
+                    </div>
+                    {vehicle.ajusteAño > 0 && (
+                      <div className="flex justify-between text-orange-500">
+                        <span>- Depreciación por antigüedad ({vehicle.año}):</span>
+                        <span>-{vehicle.ajusteAño.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
+                      </div>
+                    )}
+                    {vehicle.ajusteKm > 0 && (
+                      <div className="flex justify-between text-orange-500">
+                        <span>- Depreciación por km ({vehicle.km.toLocaleString()} km):</span>
+                        <span>-{vehicle.ajusteKm.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between font-semibold pt-1 border-t">
+                      <span>= Valor teórico esperado:</span>
+                      <span>{vehicle.valorEsperadoTeorico.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Paso 2: Mercado real */}
+              <div className="bg-blue-500/10 p-3 rounded-md space-y-2">
+                <div className="text-xs font-semibold text-foreground">2️⃣ Precio Real del Mercado</div>
+                <div className="space-y-1 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Precio medio competencia ({vehicle.competidores} coches):</span>
+                    <span className="font-medium text-blue-400">{vehicle.precioRealMercado?.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
+                  </div>
+                  {vehicle.analisisMercado && (
+                    <div className="text-xs text-muted-foreground italic pt-1 border-t">
+                      {vehicle.analisisMercado}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Paso 3: Tu precio vs mercado */}
+              <div className={`p-3 rounded-md space-y-2 ${
+                vehicle.posicion === 'competitivo' ? 'bg-green-500/10' :
+                vehicle.posicion === 'alto' ? 'bg-red-500/10' : 'bg-yellow-500/10'
+              }`}>
+                <div className="text-xs font-semibold text-foreground">3️⃣ Tu Posicionamiento</div>
+                <div className="space-y-1 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Tu precio actual:</span>
+                    <span className="font-medium">{vehicle.nuestroPrecio.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Diferencia vs mercado:</span>
+                    <span className={`font-medium ${vehicle.diferencia < 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      {vehicle.diferencia > 0 ? '+' : ''}{vehicle.diferencia.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€ ({vehicle.porcentajeDif?.toFixed(1)}%)
+                    </span>
+                  </div>
+                  <div className="flex justify-between font-semibold pt-1 border-t">
+                    <span>💡 Precio recomendado:</span>
+                    <span className="text-foreground">{vehicle.precioRecomendado?.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
+                  </div>
+                  {vehicle.recomendacion && (
+                    <div className="text-xs text-muted-foreground italic pt-2">
+                      {vehicle.recomendacion}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Gráfico de Dispersión */}
           {vehicle.competidoresDetalle.length > 0 && (
             <Card>
@@ -950,12 +1035,26 @@ export default function ComparadorPreciosPage() {
               </div>
 
               {/* Info adicional compacta */}
-              <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
-                <span>
-                  Mercado: {vehicle.precioMedioCompetencia ? `${vehicle.precioMedioCompetencia.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€` : 'N/A'} 
-                  {vehicle.descuentoMedioCompetencia ? ` (${vehicle.descuentoMedioCompetencia.toFixed(2)}%)` : ''}
-                </span>
-                <span>{vehicle.competidores || 0} competidores</span>
+              <div className="space-y-1 text-xs mb-2">
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span>
+                    Mercado: {vehicle.precioMedioCompetencia ? `${vehicle.precioMedioCompetencia.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€` : 'N/A'} 
+                    {vehicle.descuentoMedioCompetencia ? ` (${vehicle.descuentoMedioCompetencia.toFixed(2)}%)` : ''}
+                  </span>
+                  <span>{vehicle.competidores || 0} competidores</span>
+                </div>
+                {vehicle.precioRecomendado && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-foreground font-medium">
+                      💡 Recomendado: {vehicle.precioRecomendado.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}€
+                    </span>
+                    {vehicle.diasEnStock > 0 && (
+                      <span className={vehicle.diasEnStock > 60 ? 'text-red-500' : 'text-muted-foreground'}>
+                        {vehicle.diasEnStock}d stock
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Botones de acción */}

@@ -19,6 +19,41 @@ const response = await fetch("/api/ruta", {
 
 ---
 
+## 🔍 BUSCADOR GLOBAL (ACTUALIZADO - OCT 2025)
+
+### ✅ PATRÓN CORRECTO: API Route
+
+El buscador global **YA USA API ROUTES** para evitar el problema del cliente zombie.
+
+**Uso en cualquier página:**
+
+```typescript
+import { CompactSearchWithModal } from "@/components/dashboard/compact-search-with-modal"
+
+// En tu página:
+<CompactSearchWithModal className="mt-4" />
+```
+
+**Cómo funciona internamente:**
+
+```typescript
+// hooks/use-global-search.ts usa API Routes
+const { search } = useGlobalSearch()
+
+// Internamente llama a:
+// POST /api/search/global → Búsqueda en todas las tablas
+// POST /api/search/duc-details → Detalles de DUC
+```
+
+**⚠️ IMPORTANTE:** El buscador global **NO usa cliente directo**, usa API Routes para:
+- ✅ Evitar cliente zombie después de inactividad
+- ✅ Funcionar siempre sin necesidad de F5
+- ✅ Mantener sesión fresca en cada búsqueda
+
+**NO necesitas hacer nada especial**, simplemente importa el componente.
+
+---
+
 ## 📄 ESTRUCTURA DE UNA PÁGINA
 
 ### 1️⃣ **Página sin Tabla (Página Simple)**

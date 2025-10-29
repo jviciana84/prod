@@ -470,60 +470,52 @@ export async function GET(
       ? ((precioNuevoNuestro - nuestroPrecio) / precioNuevoNuestro) * 100
       : null
 
-    // NUEVO: Calcular score normalizado considerando km, año y precio nuevo
-    let scoreNuestro = null
-    let valorEsperadoNuestro = null
-    let scoresMercado: number[] = []
+    // NUEVO: Calcular valor teórico esperado (depreciación)
+    let valorEsperadoTeorico = null
+    let ajusteKm = 0
+    let ajusteAño = 0
     
-    if (nuestroPrecio && precioNuevoNuestro && nuestroAño) {
-      const analisisNuestro = calcularScoreValor(nuestroPrecio, precioNuevoNuestro, nuestroAño, nuestrosKm)
-      scoreNuestro = analisisNuestro.score
-      valorEsperadoNuestro = analisisNuestro.valorEsperado
-      
-      // Calcular scores de competidores (solo los que tienen precio nuevo)
-      scoresMercado = competidoresSinQuadis
-        .filter((c: any) => {
-          const precioComp = parsePrice(c.precio)
-          const precioNuevoComp = c.precio_nuevo_original || parsePrice(c.precio_nuevo)
-          const añoComp = c.año ? parseInt(c.año) : null
-          const kmComp = parseKm(c.km)
-          return precioComp && precioNuevoComp && añoComp && kmComp !== null
-        })
-        .map((c: any) => {
-          const precioComp = parsePrice(c.precio)!
-          const precioNuevoComp = c.precio_nuevo_original || parsePrice(c.precio_nuevo)!
-          const añoComp = parseInt(c.año)
-          const kmComp = parseKm(c.km)!
-          
-          return calcularScoreValor(precioComp, precioNuevoComp, añoComp, kmComp).score
-        })
+    if (precioNuevoNuestro && nuestroAño) {
+      const analisis = calcularScoreValor(0, precioNuevoNuestro, nuestroAño, nuestrosKm)
+      valorEsperadoTeorico = analisis.valorEsperado
+      ajusteKm = analisis.ajustePorKm
+      ajusteAño = analisis.ajustePorAño
     }
     
-    const scoreMedioMercado = scoresMercado.length > 0
-      ? scoresMercado.reduce((sum, s) => sum + s, 0) / scoresMercado.length
-      : 0
+    // Calcular diferencia contra mercado REAL
+    const diferencia = nuestroPrecio && precioMedioCompetencia 
+      ? nuestroPrecio - precioMedioCompetencia 
+      : null
     
-    // Diferencia de scores (cuanto más negativo, mejor nuestro precio)
-    const diferenciaScore = scoreNuestro !== null ? scoreNuestro - scoreMedioMercado : null
+    const porcentajeDif = diferencia && precioMedioCompetencia
+      ? (diferencia / precioMedioCompetencia) * 100
+      : null
     
-    // Determinar posición competitiva basada en score normalizado
+    // LÓGICA CORREGIDA: Comparar contra MERCADO REAL (no teórico)
     let posicion = 'justo'
     let recomendacion = ''
+    let precioRecomendado = precioMedioCompetencia
     
-    if (diferenciaScore !== null) {
-      if (diferenciaScore <= -5) {
+    if (porcentajeDif !== null && precioMedioCompetencia) {
+      if (porcentajeDif <= -5) {
+        // Nuestro precio es 5%+ MÁS BARATO que el mercado
         posicion = 'competitivo'
-        recomendacion = 'Excelente precio considerando km, año y equipamiento'
-      } else if (diferenciaScore >= 5) {
+        precioRecomendado = precioMedioCompetencia // Podríamos subir hasta el mercado
+        recomendacion = `Tu precio está ${Math.abs(porcentajeDif).toFixed(1)}% por debajo del mercado. Excelente posicionamiento - puedes mantenerlo o incrementar hasta ${precioRecomendado.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€`
+      } else if (porcentajeDif >= 5) {
+        // Nuestro precio es 5%+ MÁS CARO que el mercado
         posicion = 'alto'
-        recomendacion = 'Precio elevado para km, año y equipamiento'
+        precioRecomendado = precioMedioCompetencia * 0.98 // Recomendamos 2% por debajo del mercado
+        recomendacion = `Tu precio está ${porcentajeDif.toFixed(1)}% por encima del mercado. Considera reducir a ${precioRecomendado.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€ para ser competitivo`
       } else {
+        // Precio dentro del rango del mercado
         posicion = 'justo'
-        recomendacion = 'Precio equilibrado con el mercado'
+        precioRecomendado = precioMedioCompetencia
+        recomendacion = `Tu precio está en línea con el mercado (${Math.abs(porcentajeDif).toFixed(1)}% de diferencia). Precio adecuado`
       }
     }
     
-    // NUEVO: Factor días en stock
+    // Factor días en stock
     let diasEnStock = 0
     if (vehiculo.purchase_date) {
       const fechaCompra = new Date(vehiculo.purchase_date)
@@ -533,17 +525,25 @@ export async function GET(
     
     // Ajustar recomendación si lleva más de 60 días
     if (diasEnStock > 60 && posicion !== 'competitivo') {
-      recomendacion += `. ⚠️ Lleva ${diasEnStock} días en stock - considera ajustar precio`
+      const descuentoUrgente = precioRecomendado * 0.95 // 5% adicional
+      recomendacion += `. ⚠️ URGENTE: Lleva ${diasEnStock} días sin vender. Considera ${descuentoUrgente.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€ para venta rápida`
+      precioRecomendado = descuentoUrgente
     }
     
-    // Calcular diferencia simple para mostrar
-    const diferencia = nuestroPrecio && precioMedioCompetencia 
-      ? nuestroPrecio - precioMedioCompetencia 
-      : null
-    
-    const porcentajeDif = diferencia && precioMedioCompetencia
-      ? (diferencia / precioMedioCompetencia) * 100
-      : null
+    // Análisis del mercado vs depreciación teórica
+    let analisisMercado = ''
+    if (valorEsperadoTeorico && precioMedioCompetencia) {
+      const diferenciaTeoricoReal = precioMedioCompetencia - valorEsperadoTeorico
+      const porcTeoricoReal = (diferenciaTeoricoReal / valorEsperadoTeorico) * 100
+      
+      if (porcTeoricoReal > 20) {
+        analisisMercado = `📈 Mercado inflado: Los compradores pagan ${porcTeoricoReal.toFixed(0)}% más del valor teórico. Alta demanda del modelo`
+      } else if (porcTeoricoReal < -20) {
+        analisisMercado = `📉 Mercado deflactado: Se vende ${Math.abs(porcTeoricoReal).toFixed(0)}% por debajo del valor teórico`
+      } else {
+        analisisMercado = `📊 Mercado equilibrado: Precios alineados con depreciación esperada`
+      }
+    }
 
     const response = {
       // Datos de nuestro vehículo
@@ -567,15 +567,17 @@ export async function GET(
       competidores: competidoresSinQuadis.length, // Solo competencia real
       competidoresTotal: competidoresSimilares.length, // Incluye Quadis
       posicion,
-      precioSugerido: valorEsperadoNuestro || precioMedioCompetencia,
+      precioSugerido: precioRecomendado,
       
-      // NUEVO: Análisis normalizado
-      scoreNuestro,
-      scoreMedioMercado,
-      diferenciaScore,
-      valorEsperadoNuestro,
+      // Análisis detallado (para mostrar en el modal)
+      valorEsperadoTeorico,  // Lo que DEBERÍA valer por depreciación
+      precioRealMercado: precioMedioCompetencia, // Lo que REALMENTE se vende
+      precioRecomendado, // Lo que recomendamos cobrar
+      ajusteKm, // Cuánto resta el kilometraje
+      ajusteAño, // Cuánto resta la antigüedad
       diasEnStock,
       recomendacion,
+      analisisMercado, // Si el mercado está inflado/deflactado
       
       // Detalles de TODOS los competidores (incluye Quadis para el gráfico)
       competidoresDetalle: competidoresSimilares.map((comp: any) => ({

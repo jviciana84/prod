@@ -44,7 +44,9 @@ export default function TransportDashboard({
   const [lastScrapingDate, setLastScrapingDate] = useState<string>("")
   const [isConsoleOpen, setIsConsoleOpen] = useState(false)
 
-
+  // Cliente de Supabase para consultas
+  const supabase = createClientComponentClient()
+  
   // NOTA: Crear cliente fresco en cada mutación para evitar zombie client
   const { toast } = useToast()
 

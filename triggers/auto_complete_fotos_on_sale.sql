@@ -44,3 +44,4 @@ BEGIN
   RAISE NOTICE '   - Estado de pintura cambia a "vendido"';
 END $$;
 
+
