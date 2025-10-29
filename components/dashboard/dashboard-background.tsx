@@ -21,9 +21,15 @@ export function DashboardBackground() {
     )
   }
   
-  // Fondo gradiente premium para CVO
+  // Fondo gradiente premium SOLO en modo oscuro
   return (
-    <div className="fixed inset-0 -z-10 pointer-events-none bg-gradient-to-br from-gray-900 via-gray-800 to-black" />
+    <>
+      {/* Modo oscuro: gradiente premium */}
+      <div className="fixed inset-0 -z-10 pointer-events-none dark:block hidden bg-gradient-to-br from-gray-900 via-gray-800 to-black" />
+      
+      {/* Otros temas: fondo original */}
+      <div className="fixed inset-0 -z-10 pointer-events-none dark:hidden" style={{background: '#111A23'}} />
+    </>
   )
 }
 
