@@ -41,7 +41,8 @@ import {
   Clock,
   Award,
   Target,
-  BarChart3
+  BarChart3,
+  FileText
 } from "lucide-react"
 
 interface InformeComparadorProps {
@@ -145,15 +146,15 @@ export function InformeComparador({ open, onClose, vehiculos, stats, filter }: I
     const entre50y75k = vehiculosFiltrados.filter(v => v.nuestroPrecio >= 50000 && v.nuestroPrecio < 75000).length
     const masDe75k = vehiculosFiltrados.filter(v => v.nuestroPrecio >= 75000).length
 
-    // Promedios
-    const precioPromedio = vehiculosFiltrados.reduce((sum, v) => sum + (v.nuestroPrecio || 0), 0) / vehiculosFiltrados.length
-    const kmPromedio = vehiculosFiltrados.reduce((sum, v) => sum + (v.km || 0), 0) / vehiculosFiltrados.length
+    // Promedios (asegurar conversión a número)
+    const precioPromedio = vehiculosFiltrados.reduce((sum, v) => sum + (Number(v.nuestroPrecio) || 0), 0) / vehiculosFiltrados.length
+    const kmPromedio = vehiculosFiltrados.reduce((sum, v) => sum + (Number(v.km) || 0), 0) / vehiculosFiltrados.length
     const descuentoPromedio = vehiculosFiltrados
       .filter(v => v.descuentoNuestro)
-      .reduce((sum, v) => sum + v.descuentoNuestro, 0) / vehiculosFiltrados.filter(v => v.descuentoNuestro).length || 0
+      .reduce((sum, v) => sum + (Number(v.descuentoNuestro) || 0), 0) / vehiculosFiltrados.filter(v => v.descuentoNuestro).length || 0
     const diasStockPromedio = vehiculosFiltrados
       .filter(v => v.diasEnStock)
-      .reduce((sum, v) => sum + v.diasEnStock, 0) / vehiculosFiltrados.filter(v => v.diasEnStock).length || 0
+      .reduce((sum, v) => sum + (Number(v.diasEnStock) || 0), 0) / vehiculosFiltrados.filter(v => v.diasEnStock).length || 0
 
     // Top 5 más caros y más baratos
     const top5Caros = [...vehiculosFiltrados]
@@ -656,9 +657,9 @@ export function InformeComparador({ open, onClose, vehiculos, stats, filter }: I
                     }
                   }
                   acc[modelo].count++
-                  acc[modelo].precioPromedio += v.nuestroPrecio || 0
-                  acc[modelo].kmPromedio += v.km || 0
-                  acc[modelo].diasPromedio += v.diasEnStock || 0
+                  acc[modelo].precioPromedio += Number(v.nuestroPrecio) || 0
+                  acc[modelo].kmPromedio += Number(v.km) || 0
+                  acc[modelo].diasPromedio += Number(v.diasEnStock) || 0
                   if (v.posicion === 'competitivo') acc[modelo].competitivos++
                   if (v.posicion === 'alto') acc[modelo].altos++
                   return acc

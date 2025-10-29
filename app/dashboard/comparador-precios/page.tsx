@@ -588,7 +588,7 @@ function CompetitorDetailModal({ vehicle, open, onClose }: { vehicle: any, open:
           {vehicle.competidoresDetalle.length > 0 && (
             <div>
               <h3 className="text-sm font-semibold mb-2">Competidores Directos ({vehicle.competidoresDetalle.length})</h3>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 {vehicle.competidoresDetalle.map((comp: any) => (
                   <Card key={comp.id} className="bg-muted/30 hover:bg-muted/50 transition-colors">
                     <CardContent className="p-3">
@@ -1146,9 +1146,9 @@ export default function ComparadorPreciosPage() {
         </Card>
       )}
 
-      {/* Grid de Vehículos - 2 COLUMNAS */}
+      {/* Grid de Vehículos - 3 COLUMNAS */}
       {!loading && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {filteredVehicles.map((vehicle: any) => (
           <Card key={vehicle.id} className="hover:bg-muted/30 transition-colors">
             <CardContent className="p-3">
