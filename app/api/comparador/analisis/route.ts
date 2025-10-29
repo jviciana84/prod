@@ -181,7 +181,7 @@ export async function GET(request: NextRequest) {
     // Obtener vehículos de nuestro stock desde duc_scraper (DUC es nuestra fuente de verdad)
     let ducQuery = supabase
       .from('duc_scraper')
-      .select('"ID Anuncio", "Matrícula", "Modelo", "Versión", "Fecha primera matriculación", "KM", "Precio", "Precio vehículo nuevo", "Disponibilidad", "URL"')
+      .select('"ID Anuncio", "Matrícula", "Modelo", "Versión", "Fecha primera matriculación", "Fecha primera publicación", "KM", "Precio", "Precio vehículo nuevo", "Disponibilidad", "URL"')
       .eq('"Disponibilidad"', 'DISPONIBLE')
       .not('"Modelo"', 'is', null)
     
@@ -198,6 +198,26 @@ export async function GET(request: NextRequest) {
     // Transformar datos de DUC al formato esperado
     const stockDataTransformed = stockData.map((v: any) => {
       const year = parseSpanishDate(v['Fecha primera matriculación'])
+      
+      // Calcular días en stock desde "Fecha primera publicación"
+      let diasEnStock = null
+      if (v['Fecha primera publicación']) {
+        const fechaPublicacion = parseSpanishDate(v['Fecha primera publicación'])
+        if (fechaPublicacion) {
+          const hoy = new Date()
+          const fechaPub = new Date(fechaPublicacion, 0, 1) // Año parseado
+          // Si tenemos la fecha completa (DD / MM / YYYY), parsearla correctamente
+          if (v['Fecha primera publicación'].includes('/')) {
+            const partes = v['Fecha primera publicación'].split('/').map((p: string) => p.trim())
+            if (partes.length === 3) {
+              fechaPub.setFullYear(parseInt(partes[2]))
+              fechaPub.setMonth(parseInt(partes[1]) - 1)
+              fechaPub.setDate(parseInt(partes[0]))
+            }
+          }
+          diasEnStock = Math.floor((hoy.getTime() - fechaPub.getTime()) / (1000 * 60 * 60 * 24))
+        }
+      }
       
       // Combinar Modelo + Versión para tener modelo completo
       // Ejemplo: "iX1" + "xDrive30 230 kW (313 CV)" → "iX1 xDrive30"
@@ -220,6 +240,7 @@ export async function GET(request: NextRequest) {
         km: v['KM'],
         price: v['Precio'],
         original_new_price: v['Precio vehículo nuevo'],
+        dias_en_stock: diasEnStock,
         duc_url: v['URL'],
         cms_url: null
       }
@@ -557,13 +578,8 @@ export async function GET(request: NextRequest) {
         }
       }
       
-      // Factor días en stock
-      let diasEnStock = 0
-      if (vehiculo.purchase_date) {
-        const fechaCompra = new Date(vehiculo.purchase_date)
-        const hoy = new Date()
-        diasEnStock = Math.floor((hoy.getTime() - fechaCompra.getTime()) / (1000 * 60 * 60 * 24))
-      }
+      // Factor días en stock (desde fecha primera publicación)
+      const diasEnStock = vehiculo.dias_en_stock || 0
       
       // Ajustar recomendación si lleva más de 60 días
       if (diasEnStock > 60 && posicion !== 'competitivo') {

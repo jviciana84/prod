@@ -179,7 +179,7 @@ export async function GET(
     // Obtener vehículo específico desde duc_scraper
     const { data: ducVehiculo, error: vehiculoError } = await supabase
       .from('duc_scraper')
-      .select('"ID Anuncio", "Matrícula", "Modelo", "Versión", "Fecha primera matriculación", "KM", "Precio", "Precio vehículo nuevo", "URL"')
+      .select('"ID Anuncio", "Matrícula", "Modelo", "Versión", "Fecha primera matriculación", "Fecha primera publicación", "KM", "Precio", "Precio vehículo nuevo", "URL"')
       .eq('"ID Anuncio"', vehicleId)
       .single()
     
@@ -192,6 +192,26 @@ export async function GET(
     
     // Transformar datos de DUC
     const year = parseSpanishDate(ducVehiculo['Fecha primera matriculación'])
+    
+    // Calcular días en stock desde "Fecha primera publicación"
+    let diasEnStock = null
+    if (ducVehiculo['Fecha primera publicación']) {
+      const fechaPublicacion = parseSpanishDate(ducVehiculo['Fecha primera publicación'])
+      if (fechaPublicacion) {
+        const hoy = new Date()
+        const fechaPub = new Date(fechaPublicacion, 0, 1)
+        // Si tenemos la fecha completa (DD / MM / YYYY), parsearla correctamente
+        if (ducVehiculo['Fecha primera publicación'].includes('/')) {
+          const partes = ducVehiculo['Fecha primera publicación'].split('/').map((p: string) => p.trim())
+          if (partes.length === 3) {
+            fechaPub.setFullYear(parseInt(partes[2]))
+            fechaPub.setMonth(parseInt(partes[1]) - 1)
+            fechaPub.setDate(parseInt(partes[0]))
+          }
+        }
+        diasEnStock = Math.floor((hoy.getTime() - fechaPub.getTime()) / (1000 * 60 * 60 * 24))
+      }
+    }
     
     // Combinar Modelo + Versión
     let modeloCompleto = ducVehiculo['Modelo']
@@ -212,6 +232,7 @@ export async function GET(
       km: ducVehiculo['KM'],
       price: ducVehiculo['Precio'],
       original_new_price: ducVehiculo['Precio vehículo nuevo'],
+      dias_en_stock: diasEnStock,
       duc_url: ducVehiculo['URL'],
       cms_url: null
     }
@@ -555,13 +576,8 @@ export async function GET(
       }
     }
     
-    // Factor días en stock
-    let diasEnStock = 0
-    if (vehiculo.purchase_date) {
-      const fechaCompra = new Date(vehiculo.purchase_date)
-      const hoy = new Date()
-      diasEnStock = Math.floor((hoy.getTime() - fechaCompra.getTime()) / (1000 * 60 * 60 * 24))
-    }
+    // Factor días en stock (desde fecha primera publicación)
+    const diasEnStock = vehiculo.dias_en_stock || 0
     
     // Ajustar recomendación si lleva más de 60 días
     if (diasEnStock > 60 && posicion !== 'competitivo') {
