@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -103,9 +103,508 @@ export function InformeComparador({ open, onClose, vehiculos, stats, filter }: I
     }
   }, [open])
 
-  // Función para imprimir
-  const handlePrint = () => {
-    window.print()
+  // Función para generar PDF COMPLETO Y PROFESIONAL
+  const handlePrint = async () => {
+    try {
+      // Importaciones dinámicas
+      const { jsPDF } = await import('jspdf')
+      const html2canvas = (await import('html2canvas')).default
+      
+      const pdf = new jsPDF('p', 'mm', 'a4')
+      const pageWidth = pdf.internal.pageSize.getWidth()
+      const pageHeight = pdf.internal.pageSize.getHeight()
+      const margin = 20
+      const contentWidth = pageWidth - (margin * 2)
+      
+      const estadisticas = calcularEstadisticas()
+      if (!estadisticas) return
+      
+      // Generar código único CVO
+      const ahora = new Date()
+      const codigoCVO = `CVO-${ahora.getFullYear()}${String(ahora.getMonth() + 1).padStart(2, '0')}${String(ahora.getDate()).padStart(2, '0')}-${String(ahora.getHours()).padStart(2, '0')}${String(ahora.getMinutes()).padStart(2, '0')}${String(ahora.getSeconds()).padStart(2, '0')}`
+      const fechaCompleta = ahora.toLocaleString('es-ES', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+      
+      // Función auxiliar para añadir marca de agua lateral y footer
+      const addWatermarkAndFooter = (pageNum: number, totalPages: number) => {
+        // Marca de agua lateral (texto vertical) - OFICIAL
+        pdf.setTextColor(180, 180, 180)
+        pdf.setFontSize(7)
+        pdf.text(`Documento CVO creado ${fechaCompleta} por Jordi Viciana - Ref: ${codigoCVO}`, 5, pageHeight / 2, {
+          angle: 90,
+          align: 'center'
+        })
+        
+        // Footer OFICIAL
+        pdf.setTextColor(80, 80, 80)
+        pdf.setFontSize(7)
+        pdf.text(`Página ${pageNum} de ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' })
+        pdf.setFontSize(6)
+        pdf.text('Datos de Quadis Munich extraídos mediante duc_scraper | Competencia: comparador_scraper', pageWidth / 2, pageHeight - 6, { align: 'center' })
+        pdf.setFontSize(5.5)
+        pdf.text('© CVO (Comparador de Vehículos de Ocasión) - Propiedad de Jordi Viciana | Análisis desarrollado para Quadis Munich', pageWidth / 2, pageHeight - 3, { align: 'center' })
+      }
+      
+      // ============== PÁGINA 1: PORTADA OFICIAL ==============
+      pdf.setFillColor(30, 41, 59)
+      pdf.rect(0, 0, pageWidth, pageHeight, 'F')
+      
+      // Logo CVO (simulado - texto grande)
+      pdf.setTextColor(255, 255, 255)
+      pdf.setFontSize(52)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('CVO', pageWidth / 2, 55, { align: 'center' })
+      
+      pdf.setFontSize(9)
+      pdf.setFont('helvetica', 'normal')
+      pdf.text('COMPARADOR DE VEHÍCULOS DE OCASIÓN', pageWidth / 2, 65, { align: 'center' })
+      
+      pdf.setFontSize(7)
+      pdf.text('Propiedad de Jordi Viciana', pageWidth / 2, 72, { align: 'center' })
+      
+      // Línea decorativa
+      pdf.setDrawColor(255, 255, 255)
+      pdf.setLineWidth(0.5)
+      pdf.line(40, 80, pageWidth - 40, 80)
+      
+      // Título principal
+      pdf.setFontSize(32)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('INFORME EJECUTIVO', pageWidth / 2, 105, { align: 'center' })
+      
+      pdf.setFontSize(18)
+      pdf.setFont('helvetica', 'normal')
+      pdf.text('Análisis Competitivo de Precios', pageWidth / 2, 120, { align: 'center' })
+      
+      // Cliente
+      pdf.setFontSize(14)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('QUADIS MUNICH', pageWidth / 2, 140, { align: 'center' })
+      
+      // Código y fecha
+      pdf.setFontSize(10)
+      pdf.setFont('helvetica', 'normal')
+      pdf.text(`Referencia: ${codigoCVO}`, pageWidth / 2, 155, { align: 'center' })
+      pdf.setFontSize(9)
+      pdf.text(fechaCompleta, pageWidth / 2, 163, { align: 'center' })
+      
+      // Línea decorativa
+      pdf.line(40, 175, pageWidth - 40, 175)
+      
+      // Info autor y propiedad
+      pdf.setFontSize(9)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('Elaborado por:', pageWidth / 2, 190, { align: 'center' })
+      pdf.setFont('helvetica', 'normal')
+      pdf.text('Jordi Viciana', pageWidth / 2, 198, { align: 'center' })
+      
+      pdf.setFontSize(7)
+      pdf.text('Análisis desarrollado con Sistema CVO para Quadis Munich', pageWidth / 2, 215, { align: 'center' })
+      
+      // Copyright en footer portada
+      pdf.setFontSize(6)
+      pdf.setTextColor(200, 200, 200)
+      pdf.text('© CVO - Comparador de Vehículos de Ocasión | Propiedad de Jordi Viciana', pageWidth / 2, pageHeight - 15, { align: 'center' })
+      pdf.text('Documento confidencial - Uso exclusivo de Quadis Munich', pageWidth / 2, pageHeight - 10, { align: 'center' })
+      
+      // ============== PÁGINA 2: RESUMEN EJECUTIVO ==============
+      pdf.addPage()
+      let yPos = margin
+      
+      pdf.setTextColor(0, 0, 0)
+      pdf.setFontSize(18)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('1. RESUMEN EJECUTIVO', margin, yPos)
+      yPos += 12
+      
+      // KPIs en recuadros
+      pdf.setFontSize(10)
+      const kpis = [
+        ['Vehículos Analizados', vehiculosFiltrados.length.toString()],
+        ['Precio Promedio', `${estadisticas.precioPromedio.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€`],
+        ['KM Promedio', `${estadisticas.kmPromedio.toLocaleString('es-ES', { maximumFractionDigits: 0 })} km`],
+        ['Días Stock Promedio', `${estadisticas.diasStockPromedio.toFixed(0)} días`],
+        ['Mejor Opción (más barato)', `${estadisticas.mejorOpcion} (${((estadisticas.mejorOpcion / vehiculosFiltrados.length) * 100).toFixed(1)}%)`],
+        ['Opción Media', `${estadisticas.opcionMedia} (${((estadisticas.opcionMedia / vehiculosFiltrados.length) * 100).toFixed(1)}%)`],
+        ['Peor Opción (más caro)', `${estadisticas.peorOpcion} (${((estadisticas.peorOpcion / vehiculosFiltrados.length) * 100).toFixed(1)}%)`],
+      ]
+      
+      pdf.setDrawColor(200, 200, 200)
+      pdf.setFont('helvetica', 'normal')
+      kpis.forEach(([label, value]) => {
+        pdf.rect(margin, yPos - 5, contentWidth, 10)
+        pdf.setFont('helvetica', 'bold')
+        pdf.text(label + ':', margin + 2, yPos)
+        pdf.setFont('helvetica', 'normal')
+        pdf.text(value, margin + 85, yPos)
+        yPos += 12
+      })
+      
+      yPos += 5
+      
+      // Posicionamiento
+      pdf.setFontSize(14)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('1.1 Análisis de Posicionamiento', margin, yPos)
+      yPos += 10
+      
+      pdf.setFontSize(10)
+      pdf.setFont('helvetica', 'normal')
+      const posText = `Posición vs Mercado: ${stats.posicionGeneral > 0 ? `+${stats.posicionGeneral.toFixed(1)}%` : `${stats.posicionGeneral.toFixed(1)}%`} ${stats.posicionGeneral > 3 ? '(ALTO)' : stats.posicionGeneral < -3 ? '(COMPETITIVO)' : '(NEUTRO)'}`
+      pdf.text(posText, margin + 3, yPos)
+      yPos += 7
+      pdf.text(`• Vehículos Competitivos: ${estadisticas.competitivos} (${((estadisticas.competitivos / vehiculosFiltrados.length) * 100).toFixed(0)}%)`, margin + 3, yPos)
+      yPos += 7
+      pdf.text(`• Vehículos Precio Alto: ${estadisticas.altos} (${((estadisticas.altos / vehiculosFiltrados.length) * 100).toFixed(0)}%)`, margin + 3, yPos)
+      yPos += 7
+      pdf.text(`• Vehículos +90 días: ${estadisticas.masDe90d}`, margin + 3, yPos)
+      yPos += 12
+      
+      // Objetivos estratégicos
+      pdf.setFontSize(14)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('1.2 Objetivos Estratégicos', margin, yPos)
+      yPos += 10
+      
+      pdf.setFontSize(9)
+      pdf.setFont('helvetica', 'normal')
+      const objetivos = [
+        'Maximizar la competitividad de precios manteniendo márgenes rentables',
+        'Reducir el tiempo promedio en stock por debajo de 60 días',
+        'Posicionar el 80% del inventario como "competitivo" o "mejor opción"',
+        'Identificar y ajustar rápidamente vehículos con precio alto',
+        'Monitorizar continuamente los precios de la competencia'
+      ]
+      
+      objetivos.forEach((obj, idx) => {
+        const lines = pdf.splitTextToSize(`${idx + 1}. ${obj}`, contentWidth - 10)
+        lines.forEach((line: string) => {
+          pdf.text(line, margin + 3, yPos)
+          yPos += 5
+        })
+        yPos += 2
+      })
+      
+      addWatermarkAndFooter(2, 10) // Placeholder total pages
+      
+      // ============== PÁGINA 3: RANKINGS TOP ==============
+      pdf.addPage()
+      yPos = margin
+      
+      pdf.setFontSize(18)
+      pdf.setFont('helvetica', 'bold')
+      pdf.setTextColor(0, 0, 0)
+      pdf.text('2. RANKINGS Y ANÁLISIS', margin, yPos)
+      yPos += 12
+      
+      // Top 5 Más Caros
+      pdf.setFontSize(12)
+      pdf.text('2.1 Top 5 Más Caros', margin, yPos)
+      yPos += 8
+      
+      pdf.setFontSize(8)
+      pdf.setFont('helvetica', 'normal')
+      const masCaros = [...vehiculosFiltrados].sort((a, b) => (b.nuestroPrecio || 0) - (a.nuestroPrecio || 0)).slice(0, 5)
+      masCaros.forEach((v, idx) => {
+        const precio = (v.nuestroPrecio || 0).toLocaleString('es-ES')
+        const km = (v.km || 0).toLocaleString('es-ES')
+        pdf.text(`${idx + 1}. ${v.matricula || 'N/A'} - ${v.modelo || 'N/A'} - ${precio}€ (${km} km)`, margin + 3, yPos)
+        yPos += 5
+      })
+      yPos += 5
+      
+      // Top 5 Más Baratos
+      pdf.setFontSize(12)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('2.2 Top 5 Más Baratos', margin, yPos)
+      yPos += 8
+      
+      pdf.setFontSize(8)
+      pdf.setFont('helvetica', 'normal')
+      const masBaratos = [...vehiculosFiltrados].sort((a, b) => (a.nuestroPrecio || 0) - (b.nuestroPrecio || 0)).slice(0, 5)
+      masBaratos.forEach((v, idx) => {
+        const precio = (v.nuestroPrecio || 0).toLocaleString('es-ES')
+        const km = (v.km || 0).toLocaleString('es-ES')
+        pdf.text(`${idx + 1}. ${v.matricula || 'N/A'} - ${v.modelo || 'N/A'} - ${precio}€ (${km} km)`, margin + 3, yPos)
+        yPos += 5
+      })
+      yPos += 5
+      
+      // Top 5 Mejor Posicionados
+      pdf.setFontSize(12)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('2.3 Top 5 Mejor Posicionados (Mejor Valor)', margin, yPos)
+      yPos += 8
+      
+      pdf.setFontSize(8)
+      pdf.setFont('helvetica', 'normal')
+      const mejorPosicionados = [...vehiculosFiltrados].sort((a, b) => (a.score || 0) - (b.score || 0)).slice(0, 5)
+      mejorPosicionados.forEach((v, idx) => {
+        const score = (v.score || 0).toFixed(2)
+        const precio = (v.nuestroPrecio || 0).toLocaleString('es-ES')
+        pdf.text(`${idx + 1}. ${v.matricula || 'N/A'} - ${v.modelo || 'N/A'} - Score: ${score} - ${precio}€`, margin + 3, yPos)
+        yPos += 5
+      })
+      yPos += 5
+      
+      // Top 5 Más Tiempo en Stock
+      pdf.setFontSize(12)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('2.4 Top 5 Más Tiempo en Stock', margin, yPos)
+      yPos += 8
+      
+      pdf.setFontSize(8)
+      pdf.setFont('helvetica', 'normal')
+      const masTiempoStock = [...vehiculosFiltrados].sort((a, b) => (b.diasEnStock || 0) - (a.diasEnStock || 0)).slice(0, 5)
+      masTiempoStock.forEach((v, idx) => {
+        const dias = v.diasEnStock || 0
+        const precio = (v.nuestroPrecio || 0).toLocaleString('es-ES')
+        pdf.text(`${idx + 1}. ${v.matricula || 'N/A'} - ${v.modelo || 'N/A'} - ${dias} días - ${precio}€`, margin + 3, yPos)
+        yPos += 5
+      })
+      
+      addWatermarkAndFooter(3, 10)
+      
+      // ============== PÁGINA 4: METODOLOGÍA ==============
+      pdf.addPage()
+      yPos = margin
+      
+      pdf.setFontSize(18)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('3. METODOLOGÍA DEL ANÁLISIS', margin, yPos)
+      yPos += 12
+      
+      // Nota de propiedad
+      pdf.setFillColor(245, 245, 245)
+      pdf.rect(margin, yPos - 3, contentWidth, 22, 'F')
+      pdf.setFontSize(7)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('NOTA LEGAL:', margin + 2, yPos + 2)
+      pdf.setFont('helvetica', 'normal')
+      pdf.setFontSize(6.5)
+      const notaLegal = 'Este análisis ha sido desarrollado por CVO (Comparador de Vehículos de Ocasión), sistema propiedad de Jordi Viciana, específicamente para uso de Quadis Munich. Los datos, algoritmos y metodología son propiedad intelectual de CVO. Uso confidencial y exclusivo del cliente autorizado.'
+      const notaLines = pdf.splitTextToSize(notaLegal, contentWidth - 6)
+      notaLines.forEach((line: string, idx: number) => {
+        pdf.text(line, margin + 2, yPos + 7 + (idx * 4))
+      })
+      yPos += 28
+      
+      pdf.setFontSize(11)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('3.1 Fuentes de Datos', margin, yPos)
+      yPos += 8
+      
+      pdf.setFontSize(9)
+      pdf.setFont('helvetica', 'normal')
+      const fuentes = [
+        'FUENTE PRINCIPAL - duc_scraper:',
+        '  Datos de vehículos de Quadis Munich',
+        '  - Campos: Matrícula, modelo, año, kilómetros, precio, fecha publicación',
+        '  - Actualización: Automática mediante scraper CVO',
+        '  - Frecuencia: Tiempo real',
+        '',
+        'FUENTE SECUNDARIA - comparador_scraper:',
+        '  Datos de mercado competidor',
+        '  - Concesionarios monitorizados: 8 principales competidores',
+        '  - Campos: Precio, KM, modelo, año, concesionario, fecha',
+        '  - Actualización: Diaria automática',
+        '  - Cobertura: Mercado de ocasión BMW/MINI región Barcelona'
+      ]
+      
+      fuentes.forEach(linea => {
+        pdf.text(linea, margin + 3, yPos)
+        yPos += 5
+      })
+      yPos += 5
+      
+      pdf.setFontSize(11)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('3.2 Algoritmo de Valoración', margin, yPos)
+      yPos += 8
+      
+      pdf.setFontSize(9)
+      pdf.setFont('helvetica', 'normal')
+      const algoritmo = [
+        'ALGORITMO PROPIETARIO CVO v2.0',
+        '',
+        '1. Cálculo del Valor Esperado Normalizado:',
+        '   Fórmula: Valor = PrecioNuevo × (1 - DepAnual × Años) - (KM × CostePorKm)',
+        '   Parámetros configurables:',
+        '   - Tasa depreciación anual: 15% (estándar mercado premium)',
+        '   - Coste por kilómetro: 0.10€/km (ajustado mercado ocasión)',
+        '   - Precio nuevo base: Extraído de histórico CVO',
+        '',
+        '2. Score de Posicionamiento Competitivo:',
+        '   Fórmula: Score = ((PrecioReal - ValorEsperado) / ValorEsperado) × 100',
+        '   Interpretación:',
+        '   - Score < -10%: Oportunidad excepcional (infravalorado)',
+        '   - Score -10% a -3%: Muy competitivo',
+        '   - Score -3% a +3%: Competitivo (rango óptimo)',
+        '   - Score +3% a +10%: Precio alto (revisar)',
+        '   - Score > +10%: Precio muy alto (acción urgente)',
+        '',
+        '3. Clasificación Multi-dimensional:',
+        '   A. Por score normalizado:',
+        '      • Competitivo: |Score| < 3%',
+        '      • Alto: Score > 3%',
+        '   B. Por posición en categoría:',
+        '      • Mejor Opción: Precio más bajo en su segmento',
+        '      • Opción Media: Rango intermedio de precios',
+        '      • Peor Opción: Precio más alto en su segmento',
+        '',
+        '4. Ajuste Dinámico por Días en Stock:',
+        '   Criterios temporales CVO:',
+        '   - Stock 0-30 días: Sin ajuste (precio óptimo)',
+        '   - Stock 31-60 días: Monitorización activa',
+        '   - Stock 61-90 días: Recomendar ajuste -5% si no competitivo',
+        '   - Stock >90 días: URGENTE - Ajuste -8% a -10% recomendado',
+        '',
+        '5. Comparación con Mercado Real:',
+        '   - Comparación directa con competidores activos',
+        '   - Ajuste por diferencias de kilometraje entre vehículos',
+        '   - Análisis de tendencias de precios en tiempo real',
+        '   - Identificación de outliers y oportunidades'
+      ]
+      
+      algoritmo.forEach(linea => {
+        const lines = pdf.splitTextToSize(linea, contentWidth - 10)
+        lines.forEach((line: string) => {
+          if (yPos > pageHeight - 30) {
+            pdf.addPage()
+            addWatermarkAndFooter(4, 10)
+            yPos = margin
+          }
+          pdf.text(line, margin + 3, yPos)
+          yPos += 4.5
+        })
+      })
+      
+      addWatermarkAndFooter(4, 10)
+      
+      // ============== PÁGINA 5: RECOMENDACIONES ==============
+      pdf.addPage()
+      yPos = margin
+      
+      pdf.setFontSize(18)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('4. RECOMENDACIONES ESTRATÉGICAS', margin, yPos)
+      yPos += 12
+      
+      pdf.setFontSize(9)
+      pdf.setFont('helvetica', 'normal')
+      
+      const recomendaciones: string[] = []
+      
+      if (estadisticas.altos > 0) {
+        recomendaciones.push(`⚠️ URGENTE: ${estadisticas.altos} vehículos con precios altos (${((estadisticas.altos / vehiculosFiltrados.length) * 100).toFixed(0)}% del stock). Acción inmediata necesaria para mejorar competitividad y reducir días en stock.`)
+      }
+      
+      if (estadisticas.masDe90d > 0) {
+        recomendaciones.push(`⏰ CRÍTICO: ${estadisticas.masDe90d} vehículos llevan más de 90 días en stock. Riesgo de pérdida de valor. Recomendación: Descuentos del 8-10% o estrategias de marketing agresivas.`)
+      }
+      
+      if (estadisticas.peorOpcion > vehiculosFiltrados.length * 0.15) {
+        recomendaciones.push(`🔴 ATENCIÓN: ${estadisticas.peorOpcion} vehículos (${((estadisticas.peorOpcion / vehiculosFiltrados.length) * 100).toFixed(0)}%) son los MÁS CAROS de su categoría en el mercado. Revisión completa de pricing necesaria.`)
+      }
+      
+      if (estadisticas.competitivos > vehiculosFiltrados.length * 0.6) {
+        recomendaciones.push(`✅ POSITIVO: ${((estadisticas.competitivos / vehiculosFiltrados.length) * 100).toFixed(0)}% de vehículos tienen precios competitivos. Mantener estrategia actual y monitorizar continuamente.`)
+      } else {
+        recomendaciones.push(`⚡ OPORTUNIDAD: Solo ${((estadisticas.competitivos / vehiculosFiltrados.length) * 100).toFixed(0)}% son competitivos. Potencial de mejora significativo ajustando precios en base al análisis.`)
+      }
+      
+      if (estadisticas.mejorOpcion > 0) {
+        recomendaciones.push(`🏆 FORTALEZA: ${estadisticas.mejorOpcion} vehículos (${((estadisticas.mejorOpcion / vehiculosFiltrados.length) * 100).toFixed(0)}%) son la MEJOR OPCIÓN del mercado. Potenciar su visibilidad en marketing.`)
+      }
+      
+      recomendaciones.push(`📊 Posición General: ${stats.posicionGeneral > 0 ? '+' : ''}${stats.posicionGeneral.toFixed(1)}% vs mercado. ${stats.posicionGeneral > 5 ? 'Necesario reposicionamiento.' : stats.posicionGeneral < -3 ? 'Excelente posicionamiento competitivo.' : 'Posición neutral, monitorizar.'}`)
+      
+      recomendaciones.forEach((rec, idx) => {
+        pdf.setFont('helvetica', 'bold')
+        pdf.text(`${idx + 1}.`, margin + 3, yPos)
+        pdf.setFont('helvetica', 'normal')
+        const lines = pdf.splitTextToSize(rec, contentWidth - 15)
+        lines.forEach((line: string, lineIdx: number) => {
+          pdf.text(line, margin + (lineIdx === 0 ? 10 : 3), yPos)
+          yPos += 5
+        })
+        yPos += 3
+      })
+      
+      addWatermarkAndFooter(5, 10)
+      
+      // ============== PÁGINAS FINALES: GRÁFICOS (captura de pantalla) ==============
+      // Capturar todos los gráficos
+      const chartIds = ['distribucion-precio', 'distribucion-km', 'distribucion-ano', 'distribucion-dias', 'distribucion-mejor-opcion']
+      
+      for (let i = 0; i < chartIds.length; i++) {
+        const chartElement = document.getElementById(chartIds[i])
+        if (chartElement) {
+          pdf.addPage()
+          yPos = margin
+          
+          pdf.setFontSize(16)
+          pdf.setFont('helvetica', 'bold')
+          pdf.setTextColor(0, 0, 0)
+          const titles = ['Distribución de Precios', 'Distribución de Kilómetros', 'Distribución por Año', 'Distribución Días en Stock', 'Análisis Mejor Opción']
+          pdf.text(`5.${i + 1} ${titles[i]}`, margin, yPos)
+          yPos += 10
+          
+          const canvas = await html2canvas(chartElement, {
+            backgroundColor: '#ffffff',
+            scale: 2
+          })
+          
+          const imgData = canvas.toDataURL('image/png')
+          const imgWidth = contentWidth
+          const imgHeight = (canvas.height * imgWidth) / canvas.width
+          
+          pdf.addImage(imgData, 'PNG', margin, yPos, imgWidth, imgHeight)
+          
+          addWatermarkAndFooter(6 + i, 10)
+        }
+      }
+      
+      // Actualizar número total de páginas en todos los footers
+      const totalPages = pdf.internal.getNumberOfPages()
+      for (let i = 1; i <= totalPages; i++) {
+        if (i > 1) { // Skip portada
+          pdf.setPage(i)
+          // Re-draw footer with correct total
+          pdf.setFillColor(255, 255, 255)
+          pdf.rect(0, pageHeight - 17, pageWidth, 17, 'F')
+          
+          // Marca de agua lateral
+          pdf.setTextColor(180, 180, 180)
+          pdf.setFontSize(7)
+          pdf.text(`Documento CVO creado ${fechaCompleta} por Jordi Viciana - Ref: ${codigoCVO}`, 5, pageHeight / 2, {
+            angle: 90,
+            align: 'center'
+          })
+          
+          // Footer completo
+          pdf.setTextColor(80, 80, 80)
+          pdf.setFontSize(7)
+          pdf.text(`Página ${i} de ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' })
+          pdf.setFontSize(6)
+          pdf.text('Datos de Quadis Munich extraídos mediante duc_scraper | Competencia: comparador_scraper', pageWidth / 2, pageHeight - 6, { align: 'center' })
+          pdf.setFontSize(5.5)
+          pdf.text('© CVO (Comparador de Vehículos de Ocasión) - Propiedad de Jordi Viciana | Análisis desarrollado para Quadis Munich', pageWidth / 2, pageHeight - 3, { align: 'center' })
+        }
+      }
+      
+      // Guardar PDF
+      pdf.save(`Informe_CVO_${codigoCVO}.pdf`)
+      
+    } catch (error) {
+      console.error('Error generando PDF:', error)
+      alert('Error al generar el PDF completo. Por favor, intenta de nuevo.')
+    }
   }
 
   // Filtrar vehículos según el filtro actual
@@ -121,6 +620,28 @@ export function InformeComparador({ open, onClose, vehiculos, stats, filter }: I
     const competitivos = vehiculosFiltrados.filter(v => v.posicion === 'competitivo').length
     const justos = vehiculosFiltrados.filter(v => v.posicion === 'justo').length
     const altos = vehiculosFiltrados.filter(v => v.posicion === 'alto').length
+
+    // Calcular cuántos son LA MEJOR OPCIÓN del mercado (el más barato de su categoría)
+    const mejorOpcion = vehiculosFiltrados.filter(v => {
+      // Si tiene competidores y nuestro precio es el más bajo → Mejor opción
+      if (v.competidores > 0 && v.precioMinimoCompetencia) {
+        return v.nuestroPrecio < v.precioMinimoCompetencia
+      }
+      // Si no tiene competidores, por defecto es mejor opción (único en el mercado)
+      return v.competidores === 0
+    }).length
+    
+    // Calcular cuántos son LA PEOR OPCIÓN (el más caro de su categoría)
+    const peorOpcion = vehiculosFiltrados.filter(v => {
+      // Si tiene competidores y nuestro precio es el más alto → Peor opción
+      if (v.competidores > 0 && v.precioMaximoCompetencia) {
+        return v.nuestroPrecio > v.precioMaximoCompetencia
+      }
+      return false
+    }).length
+    
+    // Los que están en el medio (ni mejor ni peor)
+    const opcionMedia = vehiculosFiltrados.length - mejorOpcion - peorOpcion
 
     // Por antigüedad
     const año2025 = vehiculosFiltrados.filter(v => parseInt(v.año) === 2025).length
@@ -183,6 +704,9 @@ export function InformeComparador({ open, onClose, vehiculos, stats, filter }: I
       competitivos,
       justos,
       altos,
+      mejorOpcion,
+      peorOpcion,
+      opcionMedia,
       año2025,
       año2024,
       año2023,
@@ -346,7 +870,7 @@ export function InformeComparador({ open, onClose, vehiculos, stats, filter }: I
           </Card>
 
           {/* Gráficos de Distribución */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 print:grid-cols-2">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 print:grid-cols-3">
             
             {/* Distribución por Posición */}
             <Card className="print:break-inside-avoid">
@@ -435,7 +959,7 @@ export function InformeComparador({ open, onClose, vehiculos, stats, filter }: I
             </Card>
 
             {/* Distribución por Rango de Precio */}
-            <Card className="print:break-inside-avoid md:col-span-2">
+            <Card className="print:break-inside-avoid">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">Distribución por Rango de Precio</CardTitle>
               </CardHeader>
@@ -451,8 +975,54 @@ export function InformeComparador({ open, onClose, vehiculos, stats, filter }: I
                 </ResponsiveContainer>
               </CardContent>
             </Card>
+
+            {/* Análisis de Posición en el Mercado (Nuevo) */}
+            <Card className="print:break-inside-avoid">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Posición en el Mercado</CardTitle>
+                <p className="text-xs text-muted-foreground">Comparativa de precios respecto a la competencia directa</p>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: 'Mejor Opción', value: estadisticas.mejorOpcion, color: '#22c55e' },
+                        { name: 'Opción Media', value: estadisticas.opcionMedia, color: '#f59e0b' },
+                        { name: 'Peor Opción', value: estadisticas.peorOpcion, color: '#ef4444' }
+                      ]}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                      label={({ name, value, percent }) => `${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
+                    >
+                      <Cell fill="#22c55e" />
+                      <Cell fill="#f59e0b" />
+                      <Cell fill="#ef4444" />
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="text-center mt-2 space-y-1">
+                  <p className="text-xs text-muted-foreground">
+                    <strong className="text-green-500">{estadisticas.mejorOpcion}</strong> más baratos del mercado
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    <strong className="text-orange-500">{estadisticas.opcionMedia}</strong> en rango medio
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    <strong className="text-red-500">{estadisticas.peorOpcion}</strong> más caros del mercado
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
+          {/* Rankings en Grid 2x2 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 print:grid-cols-2">
           {/* Top 5 Más Caros */}
           <Card className="print:break-inside-avoid">
             <CardHeader className="pb-3">
@@ -576,6 +1146,7 @@ export function InformeComparador({ open, onClose, vehiculos, stats, filter }: I
               </div>
             </CardContent>
           </Card>
+          </div>
 
           {/* Tabla Detallada de Todos los Vehículos */}
           <Card className="print:break-before">
@@ -636,6 +1207,8 @@ export function InformeComparador({ open, onClose, vehiculos, stats, filter }: I
             </CardContent>
           </Card>
 
+          {/* Grid: Análisis por Modelo (1 col) + Recomendaciones (1 col) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 print:grid-cols-2">
           {/* Análisis por Modelo */}
           <Card className="print:break-inside-avoid">
             <CardHeader className="pb-3">
@@ -756,6 +1329,7 @@ export function InformeComparador({ open, onClose, vehiculos, stats, filter }: I
               </div>
             </CardContent>
           </Card>
+          </div>
 
           {/* Footer para impresión */}
           <div className="hidden print:block text-center text-xs text-muted-foreground pt-6 border-t mt-6">
