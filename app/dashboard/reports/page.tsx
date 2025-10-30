@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { CompactSearchWithModal } from "@/components/dashboard/compact-search-with-modal"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { FileBarChart, FileText, AlertTriangle, Clock, TrendingUp } from "lucide-react"
+import { FileBarChart, FileText, AlertTriangle, Clock, TrendingUp, BarChart3 } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
@@ -125,6 +125,24 @@ export default function ReportsPage() {
             <Link href="/dashboard/reports/ventas-mensual">
               <Button variant="outline" className="w-full">
                 <TrendingUp className="mr-2 h-4 w-4" />
+                Ver Informe
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Informe de Precios</CardTitle>
+            <CardDescription>Análisis comparativo de precios y competitividad del mercado</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Informe ejecutivo con análisis de posicionamiento competitivo, distribuciones, rankings y recomendaciones estratégicas de precios.
+            </p>
+            <Link href="/dashboard/comparador-precios/informe">
+              <Button variant="outline" className="w-full">
+                <BarChart3 className="mr-2 h-4 w-4" />
                 Ver Informe
               </Button>
             </Link>

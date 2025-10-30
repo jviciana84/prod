@@ -38,8 +38,9 @@ import {
   Calendar,
   Target
 } from "lucide-react"
-import { format, subMonths, startOfMonth, endOfMonth, parseISO, getMonth, getYear } from "date-fns"
+import { format, subMonths, startOfMonth, endOfMonth, parseISO, getMonth, getYear, startOfWeek, endOfWeek } from "date-fns"
 import { es } from "date-fns/locale"
+import { CalendarioSemanalSelector } from "./calendario-semanal-selector"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
@@ -163,6 +164,10 @@ export function InformeVentasMensual() {
   const [mesSeleccionado, setMesSeleccionado] = useState<string>(format(new Date(), "yyyy-MM"))
   const [refreshing, setRefreshing] = useState(false)
   const [tipoGrafico, setTipoGrafico] = useState<"barras" | "circular" | "linea" | "area">("barras")
+  
+  // Estados para vista semanal
+  const [vistaActual, setVistaActual] = useState<"mensual" | "semanal">("mensual")
+  const [semanaSeleccionada, setSemanaSeleccionada] = useState<{ inicio: Date; fin: Date; numero: number } | null>(null)
 
   const supabase = createClientComponentClient()
 
@@ -204,6 +209,54 @@ export function InformeVentasMensual() {
         `)
         .gte("sale_date", fechaInicio.toISOString())
         .lte("sale_date", fechaFin.toISOString())
+        .order("sale_date", { ascending: false })
+
+      if (error) {
+        throw new Error(`Error al obtener ventas: ${error.message}`)
+      }
+
+      console.log(`📊 Ventas encontradas: ${ventasData?.length || 0}`)
+      setVentas(ventasData || [])
+      return ventasData || []
+    } catch (error: any) {
+      console.error("Error al cargar ventas:", error)
+      setError(error.message)
+      return []
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchVentasSemanal = async (inicio: Date, fin: Date) => {
+    try {
+      setLoading(true)
+
+      console.log("🔍 Obteniendo ventas de la semana")
+      console.log("📅 Desde:", inicio.toISOString())
+      console.log("📅 Hasta:", fin.toISOString())
+
+      const { data: ventasData, error } = await supabase
+        .from("sales_vehicles")
+        .select(`
+          id,
+          license_plate,
+          model,
+          brand,
+          sale_date,
+          advisor,
+          advisor_name,
+          price,
+          payment_method,
+          client_name,
+          client_postal_code,
+          client_province,
+          client_city,
+          discount,
+          vehicle_type,
+          created_at
+        `)
+        .gte("sale_date", inicio.toISOString())
+        .lte("sale_date", fin.toISOString())
         .order("sale_date", { ascending: false })
 
       if (error) {
@@ -419,6 +472,26 @@ export function InformeVentasMensual() {
     setMesSeleccionado(nuevoMes)
   }
 
+  const handleSemanaSeleccionada = async (inicio: Date, fin: Date, numeroSemana: number) => {
+    setSemanaSeleccionada({ inicio, fin, numero: numeroSemana })
+    setRefreshing(true)
+    setError(null)
+    
+    const ventasData = await fetchVentasSemanal(inicio, fin)
+    const stats = calcularEstadisticas(ventasData)
+    setEstadisticas(stats)
+    
+    setRefreshing(false)
+  }
+
+  const handleVistaChange = (vista: "mensual" | "semanal") => {
+    setVistaActual(vista)
+    if (vista === "mensual") {
+      setSemanaSeleccionada(null)
+      cargarDatos()
+    }
+  }
+
   const exportarDatos = () => {
     if (!ventas.length) return
 
@@ -445,7 +518,12 @@ export function InformeVentasMensual() {
     const link = document.createElement("a")
     const url = URL.createObjectURL(blob)
     link.setAttribute("href", url)
-    link.setAttribute("download", `ventas_mensual_${mesSeleccionado}.csv`)
+    
+    const nombreArchivo = vistaActual === "mensual" 
+      ? `ventas_mensual_${mesSeleccionado}.csv`
+      : `ventas_semanal_semana${semanaSeleccionada?.numero || 'X'}.csv`
+    
+    link.setAttribute("download", nombreArchivo)
     link.style.visibility = "hidden"
     document.body.appendChild(link)
     link.click()
@@ -490,23 +568,40 @@ export function InformeVentasMensual() {
       {/* Controles */}
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
         <div className="flex items-center gap-4">
-          <Select value={mesSeleccionado} onValueChange={handleMesChange}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Seleccionar mes" />
+          <Select value={vistaActual} onValueChange={(v) => handleVistaChange(v as "mensual" | "semanal")}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {[...Array(12)].map((_, i) => {
-                const fecha = subMonths(new Date(), i)
-                const valor = format(fecha, "yyyy-MM")
-                const etiqueta = format(fecha, "MMMM yyyy", { locale: es })
-                return (
-                  <SelectItem key={valor} value={valor}>
-                    {etiqueta.charAt(0).toUpperCase() + etiqueta.slice(1)}
-                  </SelectItem>
-                )
-              })}
+              <SelectItem value="mensual">Mensual</SelectItem>
+              <SelectItem value="semanal">Semanal</SelectItem>
             </SelectContent>
           </Select>
+
+          {vistaActual === "mensual" ? (
+            <Select value={mesSeleccionado} onValueChange={handleMesChange}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Seleccionar mes" />
+              </SelectTrigger>
+              <SelectContent>
+                {[...Array(12)].map((_, i) => {
+                  const fecha = subMonths(new Date(), i)
+                  const valor = format(fecha, "yyyy-MM")
+                  const etiqueta = format(fecha, "MMMM yyyy", { locale: es })
+                  return (
+                    <SelectItem key={valor} value={valor}>
+                      {etiqueta.charAt(0).toUpperCase() + etiqueta.slice(1)}
+                    </SelectItem>
+                  )
+                })}
+              </SelectContent>
+            </Select>
+          ) : (
+            <CalendarioSemanalSelector 
+              onSemanaSeleccionada={handleSemanaSeleccionada}
+              semanaActual={semanaSeleccionada}
+            />
+          )}
 
           <Select value={tipoGrafico} onValueChange={(value: any) => setTipoGrafico(value)}>
             <SelectTrigger className="w-32">
