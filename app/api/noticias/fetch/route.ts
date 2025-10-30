@@ -119,11 +119,9 @@ const SEARCH_QUERIES: SearchQuery[] = [
 ]
 
 async function fetchNewsFromAPI(query: string, fromDate: string): Promise<NewsArticle[]> {
-  // Debug: verificar todas las variables disponibles
-  const NEWS_API_KEY = process.env.NEWS_API_KEY || process.env.NEXT_PUBLIC_NEWS_API_KEY
+  const NEWS_API_KEY = process.env.NEWS_API_KEY_PROD || process.env.NEWS_API_KEY
 
   if (!NEWS_API_KEY) {
-    console.error('Variables disponibles:', Object.keys(process.env).filter(k => k.includes('NEWS')))
     throw new Error("NEWS_API_KEY no configurada")
   }
 
