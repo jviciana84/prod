@@ -800,23 +800,19 @@ export default function ComparadorPreciosPage() {
     }
   }, [])
 
-  // Cargar datos desde API
-  useEffect(() => {
-    cargarDatos()
-  }, [])
-
   const cargarDatos = async () => {
     try {
       setLoading(true)
       setError(null)
       
-      // Construir URL con parámetros de tolerancia del card
+      // Construir URL absoluta con parámetros de tolerancia del card
       const params = new URLSearchParams({
         toleranciaCv: toleranciaCvCard,
         toleranciaAño: toleranciaAñoCard
       })
       
-      const response = await fetch(`/api/comparador/analisis?${params}`)
+      const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
+      const response = await fetch(`${baseUrl}/api/comparador/analisis?${params}`)
       
       if (!response.ok) {
         const errorData = await response.json()
@@ -840,6 +836,11 @@ export default function ComparadorPreciosPage() {
       setLoading(false)
     }
   }
+
+  // Cargar datos desde API
+  useEffect(() => {
+    cargarDatos()
+  }, [])
 
   const handleRecalcular = () => {
     // TODO: Implementar recálculo con tolerancias
