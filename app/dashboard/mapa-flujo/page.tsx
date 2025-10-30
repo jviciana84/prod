@@ -2728,6 +2728,146 @@ const pageExplanations: { [key: string]: { steps: string[], validations: string[
       "📊 Balance entre funcionalidad y performance",
       "🎨 UI intuitiva a pesar de la complejidad"
     ]
+  },
+  "Comparador de Vehículos": {
+    steps: [
+      "📄 **Subir PDFs:** El nombre del archivo debe ser el VIN del vehículo.",
+      "🤖 **Extracción Automática:** El sistema extrae datos de configuración del PDF.",
+      "💰 **Datos Opcionales:** Se pueden añadir precio, descuentos, y otros datos manualmente.",
+      "📊 **Comparación Inteligente:** El sistema genera una comparativa detallada de todas las configuraciones.",
+      "🎯 **Recomendación:** Algoritmo automático que recomienda la mejor opción según criterios definidos."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de vehicle_comparisons",
+      "🔧 **Mutaciones:** `/api/comparador/upload` para INSERT (subir PDF y extraer datos)",
+      "📝 **Edición:** `/api/comparador/editar` para UPDATE (modificar datos opcionales)",
+      "📊 **Patrón:** Componente `ComparadorTable` + API Routes + OCR/PDF parsing"
+    ],
+    validations: [
+      "❌ NO subir PDFs sin VIN en el nombre - el sistema no podrá identificarlos",
+      "⚠️ Verificar que los datos extraídos del PDF sean correctos",
+      "✅ Completar datos opcionales para mejorar la comparación",
+      "🔍 Revisar la recomendación automática antes de tomar decisiones"
+    ],
+    diagram: `
+    graph TD
+      A[📄 Usuario sube PDF<br/>Nombre = VIN] --> B[🤖 OCR/Parser]
+      B --> C[📊 vehicle_comparisons]
+      C --> D[💰 Añadir Datos<br/>Precio, Descuentos]
+      D --> E[📊 Motor Comparativa]
+      E --> F[🎯 Recomendación<br/>Automática]
+      F --> G[📋 Vista Comparativa]
+      style C fill:#cce5ff
+      style F fill:#ccffcc
+      style B fill:#ffffcc
+    `
+  },
+  "Comparador de Precios": {
+    steps: [
+      "🚗 **Selección de Vehículo:** Se selecciona el vehículo del stock a analizar.",
+      "📊 **Análisis Quadis:** El sistema compara el precio con datos de Quadis.",
+      "🔍 **Análisis Competencia:** Se comparan precios con la competencia (concesionarios).",
+      "📈 **Termómetro de Precios:** Visualización gráfica de la diferencia porcentual.",
+      "📉 **Scatter Plot:** Gráfico de dispersión para visualizar posicionamiento de precio vs km.",
+      "📋 **Informe Detallado:** Se puede generar un informe completo con todos los análisis."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de price_comparisons + stock",
+      "🔧 **Mutaciones:** `/api/comparador-precios/analizar` para INSERT/UPDATE (análisis de precios)",
+      "📊 **Patrón:** Dashboard analítico + Recharts (ScatterChart) + Componentes visuales",
+      "🎨 **Visualización:** PriceThermometer + CustomTooltip + Multiple charts"
+    ],
+    validations: [
+      "✅ Actualizar datos de Quadis regularmente para comparaciones precisas",
+      "🔍 Verificar que los precios de competencia estén actualizados",
+      "⚠️ NO basar decisiones solo en el termómetro - revisar contexto completo",
+      "📊 Considerar km, estado, y equipamiento al comparar precios"
+    ],
+    diagram: `
+    graph TD
+      A[🚗 Vehículo Stock] --> B[📊 Sistema Análisis]
+      B --> C[📈 Quadis API]
+      B --> D[🔍 Competencia]
+      C --> E[📊 price_comparisons]
+      D --> E
+      E --> F[🌡️ Termómetro<br/>-3% a +3%]
+      E --> G[📈 Scatter Plot<br/>Precio vs KM]
+      F --> H[📋 Informe]
+      G --> H
+      style E fill:#cce5ff
+      style F fill:#ccffcc
+      style H fill:#ffffcc
+    `
+  },
+  "Informe Comparador": {
+    steps: [
+      "📋 **Vista Consolidada:** Muestra todos los análisis de precios en un solo informe.",
+      "🎯 **Segmentación:** Agrupa por marca (BMW/MINI), tipo, rango de precios.",
+      "📊 **Métricas Clave:** Diferencia media, porcentaje sobre Quadis, posición vs competencia.",
+      "📈 **Visualizaciones:** Gráficos de tendencias, distribución de precios.",
+      "🖨️ **Exportar:** Permite imprimir o exportar el informe."
+    ],
+    technical: [
+      "💻 **Consultas:** SELECT complejo con joins a stock, price_comparisons",
+      "📊 **Patrón:** Vista de solo lectura + Componente InformeComparador",
+      "🎨 **Visualización:** Múltiples charts con Recharts",
+      "🖨️ **Export:** Soporte para impresión con estilos específicos"
+    ],
+    validations: [
+      "✅ Datos deben estar actualizados antes de generar informe",
+      "🔍 Revisar anomalías en los datos antes de presentar",
+      "📊 Contextualizar los datos según mercado y temporada",
+      "⚠️ NO usar como única fuente de decisión de pricing"
+    ],
+    diagram: `
+    graph TD
+      A[📊 price_comparisons] --> B[📋 Informe Consolidado]
+      C[🚗 stock] --> B
+      B --> D[🎯 Segmentación<br/>BMW/MINI]
+      D --> E[📈 Métricas Clave]
+      E --> F[📊 Visualizaciones]
+      F --> G[🖨️ Exportar/Imprimir]
+      style B fill:#cce5ff
+      style E fill:#ccffcc
+      style G fill:#ffffcc
+    `
+  },
+  "Administración de Recepción": {
+    steps: [
+      "👥 **Gestión de Asesores:** Crear, editar y eliminar asesores de recepción.",
+      "✅ **Estados:** Activar/desactivar asesores, marcar vacaciones.",
+      "📊 **Estadísticas:** Visualizar distribución de visitas por asesor.",
+      "📅 **Gestión de Vacaciones:** Asignar períodos de vacaciones a cada asesor.",
+      "📈 **Historial:** Registro completo de todas las asignaciones de visitas.",
+      "🔄 **Redistribución Automática:** El sistema redistribuye visitas cuando un asesor está de vacaciones."
+    ],
+    technical: [
+      "💻 **Consultas:** `createClientComponentClient()` para SELECT de advisors, visit_assignments",
+      "🔧 **Mutaciones:** `/api/recepcion/asesores` para INSERT/UPDATE/DELETE de asesores",
+      "📅 **Vacaciones:** `/api/recepcion/vacaciones` para gestionar períodos",
+      "📊 **Patrón:** Componentes especializados (AdvisorsManagement, VisitStatistics, VisitHistory, VacationManager)"
+    ],
+    validations: [
+      "❌ NO desactivar asesores con visitas pendientes sin redistribuir",
+      "⚠️ Configurar vacaciones con anticipación para redistribución correcta",
+      "✅ Verificar balance de carga entre asesores regularmente",
+      "🔍 Revisar historial para detectar patrones y optimizar asignaciones"
+    ],
+    diagram: `
+    graph TD
+      A[👤 Usuario Admin] --> B[👥 Gestión Asesores]
+      B --> C[📊 advisors]
+      C --> D{✅ Activo?}
+      D -->|SÍ| E[📋 visit_assignments]
+      D -->|VACACIONES| F[📅 advisor_vacations]
+      F --> G[🔄 Redistribución<br/>Automática]
+      G --> E
+      E --> H[📊 Estadísticas]
+      E --> I[📈 Historial]
+      style C fill:#cce5ff
+      style E fill:#ccffcc
+      style G fill:#ffffcc
+    `
   }
 }
 const pagesStructure = {
@@ -2834,6 +2974,20 @@ const pagesStructure = {
       { name: "Reportes", path: "/dashboard/reports", description: "Centro de reportes del sistema" },
       { name: "Días Preparación VO", path: "/dashboard/reports/dias-preparacion-vo", description: "Análisis de tiempos de preparación" },
       { name: "Ventas Mensual", path: "/dashboard/reports/ventas-mensual", description: "Reporte mensual de ventas" }
+    ]
+  },
+  "Comparadores": {
+    icon: "Scale",
+    pages: [
+      { name: "Comparador de Vehículos", path: "/dashboard/comparador", description: "Comparativa inteligente de configuraciones de vehículos", tables: ["vehicle_comparisons"] },
+      { name: "Comparador de Precios", path: "/dashboard/comparador-precios", description: "Análisis de precios vs Quadis y competencia", tables: ["price_comparisons", "stock"] },
+      { name: "Informe Comparador", path: "/dashboard/comparador-precios/informe", description: "Informe detallado de comparación de precios" }
+    ]
+  },
+  "Recepción y Visitas": {
+    icon: "Users",
+    pages: [
+      { name: "Administración de Recepción", path: "/dashboard/recepcion-admin", description: "Gestión de asesores, vacaciones y estadísticas de visitas", tables: ["advisors", "visit_assignments", "advisor_vacations"] }
     ]
   },
   "Noticias": {
