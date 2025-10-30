@@ -259,3 +259,5 @@ Si tienes dudas:
 **Fecha**: 29/10/2025  
 **Autor**: CVO Scraper QUADIS Munich
 
+
+

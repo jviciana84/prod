@@ -200,3 +200,5 @@ def run_bps_hard():
 **Versión**: 1.0  
 **Autor**: Investigación automática con Selenium + BeautifulSoup
 
+
+

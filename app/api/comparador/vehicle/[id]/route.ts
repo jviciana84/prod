@@ -176,6 +176,11 @@ export async function GET(
     )
     const vehicleId = params.id
     
+    // Leer tolerancias configurables (con valores por defecto)
+    const { searchParams } = new URL(request.url)
+    const toleranciaCv = parseInt(searchParams.get('toleranciaCv') || '20') // ±20 CV por defecto
+    const toleranciaAño = parseFloat(searchParams.get('toleranciaAño') || '1') // Puede ser fraccionario (0.25, 0.5, etc.)
+    
     // Obtener vehículo específico desde duc_scraper
     const { data: ducVehiculo, error: vehiculoError } = await supabase
       .from('duc_scraper')
@@ -213,14 +218,83 @@ export async function GET(
       }
     }
     
-    // Combinar Modelo + Versión
+    // Combinar Modelo + Versión + Potencia (CV) para tener modelo completo
     let modeloCompleto = ducVehiculo['Modelo']
     if (ducVehiculo['Versión']) {
-      const versionMatch = ducVehiculo['Versión'].match(/([ex]?Drive\d+|M\d+|\d{3}[a-z]+)/i)
-      if (versionMatch) {
-        modeloCompleto = `${ducVehiculo['Modelo']} ${versionMatch[1]}`
-      } else {
-        modeloCompleto = `${ducVehiculo['Modelo']} ${ducVehiculo['Versión'].split(' ')[0]}`
+      const modeloLower = ducVehiculo['Modelo'].toLowerCase()
+      const versionLower = ducVehiculo['Versión'].toLowerCase()
+      
+      // Extraer potencia (CV) de la versión - PRIORIDAD: CV sobre kW
+      const cvMatch = ducVehiculo['Versión'].match(/\((\d+)\s*CV\)/)
+      const kwMatch = ducVehiculo['Versión'].match(/(\d+)\s*kW/)
+      
+      // Usar CV si existe, sino convertir kW a CV (1 kW = 1.36 CV)
+      let potenciaCv = null
+      if (cvMatch) {
+        potenciaCv = cvMatch[1]
+      } else if (kwMatch && !cvMatch) {
+        potenciaCv = Math.round(parseInt(kwMatch[1]) * 1.36).toString()
+      } else if (ducVehiculo['Potencia Cv']) {
+        potenciaCv = ducVehiculo['Potencia Cv'].toString()
+      }
+      
+      // Para MINI: capturar variantes completas (Cooper E, Cooper SE, Cooper S, JCW, etc.) + CV
+      if (modeloLower.includes('mini')) {
+        // Detectar variantes MINI específicas (orden importante: más específico primero)
+        if (/john\s*cooper\s*works|jcw/i.test(ducVehiculo['Versión'])) {
+          modeloCompleto = `${ducVehiculo['Modelo']} John Cooper Works`
+        } else if (/cooper\s*se\b/i.test(ducVehiculo['Versión'])) {
+          modeloCompleto = `${ducVehiculo['Modelo']} Cooper SE`
+        } else if (/cooper\s*s\s*e\b/i.test(ducVehiculo['Versión'])) {
+          modeloCompleto = `${ducVehiculo['Modelo']} Cooper S E`
+        } else if (/cooper\s*sd\b/i.test(ducVehiculo['Versión'])) {
+          modeloCompleto = `${ducVehiculo['Modelo']} Cooper SD`
+        } else if (/cooper\s*s\b/i.test(ducVehiculo['Versión'])) {
+          modeloCompleto = `${ducVehiculo['Modelo']} Cooper S`
+        } else if (/cooper\s*e\b/i.test(ducVehiculo['Versión'])) {
+          modeloCompleto = `${ducVehiculo['Modelo']} Cooper E`
+        } else if (/cooper\s*d\b/i.test(ducVehiculo['Versión'])) {
+          modeloCompleto = `${ducVehiculo['Modelo']} Cooper D`
+        } else if (/cooper\s*c\b/i.test(ducVehiculo['Versión'])) {
+          modeloCompleto = `${ducVehiculo['Modelo']} Cooper C`
+        } else if (/cooper/i.test(ducVehiculo['Versión'])) {
+          modeloCompleto = `${ducVehiculo['Modelo']} Cooper`
+        } else if (/\bone\s*d\b/i.test(ducVehiculo['Versión'])) {
+          modeloCompleto = `${ducVehiculo['Modelo']} One D`
+        } else if (/\bone\b/i.test(ducVehiculo['Versión'])) {
+          modeloCompleto = `${ducVehiculo['Modelo']} One`
+        } else if (/\bs\s*all4/i.test(ducVehiculo['Versión'])) {
+          modeloCompleto = `${ducVehiculo['Modelo']} S ALL4`
+        } else if (/\bse\s*all4/i.test(ducVehiculo['Versión'])) {
+          modeloCompleto = `${ducVehiculo['Modelo']} SE ALL4`
+        } else if (/\bs\b/i.test(ducVehiculo['Versión'])) {
+          modeloCompleto = `${ducVehiculo['Modelo']} S`
+        } else if (/\be\b/i.test(ducVehiculo['Versión'])) {
+          modeloCompleto = `${ducVehiculo['Modelo']} E`
+        } else if (/\bd\b/i.test(ducVehiculo['Versión'])) {
+          modeloCompleto = `${ducVehiculo['Modelo']} D`
+        } else if (/\bc\b/i.test(ducVehiculo['Versión'])) {
+          modeloCompleto = `${ducVehiculo['Modelo']} C`
+        }
+        
+        // Añadir CV al modelo MINI
+        if (potenciaCv) {
+          modeloCompleto = `${modeloCompleto} ${potenciaCv}`
+        }
+      } 
+      // Para BMW: extraer variante técnica (xDrive30, eDrive40, M50, 320d, etc.) + CV
+      else {
+        const versionMatch = ducVehiculo['Versión'].match(/([ex]?Drive\d+|M\d+|\d{3}[a-z]+)/i)
+        if (versionMatch) {
+          modeloCompleto = `${ducVehiculo['Modelo']} ${versionMatch[1]}`
+        } else {
+          modeloCompleto = `${ducVehiculo['Modelo']} ${ducVehiculo['Versión'].split(' ')[0]}`
+        }
+        
+        // Añadir CV al modelo BMW
+        if (potenciaCv) {
+          modeloCompleto = `${modeloCompleto} ${potenciaCv}`
+        }
       }
     }
     
@@ -228,6 +302,7 @@ export async function GET(
       id: ducVehiculo['ID Anuncio'],
       license_plate: ducVehiculo['Matrícula'],
       model: modeloCompleto,
+      fecha_matriculacion: ducVehiculo['Fecha primera matriculación'] || null, // Fecha del DUC
       year: year ? year.toString() : null,
       km: ducVehiculo['KM'],
       price: ducVehiculo['Precio'],
@@ -245,7 +320,7 @@ export async function GET(
     while (true) {
       const { data: batch, error } = await supabase
         .from('comparador_scraper')
-        .select('id, source, id_anuncio, modelo, año, km, precio, precio_nuevo, precio_nuevo_original, concesionario, url, dias_publicado, estado_anuncio')
+        .select('id, source, id_anuncio, modelo, año, km, precio, precio_anterior, precio_nuevo, precio_nuevo_original, concesionario, url, dias_publicado, primera_deteccion, fecha_primera_matriculacion, estado_anuncio, numero_bajadas_precio, importe_total_bajado')
         .in('estado_anuncio', ['activo', 'nuevo', 'precio_bajado', 'precio_subido'])
         .range(offset, offset + batchSize - 1)
       
@@ -282,9 +357,33 @@ export async function GET(
       
       const modeloComp = comp.modelo?.toLowerCase() || ''
       
-      // Normalizar modelos para comparación exacta
-      const normalizeModel = (modelo: string) => {
+      // Normalizar modelos para comparación exacta incluyendo potencia (CV)
+      const normalizeModel = (modelo: string, modeloOriginal?: string) => {
         let normalized = modelo.trim().toLowerCase()
+        
+        // Extraer potencia (CV) - PRIORIDAD: del modelo original sin procesar
+        // Ejemplo: "MINI Countryman Cooper 100 kW (136 CV)" -> cv = 136
+        let cv = null
+        
+        // 1. Intentar extraer del modelo original (competencia sin procesar)
+        if (modeloOriginal) {
+          const cvMatchOriginal = modeloOriginal.match(/\((\d+)\s*CV\)/)
+          if (cvMatchOriginal) {
+            cv = parseInt(cvMatchOriginal[1])
+          }
+        }
+        
+        // 2. Si no, intentar del modelo procesado (nuestro modelo con CV al final)
+        if (!cv) {
+          const cvMatch = modelo.match(/\s(\d+)$/)
+          cv = cvMatch ? parseInt(cvMatch[1]) : null
+        }
+        
+        // Remover los CV del string normalizado para procesar el modelo base
+        if (cv) {
+          normalized = normalized.replace(/\s\d+$/, '').trim()
+        }
+        
         let base = ''
         let variant = ''
         
@@ -343,39 +442,64 @@ export async function GET(
             const match = normalized.match(/\b(\d+)\s*puertas?\b/i)
             if (match) {
               base = `mini ${match[1]} puertas`
-              // Extraer variante si existe
-              if (/cooper\s*se/i.test(normalized)) variant = 'cooper se'
+              // Extraer variante si existe (orden importante: más específico primero)
+              if (/john\s*cooper\s*works|jcw/i.test(normalized)) variant = 'jcw'
+              else if (/cooper\s*se\b/i.test(normalized)) variant = 'cooper se'
+              else if (/cooper\s*s\s*e\b/i.test(normalized)) variant = 'cooper s e'
+              else if (/cooper\s*sd\b/i.test(normalized)) variant = 'cooper sd'
               else if (/cooper\s*s\b/i.test(normalized)) variant = 'cooper s'
-              else if (/john\s*cooper\s*works|jcw/i.test(normalized)) variant = 'jcw'
+              else if (/cooper\s*e\b/i.test(normalized)) variant = 'cooper e'
+              else if (/cooper\s*d\b/i.test(normalized)) variant = 'cooper d'
               else if (/cooper\s*c\b/i.test(normalized)) variant = 'cooper c'
               else if (/cooper/i.test(normalized)) variant = 'cooper'
+              else if (/\bone\s*d\b/i.test(normalized)) variant = 'one d'
+              else if (/\bone\b/i.test(normalized)) variant = 'one'
             }
           }
           // Countryman, Clubman, Paceman
           else if (/\b(countryman|clubman|paceman)\b/.test(normalized)) {
-            const match = normalized.match(/\b(countryman|clubman|paceman)\s*([sd]|jcw|cooper)?/i)
+            const match = normalized.match(/\b(countryman|clubman|paceman)\b/i)
             if (match) {
               base = `mini ${match[1]}`
-              variant = match[2] || ''
+              // Detectar variante más específica
+              if (/john\s*cooper\s*works|jcw/i.test(normalized)) variant = 'jcw'
+              else if (/cooper\s*se/i.test(normalized)) variant = 'cooper se'
+              else if (/cooper\s*s\s*e\b/i.test(normalized)) variant = 'cooper s e'
+              else if (/cooper\s*sd\b/i.test(normalized)) variant = 'cooper sd'
+              else if (/cooper\s*s\b/i.test(normalized)) variant = 'cooper s'
+              else if (/cooper\s*d\b/i.test(normalized)) variant = 'cooper d'
+              else if (/cooper\s*c\b/i.test(normalized)) variant = 'cooper c'
+              else if (/cooper\s*e\b/i.test(normalized)) variant = 'cooper e'
+              else if (/\bs\s*all4/i.test(normalized)) variant = 's all4'
+              else if (/\bse\s*all4/i.test(normalized)) variant = 'se all4'
+              else if (/\bone\s*d\b/i.test(normalized)) variant = 'one d'
+              else if (/\bs\b/i.test(normalized)) variant = 's'
+              else if (/\be\b/i.test(normalized)) variant = 'e'
+              else if (/\bd\b/i.test(normalized)) variant = 'd'
+              else if (/\bc\b/i.test(normalized)) variant = 'c'
+              else if (/cooper/i.test(normalized)) variant = 'cooper'
             }
           }
           // MINI Aceman
           else if (/aceman/.test(normalized)) {
             base = 'mini aceman'
-            if (/aceman\s*se/.test(normalized)) variant = 'se'
+            if (/john\s*cooper\s*works|jcw/i.test(normalized)) variant = 'jcw'
+            else if (/aceman\s*se/.test(normalized)) variant = 'se'
             else if (/aceman\s*e\b/.test(normalized)) variant = 'e'
           }
           // MINI Cabrio
           else if (/cabrio/.test(normalized)) {
             base = 'mini cabrio'
-            variant = ''
+            if (/john\s*cooper\s*works|jcw/i.test(normalized)) variant = 'jcw'
+            else if (/cooper\s*s\b/.test(normalized)) variant = 'cooper s'
+            else if (/cooper/i.test(normalized)) variant = 'cooper'
           }
           // MINI Cooper (solo, sin puertas)
           else if (/cooper/.test(normalized)) {
             base = 'mini cooper'
-            if (/cooper\s*se/.test(normalized)) variant = 'se'
+            if (/john\s*cooper\s*works|jcw/i.test(normalized)) variant = 'jcw'
+            else if (/cooper\s*se/.test(normalized)) variant = 'se'
             else if (/cooper\s*s\b/.test(normalized)) variant = 's'
-            else if (/john\s*cooper\s*works|jcw/.test(normalized)) variant = 'jcw'
             else variant = ''
           }
         }
@@ -385,11 +509,11 @@ export async function GET(
           base = normalized
         }
         
-        return { base, variant: variant.toLowerCase() }
+        return { base, variant: variant.toLowerCase(), cv }
       }
       
-      const nuestroNorm = normalizeModel(modeloNuestro)
-      const compNorm = normalizeModel(modeloComp)
+      const nuestroNorm = normalizeModel(modeloNuestro) // Nuestro modelo ya procesado con CV
+      const compNorm = normalizeModel(modeloComp, comp.modelo) // Modelo competencia + modelo original
       
       // Si alguna base está vacía, no hay match
       if (!nuestroNorm.base || !compNorm.base) {
@@ -411,6 +535,18 @@ export async function GET(
       }
       // Si nuestro vehículo NO tiene variante pero el competidor sí,
       // permitimos el match (ej: "i4" puede compararse con "i4 eDrive40")
+      
+      // Comparar potencia (CV) con tolerancia configurable
+      // Si AMBOS tienen CV especificados, deben estar dentro de la tolerancia
+      if (nuestroNorm.cv && compNorm.cv) {
+        const diferenciaCv = Math.abs(nuestroNorm.cv - compNorm.cv)
+        
+        if (diferenciaCv > toleranciaCv) {
+          // Potencias muy diferentes, no comparar
+          return false
+        }
+      }
+      // Si solo uno tiene CV especificado, permitir el match (más flexible)
       
       // Año debe ser similar (±1 año)
       if (vehiculo.year && comp.año) {
@@ -610,6 +746,7 @@ export async function GET(
       precioNuevo: precioNuevoNuestro,
       descuentoNuestro,
       enlaceAnuncio: vehiculo.duc_url || vehiculo.cms_url || null,
+      fechaPrimeraMatriculacion: vehiculo.fecha_matriculacion || null, // Del DUC
       
       // Análisis de competencia
       precioMedioCompetencia,
@@ -649,16 +786,51 @@ export async function GET(
           scoreComp = calcularScoreValor(precioComp, precioNuevoComp, añoComp, kmComp).score
         }
         
+        // Calcular días publicado desde primera_deteccion
+        let diasPublicado = 0
+        if (comp.primera_deteccion) {
+          const hoy = new Date()
+          const primeraDeteccion = new Date(comp.primera_deteccion)
+          diasPublicado = Math.floor((hoy.getTime() - primeraDeteccion.getTime()) / (1000 * 60 * 60 * 24))
+        }
+        
+        // Procesar modelo de competencia para añadir CV al final
+        let modeloCompProcesado = comp.modelo
+        if (comp.modelo) {
+          // Extraer CV del modelo: "MINI 3 Puertas Cooper E 135 kW (184 CV)" -> CV = 184
+          const cvMatchComp = comp.modelo.match(/\((\d+)\s*CV\)/)
+          if (cvMatchComp) {
+            const cv = cvMatchComp[1]
+            // Añadir CV al final si no está ya
+            if (!/\s\d+$/.test(modeloCompProcesado)) {
+              modeloCompProcesado = `${modeloCompProcesado} ${cv}`
+            }
+          }
+        }
+        
+        // Fallback para bajadas si el scraper aún no pobló las nuevas columnas
+        const precioAnteriorNum = parsePrice(comp.precio_anterior)
+        const numeroBajadasFallback = (comp.numero_bajadas_precio || 0) > 0
+          ? comp.numero_bajadas_precio
+          : (comp.estado_anuncio === 'precio_bajado' && precioAnteriorNum && precioComp && precioAnteriorNum > precioComp ? 1 : 0)
+        const importeTotalBajadoFallback = (comp.importe_total_bajado || 0) > 0
+          ? comp.importe_total_bajado
+          : (numeroBajadasFallback && precioAnteriorNum && precioComp ? (precioAnteriorNum - precioComp) : 0)
+
         return {
           id: comp.id,
           concesionario: normalizeConcesionario(comp.concesionario),
+          modelo: modeloCompProcesado, // Modelo procesado con CV al final
           precio: precioComp,
           precioNuevo: precioNuevoComp,
           km: kmComp,
-          dias: comp.dias_publicado || 0,
+          dias: diasPublicado,
           url: comp.url,
           año: comp.año,
-          score: scoreComp // Score normalizado (negativo = buen precio)
+          score: scoreComp, // Score normalizado (negativo = buen precio)
+          fechaPrimeraMatriculacion: comp.fecha_primera_matriculacion || null, // Hard scraping
+          numeroBajadas: numeroBajadasFallback || 0,
+          importeTotalBajado: importeTotalBajadoFallback || 0
         }
       }),
       

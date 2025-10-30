@@ -140,8 +140,8 @@ export function DashboardContent({
                 <p className="text-sm font-medium text-muted-foreground truncate">Vehículos en Stock</p>
                 <h3 className="text-2xl font-bold mt-1">
                   {stats.vehiclesInStock} / <span className="text-green-600 font-bold">{stats.disponiblesInStock}</span>
+                  <span className="text-xs text-muted-foreground ml-2">Disponibles</span>
                 </h3>
-                <p className="text-xs text-muted-foreground mt-1">Disponibles</p>
                 <div className="flex items-center gap-3 mt-2">
                   <div className="flex items-center gap-1">
                     <Car className="h-3 w-3 text-blue-500" />

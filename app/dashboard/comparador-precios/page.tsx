@@ -8,6 +8,7 @@ import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { CompactSearchWithModal } from "@/components/dashboard/compact-search-with-modal"
 import { InformeComparador } from "@/components/dashboard/informe-comparador"
 import { TrendingDown, TrendingUp, Minus, Target, Euro, AlertCircle, ExternalLink, Search, Filter, RefreshCw, BarChart3, Edit, Trash2, Link as LinkIcon, Settings, FileText, Printer } from "lucide-react"
+import { BMWLogo, MINILogo } from "@/components/ui/brand-logos"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -110,21 +111,43 @@ function CustomTooltip({ active, payload }: any) {
             {emoji} {titulo}
           </div>
           <div className="text-xs text-muted-foreground">
-            {data.modelo}
+            {data.modelo && /\s\d+$/.test(data.modelo) ? `${data.modelo} CV` : data.modelo}
+            {` `}
+            {data.fechaPrimeraMatriculacion ? (
+              <span>• {data.fechaPrimeraMatriculacion}</span>
+            ) : (
+              <span className="text-amber-500 font-mono">• No Hard scraping</span>
+            )}
+            {typeof data.dias === 'number' && data.dias >= 0 && (
+              <span>
+                {` • `}
+                {data.dias === 1 ? '1 día' : data.dias > 1 ? `${data.dias} días` : 'Hoy'}
+              </span>
+            )}
           </div>
           <div className="text-xs">
             <strong>{data.precio?.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€</strong> • {data.km?.toLocaleString()} km
+            {data.año && <span> • {data.año}</span>}
           </div>
-          {data.precioNuevo && (
-            <div className="text-xs text-muted-foreground">
-              Nuevo: {data.precioNuevo.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€ ({((1 - data.precio/data.precioNuevo) * 100).toFixed(2)}% desc.)
-            </div>
-          )}
-          {data.url && (
-            <div className="text-xs text-blue-500 mt-1">
-              🔗 Click para ver anuncio
-            </div>
-          )}
+            {data.precioNuevo && (
+              <div className="text-xs text-muted-foreground">
+                Nuevo: {data.precioNuevo.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€ ({((1 - data.precio/data.precioNuevo) * 100).toFixed(2)}% desc.)
+              </div>
+            )}
+            {data.numeroBajadas > 0 ? (
+              <div className="text-xs text-green-600 font-medium mt-1">
+                🔽 Bajada: -{data.importeTotalBajado?.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€ ({data.numeroBajadas} {data.numeroBajadas === 1 ? 'vez' : 'veces'})
+              </div>
+            ) : data.tipo !== 'nuestro' && (
+              <div className="text-xs text-blue-500/70 mt-1">
+                💎 Precio igual desde 1ª Publicación
+              </div>
+            )}
+            {data.url && (
+              <div className="text-xs text-blue-500 mt-1">
+                🔗 Click para ver anuncio
+              </div>
+            )}
         </div>
       </Card>
     )
@@ -161,10 +184,13 @@ function CompetitorDetailModal({ vehicle, open, onClose }: { vehicle: any, open:
         precioNuevo: comp.precioNuevo,
         tipo: esQuadis ? 'quadis' : 'competencia',
         concesionario: comp.concesionario,
-        modelo: vehicle.modelo,
+        modelo: comp.modelo || vehicle.modelo, // Usar modelo procesado del competidor
         año: comp.año,
         url: comp.url,
-        dias: comp.dias
+        dias: comp.dias,
+        fechaPrimeraMatriculacion: comp.fechaPrimeraMatriculacion || null,
+        numeroBajadas: comp.numeroBajadas || 0,
+        importeTotalBajado: comp.importeTotalBajado || 0
       }
     })
   ]
@@ -199,7 +225,7 @@ function CompetitorDetailModal({ vehicle, open, onClose }: { vehicle: any, open:
               </div>
               {/* Línea 2: Subtítulo */}
               <DialogDescription className="text-sm">
-                {vehicle.modelo} • {vehicle.año} • {vehicle.km.toLocaleString()} km • Precio nuevo: {vehicle.precioNuevo.toLocaleString()}€
+                {/\s\d+$/.test(vehicle.modelo) ? `${vehicle.modelo} CV` : vehicle.modelo} • {vehicle.año} • {vehicle.km.toLocaleString()} km • Precio nuevo: {vehicle.precioNuevo.toLocaleString()}€
               </DialogDescription>
             </div>
 
@@ -591,36 +617,86 @@ function CompetitorDetailModal({ vehicle, open, onClose }: { vehicle: any, open:
             <div>
               <h3 className="text-sm font-semibold mb-2">Competidores Directos ({vehicle.competidoresDetalle.length})</h3>
               <div className="grid grid-cols-3 gap-2">
-                {vehicle.competidoresDetalle.map((comp: any) => (
-                  <Card key={comp.id} className="bg-muted/30 hover:bg-muted/50 transition-colors">
-                    <CardContent className="p-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm truncate">{comp.concesionario}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {comp.km?.toLocaleString()} km • {comp.dias} días
+                {vehicle.competidoresDetalle.map((comp: any) => {
+                  // Extraer información del modelo
+                  const modeloCompleto = comp.modelo || 'N/A'
+                  const modeloLower = modeloCompleto.toLowerCase()
+                  
+                  // Detectar marca
+                  let marca = ''
+                  if (modeloLower.includes('bmw') || modeloLower.match(/^(i\d|ix|serie|x\d|z\d|m\d)/i)) {
+                    marca = 'BMW'
+                  } else if (modeloLower.includes('mini')) {
+                    marca = 'MINI'
+                  }
+                  
+                  // Extraer CV del final del modelo
+                  const cvMatch = modeloCompleto.match(/\s(\d+)\s*CV\s*$/)
+                  let cv = cvMatch ? cvMatch[1] : ''
+                  
+                  // Si no encontró CV al final, intentar buscar en cualquier parte
+                  if (!cv) {
+                    const cvMatch2 = modeloCompleto.match(/(\d+)\s*CV/)
+                    cv = cvMatch2 ? cvMatch2[1] : ''
+                  }
+                  
+                  return (
+                    <Card key={comp.id} className="bg-muted/30 hover:bg-muted/50 transition-colors">
+                      <CardContent className="p-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm truncate">{comp.concesionario}</div>
+                            <div className="text-[11px] text-muted-foreground truncate">
+                              {marca && <span className="font-medium">{marca}</span>}
+                              {marca && ' '}
+                              <span>{modeloCompleto}</span>
+                              {cv && !modeloCompleto.includes('CV') && <span> {cv} CV</span>}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {comp.km?.toLocaleString()} km • {comp.año || 'N/A'}
+                              {comp.fechaPrimeraMatriculacion ? (
+                                <span> • {(() => {
+                                  const fecha = new Date(comp.fechaPrimeraMatriculacion)
+                                  const dia = fecha.getDate().toString().padStart(2, '0')
+                                  const mes = (fecha.getMonth() + 1).toString().padStart(2, '0')
+                                  const año = fecha.getFullYear()
+                                  return `${dia}/${mes}/${año}`
+                                })()}</span>
+                              ) : (
+                                <span className="text-amber-500 font-mono"> • No Hard scraping</span>
+                              )}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {comp.dias === 1 ? '1 día' : comp.dias > 1 ? `${comp.dias} días` : 'Hoy'} • Desc: {comp.precioNuevo ? ((1 - comp.precio/comp.precioNuevo) * 100).toFixed(2) : 'N/A'}%
+                            </div>
+                            {comp.numeroBajadas > 0 ? (
+                              <div className="text-xs text-green-600 font-medium mt-1">
+                                🔽 Bajada: -{comp.importeTotalBajado?.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€ ({comp.numeroBajadas} {comp.numeroBajadas === 1 ? 'vez' : 'veces'})
+                              </div>
+                            ) : (
+                              <div className="text-xs text-blue-500/70 mt-1">
+                                💎 Precio igual desde 1ª Publicación
+                              </div>
+                            )}
                           </div>
-                          <div className="text-xs text-muted-foreground">
-                            Desc: {comp.precioNuevo ? ((1 - comp.precio/comp.precioNuevo) * 100).toFixed(2) : 'N/A'}%
+                          <div className="text-right">
+                            <div className="font-bold text-sm">{comp.precio?.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€</div>
+                            <div className={`text-xs ${comp.precio > vehicle.nuestroPrecio ? 'text-red-500' : 'text-green-500'}`}>
+                              {comp.precio > vehicle.nuestroPrecio ? '+' : ''}{(comp.precio - vehicle.nuestroPrecio).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€
+                            </div>
+                            {comp.url && (
+                              <Button size="sm" variant="ghost" className="h-6 px-2 mt-1" asChild>
+                                <a href={comp.url} target="_blank" rel="noopener noreferrer">
+                                  <LinkIcon className="w-3 h-3" />
+                                </a>
+                              </Button>
+                            )}
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className="font-bold text-sm">{comp.precio?.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€</div>
-                          <div className={`text-xs ${comp.precio > vehicle.nuestroPrecio ? 'text-red-500' : 'text-green-500'}`}>
-                            {comp.precio > vehicle.nuestroPrecio ? '+' : ''}{(comp.precio - vehicle.nuestroPrecio).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€
-                          </div>
-                          {comp.url && (
-                            <Button size="sm" variant="ghost" className="h-6 px-2 mt-1" asChild>
-                              <a href={comp.url} target="_blank" rel="noopener noreferrer">
-                                <LinkIcon className="w-3 h-3" />
-                              </a>
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  )
+                })}
               </div>
             </div>
           )}
@@ -658,7 +734,7 @@ export default function ComparadorPreciosPage() {
   const [vehiculos, setVehiculos] = useState<any[]>([])
   const [ultimaActualizacion, setUltimaActualizacion] = useState<Date | null>(null)
   
-  // Parámetros de valoración (configurables)
+  // Parámetros de valoración (configurables en modal)
   const [parametros, setParametros] = useState({
     depreciacionAño1: 15,
     depreciacionAño2: 25,
@@ -669,10 +745,12 @@ export default function ComparadorPreciosPage() {
     diasStockAlerta: 60
   })
   
-  // Filtros de tolerancia
+  // Filtros de tolerancia del card
   const [toleranciaKm, setToleranciaKm] = useState("10000")
-  const [toleranciaMeses, setToleranciaMeses] = useState("9")
-  const [toleranciaCV, setToleranciaCV] = useState("20")
+  const [toleranciaAñoCard, setToleranciaAñoCard] = useState("1")
+  const [toleranciaCvCard, setToleranciaCvCard] = useState("20")
+  const [marcaFilter, setMarcaFilter] = useState("all") // BMW, MINI, all
+  const [combustibleFilter, setCombustibleFilter] = useState("all") // PHEV, BEV, Gasolina, Diesel, all
 
   // Verificar si es admin y aplicar restricción
   useEffect(() => {
@@ -722,7 +800,14 @@ export default function ComparadorPreciosPage() {
     try {
       setLoading(true)
       setError(null)
-      const response = await fetch('/api/comparador/analisis')
+      
+      // Construir URL con parámetros de tolerancia del card
+      const params = new URLSearchParams({
+        toleranciaCv: toleranciaCvCard,
+        toleranciaAño: toleranciaAñoCard
+      })
+      
+      const response = await fetch(`/api/comparador/analisis?${params}`)
       
       if (!response.ok) {
         const errorData = await response.json()
@@ -752,17 +837,56 @@ export default function ComparadorPreciosPage() {
     cargarDatos()
   }
 
-  // Obtener modelos únicos para el filtro
-  const modelosUnicos = Array.from(new Set(vehiculos.map((v: any) => v.modelo)))
+  // Obtener modelos únicos para el filtro (con CV al final)
+  const modelosUnicos = Array.from(new Set(vehiculos.map((v: any) => {
+    // Añadir CV si el modelo termina en número
+    return v.modelo && /\s\d+$/.test(v.modelo) ? `${v.modelo} CV` : v.modelo
+  }))).sort()
+  
+  // Filtrar modelos por marca seleccionada
+  const modelosFiltradosPorMarca = marcaFilter === "all" 
+    ? modelosUnicos 
+    : modelosUnicos.filter((m: string) => {
+        const mLower = m.toLowerCase()
+        if (marcaFilter === "BMW") {
+          return mLower.includes('bmw') || mLower.match(/^(i\d|ix|serie|x\d|z\d)/i)
+        } else if (marcaFilter === "MINI") {
+          return mLower.includes('mini')
+        }
+        return true
+      })
 
   const filteredVehicles = vehiculos.filter((v: any) => {
     const matchFilter = filter === "all" || v.posicion === filter
     const matchSearch = searchTerm === "" || 
       v.matricula?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       v.modelo?.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchModelo = modeloFilter === "all" || v.modelo === modeloFilter
     
-    return matchFilter && matchSearch && matchModelo
+    // Comparar modelo con CV incluido
+    const modeloConCv = v.modelo && /\s\d+$/.test(v.modelo) ? `${v.modelo} CV` : v.modelo
+    const matchModelo = modeloFilter === "all" || modeloConCv === modeloFilter
+    
+    // Filtrar por marca
+    const matchMarca = marcaFilter === "all" || 
+      (marcaFilter === "BMW" && (v.modelo?.toLowerCase().includes('bmw') || v.modelo?.match(/^(i\d|ix|serie|x\d|z\d)/i))) ||
+      (marcaFilter === "MINI" && v.modelo?.toLowerCase().includes('mini'))
+    
+    // Filtrar por tipo de combustible (detectar del modelo)
+    const matchCombustible = combustibleFilter === "all" || (() => {
+      const modeloLower = v.modelo?.toLowerCase() || ''
+      if (combustibleFilter === "BEV") {
+        return modeloLower.includes('edrive') || modeloLower.match(/\bi\d|^ix/i) || modeloLower.includes('electric')
+      } else if (combustibleFilter === "PHEV") {
+        return modeloLower.includes('phev') || modeloLower.match(/\d{3}e\b/i) || (modeloLower.includes('cooper') && modeloLower.includes(' se'))
+      } else if (combustibleFilter === "Gasolina") {
+        return modeloLower.match(/\d{3}i\b/i) || modeloLower.includes('gasolina')
+      } else if (combustibleFilter === "Diesel") {
+        return modeloLower.match(/\d{3}d\b/i) || modeloLower.includes('diesel')
+      }
+      return true
+    })()
+    
+    return matchFilter && matchSearch && matchModelo && matchMarca && matchCombustible
   })
 
   // Función para formatear tiempo relativo
@@ -921,10 +1045,12 @@ export default function ComparadorPreciosPage() {
                     depreciacionAño1: 15,
                     depreciacionAño2: 25,
                     depreciacionAño3Plus: 10,
-                    costoPorKm: 0.10,  // Ajustado
-                    umbralCompetitivo: -3,  // Ajustado
-                    umbralAlto: 3,  // Ajustado
-                    diasStockAlerta: 60
+                    costoPorKm: 0.10,
+                    umbralCompetitivo: -3,
+                    umbralAlto: 3,
+                    diasStockAlerta: 60,
+                    toleranciaKw: 15,
+                    toleranciaAño: 1
                   })
                 }}
               >
@@ -1057,123 +1183,220 @@ export default function ComparadorPreciosPage() {
             Filtros y Tolerancias RED BMW Group
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          {/* Fila 1: Búsqueda y Modelo */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por matrícula o modelo..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8 h-9 text-sm"
-              />
+        <CardContent>
+          {/* Layout 3 columnas: 50% - 40% - 10% con misma altura */}
+          <div className="grid grid-cols-[1fr_0.8fr_0.2fr] gap-3 items-stretch">
+            
+            {/* COLUMNA 1 (50%) - Búsqueda + Tolerancias + Filtros Rápidos */}
+            <div className="flex flex-col gap-2">
+              {/* Fila 1: Buscador */}
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por matrícula o modelo..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8 h-9 text-sm"
+                />
+              </div>
+              
+              {/* Fila 2: Tolerancias (labels dentro del selector) */}
+              <div className="grid grid-cols-3 gap-2">
+                <Select value={toleranciaAñoCard} onValueChange={setToleranciaAñoCard}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Año ±" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0.25">Año ± 3m</SelectItem>
+                    <SelectItem value="0.5">Año ± 6m</SelectItem>
+                    <SelectItem value="0.75">Año ± 9m</SelectItem>
+                    <SelectItem value="1">Año ± 1a</SelectItem>
+                    <SelectItem value="2">Año ± 2a</SelectItem>
+                    <SelectItem value="3">Año ± 3a</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={toleranciaCvCard} onValueChange={setToleranciaCvCard}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="CV ±" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">CV ± 10</SelectItem>
+                    <SelectItem value="15">CV ± 15</SelectItem>
+                    <SelectItem value="20">CV ± 20</SelectItem>
+                    <SelectItem value="30">CV ± 30</SelectItem>
+                    <SelectItem value="40">CV ± 40</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={toleranciaKm} onValueChange={setToleranciaKm}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="km ±" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5000">km ± 5k</SelectItem>
+                    <SelectItem value="10000">km ± 10k</SelectItem>
+                    <SelectItem value="15000">km ± 15k</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Fila 3: Filtros Rápidos */}
+              <div className="flex flex-wrap gap-1.5">
+                <Button 
+                  variant={filter === "all" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setFilter("all")}
+                  className="h-8 text-xs flex-1"
+                >
+                  Todos ({vehiculos.length})
+                </Button>
+                <Button 
+                  variant={filter === "competitivo" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setFilter("competitivo")}
+                  className={`h-8 text-xs flex-1 ${filter === "competitivo" ? "" : "hover:bg-green-500/10"}`}
+                >
+                  <TrendingDown className="w-3 h-3 mr-1" />
+                  Competitivos ({vehiculos.filter((v: any) => v.posicion === "competitivo").length})
+                </Button>
+                <Button 
+                  variant={filter === "justo" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setFilter("justo")}
+                  className={`h-8 text-xs flex-1 ${filter === "justo" ? "" : "hover:bg-yellow-500/10"}`}
+                >
+                  <Minus className="w-3 h-3 mr-1" />
+                  Justos ({vehiculos.filter((v: any) => v.posicion === "justo").length})
+                </Button>
+                <Button 
+                  variant={filter === "alto" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setFilter("alto")}
+                  className={`h-8 text-xs flex-1 ${filter === "alto" ? "" : "hover:bg-red-500/10"}`}
+                >
+                  <TrendingUp className="w-3 h-3 mr-1" />
+                  Altos ({vehiculos.filter((v: any) => v.posicion === "alto").length})
+                </Button>
+              </div>
             </div>
-            <Select value={modeloFilter} onValueChange={setModeloFilter}>
-              <SelectTrigger className="h-9 text-sm">
-                <SelectValue placeholder="Filtrar por modelo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los modelos</SelectItem>
-                {modelosUnicos.map((modelo) => (
-                  <SelectItem key={modelo} value={modelo}>{modelo}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Fila 2: Tolerancias */}
-          <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-            <div className="col-span-1">
-              <label className="text-xs text-muted-foreground">Antigüedad ±</label>
-              <Select value={toleranciaMeses} onValueChange={setToleranciaMeses}>
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue />
+            
+            {/* COLUMNA 2 (40%) - Marcas + Combustible + Modelo */}
+            <div className="flex flex-col gap-2">
+              {/* Fila 1: Botones BMW y MINI (misma altura que buscador col1) */}
+              <div className="grid grid-cols-2 gap-2">
+                <Button 
+                  variant={marcaFilter === "BMW" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    setMarcaFilter(marcaFilter === "BMW" ? "all" : "BMW")
+                    setModeloFilter("all")
+                  }}
+                  className="h-9 text-xs justify-start"
+                >
+                  <BMWLogo className="w-4 h-4 mr-1" />
+                  BMW
+                </Button>
+                <Button 
+                  variant={marcaFilter === "MINI" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    setMarcaFilter(marcaFilter === "MINI" ? "all" : "MINI")
+                    setModeloFilter("all")
+                  }}
+                  className="h-9 text-xs justify-start"
+                >
+                  <MINILogo className="w-4 h-4 mr-1" />
+                  MINI
+                </Button>
+              </div>
+              
+              {/* Fila 2: Botones Combustible */}
+              <div className="grid grid-cols-4 gap-1">
+                <Button 
+                  variant={combustibleFilter === "PHEV" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setCombustibleFilter(combustibleFilter === "PHEV" ? "all" : "PHEV")}
+                  className="h-8 text-[10px] px-0.5"
+                  title="Híbrido Enchufable"
+                >
+                  PHEV
+                </Button>
+                <Button 
+                  variant={combustibleFilter === "BEV" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setCombustibleFilter(combustibleFilter === "BEV" ? "all" : "BEV")}
+                  className="h-8 text-[10px] px-0.5"
+                  title="Eléctrico"
+                >
+                  BEV
+                </Button>
+                <Button 
+                  variant={combustibleFilter === "Gasolina" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setCombustibleFilter(combustibleFilter === "Gasolina" ? "all" : "Gasolina")}
+                  className="h-8 text-[10px] px-0.5"
+                  title="Gasolina"
+                >
+                  Gasolina
+                </Button>
+                <Button 
+                  variant={combustibleFilter === "Diesel" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setCombustibleFilter(combustibleFilter === "Diesel" ? "all" : "Diesel")}
+                  className="h-8 text-[10px] px-0.5"
+                  title="Diésel"
+                >
+                  Diesel
+                </Button>
+              </div>
+              
+              {/* Fila 3: Selector Modelo */}
+              <Select value={modeloFilter} onValueChange={setModeloFilter}>
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue placeholder="Modelo" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="3">3 meses</SelectItem>
-                  <SelectItem value="6">6 meses</SelectItem>
-                  <SelectItem value="9">9 meses</SelectItem>
-                  <SelectItem value="12">12 meses</SelectItem>
+                  <SelectItem value="all">Todos los modelos</SelectItem>
+                  {modelosFiltradosPorMarca.map((modelo) => (
+                    <SelectItem key={modelo} value={modelo}>{modelo}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="col-span-1">
-              <label className="text-xs text-muted-foreground">Potencia ±</label>
-              <Select value={toleranciaCV} onValueChange={setToleranciaCV}>
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="10">10 CV</SelectItem>
-                  <SelectItem value="20">20 CV</SelectItem>
-                  <SelectItem value="30">30 CV</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="col-span-1">
-              <label className="text-xs text-muted-foreground">Kilómetros ±</label>
-              <Select value={toleranciaKm} onValueChange={setToleranciaKm}>
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="5000">5.000 Km</SelectItem>
-                  <SelectItem value="10000">10.000 Km</SelectItem>
-                  <SelectItem value="15000">15.000 Km</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="col-span-3 flex items-end">
+            
+            {/* COLUMNA 3 (10%) - Acciones */}
+            <div className="flex flex-col justify-between h-full">
+              {/* Botón Recalcular (alineado con buscador) */}
               <Button 
                 size="sm" 
-                className="h-8 w-full text-xs"
+                className="h-9 w-full text-xs px-2"
                 onClick={handleRecalcular}
                 disabled={loading}
+                title="Recalcular"
               >
-                <RefreshCw className={`w-3 h-3 mr-1 ${loading ? 'animate-spin' : ''}`} />
-                {loading ? 'Cargando...' : 'Recalcular'}
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              </Button>
+              
+              {/* Espaciador para empujar botón Limpiar hacia abajo */}
+              <div className="flex-1"></div>
+              
+              {/* Botón Limpiar (alineado con selector modelo) */}
+              <Button 
+                size="sm" 
+                variant="outline"
+                className="h-9 w-full text-xs px-2"
+                onClick={() => {
+                  setMarcaFilter("all")
+                  setCombustibleFilter("all")
+                  setModeloFilter("all")
+                  setSearchTerm("")
+                  setFilter("all")
+                }}
+                title="Limpiar filtros"
+              >
+                <span className="text-base">✕</span>
               </Button>
             </div>
-          </div>
-
-          {/* Fila 3: Filtros Rápidos */}
-          <div className="flex flex-wrap gap-2">
-            <Button 
-              variant={filter === "all" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFilter("all")}
-              className="h-8 text-xs"
-            >
-              Todos ({vehiculos.length})
-            </Button>
-            <Button 
-              variant={filter === "competitivo" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFilter("competitivo")}
-              className={`h-8 text-xs ${filter === "competitivo" ? "" : "hover:bg-green-500/10"}`}
-            >
-              <TrendingDown className="w-3 h-3 mr-1" />
-              Competitivos ({vehiculos.filter((v: any) => v.posicion === "competitivo").length})
-            </Button>
-            <Button 
-              variant={filter === "justo" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFilter("justo")}
-              className={`h-8 text-xs ${filter === "justo" ? "" : "hover:bg-yellow-500/10"}`}
-            >
-              <Minus className="w-3 h-3 mr-1" />
-              Justos ({vehiculos.filter((v: any) => v.posicion === "justo").length})
-            </Button>
-            <Button 
-              variant={filter === "alto" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFilter("alto")}
-              className={`h-8 text-xs ${filter === "alto" ? "" : "hover:bg-red-500/10"}`}
-            >
-              <TrendingUp className="w-3 h-3 mr-1" />
-              Altos ({vehiculos.filter((v: any) => v.posicion === "alto").length})
-            </Button>
+            
           </div>
         </CardContent>
       </Card>
@@ -1226,9 +1449,19 @@ export default function ComparadorPreciosPage() {
                        vehicle.posicion === "justo" ? "≈ Justo" : "⚠ Alto"}
                     </Badge>
                   </div>
-                  <div className="text-xs text-muted-foreground truncate">{vehicle.modelo || 'Sin modelo'}</div>
+                  <div className="text-xs text-muted-foreground truncate">
+                    {vehicle.modelo ? (
+                      // Si el modelo termina en número (CV), añadir " CV"
+                      /\s\d+$/.test(vehicle.modelo) ? `${vehicle.modelo} CV` : vehicle.modelo
+                    ) : 'Sin modelo'}
+                  </div>
                   <div className="text-xs text-muted-foreground">
                     {vehicle.año || 'N/A'} • {vehicle.km ? `${vehicle.km.toLocaleString()} km` : 'N/A'}
+                    {vehicle.fechaPrimeraMatriculacion ? (
+                      <span className="ml-1">• {vehicle.fechaPrimeraMatriculacion}</span>
+                    ) : (
+                      <span className="ml-1 text-amber-500 font-mono">• No hard scraping</span>
+                    )}
                   </div>
                 </div>
                 <div className="text-right">
