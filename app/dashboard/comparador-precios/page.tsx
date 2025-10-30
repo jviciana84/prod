@@ -163,18 +163,9 @@ function CompetitorDetailModal({ vehicle, open, onClose }: { vehicle: any, open:
   if (!vehicle) return null
 
   // Preparar datos para el gráfico con 3 tipos: nuestro, quadis, competencia
+  // El punto rojo (nuestro) va AL FINAL para renderizarse encima
   const scatterData = [
-    // Nuestro vehículo específico (el que estamos viendo)
-    {
-      km: vehicle.km,
-      precio: vehicle.nuestroPrecio,
-      precioNuevo: vehicle.precioNuevo,
-      tipo: 'nuestro', // nuestro | quadis | competencia
-      matricula: vehicle.matricula,
-      modelo: vehicle.modelo,
-      año: vehicle.año
-    },
-    // Competidores + Quadis
+    // Competidores + Quadis primero
     ...vehicle.competidoresDetalle.map((comp: any) => {
       const esQuadis = comp.concesionario && (
         comp.concesionario.toLowerCase().includes('quadis') || 
@@ -194,7 +185,17 @@ function CompetitorDetailModal({ vehicle, open, onClose }: { vehicle: any, open:
         numeroBajadas: comp.numeroBajadas || 0,
         importeTotalBajado: comp.importeTotalBajado || 0
       }
-    })
+    }),
+    // Nuestro vehículo AL FINAL (se renderiza encima)
+    {
+      km: vehicle.km,
+      precio: vehicle.nuestroPrecio,
+      precioNuevo: vehicle.precioNuevo,
+      tipo: 'nuestro', // nuestro | quadis | competencia
+      matricula: vehicle.matricula,
+      modelo: vehicle.modelo,
+      año: vehicle.año
+    }
   ]
 
   const handleScatterClick = (data: any) => {
@@ -647,8 +648,8 @@ function CompetitorDetailModal({ vehicle, open, onClose }: { vehicle: any, open:
                   return (
                     <Card 
                       key={comp.id} 
-                      className={`bg-muted/30 hover:bg-muted/50 transition-colors ${
-                        tieneBajada ? 'animate-pulse-border' : ''
+                      className={`bg-muted/30 hover:bg-muted/50 ${
+                        tieneBajada ? 'border-green-500' : ''
                       }`}
                     >
                       <CardContent className="p-3">
