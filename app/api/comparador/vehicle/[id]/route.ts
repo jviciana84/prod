@@ -808,14 +808,9 @@ export async function GET(
           }
         }
         
-        // Fallback para bajadas si el scraper aún no pobló las nuevas columnas
-        const precioAnteriorNum = parsePrice(comp.precio_anterior)
-        const numeroBajadasFallback = (comp.numero_bajadas_precio || 0) > 0
-          ? comp.numero_bajadas_precio
-          : (comp.estado_anuncio === 'precio_bajado' && precioAnteriorNum && precioComp && precioAnteriorNum > precioComp ? 1 : 0)
-        const importeTotalBajadoFallback = (comp.importe_total_bajado || 0) > 0
-          ? comp.importe_total_bajado
-          : (numeroBajadasFallback && precioAnteriorNum && precioComp ? (precioAnteriorNum - precioComp) : 0)
+        // Usar directamente las columnas del scraper (ya están pobladas)
+        const numeroBajadasFallback = comp.numero_bajadas_precio ?? 0
+        const importeTotalBajadoFallback = comp.importe_total_bajado ?? 0
 
         return {
           id: comp.id,

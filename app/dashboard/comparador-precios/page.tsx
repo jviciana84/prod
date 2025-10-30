@@ -104,8 +104,10 @@ function CustomTooltip({ active, payload }: any) {
       titulo = `${data.concesionario} (Quadis)`
     }
     
+    const tieneBajada = data.numeroBajadas > 0
+    
     return (
-      <Card className="p-3 shadow-lg max-w-xs">
+      <Card className={`p-3 shadow-lg max-w-xs ${tieneBajada ? 'animate-pulse-border' : ''}`}>
         <div className="space-y-1">
           <div className="font-semibold text-sm">
             {emoji} {titulo}
@@ -640,8 +642,15 @@ function CompetitorDetailModal({ vehicle, open, onClose }: { vehicle: any, open:
                     cv = cvMatch2 ? cvMatch2[1] : ''
                   }
                   
+                  const tieneBajada = comp.numeroBajadas > 0
+                  
                   return (
-                    <Card key={comp.id} className="bg-muted/30 hover:bg-muted/50 transition-colors">
+                    <Card 
+                      key={comp.id} 
+                      className={`bg-muted/30 hover:bg-muted/50 transition-colors ${
+                        tieneBajada ? 'animate-pulse-border' : ''
+                      }`}
+                    >
                       <CardContent className="p-3">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
