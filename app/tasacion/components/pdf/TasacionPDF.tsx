@@ -307,7 +307,11 @@ const TasacionPDF = ({ data, metadata, tasacionId }: TasacionPDFProps) => {
       {/* PÁGINA 1: DATOS PRINCIPALES + DOCUMENTOS */}
       <Page size="A4" style={styles.page}>
         {/* Filigrana de fondo */}
-        <Image src="/svg/filigrana informe.png" style={styles.watermark} />
+        <Image 
+          src="https://controlvo.ovh/svg/filigrana%20informe.png" 
+          style={styles.watermark}
+          cache={false}
+        />
         
         {/* Header */}
         <View style={styles.header}>
@@ -317,7 +321,11 @@ const TasacionPDF = ({ data, metadata, tasacionId }: TasacionPDFProps) => {
               Fecha: {formatDate(metadata?.timestamp)}
             </Text>
           </View>
-          <Image src="/svg/logo_tasaciones.png" style={styles.headerLogo} />
+          <Image 
+            src="https://controlvo.ovh/svg/logo_tasaciones.png" 
+            style={styles.headerLogo}
+            cache={false}
+          />
         </View>
 
         {/* Datos Básicos */}
@@ -479,7 +487,11 @@ const TasacionPDF = ({ data, metadata, tasacionId }: TasacionPDFProps) => {
               </Text>
             </View>
             <View style={styles.footerRight}>
-              <Image src="/svg/logo_tasaciones.png" style={styles.footerLogo} />
+              <Image 
+                src="https://controlvo.ovh/svg/logo_tasaciones.png" 
+                style={styles.footerLogo}
+                cache={false}
+              />
               <Text style={styles.pageNumber}>Página 1 de {getTotalPages(data)}</Text>
             </View>
           </View>
@@ -489,13 +501,21 @@ const TasacionPDF = ({ data, metadata, tasacionId }: TasacionPDFProps) => {
       {/* PÁGINA 2: MÁS DATOS */}
       <Page size="A4" style={styles.page}>
         {/* Filigrana de fondo */}
-        <Image src="/svg/filigrana informe.png" style={styles.watermark} />
+        <Image 
+          src="https://controlvo.ovh/svg/filigrana%20informe.png" 
+          style={styles.watermark}
+          cache={false}
+        />
         
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Text style={styles.title}>DATOS ADICIONALES</Text>
           </View>
-          <Image src="/svg/logo_tasaciones.png" style={styles.headerLogo} />
+          <Image 
+            src="https://controlvo.ovh/svg/logo_tasaciones.png" 
+            style={styles.headerLogo}
+            cache={false}
+          />
         </View>
 
         {/* Datos del Vehículo */}
@@ -616,7 +636,11 @@ const TasacionPDF = ({ data, metadata, tasacionId }: TasacionPDFProps) => {
               </Text>
             </View>
             <View style={styles.footerRight}>
-              <Image src="/svg/logo_tasaciones.png" style={styles.footerLogo} />
+              <Image 
+                src="https://controlvo.ovh/svg/logo_tasaciones.png" 
+                style={styles.footerLogo}
+                cache={false}
+              />
               <Text style={styles.pageNumber}>Página 2 de {getTotalPages(data)}</Text>
             </View>
           </View>
@@ -629,7 +653,12 @@ const TasacionPDF = ({ data, metadata, tasacionId }: TasacionPDFProps) => {
       {/* PÁGINA FINAL: CERTIFICADO */}
       <Page size="A4" style={styles.certificatePage}>
         {/* Filigrana de fondo */}
-        <Image src="/svg/filigrana informe.png" style={styles.watermark} />
+        <Image 
+          src="https://controlvo.ovh/svg/filigrana%20informe.png" 
+          style={styles.watermark}
+          cache={false}
+        />
+        
         <View style={styles.certificateHeader}>
           <Text style={styles.certificateTitle}>CERTIFICADO DE AUTENTICIDAD</Text>
           <Text style={styles.certificateSubtitle}>Datos de Verificación</Text>
@@ -791,14 +820,22 @@ function renderPhotoPages(data: TasacionFormData, tasacionId?: string, metadata?
     pages.push(
       <Page key={`photo-page-${i}`} size="A4" style={styles.photoPage}>
         {/* Filigrana de fondo */}
-        <Image src="/svg/filigrana informe.png" style={styles.watermark} />
+        <Image 
+          src="https://controlvo.ovh/svg/filigrana%20informe.png" 
+          style={styles.watermark}
+          cache={false}
+        />
         
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Text style={styles.title}>FOTOGRAFÍAS</Text>
             <Text style={styles.subtitle}>Página {Math.floor(i / 4) + 3}</Text>
           </View>
-          <Image src="/svg/logo_tasaciones.png" style={styles.headerLogo} />
+          <Image 
+            src="https://controlvo.ovh/svg/logo_tasaciones.png" 
+            style={styles.headerLogo}
+            cache={false}
+          />
         </View>
         
         <View style={styles.photoGrid}>
@@ -819,7 +856,11 @@ function renderPhotoPages(data: TasacionFormData, tasacionId?: string, metadata?
               </Text>
             </View>
             <View style={styles.footerRight}>
-              <Image src="/svg/logo_tasaciones.png" style={styles.footerLogo} />
+              <Image 
+                src="https://controlvo.ovh/svg/logo_tasaciones.png" 
+                style={styles.footerLogo}
+                cache={false}
+              />
               <Text style={styles.pageNumber}>Página {Math.floor(i / 4) + 3} de {getTotalPages(data)}</Text>
             </View>
           </View>

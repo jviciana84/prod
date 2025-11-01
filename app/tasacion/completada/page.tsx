@@ -221,7 +221,7 @@ export default function TasacionCompletadaPage() {
           transition={{ delay: 1 }}
           className="text-center text-sm text-gray-500 mt-8"
         >
-          Recibirás un correo electrónico con los detalles de tu tasación
+          Su asesor comercial se pondrá en contacto con usted con los detalles de su tasación
         </motion.p>
       </motion.div>
     </div>
