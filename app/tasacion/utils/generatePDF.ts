@@ -4,6 +4,27 @@ import { pdf } from '@react-pdf/renderer'
 import TasacionPDF from '../components/pdf/TasacionPDF'
 import type { TasacionFormData } from '@/types/tasacion'
 import React from 'react'
+import { generateAllDamageSVGs } from './generateDamageSVG'
+
+// Función helper para convertir imagen a base64
+async function imageToBase64(url: string): Promise<string> {
+  try {
+    const response = await fetch(url)
+    const blob = await response.blob()
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const base64String = reader.result as string
+        resolve(base64String)
+      }
+      reader.onerror = reject
+      reader.readAsDataURL(blob)
+    })
+  } catch (error) {
+    console.error('Error convirtiendo imagen a base64:', error)
+    throw error
+  }
+}
 
 interface GeneratePDFOptions {
   data: TasacionFormData
@@ -36,9 +57,34 @@ export async function generateAndDownloadPDF({
     console.log('ID de tasación:', tasacionId)
     console.log('Nombre del archivo:', filename)
     
-    // Crear el documento PDF
-    console.log('Creando documento PDF...')
-    const doc = TasacionPDF({ data, metadata, tasacionId })
+    // Convertir logo a base64
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://controlvo.ovh'
+    const logoUrl = `${baseUrl}/svg/logo_tasaciones.png`
+    
+    console.log('Convirtiendo logo a base64...')
+    const logoBase64 = await imageToBase64(logoUrl).catch((err) => {
+      console.error('Error cargando logo:', err)
+      return undefined
+    })
+    
+    // Generar imágenes SVG de daños
+    console.log('Generando imágenes SVG de daños...')
+    const allDamages = [
+      ...(data.danosExteriores || []),
+      ...(data.danosInteriores || [])
+    ]
+    const damageSVGs = await generateAllDamageSVGs(allDamages)
+    console.log('SVGs de daños generados:', Object.keys(damageSVGs))
+    
+    console.log('Imágenes convertidas, creando documento PDF...')
+    const doc = TasacionPDF({ 
+      data, 
+      metadata, 
+      tasacionId,
+      logoBase64,
+      watermarkBase64: undefined,
+      damageSVGs
+    })
     console.log('Documento creado, generando blob...')
     
     const blob = await pdf(doc).toBlob()
@@ -76,8 +122,28 @@ export async function generatePDFBlob({
   metadata,
   tasacionId
 }: GeneratePDFOptions): Promise<Blob> {
+  // Convertir logo a base64
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://controlvo.ovh'
+  const logoUrl = `${baseUrl}/svg/logo_tasaciones.png`
+  
+  const logoBase64 = await imageToBase64(logoUrl).catch(() => undefined)
+  
+  // Generar imágenes SVG de daños
+  const allDamages = [
+    ...(data.danosExteriores || []),
+    ...(data.danosInteriores || [])
+  ]
+  const damageSVGs = await generateAllDamageSVGs(allDamages)
+  
   const blob = await pdf(
-    TasacionPDF({ data, metadata, tasacionId })
+    TasacionPDF({ 
+      data, 
+      metadata, 
+      tasacionId,
+      logoBase64,
+      watermarkBase64: undefined,
+      damageSVGs
+    })
   ).toBlob()
   
   return blob

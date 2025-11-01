@@ -12,6 +12,7 @@ const capitalize = (text: string): string => {
 
 const formatFieldName = (fieldName: string): string => {
   const replacements: Record<string, string> = {
+    // Vistas exteriores
     'frontal': 'Frontal',
     'lateral_izquierda': 'Lateral Izquierda',
     'lateral_derecha': 'Lateral Derecha',
@@ -21,16 +22,81 @@ const formatFieldName = (fieldName: string): string => {
     'lateralTraseroIzq': 'Lateral Trasero Izquierdo',
     'lateralTraseroDer': 'Lateral Trasero Derecho',
     'lateralDelanteroDer': 'Lateral Delantero Derecho',
+    // Vistas interiores
     'interiorDelantero': 'Interior Delantero',
     'interiorTrasero': 'Interior Trasero',
+    'interior_delantero_izq': 'Interior Delantero Izquierdo',
+    'interior_delantero_izquierda': 'Interior Delantero Izquierda',
+    'interior_trasero_izq': 'Interior Trasero Izquierdo',
+    'interior_trasera_izquierda': 'Interior Trasera Izquierda',
+    'interior_salpicadero': 'Interior Salpicadero',
+    'interior_maletero': 'Interior Maletero',
+    // Documentación
     'libro_revisiones': 'Libro de revisiones',
     'facturas_taller': 'Facturas de taller',
     'itv': 'ITV',
     'otros': 'Otros documentos',
     'ninguno': 'Ninguno',
+    // Combustibles
+    'gasolina': 'Gasolina',
+    'diesel': 'Diésel',
+    'hibrido': 'Híbrido',
+    'electrico': 'Eléctrico',
+    'hidrogeno': 'Hidrógeno',
+    // Transmisión
+    'manual': 'Manual',
+    'automatico': 'Automático',
+    // Estados
+    'bueno': 'Bueno',
+    'regular': 'Regular',
+    'malo': 'Malo',
+    // Colores
+    'blanco': 'Blanco',
+    'negro': 'Negro',
+    'gris': 'Gris',
+    'plata': 'Plata',
+    'azul': 'Azul',
+    'rojo': 'Rojo',
+    'verde': 'Verde',
+    'amarillo': 'Amarillo',
+    'naranja': 'Naranja',
+    'marron': 'Marrón',
+    'beige': 'Beige',
+    'dorado': 'Dorado',
+    'rosa': 'Rosa',
+    'morado': 'Morado',
+    'burdeos': 'Burdeos',
+    // Movilidad
+    'total': 'Total',
+    'solo_rueda': 'Solo rueda',
+    'no_rueda': 'No rueda',
+    // Servicio público
+    'ambulancia': 'Ambulancia',
+    'autoescuela': 'Autoescuela',
+    'maquinaria': 'Maquinaria',
+    'obra_agricola': 'Obra agrícola',
+    'policia': 'Policía',
+    'taxi': 'Taxi',
+    'alquiler_sc': 'Alquiler sin conductor',
+    // Testigos encendidos
+    'abs': 'ABS',
+    'aceite': 'Aceite',
+    'filtro_particulas': 'Filtro de partículas',
+    'calentadores': 'Calentadores',
+    'gestion_motor': 'Gestión motor',
+    'control_traccion': 'Control de tracción',
+    '4x4': '4x4',
+    'alternador_bateria': 'Alternador/Batería',
+    'frenos': 'Frenos',
+    'control_estabilidad': 'Control de estabilidad',
+    // Otros
+    'particular': 'Particular',
+    'empresa': 'Empresa',
+    'nacional': 'Nacional',
+    'importacion': 'Importación',
   }
   
-  return replacements[fieldName] || fieldName
+  return replacements[fieldName] || capitalize(fieldName.replace(/_/g, ' '))
 }
 
 const damageTypeLabel: Record<string, string> = {
@@ -38,8 +104,6 @@ const damageTypeLabel: Record<string, string> = {
   'rayado': 'Rayado',
   'golpe': 'Golpe',
   'sustituir': 'Sustituir',
-  'arañazo': 'Arañazo',
-  'abolladura': 'Abolladura',
 }
 
 // Estilos para el PDF
@@ -52,20 +116,20 @@ const styles = StyleSheet.create({
   
   // Header
   header: {
-    marginBottom: 30,
+    marginBottom: 20,
     borderBottom: '3 solid #8b5cf6',
     paddingBottom: 15,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 15,
+  },
+  headerLogo: {
+    width: 50,
+    height: 50,
+    objectFit: 'contain',
   },
   headerLeft: {
     flex: 1,
-  },
-  headerLogo: {
-    width: 80,
-    height: 80,
-    objectFit: 'contain',
   },
   title: {
     fontSize: 24,
@@ -89,14 +153,14 @@ const styles = StyleSheet.create({
   
   // Secciones
   section: {
-    marginBottom: 20,
+    marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: 'bold',
     color: '#6d28d9',
-    marginBottom: 10,
-    paddingBottom: 5,
+    marginBottom: 8,
+    paddingBottom: 4,
     borderBottom: '2 solid #e5e7eb',
   },
   
@@ -104,16 +168,16 @@ const styles = StyleSheet.create({
   dataGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: 15,
+    marginBottom: 8,
   },
   dataItem: {
     width: '50%',
-    marginBottom: 8,
+    marginBottom: 6,
     paddingRight: 10,
   },
   dataItemFull: {
     width: '100%',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   dataLabel: {
     fontSize: 9,
@@ -155,6 +219,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
+    gap: 10,
   },
   photoItem: {
     width: '48%',
@@ -162,16 +227,16 @@ const styles = StyleSheet.create({
   },
   photoImage: {
     width: '100%',
-    height: 180,
+    height: 160,
     objectFit: 'cover',
     border: '1 solid #e5e7eb',
     borderRadius: 4,
   },
   photoLabel: {
-    fontSize: 9,
+    fontSize: 7,
     color: '#6b7280',
     textAlign: 'center',
-    marginTop: 5,
+    marginTop: 3,
   },
   
   // Daños
@@ -188,13 +253,14 @@ const styles = StyleSheet.create({
   // Certificado
   certificatePage: {
     padding: 40,
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#ffffff',
+    position: 'relative',
   },
   certificateHeader: {
     textAlign: 'center',
     marginBottom: 30,
     padding: 20,
-    backgroundColor: '#ffffff',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     border: '3 solid #6d28d9',
     borderRadius: 8,
   },
@@ -209,7 +275,7 @@ const styles = StyleSheet.create({
     color: '#6b7280',
   },
   certificateContent: {
-    backgroundColor: '#ffffff',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     padding: 20,
     borderRadius: 8,
     border: '1 solid #e5e7eb',
@@ -241,10 +307,10 @@ const styles = StyleSheet.create({
     bottom: 30,
     left: 40,
     right: 40,
+    paddingTop: 8,
     fontSize: 7,
     color: '#9ca3af',
     borderTop: '1 solid #e5e7eb',
-    paddingTop: 8,
   },
   footerRow: {
     flexDirection: 'row',
@@ -252,16 +318,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   footerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     flex: 1,
   },
   footerRight: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'flex-end',
     gap: 8,
   },
   footerLogo: {
-    width: 30,
-    height: 30,
+    width: 20,
+    height: 20,
     objectFit: 'contain',
   },
   pageNumber: {
@@ -286,9 +356,15 @@ interface TasacionPDFProps {
     timestamp?: string
   }
   tasacionId?: string
+  logoBase64?: string
+  watermarkBase64?: string
+  damageSVGs?: Record<string, string>
 }
 
-const TasacionPDF = ({ data, metadata, tasacionId }: TasacionPDFProps) => {
+const TasacionPDF = ({ data, metadata, tasacionId, logoBase64, watermarkBase64, damageSVGs }: TasacionPDFProps) => {
+  // Usar SOLO base64, NO usar fallback a rutas
+  const logoSrc = logoBase64
+  const watermarkSrc = watermarkBase64
   // Función para formatear fecha
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A'
@@ -307,149 +383,210 @@ const TasacionPDF = ({ data, metadata, tasacionId }: TasacionPDFProps) => {
       {/* PÁGINA 1: DATOS PRINCIPALES + DOCUMENTOS */}
       <Page size="A4" style={styles.page}>
         {/* Filigrana de fondo */}
-        <Image 
-          src="https://controlvo.ovh/svg/filigrana%20informe.png" 
-          style={styles.watermark}
-          cache={false}
-        />
+        {watermarkSrc && (
+          <Image 
+            src={watermarkSrc} 
+            style={styles.watermark}
+          />
+        )}
         
         {/* Header */}
         <View style={styles.header}>
+          {logoSrc && (
+            <Image 
+              src={logoSrc} 
+              style={styles.headerLogo}
+            />
+          )}
           <View style={styles.headerLeft}>
             <Text style={styles.title}>INFORME DE TASACIÓN</Text>
             <Text style={styles.subtitle}>
               Fecha: {formatDate(metadata?.timestamp)}
             </Text>
           </View>
-          <Image 
-            src="https://controlvo.ovh/svg/logo_tasaciones.png" 
-            style={styles.headerLogo}
-            cache={false}
-          />
         </View>
 
-        {/* Datos Básicos */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>DATOS BÁSICOS DEL VEHÍCULO</Text>
-          <View style={styles.dataGrid}>
-            <View style={styles.dataItem}>
-              <Text style={styles.dataLabel}>Matrícula</Text>
-              <Text style={styles.dataValue}>{data.matricula || 'N/A'}</Text>
+        {/* Secciones en 2 columnas con estilo original */}
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          {/* Columna izquierda */}
+          <View style={{ width: '48%' }}>
+            {/* Datos del Vehículo - Integrado */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>DATOS DEL VEHÍCULO</Text>
+              <View style={styles.dataGrid}>
+                <View style={styles.dataItem}>
+                  <Text style={[styles.dataLabel, { fontSize: 7 }]}>Matrícula</Text>
+                  <Text style={[styles.dataValue, { fontSize: 8 }]}>{data.matricula || 'N/A'}</Text>
+                </View>
+                <View style={styles.dataItem}>
+                  <Text style={[styles.dataLabel, { fontSize: 7 }]}>Kilómetros</Text>
+                  <Text style={[styles.dataValue, { fontSize: 8 }]}>{data.kmActuales?.toLocaleString() || 'N/A'} km</Text>
+                </View>
+                <View style={styles.dataItem}>
+                  <Text style={[styles.dataLabel, { fontSize: 7 }]}>Procedencia</Text>
+                  <Text style={[styles.dataValue, { fontSize: 8 }]}>
+                    {data.procedencia === 'particular' ? 'Particular' : 'Empresa'}
+                  </Text>
+                </View>
+                <View style={styles.dataItem}>
+                  <Text style={[styles.dataLabel, { fontSize: 7 }]}>F. Matriculación</Text>
+                  <Text style={[styles.dataValue, { fontSize: 8 }]}>{data.fechaMatriculacion || 'N/A'}</Text>
+                </View>
+                <View style={styles.dataItem}>
+                  <Text style={[styles.dataLabel, { fontSize: 7 }]}>Origen</Text>
+                  <Text style={[styles.dataValue, { fontSize: 8 }]}>
+                    {formatFieldName(data.origenVehiculo || '')}
+                  </Text>
+                </View>
+                <View style={styles.dataItem}>
+                  <Text style={[styles.dataLabel, { fontSize: 7 }]}>Comprado Nuevo</Text>
+                  <Text style={[styles.dataValue, { fontSize: 8 }]}>{data.comproNuevo ? 'Sí' : 'No'}</Text>
+                </View>
+                <View style={styles.dataItem}>
+                  <Text style={[styles.dataLabel, { fontSize: 7 }]}>Color</Text>
+                  <Text style={[styles.dataValue, { fontSize: 8 }]}>{formatFieldName(data.color) || 'N/A'}</Text>
+                </View>
+                <View style={styles.dataItem}>
+                  <Text style={[styles.dataLabel, { fontSize: 7 }]}>Movilidad</Text>
+                  <Text style={[styles.dataValue, { fontSize: 8 }]}>{formatFieldName(data.movilidad || '') || 'N/A'}</Text>
+                </View>
+                <View style={styles.dataItem}>
+                  <Text style={[styles.dataLabel, { fontSize: 7 }]}>Servicio Público</Text>
+                  <Text style={[styles.dataValue, { fontSize: 8 }]}>{formatFieldName(data.servicioPublico || '') || 'Ninguno'}</Text>
+                </View>
+                <View style={styles.dataItem}>
+                  <Text style={[styles.dataLabel, { fontSize: 7 }]}>Etiqueta Ambiental</Text>
+                  <Text style={[styles.dataValue, { fontSize: 8 }]}>{data.etiquetaMedioambiental?.toUpperCase() || 'N/A'}</Text>
+                </View>
+                <View style={styles.dataItem}>
+                  <Text style={[styles.dataLabel, { fontSize: 7 }]}>ITV en Vigor</Text>
+                  <Text style={[styles.dataValue, { fontSize: 8 }]}>{data.itvEnVigor ? 'Sí' : 'No'}</Text>
+                </View>
+                {data.proximaITV && (
+                  <View style={styles.dataItem}>
+                    <Text style={[styles.dataLabel, { fontSize: 7 }]}>Próxima ITV</Text>
+                    <Text style={[styles.dataValue, { fontSize: 8 }]}>{data.proximaITV}</Text>
+                  </View>
+                )}
+              </View>
+              {data.documentosKm && (
+                <View style={styles.dataItemFull}>
+                  <Text style={[styles.dataLabel, { fontSize: 7, color: '#8b5cf6' }]}>Documentos que acreditan KM</Text>
+                  <Text style={[styles.dataValue, { fontSize: 7 }]}>• {formatFieldName(data.documentosKm)}</Text>
+                </View>
+              )}
             </View>
-            <View style={styles.dataItem}>
-              <Text style={styles.dataLabel}>Kilómetros</Text>
-              <Text style={styles.dataValue}>{data.kmActuales?.toLocaleString() || 'N/A'} km</Text>
+          </View>
+
+          {/* Columna derecha */}
+          <View style={{ width: '48%' }}>
+            {/* Marca, Modelo y Versión */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>MARCA, MODELO Y VERSIÓN</Text>
+              <View style={styles.dataGrid}>
+                <View style={styles.dataItem}>
+                  <Text style={[styles.dataLabel, { fontSize: 7 }]}>Marca</Text>
+                  <Text style={[styles.dataValue, { fontSize: 8 }]}>{data.marca || 'N/A'}</Text>
+                </View>
+                <View style={styles.dataItem}>
+                  <Text style={[styles.dataLabel, { fontSize: 7 }]}>Combustible</Text>
+                  <Text style={[styles.dataValue, { fontSize: 8 }]}>{formatFieldName(data.combustible) || 'N/A'}</Text>
+                </View>
+                <View style={styles.dataItem}>
+                  <Text style={[styles.dataLabel, { fontSize: 7 }]}>Modelo</Text>
+                  <Text style={[styles.dataValue, { fontSize: 8 }]}>{data.modelo || 'N/A'}</Text>
+                </View>
+                <View style={styles.dataItem}>
+                  <Text style={[styles.dataLabel, { fontSize: 7 }]}>Transmisión</Text>
+                  <Text style={[styles.dataValue, { fontSize: 8 }]}>{formatFieldName(data.transmision) || 'N/A'}</Text>
+                </View>
+                <View style={styles.dataItem}>
+                  <Text style={[styles.dataLabel, { fontSize: 7 }]}>Versión</Text>
+                  <Text style={[styles.dataValue, { fontSize: 8 }]}>{data.version || 'N/A'}</Text>
+                </View>
+                <View style={styles.dataItem}>
+                  <Text style={[styles.dataLabel, { fontSize: 7 }]}>Segunda Llave</Text>
+                  <Text style={[styles.dataValue, { fontSize: 8 }]}>{data.segundaLlave ? 'Sí' : 'No'}</Text>
+                </View>
+              </View>
+              {data.elementosDestacables && (
+                <View style={styles.dataItemFull}>
+                  <Text style={[styles.dataLabel, { fontSize: 7, color: '#8b5cf6' }]}>Elementos Destacables</Text>
+                  <Text style={[styles.dataValue, { fontSize: 7 }]}>{data.elementosDestacables}</Text>
+                </View>
+              )}
             </View>
-            <View style={styles.dataItem}>
-              <Text style={styles.dataLabel}>Procedencia</Text>
-              <Text style={styles.dataValue}>
-                {data.procedencia === 'particular' ? 'Particular' : 'Empresa'}
-              </Text>
-            </View>
-            <View style={styles.dataItem}>
-              <Text style={styles.dataLabel}>Fecha de Matriculación</Text>
-              <Text style={styles.dataValue}>{data.fechaMatriculacion || 'N/A'}</Text>
+
+            {/* Estado Mecánico */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>ESTADO MECÁNICO</Text>
+              <View style={styles.dataGrid}>
+                <View style={styles.dataItem}>
+                  <Text style={[styles.dataLabel, { fontSize: 7 }]}>Motor</Text>
+                  <Text style={[styles.dataValue, { fontSize: 8 }, data.estadoMotor === 'malo' && { color: '#dc2626' }]}>
+                    {formatFieldName(data.estadoMotor) || 'N/A'}
+                  </Text>
+                </View>
+                <View style={styles.dataItem}>
+                  <Text style={[styles.dataLabel, { fontSize: 7 }]}>Dirección</Text>
+                  <Text style={[styles.dataValue, { fontSize: 8 }, data.estadoDireccion === 'malo' && { color: '#dc2626' }]}>
+                    {formatFieldName(data.estadoDireccion) || 'N/A'}
+                  </Text>
+                </View>
+                <View style={styles.dataItem}>
+                  <Text style={[styles.dataLabel, { fontSize: 7 }]}>Frenos</Text>
+                  <Text style={[styles.dataValue, { fontSize: 8 }, data.estadoFrenos === 'malo' && { color: '#dc2626' }]}>
+                    {formatFieldName(data.estadoFrenos) || 'N/A'}
+                  </Text>
+                </View>
+                <View style={styles.dataItem}>
+                  <Text style={[styles.dataLabel, { fontSize: 7 }]}>Caja de Cambios</Text>
+                  <Text style={[styles.dataValue, { fontSize: 8 }, data.estadoCajaCambios === 'malo' && { color: '#dc2626' }]}>
+                    {formatFieldName(data.estadoCajaCambios) || 'N/A'}
+                  </Text>
+                </View>
+                <View style={styles.dataItem}>
+                  <Text style={[styles.dataLabel, { fontSize: 7 }]}>Transmisión</Text>
+                  <Text style={[styles.dataValue, { fontSize: 8 }, data.estadoTransmision === 'malo' && { color: '#dc2626' }]}>
+                    {formatFieldName(data.estadoTransmision) || 'N/A'}
+                  </Text>
+                </View>
+                <View style={styles.dataItem}>
+                  <Text style={[styles.dataLabel, { fontSize: 7 }]}>Embrague</Text>
+                  <Text style={[styles.dataValue, { fontSize: 8 }, data.estadoEmbrague === 'malo' && { color: '#dc2626' }]}>
+                    {formatFieldName(data.estadoEmbrague) || 'N/A'}
+                  </Text>
+                </View>
+                <View style={styles.dataItem}>
+                  <Text style={[styles.dataLabel, { fontSize: 7 }]}>Estado General</Text>
+                  <Text style={[styles.dataValue, { fontSize: 8 }, data.estadoGeneral === 'malo' && { color: '#dc2626' }]}>
+                    {formatFieldName(data.estadoGeneral) || 'N/A'}
+                  </Text>
+                </View>
+                <View style={styles.dataItem}>
+                  <Text style={[styles.dataLabel, { fontSize: 7 }]}>Daño Estructural</Text>
+                  <Text style={[styles.dataValue, { fontSize: 8 }, data.danoEstructural && { color: '#dc2626' }]}>
+                    {data.danoEstructural ? 'Sí' : 'No'}
+                  </Text>
+                </View>
+              </View>
+              {data.danoEstructural && data.danoEstructuralDetalle && (
+                <View style={styles.dataItemFull}>
+                  <Text style={[styles.dataLabel, { fontSize: 7 }]}>Detalle Daño Estructural</Text>
+                  <Text style={[styles.dataValue, { fontSize: 7, color: '#dc2626' }]}>{data.danoEstructuralDetalle}</Text>
+                </View>
+              )}
             </View>
           </View>
         </View>
 
-        {/* Marca, Modelo y Versión */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>MARCA, MODELO Y VERSIÓN</Text>
-          <View style={styles.dataGrid}>
-            <View style={styles.dataItem}>
-              <Text style={styles.dataLabel}>Marca</Text>
-              <Text style={styles.dataValue}>{data.marca || 'N/A'}</Text>
-            </View>
-            <View style={styles.dataItem}>
-              <Text style={styles.dataLabel}>Combustible</Text>
-              <Text style={styles.dataValue}>{capitalize(data.combustible) || 'N/A'}</Text>
-            </View>
-            <View style={styles.dataItem}>
-              <Text style={styles.dataLabel}>Modelo</Text>
-              <Text style={styles.dataValue}>{data.modelo || 'N/A'}</Text>
-            </View>
-            <View style={styles.dataItem}>
-              <Text style={styles.dataLabel}>Transmisión</Text>
-              <Text style={styles.dataValue}>{capitalize(data.transmision) || 'N/A'}</Text>
-            </View>
-            <View style={styles.dataItem}>
-              <Text style={styles.dataLabel}>Versión</Text>
-              <Text style={styles.dataValue}>{data.version || 'N/A'}</Text>
-            </View>
-            <View style={styles.dataItem}>
-              <Text style={styles.dataLabel}>Segunda Llave</Text>
-              <Text style={styles.dataValue}>{data.segundaLlave ? 'Sí' : 'No'}</Text>
-            </View>
+        {/* Observaciones - Ancho completo */}
+        {data.observaciones && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>OBSERVACIONES</Text>
+            <Text style={[styles.dataValue, { fontSize: 8 }]}>{data.observaciones}</Text>
           </View>
-          {data.elementosDestacables && (
-            <View style={styles.dataItemFull}>
-              <Text style={styles.dataLabel}>Elementos Destacables</Text>
-              <Text style={styles.dataValue}>{data.elementosDestacables}</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Estado Mecánico */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>ESTADO MECÁNICO</Text>
-          <View style={styles.dataGrid}>
-            <View style={styles.dataItem}>
-              <Text style={styles.dataLabel}>Motor</Text>
-              <Text style={[styles.dataValue, data.estadoMotor === 'malo' && { color: '#dc2626' }]}>
-                {capitalize(data.estadoMotor) || 'N/A'}
-              </Text>
-            </View>
-            <View style={styles.dataItem}>
-              <Text style={styles.dataLabel}>Dirección</Text>
-              <Text style={[styles.dataValue, data.estadoDireccion === 'malo' && { color: '#dc2626' }]}>
-                {capitalize(data.estadoDireccion) || 'N/A'}
-              </Text>
-            </View>
-            <View style={styles.dataItem}>
-              <Text style={styles.dataLabel}>Frenos</Text>
-              <Text style={[styles.dataValue, data.estadoFrenos === 'malo' && { color: '#dc2626' }]}>
-                {capitalize(data.estadoFrenos) || 'N/A'}
-              </Text>
-            </View>
-            <View style={styles.dataItem}>
-              <Text style={styles.dataLabel}>Caja de Cambios</Text>
-              <Text style={[styles.dataValue, data.estadoCajaCambios === 'malo' && { color: '#dc2626' }]}>
-                {capitalize(data.estadoCajaCambios) || 'N/A'}
-              </Text>
-            </View>
-            <View style={styles.dataItem}>
-              <Text style={styles.dataLabel}>Transmisión</Text>
-              <Text style={[styles.dataValue, data.estadoTransmision === 'malo' && { color: '#dc2626' }]}>
-                {capitalize(data.estadoTransmision) || 'N/A'}
-              </Text>
-            </View>
-            <View style={styles.dataItem}>
-              <Text style={styles.dataLabel}>Embrague</Text>
-              <Text style={[styles.dataValue, data.estadoEmbrague === 'malo' && { color: '#dc2626' }]}>
-                {capitalize(data.estadoEmbrague) || 'N/A'}
-              </Text>
-            </View>
-            <View style={styles.dataItem}>
-              <Text style={styles.dataLabel}>Estado General</Text>
-              <Text style={[styles.dataValue, data.estadoGeneral === 'malo' && { color: '#dc2626' }]}>
-                {capitalize(data.estadoGeneral) || 'N/A'}
-              </Text>
-            </View>
-            <View style={styles.dataItem}>
-              <Text style={styles.dataLabel}>Daño Estructural</Text>
-              <Text style={[styles.dataValue, data.danoEstructural && { color: '#dc2626' }]}>
-                {data.danoEstructural ? 'Sí' : 'No'}
-              </Text>
-            </View>
-          </View>
-          {data.danoEstructural && data.danoEstructuralDetalle && (
-            <View style={styles.dataItemFull}>
-              <Text style={styles.dataLabel}>Detalle Daño Estructural</Text>
-              <Text style={[styles.dataValue, { color: '#dc2626' }]}>{data.danoEstructuralDetalle}</Text>
-            </View>
-          )}
-        </View>
+        )}
 
         {/* Documentos */}
         {(data.fotoPermisoCirculacion || data.fotoFichaTecnicaFrente) && (
@@ -481,183 +618,426 @@ const TasacionPDF = ({ data, metadata, tasacionId }: TasacionPDFProps) => {
         <View style={styles.footer}>
           <View style={styles.footerRow}>
             <View style={styles.footerLeft}>
-              <Text style={{ fontSize: 7 }}>ID de Tasación: {tasacionId || 'Generando...'}</Text>
-              <Text style={{ fontSize: 7, marginTop: 2 }}>
-                Fecha de registro: {formatDate(metadata?.timestamp)}
-              </Text>
+              {logoSrc && (
+                <Image 
+                  src={logoSrc} 
+                  style={styles.footerLogo}
+                />
+              )}
+              <View>
+                <Text style={{ fontSize: 7 }}>ID de Tasación: {tasacionId || 'Generando...'}</Text>
+                <Text style={{ fontSize: 7, marginTop: 2 }}>
+                  Fecha de registro: {formatDate(metadata?.timestamp)}
+                </Text>
+              </View>
             </View>
             <View style={styles.footerRight}>
-              <Image 
-                src="https://controlvo.ovh/svg/logo_tasaciones.png" 
-                style={styles.footerLogo}
-                cache={false}
-              />
-              <Text style={styles.pageNumber}>Página 1 de {getTotalPages(data)}</Text>
+              <Text style={styles.pageNumber}>Pág. 1 de {getTotalPages(data)}</Text>
             </View>
           </View>
         </View>
       </Page>
 
-      {/* PÁGINA 2: MÁS DATOS */}
-      <Page size="A4" style={styles.page}>
-        {/* Filigrana de fondo */}
-        <Image 
-          src="https://controlvo.ovh/svg/filigrana%20informe.png" 
-          style={styles.watermark}
-          cache={false}
-        />
-        
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.title}>DATOS ADICIONALES</Text>
-          </View>
-          <Image 
-            src="https://controlvo.ovh/svg/logo_tasaciones.png" 
-            style={styles.headerLogo}
-            cache={false}
-          />
-        </View>
-
-        {/* Datos del Vehículo */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>DATOS DEL VEHÍCULO</Text>
-          <View style={styles.dataGrid}>
-            <View style={styles.dataItem}>
-              <Text style={styles.dataLabel}>Origen</Text>
-              <Text style={styles.dataValue}>
-                {data.origenVehiculo === 'nacional' ? 'Nacional' : 'Importación'}
-              </Text>
-            </View>
-            <View style={styles.dataItem}>
-              <Text style={styles.dataLabel}>Comprado Nuevo</Text>
-              <Text style={styles.dataValue}>{data.comproNuevo ? 'Sí' : 'No'}</Text>
-            </View>
-            <View style={styles.dataItem}>
-              <Text style={styles.dataLabel}>Color</Text>
-              <Text style={styles.dataValue}>{capitalize(data.color) || 'N/A'}</Text>
-            </View>
-            <View style={styles.dataItem}>
-              <Text style={styles.dataLabel}>Movilidad</Text>
-              <Text style={styles.dataValue}>{capitalize(data.movilidad?.replace('_', ' ')) || 'N/A'}</Text>
-            </View>
-            <View style={styles.dataItem}>
-              <Text style={styles.dataLabel}>Servicio Público</Text>
-              <Text style={styles.dataValue}>{capitalize(data.servicioPublico?.replace('_', ' ')) || 'Ninguno'}</Text>
-            </View>
-            <View style={styles.dataItem}>
-              <Text style={styles.dataLabel}>Etiqueta Ambiental</Text>
-              <Text style={styles.dataValue}>{data.etiquetaMedioambiental?.toUpperCase() || 'N/A'}</Text>
-            </View>
-            <View style={styles.dataItem}>
-              <Text style={styles.dataLabel}>ITV en Vigor</Text>
-              <Text style={styles.dataValue}>{data.itvEnVigor ? 'Sí' : 'No'}</Text>
-            </View>
-            {data.proximaITV && (
-              <View style={styles.dataItem}>
-                <Text style={styles.dataLabel}>Próxima ITV</Text>
-                <Text style={styles.dataValue}>{data.proximaITV}</Text>
-              </View>
-            )}
-          </View>
-          {data.documentosKm && (
-            <View style={styles.dataItemFull}>
-              <Text style={styles.dataLabel}>Documentos que acreditan KM</Text>
-              <Text style={styles.dataValue}>{formatFieldName(data.documentosKm)}</Text>
-            </View>
+      {/* PÁGINA 2: DAÑOS EXTERIORES */}
+      {data.danosExteriores && data.danosExteriores.length > 0 && (
+        <Page size="A4" style={styles.page}>
+          {/* Filigrana de fondo */}
+          {watermarkSrc && (
+            <Image 
+              src={watermarkSrc} 
+              style={styles.watermark}
+            />
           )}
-        </View>
+          
+          <View style={styles.header}>
+            {logoSrc && (
+              <Image 
+                src={logoSrc} 
+                style={styles.headerLogo}
+              />
+            )}
+            <View style={styles.headerLeft}>
+              <Text style={styles.title}>DAÑOS EXTERIORES</Text>
+            </View>
+          </View>
 
-        {/* Estado Estético - Daños Exteriores */}
-        {data.danosExteriores && data.danosExteriores.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>DAÑOS EXTERIORES</Text>
-            <View style={styles.damageList}>
-              {data.danosExteriores.map((dano, index) => (
-                <View key={index} style={{ marginBottom: 6 }}>
-                  <Text style={styles.damageItem}>
-                    • {dano.parte} - {damageTypeLabel[dano.tipo] || capitalize(dano.tipo)}
-                  </Text>
-                  <Text style={{ fontSize: 8, color: '#9ca3af', marginLeft: 12 }}>
-                    Vista: {formatFieldName(dano.vista || '')}
+            
+            {/* Leyenda de colores */}
+            <View style={{ 
+              flexDirection: 'row', 
+              gap: 12, 
+              marginBottom: 12,
+              padding: 8,
+              backgroundColor: '#f9fafb',
+              borderRadius: 4,
+              border: '1 solid #e5e7eb'
+            }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <View style={{ width: 14, height: 14, backgroundColor: '#22c55e', borderRadius: 2 }} />
+                <Text style={{ fontSize: 8, color: '#374151', fontWeight: 'bold' }}>Pulir</Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <View style={{ width: 14, height: 14, backgroundColor: '#eab308', borderRadius: 2 }} />
+                <Text style={{ fontSize: 8, color: '#374151', fontWeight: 'bold' }}>Rayado</Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <View style={{ width: 14, height: 14, backgroundColor: '#f97316', borderRadius: 2 }} />
+                <Text style={{ fontSize: 8, color: '#374151', fontWeight: 'bold' }}>Golpe</Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <View style={{ width: 14, height: 14, backgroundColor: '#ef4444', borderRadius: 2 }} />
+                <Text style={{ fontSize: 8, color: '#374151', fontWeight: 'bold' }}>Sustituir</Text>
+              </View>
+            </View>
+            
+            {/* Daños agrupados por vista - 2 columnas por fila */}
+            {(() => {
+              // Agrupar daños por vista
+              const damagesByView: Record<string, typeof data.danosExteriores> = {}
+              data.danosExteriores.forEach(dano => {
+                const vista = dano.vista || 'sin_vista'
+                if (!damagesByView[vista]) {
+                  damagesByView[vista] = []
+                }
+                damagesByView[vista].push(dano)
+              })
+              
+              const entries = Object.entries(damagesByView)
+              const rows = []
+              
+              // Dividir en filas de 2 columnas
+              for (let i = 0; i < entries.length; i += 2) {
+                const pair = entries.slice(i, i + 2)
+                rows.push(
+                  <View key={`row-${i}`} style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
+                    {pair.map(([vista, danos]) => (
+                      <View key={vista} style={{ 
+                        width: '49.5%',
+                        padding: 10,
+                        backgroundColor: '#f9fafb',
+                        borderRadius: 4,
+                        border: '1 solid #e5e7eb'
+                      }}>
+                        {/* Título de la vista */}
+                        <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#374151', marginBottom: 6 }}>
+                          {formatFieldName(vista)}
+                        </Text>
+                        
+                        {/* Lista de daños */}
+                        <View style={{ marginBottom: 8 }}>
+                          {danos.map((dano, index) => (
+                            <Text key={index} style={{ fontSize: 8, color: '#374151', marginBottom: 3 }}>
+                              • {dano.parte} - {damageTypeLabel[dano.tipo] || capitalize(dano.tipo)}
+                            </Text>
+                          ))}
+                        </View>
+                        
+                        {/* Imagen SVG debajo */}
+                        <View style={{ alignItems: 'center' }}>
+                          {damageSVGs && damageSVGs[vista] ? (
+                            <Image 
+                              src={damageSVGs[vista]} 
+                              style={{ 
+                                width: '100%', 
+                                height: 90, 
+                                objectFit: 'contain'
+                              }}
+                            />
+                          ) : (
+                            <Text style={{ fontSize: 8, color: '#9ca3af', fontStyle: 'italic' }}>
+                              Sin imagen
+                            </Text>
+                          )}
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                )
+              }
+              
+              return rows
+            })()}
+          </View>
+
+          <View style={styles.footer}>
+            <View style={styles.footerRow}>
+              <View style={styles.footerLeft}>
+                {logoSrc && (
+                  <Image 
+                    src={logoSrc} 
+                    style={styles.footerLogo}
+                  />
+                )}
+                <View>
+                  <Text style={{ fontSize: 7 }}>ID de Tasación: {tasacionId || 'Generando...'}</Text>
+                  <Text style={{ fontSize: 7, marginTop: 2 }}>
+                    Fecha de registro: {formatDate(metadata?.timestamp)}
                   </Text>
                 </View>
-              ))}
+              </View>
+              <View style={styles.footerRight}>
+                <Text style={styles.pageNumber}>Pág. 2 de {getTotalPages(data)}</Text>
+              </View>
             </View>
           </View>
-        )}
+        </Page>
+      )}
 
-        {/* Daños Interiores */}
-        {data.danosInteriores && data.danosInteriores.length > 0 && (
+      {/* PÁGINA 3: DAÑOS INTERIORES */}
+      {data.danosInteriores && data.danosInteriores.length > 0 && (
+        <Page size="A4" style={styles.page}>
+          {/* Filigrana de fondo */}
+          {watermarkSrc && (
+            <Image 
+              src={watermarkSrc} 
+              style={styles.watermark}
+            />
+          )}
+          
+          <View style={styles.header}>
+            {logoSrc && (
+              <Image 
+                src={logoSrc} 
+                style={styles.headerLogo}
+              />
+            )}
+            <View style={styles.headerLeft}>
+              <Text style={styles.title}>DAÑOS INTERIORES Y OTROS</Text>
+            </View>
+          </View>
+
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>DAÑOS INTERIORES</Text>
-            <View style={styles.damageList}>
-              {data.danosInteriores.map((dano, index) => (
-                <View key={index} style={{ marginBottom: 6 }}>
-                  <Text style={styles.damageItem}>
-                    • {dano.parte} - {damageTypeLabel[dano.tipo] || capitalize(dano.tipo)}
+            
+            {/* Leyenda de colores */}
+            <View style={{ 
+              flexDirection: 'row', 
+              gap: 12, 
+              marginBottom: 12,
+              padding: 8,
+              backgroundColor: '#f9fafb',
+              borderRadius: 4,
+              border: '1 solid #e5e7eb'
+            }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <View style={{ width: 14, height: 14, backgroundColor: '#22c55e', borderRadius: 2 }} />
+                <Text style={{ fontSize: 8, color: '#374151', fontWeight: 'bold' }}>Pulir</Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <View style={{ width: 14, height: 14, backgroundColor: '#eab308', borderRadius: 2 }} />
+                <Text style={{ fontSize: 8, color: '#374151', fontWeight: 'bold' }}>Rayado</Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <View style={{ width: 14, height: 14, backgroundColor: '#f97316', borderRadius: 2 }} />
+                <Text style={{ fontSize: 8, color: '#374151', fontWeight: 'bold' }}>Golpe</Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <View style={{ width: 14, height: 14, backgroundColor: '#ef4444', borderRadius: 2 }} />
+                <Text style={{ fontSize: 8, color: '#374151', fontWeight: 'bold' }}>Sustituir</Text>
+              </View>
+            </View>
+            
+            {/* Daños agrupados por vista - 2 columnas por fila */}
+            {(() => {
+              // Agrupar daños por vista
+              const damagesByView: Record<string, typeof data.danosInteriores> = {}
+              data.danosInteriores.forEach(dano => {
+                const vista = dano.vista || 'sin_vista'
+                if (!damagesByView[vista]) {
+                  damagesByView[vista] = []
+                }
+                damagesByView[vista].push(dano)
+              })
+              
+              const entries = Object.entries(damagesByView)
+              const rows = []
+              
+              // Dividir en filas de 2 columnas
+              for (let i = 0; i < entries.length; i += 2) {
+                const pair = entries.slice(i, i + 2)
+                rows.push(
+                  <View key={`row-${i}`} style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
+                    {pair.map(([vista, danos]) => (
+                      <View key={vista} style={{ 
+                        width: '49.5%',
+                        padding: 10,
+                        backgroundColor: '#f9fafb',
+                        borderRadius: 4,
+                        border: '1 solid #e5e7eb'
+                      }}>
+                        {/* Título de la vista */}
+                        <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#374151', marginBottom: 6 }}>
+                          {formatFieldName(vista)}
+                        </Text>
+                        
+                        {/* Lista de daños */}
+                        <View style={{ marginBottom: 8 }}>
+                          {danos.map((dano, index) => (
+                            <Text key={index} style={{ fontSize: 8, color: '#374151', marginBottom: 3 }}>
+                              • {dano.parte} - {damageTypeLabel[dano.tipo] || capitalize(dano.tipo)}
+                            </Text>
+                          ))}
+                        </View>
+                        
+                        {/* Imagen SVG debajo */}
+                        <View style={{ alignItems: 'center' }}>
+                          {damageSVGs && damageSVGs[vista] ? (
+                            <Image 
+                              src={damageSVGs[vista]} 
+                              style={{ 
+                                width: '100%', 
+                                height: 90, 
+                                objectFit: 'contain'
+                              }}
+                            />
+                          ) : (
+                            <Text style={{ fontSize: 8, color: '#9ca3af', fontStyle: 'italic' }}>
+                              Sin imagen
+                            </Text>
+                          )}
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                )
+              }
+              
+              return rows
+            })()}
+          </View>
+
+          {/* Testigos Encendidos */}
+          {data.testigosEncendidos && data.testigosEncendidos.length > 0 && data.testigosEncendidos[0] !== 'ninguno' && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>TESTIGOS ENCENDIDOS</Text>
+              <View style={styles.damageList}>
+                {data.testigosEncendidos.map((testigo, index) => (
+                  <Text key={index} style={[styles.damageItem, { color: '#dc2626' }]}>
+                    • {formatFieldName(testigo)}
                   </Text>
-                  <Text style={{ fontSize: 8, color: '#9ca3af', marginLeft: 12 }}>
-                    Vista: {formatFieldName(dano.vista || '')}
+                ))}
+              </View>
+            </View>
+          )}
+
+          <View style={styles.footer}>
+            <View style={styles.footerRow}>
+              <View style={styles.footerLeft}>
+                {logoSrc && (
+                  <Image 
+                    src={logoSrc} 
+                    style={styles.footerLogo}
+                  />
+                )}
+                <View>
+                  <Text style={{ fontSize: 7 }}>ID de Tasación: {tasacionId || 'Generando...'}</Text>
+                  <Text style={{ fontSize: 7, marginTop: 2 }}>
+                    Fecha de registro: {formatDate(metadata?.timestamp)}
                   </Text>
                 </View>
-              ))}
+              </View>
+              <View style={styles.footerRight}>
+                <Text style={styles.pageNumber}>Pág. 3 de {getTotalPages(data)}</Text>
+              </View>
             </View>
           </View>
-        )}
-
-        {/* Testigos Encendidos */}
-        {data.testigosEncendidos && data.testigosEncendidos.length > 0 && data.testigosEncendidos[0] !== 'ninguno' && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>TESTIGOS ENCENDIDOS</Text>
-            <View style={styles.damageList}>
-              {data.testigosEncendidos.map((testigo, index) => (
-                <Text key={index} style={[styles.damageItem, { color: '#dc2626' }]}>
-                  • {capitalize(testigo.replace('_', ' '))}
-                </Text>
-              ))}
-            </View>
-          </View>
-        )}
-
-        {/* Observaciones */}
-        {data.observaciones && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>OBSERVACIONES</Text>
-            <Text style={styles.dataValue}>{data.observaciones}</Text>
-          </View>
-        )}
-
-        <View style={styles.footer}>
-          <View style={styles.footerRow}>
-            <View style={styles.footerLeft}>
-              <Text style={{ fontSize: 7 }}>ID de Tasación: {tasacionId || 'Generando...'}</Text>
-              <Text style={{ fontSize: 7, marginTop: 2 }}>
-                Fecha de registro: {formatDate(metadata?.timestamp)}
-              </Text>
-            </View>
-            <View style={styles.footerRight}>
-              <Image 
-                src="https://controlvo.ovh/svg/logo_tasaciones.png" 
-                style={styles.footerLogo}
-                cache={false}
-              />
-              <Text style={styles.pageNumber}>Página 2 de {getTotalPages(data)}</Text>
-            </View>
-          </View>
-        </View>
-      </Page>
+        </Page>
+      )}
 
       {/* PÁGINAS DE FOTOGRAFÍAS */}
-      {renderPhotoPages(data, tasacionId, metadata)}
+      {renderPhotoPages(data, tasacionId, metadata, logoSrc)}
 
       {/* PÁGINA FINAL: CERTIFICADO */}
       <Page size="A4" style={styles.certificatePage}>
+        {/* Fondo decorativo con formas geométricas */}
+        <View style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          zIndex: -1,
+        }}>
+          {/* Círculo superior derecho */}
+          <View style={{
+            position: 'absolute',
+            top: -50,
+            right: -50,
+            width: 200,
+            height: 200,
+            borderRadius: 100,
+            backgroundColor: '#e0e7ff',
+            opacity: 0.3,
+          }} />
+          
+          {/* Círculo inferior izquierdo */}
+          <View style={{
+            position: 'absolute',
+            bottom: -80,
+            left: -80,
+            width: 250,
+            height: 250,
+            borderRadius: 125,
+            backgroundColor: '#fce7f3',
+            opacity: 0.3,
+          }} />
+          
+          {/* Círculo inferior derecho */}
+          <View style={{
+            position: 'absolute',
+            bottom: 100,
+            right: -60,
+            width: 180,
+            height: 180,
+            borderRadius: 90,
+            backgroundColor: '#ddd6fe',
+            opacity: 0.25,
+          }} />
+          
+          {/* Círculo superior izquierdo */}
+          <View style={{
+            position: 'absolute',
+            top: 150,
+            left: -40,
+            width: 150,
+            height: 150,
+            borderRadius: 75,
+            backgroundColor: '#e0e7ff',
+            opacity: 0.2,
+          }} />
+          
+          {/* Línea decorativa superior */}
+          <View style={{
+            position: 'absolute',
+            top: 250,
+            left: 0,
+            right: 0,
+            height: 2,
+            backgroundColor: '#c7d2fe',
+            opacity: 0.2,
+          }} />
+          
+          {/* Línea decorativa inferior */}
+          <View style={{
+            position: 'absolute',
+            bottom: 250,
+            left: 0,
+            right: 0,
+            height: 2,
+            backgroundColor: '#fbcfe8',
+            opacity: 0.2,
+          }} />
+        </View>
+        
         {/* Filigrana de fondo */}
-        <Image 
-          src="https://controlvo.ovh/svg/filigrana%20informe.png" 
-          style={styles.watermark}
-          cache={false}
-        />
+        {watermarkSrc && (
+          <Image 
+            src={watermarkSrc} 
+            style={styles.watermark}
+          />
+        )}
         
         <View style={styles.certificateHeader}>
           <Text style={styles.certificateTitle}>CERTIFICADO DE AUTENTICIDAD</Text>
@@ -745,25 +1125,78 @@ const TasacionPDF = ({ data, metadata, tasacionId }: TasacionPDFProps) => {
 
 // Función auxiliar para obtener total de páginas
 function getTotalPages(data: TasacionFormData): number {
-  let pages = 3 // Página 1 (datos), Página 2 (más datos), Página final (certificado)
+  let pages = 1 // Página 1 (datos compactos en 2 columnas)
   
-  // Contar páginas de fotos
-  const photoSections = [
-    data.fotosVehiculo,
-    data.fotosCuentakm,
-    data.fotosInteriorDelantero,
-    data.fotosInteriorTrasero,
-    data.fotosOtras
-  ].filter(Boolean)
+  // Página 2: Daños exteriores (si hay)
+  if (data.danosExteriores && data.danosExteriores.length > 0) {
+    pages += 1
+  }
   
-  // Cada 4 fotos = 1 página
-  pages += Math.ceil(photoSections.length / 4)
+  // Página 3: Daños interiores (si hay)
+  if (data.danosInteriores && data.danosInteriores.length > 0) {
+    pages += 1
+  }
+  
+  // Contar fotos reales
+  let totalPhotos = 0
+  
+  // Fotos del vehículo
+  if (data.fotosVehiculo) {
+    totalPhotos += Object.values(data.fotosVehiculo).filter(Boolean).length
+  }
+  
+  // Cuentakm
+  if (data.fotosCuentakm) totalPhotos++
+  
+  // Interior delantero
+  if (data.fotosInteriorDelantero) totalPhotos++
+  
+  // Interior trasero
+  if (data.fotosInteriorTrasero) totalPhotos++
+  
+  // Fotos de documentación
+  if (data.fotosDocumentacion) {
+    if (data.fotosDocumentacion.permisoCirculacionFrente) totalPhotos++
+    if (data.fotosDocumentacion.permisoCirculacionDorso) totalPhotos++
+    if (data.fotosDocumentacion.fichaTecnicaFrente) totalPhotos++
+    if (data.fotosDocumentacion.fichaTecnicaDorso) totalPhotos++
+  }
+  
+  // Otras fotos
+  if (data.fotosOtras && data.fotosOtras.length > 0) {
+    totalPhotos += data.fotosOtras.length
+  }
+  
+  // Cada 6 fotos = 1 página
+  if (totalPhotos > 0) {
+    pages += Math.ceil(totalPhotos / 6)
+  }
+  
+  // Página final (certificado)
+  pages += 1
   
   return pages
 }
 
+// Función auxiliar para calcular el número de página de inicio de fotos
+function getPhotoStartPage(data: TasacionFormData): number {
+  let startPage = 1 // Página 1 siempre existe
+  
+  // +1 si hay daños exteriores
+  if (data.danosExteriores && data.danosExteriores.length > 0) {
+    startPage += 1
+  }
+  
+  // +1 si hay daños interiores
+  if (data.danosInteriores && data.danosInteriores.length > 0) {
+    startPage += 1
+  }
+  
+  return startPage
+}
+
 // Función para renderizar páginas de fotografías
-function renderPhotoPages(data: TasacionFormData, tasacionId?: string, metadata?: any) {
+function renderPhotoPages(data: TasacionFormData, tasacionId?: string, metadata?: any, logoSrc?: string) {
   const photos: { src: string; label: string }[] = []
   
   // Fotos del vehículo
@@ -813,29 +1246,33 @@ function renderPhotoPages(data: TasacionFormData, tasacionId?: string, metadata?
     })
   }
   
-  // Dividir fotos en páginas de 4
+  // Si no hay fotos, no generar páginas
+  if (photos.length === 0) {
+    return null
+  }
+  
+  // Calcular número de página inicial para fotos
+  const photoStartPage = getPhotoStartPage(data)
+  
+  // Dividir fotos en páginas de 6
   const pages = []
-  for (let i = 0; i < photos.length; i += 4) {
-    const pagePhotos = photos.slice(i, i + 4)
+  for (let i = 0; i < photos.length; i += 6) {
+    const pagePhotos = photos.slice(i, i + 6)
+    const currentPhotoPage = Math.floor(i / 6)
+    const absolutePageNumber = photoStartPage + currentPhotoPage + 1
+    
     pages.push(
       <Page key={`photo-page-${i}`} size="A4" style={styles.photoPage}>
-        {/* Filigrana de fondo */}
-        <Image 
-          src="https://controlvo.ovh/svg/filigrana%20informe.png" 
-          style={styles.watermark}
-          cache={false}
-        />
-        
         <View style={styles.header}>
+          {logoSrc && (
+            <Image 
+              src={logoSrc} 
+              style={styles.headerLogo}
+            />
+          )}
           <View style={styles.headerLeft}>
             <Text style={styles.title}>FOTOGRAFÍAS</Text>
-            <Text style={styles.subtitle}>Página {Math.floor(i / 4) + 3}</Text>
           </View>
-          <Image 
-            src="https://controlvo.ovh/svg/logo_tasaciones.png" 
-            style={styles.headerLogo}
-            cache={false}
-          />
         </View>
         
         <View style={styles.photoGrid}>
@@ -850,18 +1287,21 @@ function renderPhotoPages(data: TasacionFormData, tasacionId?: string, metadata?
         <View style={styles.footer}>
           <View style={styles.footerRow}>
             <View style={styles.footerLeft}>
-              <Text style={{ fontSize: 7 }}>ID de Tasación: {tasacionId || 'Generando...'}</Text>
-              <Text style={{ fontSize: 7, marginTop: 2 }}>
-                Fecha de registro: {metadata?.timestamp ? new Date(metadata.timestamp).toLocaleDateString('es-ES') : 'N/A'}
-              </Text>
+              {logoSrc && (
+                <Image 
+                  src={logoSrc} 
+                  style={styles.footerLogo}
+                />
+              )}
+              <View>
+                <Text style={{ fontSize: 7 }}>ID de Tasación: {tasacionId || 'Generando...'}</Text>
+                <Text style={{ fontSize: 7, marginTop: 2 }}>
+                  Fecha de registro: {metadata?.timestamp ? new Date(metadata.timestamp).toLocaleDateString('es-ES') : 'N/A'}
+                </Text>
+              </View>
             </View>
             <View style={styles.footerRight}>
-              <Image 
-                src="https://controlvo.ovh/svg/logo_tasaciones.png" 
-                style={styles.footerLogo}
-                cache={false}
-              />
-              <Text style={styles.pageNumber}>Página {Math.floor(i / 4) + 3} de {getTotalPages(data)}</Text>
+              <Text style={styles.pageNumber}>Pág. {absolutePageNumber} de {getTotalPages(data)}</Text>
             </View>
           </View>
         </View>
