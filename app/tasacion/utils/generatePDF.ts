@@ -1,7 +1,7 @@
 'use client'
 
 import { pdf } from '@react-pdf/renderer'
-import SimpleTasacionPDF from '../components/pdf/SimpleTasacionPDF'
+import TasacionPDF from '../components/pdf/TasacionPDF'
 import type { TasacionFormData } from '@/types/tasacion'
 import React from 'react'
 
@@ -20,22 +20,25 @@ interface GeneratePDFOptions {
     }
     timestamp?: string
   }
+  tasacionId?: string
   filename?: string
 }
 
 export async function generateAndDownloadPDF({ 
   data, 
-  metadata, 
+  metadata,
+  tasacionId,
   filename = `tasacion_${data.matricula}_${Date.now()}.pdf` 
 }: GeneratePDFOptions) {
   try {
     console.log('Generando PDF con datos:', data)
     console.log('Generando PDF con metadata:', metadata)
+    console.log('ID de tasación:', tasacionId)
     console.log('Nombre del archivo:', filename)
     
     // Crear el documento PDF
     console.log('Creando documento PDF...')
-    const doc = SimpleTasacionPDF({ data, metadata })
+    const doc = TasacionPDF({ data, metadata, tasacionId })
     console.log('Documento creado, generando blob...')
     
     const blob = await pdf(doc).toBlob()
@@ -70,10 +73,11 @@ export async function generateAndDownloadPDF({
 
 export async function generatePDFBlob({ 
   data, 
-  metadata 
+  metadata,
+  tasacionId
 }: GeneratePDFOptions): Promise<Blob> {
   const blob = await pdf(
-    SimpleTasacionPDF({ data, metadata })
+    TasacionPDF({ data, metadata, tasacionId })
   ).toBlob()
   
   return blob

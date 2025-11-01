@@ -4,6 +4,44 @@ import React from 'react'
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer'
 import type { TasacionFormData } from '@/types/tasacion'
 
+// Funciones helper para formato
+const capitalize = (text: string): string => {
+  if (!text) return text
+  return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase()
+}
+
+const formatFieldName = (fieldName: string): string => {
+  const replacements: Record<string, string> = {
+    'frontal': 'Frontal',
+    'lateral_izquierda': 'Lateral Izquierda',
+    'lateral_derecha': 'Lateral Derecha',
+    'laterial_derecha': 'Lateral Derecha',
+    'trasera': 'Trasera',
+    'lateralDelanteroIzq': 'Lateral Delantero Izquierdo',
+    'lateralTraseroIzq': 'Lateral Trasero Izquierdo',
+    'lateralTraseroDer': 'Lateral Trasero Derecho',
+    'lateralDelanteroDer': 'Lateral Delantero Derecho',
+    'interiorDelantero': 'Interior Delantero',
+    'interiorTrasero': 'Interior Trasero',
+    'libro_revisiones': 'Libro de revisiones',
+    'facturas_taller': 'Facturas de taller',
+    'itv': 'ITV',
+    'otros': 'Otros documentos',
+    'ninguno': 'Ninguno',
+  }
+  
+  return replacements[fieldName] || fieldName
+}
+
+const damageTypeLabel: Record<string, string> = {
+  'pulir': 'Pulir',
+  'rayado': 'Rayado',
+  'golpe': 'Golpe',
+  'sustituir': 'Sustituir',
+  'arañazo': 'Arañazo',
+  'abolladura': 'Abolladura',
+}
+
 // Estilos para el PDF
 const styles = StyleSheet.create({
   page: {
@@ -17,9 +55,20 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     borderBottom: '3 solid #8b5cf6',
     paddingBottom: 15,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  headerLogo: {
+    width: 80,
+    height: 80,
+    objectFit: 'contain',
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#6d28d9',
     marginBottom: 5,
@@ -27,6 +76,15 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 12,
     color: '#6b7280',
+  },
+  watermark: {
+    position: 'absolute',
+    left: -100,
+    top: '50%',
+    transform: 'rotate(-90deg)',
+    opacity: 0.05,
+    width: 400,
+    height: 400,
   },
   
   // Secciones
@@ -183,14 +241,31 @@ const styles = StyleSheet.create({
     bottom: 30,
     left: 40,
     right: 40,
-    textAlign: 'center',
-    fontSize: 8,
+    fontSize: 7,
     color: '#9ca3af',
     borderTop: '1 solid #e5e7eb',
-    paddingTop: 10,
+    paddingTop: 8,
+  },
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  footerLeft: {
+    flex: 1,
+  },
+  footerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  footerLogo: {
+    width: 30,
+    height: 30,
+    objectFit: 'contain',
   },
   pageNumber: {
-    fontSize: 8,
+    fontSize: 7,
     color: '#9ca3af',
   },
 })
@@ -210,9 +285,10 @@ interface TasacionPDFProps {
     }
     timestamp?: string
   }
+  tasacionId?: string
 }
 
-const TasacionPDF = ({ data, metadata }: TasacionPDFProps) => {
+const TasacionPDF = ({ data, metadata, tasacionId }: TasacionPDFProps) => {
   // Función para formatear fecha
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A'
@@ -230,17 +306,23 @@ const TasacionPDF = ({ data, metadata }: TasacionPDFProps) => {
     <Document>
       {/* PÁGINA 1: DATOS PRINCIPALES + DOCUMENTOS */}
       <Page size="A4" style={styles.page}>
+        {/* Filigrana de fondo */}
+        <Image src="/svg/filigrana informe.png" style={styles.watermark} />
+        
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Informe de Tasación</Text>
-          <Text style={styles.subtitle}>
-            Fecha: {formatDate(metadata?.timestamp)}
-          </Text>
+          <View style={styles.headerLeft}>
+            <Text style={styles.title}>INFORME DE TASACIÓN</Text>
+            <Text style={styles.subtitle}>
+              Fecha: {formatDate(metadata?.timestamp)}
+            </Text>
+          </View>
+          <Image src="/svg/logo_tasaciones.png" style={styles.headerLogo} />
         </View>
 
         {/* Datos Básicos */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Datos Básicos del Vehículo</Text>
+          <Text style={styles.sectionTitle}>DATOS BÁSICOS DEL VEHÍCULO</Text>
           <View style={styles.dataGrid}>
             <View style={styles.dataItem}>
               <Text style={styles.dataLabel}>Matrícula</Text>
@@ -248,7 +330,7 @@ const TasacionPDF = ({ data, metadata }: TasacionPDFProps) => {
             </View>
             <View style={styles.dataItem}>
               <Text style={styles.dataLabel}>Kilómetros</Text>
-              <Text style={styles.dataValue}>{data.kilometros || 'N/A'} km</Text>
+              <Text style={styles.dataValue}>{data.kmActuales?.toLocaleString() || 'N/A'} km</Text>
             </View>
             <View style={styles.dataItem}>
               <Text style={styles.dataLabel}>Procedencia</Text>
@@ -265,7 +347,7 @@ const TasacionPDF = ({ data, metadata }: TasacionPDFProps) => {
 
         {/* Marca, Modelo y Versión */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Marca, Modelo y Versión</Text>
+          <Text style={styles.sectionTitle}>MARCA, MODELO Y VERSIÓN</Text>
           <View style={styles.dataGrid}>
             <View style={styles.dataItem}>
               <Text style={styles.dataLabel}>Marca</Text>
@@ -273,7 +355,7 @@ const TasacionPDF = ({ data, metadata }: TasacionPDFProps) => {
             </View>
             <View style={styles.dataItem}>
               <Text style={styles.dataLabel}>Combustible</Text>
-              <Text style={styles.dataValue}>{data.combustible || 'N/A'}</Text>
+              <Text style={styles.dataValue}>{capitalize(data.combustible) || 'N/A'}</Text>
             </View>
             <View style={styles.dataItem}>
               <Text style={styles.dataLabel}>Modelo</Text>
@@ -281,7 +363,7 @@ const TasacionPDF = ({ data, metadata }: TasacionPDFProps) => {
             </View>
             <View style={styles.dataItem}>
               <Text style={styles.dataLabel}>Transmisión</Text>
-              <Text style={styles.dataValue}>{data.transmision || 'N/A'}</Text>
+              <Text style={styles.dataValue}>{capitalize(data.transmision) || 'N/A'}</Text>
             </View>
             <View style={styles.dataItem}>
               <Text style={styles.dataLabel}>Versión</Text>
@@ -302,43 +384,69 @@ const TasacionPDF = ({ data, metadata }: TasacionPDFProps) => {
 
         {/* Estado Mecánico */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Estado Mecánico</Text>
+          <Text style={styles.sectionTitle}>ESTADO MECÁNICO</Text>
           <View style={styles.dataGrid}>
             <View style={styles.dataItem}>
               <Text style={styles.dataLabel}>Motor</Text>
-              <Text style={styles.dataValue}>{data.estadoMotor || 'N/A'}</Text>
+              <Text style={[styles.dataValue, data.estadoMotor === 'malo' && { color: '#dc2626' }]}>
+                {capitalize(data.estadoMotor) || 'N/A'}
+              </Text>
             </View>
             <View style={styles.dataItem}>
               <Text style={styles.dataLabel}>Dirección</Text>
-              <Text style={styles.dataValue}>{data.estadoDireccion || 'N/A'}</Text>
+              <Text style={[styles.dataValue, data.estadoDireccion === 'malo' && { color: '#dc2626' }]}>
+                {capitalize(data.estadoDireccion) || 'N/A'}
+              </Text>
             </View>
             <View style={styles.dataItem}>
               <Text style={styles.dataLabel}>Frenos</Text>
-              <Text style={styles.dataValue}>{data.estadoFrenos || 'N/A'}</Text>
+              <Text style={[styles.dataValue, data.estadoFrenos === 'malo' && { color: '#dc2626' }]}>
+                {capitalize(data.estadoFrenos) || 'N/A'}
+              </Text>
             </View>
             <View style={styles.dataItem}>
               <Text style={styles.dataLabel}>Caja de Cambios</Text>
-              <Text style={styles.dataValue}>{data.estadoCajaCambios || 'N/A'}</Text>
+              <Text style={[styles.dataValue, data.estadoCajaCambios === 'malo' && { color: '#dc2626' }]}>
+                {capitalize(data.estadoCajaCambios) || 'N/A'}
+              </Text>
             </View>
             <View style={styles.dataItem}>
               <Text style={styles.dataLabel}>Transmisión</Text>
-              <Text style={styles.dataValue}>{data.estadoTransmision || 'N/A'}</Text>
+              <Text style={[styles.dataValue, data.estadoTransmision === 'malo' && { color: '#dc2626' }]}>
+                {capitalize(data.estadoTransmision) || 'N/A'}
+              </Text>
             </View>
             <View style={styles.dataItem}>
               <Text style={styles.dataLabel}>Embrague</Text>
-              <Text style={styles.dataValue}>{data.estadoEmbrague || 'N/A'}</Text>
+              <Text style={[styles.dataValue, data.estadoEmbrague === 'malo' && { color: '#dc2626' }]}>
+                {capitalize(data.estadoEmbrague) || 'N/A'}
+              </Text>
+            </View>
+            <View style={styles.dataItem}>
+              <Text style={styles.dataLabel}>Estado General</Text>
+              <Text style={[styles.dataValue, data.estadoGeneral === 'malo' && { color: '#dc2626' }]}>
+                {capitalize(data.estadoGeneral) || 'N/A'}
+              </Text>
             </View>
             <View style={styles.dataItem}>
               <Text style={styles.dataLabel}>Daño Estructural</Text>
-              <Text style={styles.dataValue}>{data.danoEstructural ? 'Sí' : 'No'}</Text>
+              <Text style={[styles.dataValue, data.danoEstructural && { color: '#dc2626' }]}>
+                {data.danoEstructural ? 'Sí' : 'No'}
+              </Text>
             </View>
           </View>
+          {data.danoEstructural && data.danoEstructuralDetalle && (
+            <View style={styles.dataItemFull}>
+              <Text style={styles.dataLabel}>Detalle Daño Estructural</Text>
+              <Text style={[styles.dataValue, { color: '#dc2626' }]}>{data.danoEstructuralDetalle}</Text>
+            </View>
+          )}
         </View>
 
         {/* Documentos */}
         {(data.fotoPermisoCirculacion || data.fotoFichaTecnicaFrente) && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Documentación</Text>
+            <Text style={styles.sectionTitle}>DOCUMENTACIÓN</Text>
             <View style={styles.documentSection}>
               {data.fotoPermisoCirculacion && (
                 <View style={{ width: '48%' }}>
@@ -363,19 +471,36 @@ const TasacionPDF = ({ data, metadata }: TasacionPDFProps) => {
         )}
 
         <View style={styles.footer}>
-          <Text>Portal de Tasaciones - Informe Generado Automáticamente</Text>
+          <View style={styles.footerRow}>
+            <View style={styles.footerLeft}>
+              <Text style={{ fontSize: 7 }}>ID de Tasación: {tasacionId || 'Generando...'}</Text>
+              <Text style={{ fontSize: 7, marginTop: 2 }}>
+                Fecha de registro: {formatDate(metadata?.timestamp)}
+              </Text>
+            </View>
+            <View style={styles.footerRight}>
+              <Image src="/svg/logo_tasaciones.png" style={styles.footerLogo} />
+              <Text style={styles.pageNumber}>Página 1 de {getTotalPages(data)}</Text>
+            </View>
+          </View>
         </View>
       </Page>
 
       {/* PÁGINA 2: MÁS DATOS */}
       <Page size="A4" style={styles.page}>
+        {/* Filigrana de fondo */}
+        <Image src="/svg/filigrana informe.png" style={styles.watermark} />
+        
         <View style={styles.header}>
-          <Text style={styles.title}>Datos Adicionales</Text>
+          <View style={styles.headerLeft}>
+            <Text style={styles.title}>DATOS ADICIONALES</Text>
+          </View>
+          <Image src="/svg/logo_tasaciones.png" style={styles.headerLogo} />
         </View>
 
         {/* Datos del Vehículo */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Datos del Vehículo</Text>
+          <Text style={styles.sectionTitle}>DATOS DEL VEHÍCULO</Text>
           <View style={styles.dataGrid}>
             <View style={styles.dataItem}>
               <Text style={styles.dataLabel}>Origen</Text>
@@ -385,27 +510,27 @@ const TasacionPDF = ({ data, metadata }: TasacionPDFProps) => {
             </View>
             <View style={styles.dataItem}>
               <Text style={styles.dataLabel}>Comprado Nuevo</Text>
-              <Text style={styles.dataValue}>{data.compradoNuevo ? 'Sí' : 'No'}</Text>
+              <Text style={styles.dataValue}>{data.comproNuevo ? 'Sí' : 'No'}</Text>
             </View>
             <View style={styles.dataItem}>
               <Text style={styles.dataLabel}>Color</Text>
-              <Text style={styles.dataValue}>{data.color || 'N/A'}</Text>
+              <Text style={styles.dataValue}>{capitalize(data.color) || 'N/A'}</Text>
             </View>
             <View style={styles.dataItem}>
               <Text style={styles.dataLabel}>Movilidad</Text>
-              <Text style={styles.dataValue}>{data.movilidadTransporte || 'N/A'}</Text>
+              <Text style={styles.dataValue}>{capitalize(data.movilidad?.replace('_', ' ')) || 'N/A'}</Text>
             </View>
             <View style={styles.dataItem}>
               <Text style={styles.dataLabel}>Servicio Público</Text>
-              <Text style={styles.dataValue}>{data.servicioPublico || 'Ninguno'}</Text>
+              <Text style={styles.dataValue}>{capitalize(data.servicioPublico?.replace('_', ' ')) || 'Ninguno'}</Text>
             </View>
             <View style={styles.dataItem}>
               <Text style={styles.dataLabel}>Etiqueta Ambiental</Text>
-              <Text style={styles.dataValue}>{data.etiquetaMedioambiental || 'N/A'}</Text>
+              <Text style={styles.dataValue}>{data.etiquetaMedioambiental?.toUpperCase() || 'N/A'}</Text>
             </View>
             <View style={styles.dataItem}>
               <Text style={styles.dataLabel}>ITV en Vigor</Text>
-              <Text style={styles.dataValue}>{data.itvVigente ? 'Sí' : 'No'}</Text>
+              <Text style={styles.dataValue}>{data.itvEnVigor ? 'Sí' : 'No'}</Text>
             </View>
             {data.proximaITV && (
               <View style={styles.dataItem}>
@@ -417,7 +542,7 @@ const TasacionPDF = ({ data, metadata }: TasacionPDFProps) => {
           {data.documentosKm && (
             <View style={styles.dataItemFull}>
               <Text style={styles.dataLabel}>Documentos que acreditan KM</Text>
-              <Text style={styles.dataValue}>{data.documentosKm}</Text>
+              <Text style={styles.dataValue}>{formatFieldName(data.documentosKm)}</Text>
             </View>
           )}
         </View>
@@ -425,24 +550,50 @@ const TasacionPDF = ({ data, metadata }: TasacionPDFProps) => {
         {/* Estado Estético - Daños Exteriores */}
         {data.danosExteriores && data.danosExteriores.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Daños Exteriores</Text>
+            <Text style={styles.sectionTitle}>DAÑOS EXTERIORES</Text>
             <View style={styles.damageList}>
               {data.danosExteriores.map((dano, index) => (
-                <Text key={index} style={styles.damageItem}>
-                  • {dano.vista.toUpperCase()} - {dano.tipo} (X: {Math.round(dano.x)}, Y: {Math.round(dano.y)})
-                </Text>
+                <View key={index} style={{ marginBottom: 6 }}>
+                  <Text style={styles.damageItem}>
+                    • {dano.parte} - {damageTypeLabel[dano.tipo] || capitalize(dano.tipo)}
+                  </Text>
+                  <Text style={{ fontSize: 8, color: '#9ca3af', marginLeft: 12 }}>
+                    Vista: {formatFieldName(dano.vista || '')}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Daños Interiores */}
+        {data.danosInteriores && data.danosInteriores.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>DAÑOS INTERIORES</Text>
+            <View style={styles.damageList}>
+              {data.danosInteriores.map((dano, index) => (
+                <View key={index} style={{ marginBottom: 6 }}>
+                  <Text style={styles.damageItem}>
+                    • {dano.parte} - {damageTypeLabel[dano.tipo] || capitalize(dano.tipo)}
+                  </Text>
+                  <Text style={{ fontSize: 8, color: '#9ca3af', marginLeft: 12 }}>
+                    Vista: {formatFieldName(dano.vista || '')}
+                  </Text>
+                </View>
               ))}
             </View>
           </View>
         )}
 
         {/* Testigos Encendidos */}
-        {data.testigosEncendidos && data.testigosEncendidos.length > 0 && (
+        {data.testigosEncendidos && data.testigosEncendidos.length > 0 && data.testigosEncendidos[0] !== 'ninguno' && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Testigos Encendidos</Text>
+            <Text style={styles.sectionTitle}>TESTIGOS ENCENDIDOS</Text>
             <View style={styles.damageList}>
               {data.testigosEncendidos.map((testigo, index) => (
-                <Text key={index} style={styles.damageItem}>• {testigo}</Text>
+                <Text key={index} style={[styles.damageItem, { color: '#dc2626' }]}>
+                  • {capitalize(testigo.replace('_', ' '))}
+                </Text>
               ))}
             </View>
           </View>
@@ -451,136 +602,111 @@ const TasacionPDF = ({ data, metadata }: TasacionPDFProps) => {
         {/* Observaciones */}
         {data.observaciones && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Observaciones</Text>
+            <Text style={styles.sectionTitle}>OBSERVACIONES</Text>
             <Text style={styles.dataValue}>{data.observaciones}</Text>
           </View>
         )}
 
         <View style={styles.footer}>
-          <Text>Portal de Tasaciones - Página 2 de {getTotalPages(data)}</Text>
+          <View style={styles.footerRow}>
+            <View style={styles.footerLeft}>
+              <Text style={{ fontSize: 7 }}>ID de Tasación: {tasacionId || 'Generando...'}</Text>
+              <Text style={{ fontSize: 7, marginTop: 2 }}>
+                Fecha de registro: {formatDate(metadata?.timestamp)}
+              </Text>
+            </View>
+            <View style={styles.footerRight}>
+              <Image src="/svg/logo_tasaciones.png" style={styles.footerLogo} />
+              <Text style={styles.pageNumber}>Página 2 de {getTotalPages(data)}</Text>
+            </View>
+          </View>
         </View>
       </Page>
 
       {/* PÁGINAS DE FOTOGRAFÍAS */}
-      {renderPhotoPages(data)}
+      {renderPhotoPages(data, tasacionId, metadata)}
 
       {/* PÁGINA FINAL: CERTIFICADO */}
       <Page size="A4" style={styles.certificatePage}>
+        {/* Filigrana de fondo */}
+        <Image src="/svg/filigrana informe.png" style={styles.watermark} />
         <View style={styles.certificateHeader}>
           <Text style={styles.certificateTitle}>CERTIFICADO DE AUTENTICIDAD</Text>
-          <Text style={styles.certificateSubtitle}>
-            Datos de Verificación del Cliente
-          </Text>
+          <Text style={styles.certificateSubtitle}>Datos de Verificación</Text>
         </View>
 
         <View style={styles.certificateContent}>
-          <Text style={styles.certificateText}>
-            Este documento certifica que la información contenida en el presente informe
-            de tasación ha sido proporcionada directamente por el cliente a través del
-            Portal de Tasaciones, con los siguientes datos de verificación:
+          <Text style={{ fontSize: 9, color: '#374151', lineHeight: 1.4 }}>
+            Este documento certifica que la información ha sido proporcionada por el cliente 
+            a través del Portal de Tasaciones.
           </Text>
 
-          <Text style={[styles.certificateText, { marginTop: 20, fontWeight: 'bold' }]}>
+          <Text style={[styles.certificateText, { marginTop: 12, fontWeight: 'bold', fontSize: 10 }]}>
             Datos de Registro:
           </Text>
-          <Text style={styles.certificateData}>
-            • Fecha y hora: {formatDate(metadata?.timestamp)}
+          <Text style={[styles.certificateData, { fontSize: 8 }]}>
+            • Fecha: {formatDate(metadata?.timestamp)}
           </Text>
           {metadata?.ip && (
-            <Text style={styles.certificateData}>
-              • Dirección IP: {metadata.ip}
+            <Text style={[styles.certificateData, { fontSize: 8 }]}>
+              • IP: {metadata.ip}
             </Text>
           )}
-          {metadata?.geolocalizacion && (
-            <Text style={styles.certificateData}>
-              • Geolocalización: Lat {metadata.geolocalizacion.latitude.toFixed(6)}, 
-              Lon {metadata.geolocalizacion.longitude.toFixed(6)}
-            </Text>
-          )}
-
-          {metadata?.dispositivo && (
-            <>
-              <Text style={[styles.certificateText, { marginTop: 15, fontWeight: 'bold' }]}>
-                Información del Dispositivo:
-              </Text>
-              <Text style={styles.certificateData}>
-                • Plataforma: {metadata.dispositivo.platform}
-              </Text>
-              <Text style={styles.certificateData}>
-                • Idioma: {metadata.dispositivo.idioma}
-              </Text>
-              <Text style={styles.certificateData}>
-                • User Agent: {metadata.dispositivo.userAgent}
-              </Text>
-            </>
-          )}
-
-          <Text style={[styles.certificateText, { marginTop: 20 }]}>
-            Los datos registrados en este documento son responsabilidad del cliente
-            y han sido capturados mediante sistemas automatizados de verificación
-            para garantizar su autenticidad e integridad.
-          </Text>
 
           <View style={{ 
-            marginTop: 30, 
-            padding: 15, 
+            marginTop: 15, 
+            padding: 10, 
             backgroundColor: '#f3f4f6',
             borderRadius: 4,
-            border: '2 solid #6d28d9'
+            border: '1 solid #6d28d9'
           }}>
-            <Text style={{ fontSize: 10, color: '#6d28d9', textAlign: 'center', fontWeight: 'bold' }}>
+            <Text style={{ fontSize: 9, color: '#6d28d9', textAlign: 'center', fontWeight: 'bold' }}>
               DOCUMENTO VERIFICADO DIGITALMENTE
             </Text>
-            <Text style={{ fontSize: 8, color: '#6b7280', textAlign: 'center', marginTop: 5 }}>
-              ID de Verificación: {metadata?.timestamp ? 
-                Buffer.from(metadata.timestamp).toString('base64').substring(0, 16) : 
-                'N/A'}
+            <Text style={{ fontSize: 7, color: '#6b7280', textAlign: 'center', marginTop: 3 }}>
+              ID de Tasación: {tasacionId || 'Generando...'}
             </Text>
           </View>
         </View>
 
-        {/* Cláusula de Descargo de Responsabilidad */}
+        {/* Cláusula de Descargo de Responsabilidad - COMPACTA */}
         <View style={{ 
-          marginTop: 30, 
-          padding: 20, 
+          marginTop: 15, 
+          padding: 12, 
           backgroundColor: '#fef3c7',
-          borderRadius: 8,
-          border: '2 solid #f59e0b'
+          borderRadius: 4,
+          border: '1 solid #f59e0b'
         }}>
           <Text style={{ 
-            fontSize: 12, 
+            fontSize: 10, 
             fontWeight: 'bold', 
             color: '#92400e', 
-            marginBottom: 10,
+            marginBottom: 6,
             textAlign: 'center'
           }}>
             Protección de Datos y Descargo de Responsabilidad (CVO)
           </Text>
           
-          <Text style={{ fontSize: 9, color: '#78350f', lineHeight: 1.6, marginBottom: 8 }}>
-            El tratamiento de los datos (nombre del titular y documentación del vehículo) se ha 
-            realizado por CVO con la única y exclusiva finalidad de elaborar esta tasación, basándose 
-            en su consentimiento y en los datos facilitados de forma voluntaria.
+          <Text style={{ fontSize: 7, color: '#78350f', lineHeight: 1.3, marginBottom: 4 }}>
+            El tratamiento de los datos se ha realizado por CVO con la finalidad de elaborar esta tasación, 
+            basándose en su consentimiento y en los datos facilitados.
           </Text>
           
-          <Text style={{ fontSize: 9, color: '#78350f', lineHeight: 1.6, marginBottom: 8 }}>
-            Le recordamos que, de acuerdo con nuestra Política de Privacidad, sus datos personales y 
-            la documentación del vehículo serán borrados y eliminados automáticamente de nuestros 
-            sistemas al cumplirse <Text style={{ fontWeight: 'bold' }}>tres (3) meses</Text> desde la 
-            fecha de emisión de este informe.
+          <Text style={{ fontSize: 7, color: '#78350f', lineHeight: 1.3, marginBottom: 4 }}>
+            Sus datos personales y documentación serán eliminados automáticamente al cumplirse 
+            <Text style={{ fontWeight: 'bold' }}> tres (3) meses</Text> desde la emisión de este informe.
           </Text>
           
-          <Text style={{ fontSize: 9, color: '#78350f', lineHeight: 1.6 }}>
-            Usted puede ejercer sus derechos de Acceso, Rectificación, Supresión, Oposición y Limitación 
-            del tratamiento, así como solicitar la baja de sus datos, contactando con CVO en el correo 
-            electrónico <Text style={{ fontWeight: 'bold' }}>hola@controlvo.ovh</Text>.
+          <Text style={{ fontSize: 7, color: '#78350f', lineHeight: 1.3 }}>
+            Puede ejercer sus derechos contactando con CVO en 
+            <Text style={{ fontWeight: 'bold' }}> hola@controlvo.ovh</Text>.
           </Text>
         </View>
 
         <View style={styles.certificateFooter}>
           <Text>Portal de Tasaciones © 2025</Text>
           <Text style={{ marginTop: 5 }}>
-            Este documento ha sido generado automáticamente y tiene validez legal
+            Este documento ha sido generado automáticamente
           </Text>
         </View>
       </Page>
@@ -608,14 +734,14 @@ function getTotalPages(data: TasacionFormData): number {
 }
 
 // Función para renderizar páginas de fotografías
-function renderPhotoPages(data: TasacionFormData) {
+function renderPhotoPages(data: TasacionFormData, tasacionId?: string, metadata?: any) {
   const photos: { src: string; label: string }[] = []
   
   // Fotos del vehículo
   if (data.fotosVehiculo) {
     Object.entries(data.fotosVehiculo).forEach(([key, value]) => {
       if (value) {
-        photos.push({ src: value, label: `Vehículo - ${key}` })
+        photos.push({ src: value, label: `Vehículo - ${formatFieldName(key)}` })
       }
     })
   }
@@ -635,9 +761,20 @@ function renderPhotoPages(data: TasacionFormData) {
     photos.push({ src: data.fotosInteriorTrasero, label: 'Interior Trasero' })
   }
   
-  // Ficha técnica dorso
-  if (data.fotoFichaTecnicaDorso) {
-    photos.push({ src: data.fotoFichaTecnicaDorso, label: 'Ficha Técnica (Dorso)' })
+  // Fotos de documentación
+  if (data.fotosDocumentacion) {
+    if (data.fotosDocumentacion.permisoCirculacionFrente) {
+      photos.push({ src: data.fotosDocumentacion.permisoCirculacionFrente, label: 'Permiso de Circulación (Frente)' })
+    }
+    if (data.fotosDocumentacion.permisoCirculacionDorso) {
+      photos.push({ src: data.fotosDocumentacion.permisoCirculacionDorso, label: 'Permiso de Circulación (Dorso)' })
+    }
+    if (data.fotosDocumentacion.fichaTecnicaFrente) {
+      photos.push({ src: data.fotosDocumentacion.fichaTecnicaFrente, label: 'Ficha Técnica (Frente)' })
+    }
+    if (data.fotosDocumentacion.fichaTecnicaDorso) {
+      photos.push({ src: data.fotosDocumentacion.fichaTecnicaDorso, label: 'Ficha Técnica (Dorso)' })
+    }
   }
   
   // Otras fotos
@@ -653,9 +790,15 @@ function renderPhotoPages(data: TasacionFormData) {
     const pagePhotos = photos.slice(i, i + 4)
     pages.push(
       <Page key={`photo-page-${i}`} size="A4" style={styles.photoPage}>
+        {/* Filigrana de fondo */}
+        <Image src="/svg/filigrana informe.png" style={styles.watermark} />
+        
         <View style={styles.header}>
-          <Text style={styles.title}>Fotografías</Text>
-          <Text style={styles.subtitle}>Página {Math.floor(i / 4) + 3}</Text>
+          <View style={styles.headerLeft}>
+            <Text style={styles.title}>FOTOGRAFÍAS</Text>
+            <Text style={styles.subtitle}>Página {Math.floor(i / 4) + 3}</Text>
+          </View>
+          <Image src="/svg/logo_tasaciones.png" style={styles.headerLogo} />
         </View>
         
         <View style={styles.photoGrid}>
@@ -668,7 +811,18 @@ function renderPhotoPages(data: TasacionFormData) {
         </View>
         
         <View style={styles.footer}>
-          <Text>Portal de Tasaciones - Fotografías</Text>
+          <View style={styles.footerRow}>
+            <View style={styles.footerLeft}>
+              <Text style={{ fontSize: 7 }}>ID de Tasación: {tasacionId || 'Generando...'}</Text>
+              <Text style={{ fontSize: 7, marginTop: 2 }}>
+                Fecha de registro: {metadata?.timestamp ? new Date(metadata.timestamp).toLocaleDateString('es-ES') : 'N/A'}
+              </Text>
+            </View>
+            <View style={styles.footerRight}>
+              <Image src="/svg/logo_tasaciones.png" style={styles.footerLogo} />
+              <Text style={styles.pageNumber}>Página {Math.floor(i / 4) + 3} de {getTotalPages(data)}</Text>
+            </View>
+          </View>
         </View>
       </Page>
     )
@@ -678,4 +832,5 @@ function renderPhotoPages(data: TasacionFormData) {
 }
 
 export default TasacionPDF
+
 

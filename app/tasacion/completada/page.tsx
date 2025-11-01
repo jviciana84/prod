@@ -56,10 +56,14 @@ export default function TasacionCompletadaPage() {
       
       console.log('Metadata:', metadata)
 
+      // Recuperar ID de tasación si existe
+      const tasacionId = localStorage.getItem('lastTasacionId')
+      
       console.log('Llamando a generateAndDownloadPDF...')
       const result = await generateAndDownloadPDF({
         data: tasacionData,
         metadata,
+        tasacionId: tasacionId || undefined,
         filename: `tasacion_${tasacionData.matricula || 'vehiculo'}_${Date.now()}.pdf`
       })
 
