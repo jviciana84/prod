@@ -1,0 +1,2054 @@
+[
+  {
+    "svgId": "frontal-path-8",
+    "svgPath": "frontal",
+    "partName": "⬅️ FLECHA → Lateral Derecha",
+    "color": "#71b374"
+  },
+  {
+    "svgId": "frontal-path-7",
+    "svgPath": "frontal",
+    "partName": "⬅️ FLECHA → Lateral Izquierda",
+    "color": "#673b2a"
+  },
+  {
+    "svgId": "frontal-path-5",
+    "svgPath": "frontal",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#55dc50"
+  },
+  {
+    "svgId": "frontal-path-12",
+    "svgPath": "frontal",
+    "partName": "Retrovisor izquierda",
+    "color": "#2e35e5"
+  },
+  {
+    "svgId": "frontal-path-13",
+    "svgPath": "frontal",
+    "partName": "Retrovisor derecha",
+    "color": "#723878"
+  },
+  {
+    "svgId": "frontal-path-16",
+    "svgPath": "frontal",
+    "partName": "Faro izquierda",
+    "color": "#8ad195"
+  },
+  {
+    "svgId": "frontal-path-9",
+    "svgPath": "frontal",
+    "partName": "Faro izquierda",
+    "color": "#cbe491"
+  },
+  {
+    "svgId": "frontal-path-17",
+    "svgPath": "frontal",
+    "partName": "Faro derecha",
+    "color": "#7a2307"
+  },
+  {
+    "svgId": "frontal-path-24",
+    "svgPath": "frontal",
+    "partName": "Faro derecha",
+    "color": "#ae601d"
+  },
+  {
+    "svgId": "frontal-path-15",
+    "svgPath": "frontal",
+    "partName": "Faro Xenon izquierda",
+    "color": "#c7b25c"
+  },
+  {
+    "svgId": "frontal-path-21",
+    "svgPath": "frontal",
+    "partName": "Faro Xenon izquierda",
+    "color": "#a5956a"
+  },
+  {
+    "svgId": "frontal-path-5",
+    "svgPath": "frontal",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#46ed8a"
+  },
+  {
+    "svgId": "frontal-path-14",
+    "svgPath": "frontal",
+    "partName": "Faro Xenon derecha",
+    "color": "#1cfcaf"
+  },
+  {
+    "svgId": "frontal-path-20",
+    "svgPath": "frontal",
+    "partName": "Faro Xenon derecha",
+    "color": "#f99bc0"
+  },
+  {
+    "svgId": "frontal-path-18",
+    "svgPath": "frontal",
+    "partName": "Anti niebla izquierda",
+    "color": "#6ba5de"
+  },
+  {
+    "svgId": "frontal-path-19",
+    "svgPath": "frontal",
+    "partName": "Anti niebla derecha",
+    "color": "#4d3771"
+  },
+  {
+    "svgId": "frontal-path-4",
+    "svgPath": "frontal",
+    "partName": "Capó",
+    "color": "#15b488"
+  },
+  {
+    "svgId": "frontal-path-3",
+    "svgPath": "frontal",
+    "partName": "Luna parabrisas",
+    "color": "#34f6b0"
+  },
+  {
+    "svgId": "frontal-path-10",
+    "svgPath": "frontal",
+    "partName": "Neumático delantero izquierda",
+    "color": "#19966a"
+  },
+  {
+    "svgId": "frontal-path-11",
+    "svgPath": "frontal",
+    "partName": "Neumático delantero derecha",
+    "color": "#fe6ba0"
+  },
+  {
+    "svgId": "frontal-path-2",
+    "svgPath": "frontal",
+    "partName": "Paragolpes delantero",
+    "color": "#c4cf65"
+  },
+  {
+    "svgId": "frontal-path-6",
+    "svgPath": "frontal",
+    "partName": "Calandra",
+    "color": "#8e0ea4"
+  },
+  {
+    "svgId": "lateral_izquierda-path-13",
+    "svgPath": "lateral_izquierda",
+    "partName": "⬅️ FLECHA → Frontal",
+    "color": "#7f3dc7"
+  },
+  {
+    "svgId": "lateral_izquierda-path-12",
+    "svgPath": "lateral_izquierda",
+    "partName": "⬅️ FLECHA → Trasera",
+    "color": "#de3a1b"
+  },
+  {
+    "svgId": "lateral_izquierda-path-18",
+    "svgPath": "lateral_izquierda",
+    "partName": "Piloto trasero izquierda",
+    "color": "#fe457f"
+  },
+  {
+    "svgId": "lateral_izquierda-path-10",
+    "svgPath": "lateral_izquierda",
+    "partName": "Techo",
+    "color": "#b13ac8"
+  },
+  {
+    "svgId": "lateral_izquierda-path-7",
+    "svgPath": "lateral_izquierda",
+    "partName": "Aleta delantera izquierda",
+    "color": "#dafe34"
+  },
+  {
+    "svgId": "lateral_izquierda-path-6",
+    "svgPath": "lateral_izquierda",
+    "partName": "Neumático delantero izquierdo",
+    "color": "#0ee9a6"
+  },
+  {
+    "svgId": "lateral_izquierda-path-14",
+    "svgPath": "lateral_izquierda",
+    "partName": "Llanta delantera izquierda",
+    "color": "#761d82"
+  },
+  {
+    "svgId": "lateral_izquierda-path-3",
+    "svgPath": "lateral_izquierda",
+    "partName": "Puerta delantera izquierda",
+    "color": "#5de185"
+  },
+  {
+    "svgId": "lateral_izquierda-path-2",
+    "svgPath": "lateral_izquierda",
+    "partName": "Puerta trasera izquierda",
+    "color": "#52703c"
+  },
+  {
+    "svgId": "lateral_izquierda-path-24",
+    "svgPath": "lateral_izquierda",
+    "partName": "Retrovisor izquierdo",
+    "color": "#07ff10"
+  },
+  {
+    "svgId": "lateral_izquierda-path-4",
+    "svgPath": "lateral_izquierda",
+    "partName": "Aleta trasera izquierda",
+    "color": "#41992b"
+  },
+  {
+    "svgId": "lateral_izquierda-path-15",
+    "svgPath": "lateral_izquierda",
+    "partName": "Llanta trasera izquierda",
+    "color": "#c62d3a"
+  },
+  {
+    "svgId": "lateral_izquierda-path-5",
+    "svgPath": "lateral_izquierda",
+    "partName": "Neumático trasero izquierda",
+    "color": "#3e1b4d"
+  },
+  {
+    "svgId": "lateral_izquierda-path-11",
+    "svgPath": "lateral_izquierda",
+    "partName": "Paragolpes delantero",
+    "color": "#207087"
+  },
+  {
+    "svgId": "lateral_izquierda-path-17",
+    "svgPath": "lateral_izquierda",
+    "partName": "Faro Xenon izquierda",
+    "color": "#6c0afe"
+  },
+  {
+    "svgId": "lateral_izquierda-path-16",
+    "svgPath": "lateral_izquierda",
+    "partName": "Talonera izquierda",
+    "color": "#31deaa"
+  },
+  {
+    "svgId": "laterial_derecha-path-12",
+    "svgPath": "laterial_derecha",
+    "partName": "⬅️ FLECHA → Frontal",
+    "color": "#ff4b1e"
+  },
+  {
+    "svgId": "laterial_derecha-path-13",
+    "svgPath": "laterial_derecha",
+    "partName": "⬅️ FLECHA → Trasera",
+    "color": "#2c1a13"
+  },
+  {
+    "svgId": "laterial_derecha-path-10",
+    "svgPath": "laterial_derecha",
+    "partName": "Techo",
+    "color": "#5537ca"
+  },
+  {
+    "svgId": "laterial_derecha-path-5",
+    "svgPath": "laterial_derecha",
+    "partName": "Neumático trasero derecha",
+    "color": "#31f320"
+  },
+  {
+    "svgId": "laterial_derecha-path-18",
+    "svgPath": "laterial_derecha",
+    "partName": "Piloto trasero derecha",
+    "color": "#8237ab"
+  },
+  {
+    "svgId": "laterial_derecha-path-7",
+    "svgPath": "laterial_derecha",
+    "partName": "Aleta delantera derecha",
+    "color": "#e51735"
+  },
+  {
+    "svgId": "laterial_derecha-path-6",
+    "svgPath": "laterial_derecha",
+    "partName": "Neumático delantero derecha",
+    "color": "#45ecab"
+  },
+  {
+    "svgId": "laterial_derecha-path-14",
+    "svgPath": "laterial_derecha",
+    "partName": "Llanta delantera derecha",
+    "color": "#ed2fd7"
+  },
+  {
+    "svgId": "laterial_derecha-path-3",
+    "svgPath": "laterial_derecha",
+    "partName": "Puerta delantera derecha",
+    "color": "#b79fe9"
+  },
+  {
+    "svgId": "laterial_derecha-path-2",
+    "svgPath": "laterial_derecha",
+    "partName": "Puerta trasera derecha",
+    "color": "#5cbecd"
+  },
+  {
+    "svgId": "laterial_derecha-path-24",
+    "svgPath": "laterial_derecha",
+    "partName": "Retrovisor derecho",
+    "color": "#c641fd"
+  },
+  {
+    "svgId": "laterial_derecha-path-4",
+    "svgPath": "laterial_derecha",
+    "partName": "Aleta trasera derecha",
+    "color": "#f4e8b9"
+  },
+  {
+    "svgId": "laterial_derecha-path-15",
+    "svgPath": "laterial_derecha",
+    "partName": "Llanta trasera derecha",
+    "color": "#920858"
+  },
+  {
+    "svgId": "laterial_derecha-path-16",
+    "svgPath": "laterial_derecha",
+    "partName": "Talonera derecha",
+    "color": "#13bb6a"
+  },
+  {
+    "svgId": "laterial_derecha-path-11",
+    "svgPath": "laterial_derecha",
+    "partName": "Paragolpes delantero",
+    "color": "#e5f79a"
+  },
+  {
+    "svgId": "laterial_derecha-path-9",
+    "svgPath": "laterial_derecha",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#abfffd"
+  },
+  {
+    "svgId": "laterial_derecha-path-8",
+    "svgPath": "laterial_derecha",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#d17970"
+  },
+  {
+    "svgId": "lateral_izquierda-path-9",
+    "svgPath": "lateral_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#3089be"
+  },
+  {
+    "svgId": "lateral_izquierda-path-8",
+    "svgPath": "lateral_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#acfddf"
+  },
+  {
+    "svgId": "trasera-path-9",
+    "svgPath": "trasera",
+    "partName": "⬅️ FLECHA → Lateral Izquierda",
+    "color": "#e7c9f8"
+  },
+  {
+    "svgId": "trasera-path-8",
+    "svgPath": "trasera",
+    "partName": "⬅️ FLECHA → Lateral Derecha",
+    "color": "#64d205"
+  },
+  {
+    "svgId": "trasera-path-14",
+    "svgPath": "trasera",
+    "partName": "Neumático trasero derecha",
+    "color": "#4fdae3"
+  },
+  {
+    "svgId": "trasera-path-13",
+    "svgPath": "trasera",
+    "partName": "Neumático trasero izquierda",
+    "color": "#9834de"
+  },
+  {
+    "svgId": "trasera-path-3",
+    "svgPath": "trasera",
+    "partName": "Paragolpes trasero",
+    "color": "#a45c34"
+  },
+  {
+    "svgId": "trasera-path-2",
+    "svgPath": "trasera",
+    "partName": "Portón",
+    "color": "#4d0d18"
+  },
+  {
+    "svgId": "trasera-path-7",
+    "svgPath": "trasera",
+    "partName": "Techo",
+    "color": "#abdc59"
+  },
+  {
+    "svgId": "trasera-path-6",
+    "svgPath": "trasera",
+    "partName": "Portón",
+    "color": "#c9649b"
+  },
+  {
+    "svgId": "trasera-path-5",
+    "svgPath": "trasera",
+    "partName": "Portón",
+    "color": "#57d466"
+  },
+  {
+    "svgId": "trasera-path-12",
+    "svgPath": "trasera",
+    "partName": "Matriculas",
+    "color": "#15879b"
+  },
+  {
+    "svgId": "trasera-path-11",
+    "svgPath": "trasera",
+    "partName": "Piloto trasero derecha",
+    "color": "#0443c4"
+  },
+  {
+    "svgId": "trasera-path-10",
+    "svgPath": "trasera",
+    "partName": "Piloto trasero izquierda",
+    "color": "#922d46"
+  },
+  {
+    "svgId": "trasera-path-16",
+    "svgPath": "trasera",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#f8e30d"
+  },
+  {
+    "svgId": "trasera-path-4",
+    "svgPath": "trasera",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#a2cd6a"
+  },
+  {
+    "svgId": "interior_salpicadero-path-7",
+    "svgPath": "interior_salpicadero",
+    "partName": "⬅️ FLECHA → Interior Trasero",
+    "color": "#2054a8"
+  },
+  {
+    "svgId": "interior_salpicadero-path-8",
+    "svgPath": "interior_salpicadero",
+    "partName": "Airbag Volante",
+    "color": "#fd2ef4"
+  },
+  {
+    "svgId": "interior_salpicadero-path-11",
+    "svgPath": "interior_salpicadero",
+    "partName": "Airbag Salpicadero",
+    "color": "#4e5da8"
+  },
+  {
+    "svgId": "interior_salpicadero-path-10",
+    "svgPath": "interior_salpicadero",
+    "partName": "Cuadro",
+    "color": "#f19181"
+  },
+  {
+    "svgId": "interior_salpicadero-path-18",
+    "svgPath": "interior_salpicadero",
+    "partName": "Cuadro",
+    "color": "#94c8e5"
+  },
+  {
+    "svgId": "interior_salpicadero-path-15",
+    "svgPath": "interior_salpicadero",
+    "partName": "Cuadro",
+    "color": "#a5b848"
+  },
+  {
+    "svgId": "interior_salpicadero-path-24",
+    "svgPath": "interior_salpicadero",
+    "partName": "Cuadro",
+    "color": "#f050a2"
+  },
+  {
+    "svgId": "interior_salpicadero-path-41",
+    "svgPath": "interior_salpicadero",
+    "partName": "Cuadro",
+    "color": "#f9686c"
+  },
+  {
+    "svgId": "interior_salpicadero-path-12",
+    "svgPath": "interior_salpicadero",
+    "partName": "Consola central",
+    "color": "#64f9a0"
+  },
+  {
+    "svgId": "interior_salpicadero-path-16",
+    "svgPath": "interior_salpicadero",
+    "partName": "Rejilla ventilación",
+    "color": "#ce1ba3"
+  },
+  {
+    "svgId": "interior_salpicadero-path-38",
+    "svgPath": "interior_salpicadero",
+    "partName": "Rejilla ventilación",
+    "color": "#13d8a7"
+  },
+  {
+    "svgId": "interior_salpicadero-path-26",
+    "svgPath": "interior_salpicadero",
+    "partName": "Rejilla ventilación",
+    "color": "#eac463"
+  },
+  {
+    "svgId": "interior_salpicadero-path-29",
+    "svgPath": "interior_salpicadero",
+    "partName": "Rejilla ventilación",
+    "color": "#f021a5"
+  },
+  {
+    "svgId": "interior_salpicadero-path-34",
+    "svgPath": "interior_salpicadero",
+    "partName": "Rejilla ventilación",
+    "color": "#c395a6"
+  },
+  {
+    "svgId": "interior_salpicadero-path-39",
+    "svgPath": "interior_salpicadero",
+    "partName": "Rejilla ventilación",
+    "color": "#be9c0e"
+  },
+  {
+    "svgId": "interior_salpicadero-path-27",
+    "svgPath": "interior_salpicadero",
+    "partName": "Rejilla ventilación",
+    "color": "#1ef128"
+  },
+  {
+    "svgId": "interior_salpicadero-path-33",
+    "svgPath": "interior_salpicadero",
+    "partName": "Rejilla ventilación",
+    "color": "#849bbf"
+  },
+  {
+    "svgId": "interior_salpicadero-path-30",
+    "svgPath": "interior_salpicadero",
+    "partName": "Rejilla ventilación",
+    "color": "#ae76b1"
+  },
+  {
+    "svgId": "interior_salpicadero-path-3",
+    "svgPath": "interior_salpicadero",
+    "partName": "Guantera",
+    "color": "#06f4ce"
+  },
+  {
+    "svgId": "interior_salpicadero-path-22",
+    "svgPath": "interior_salpicadero",
+    "partName": "Guantera",
+    "color": "#0a52d3"
+  },
+  {
+    "svgId": "interior_salpicadero-path-4",
+    "svgPath": "interior_salpicadero",
+    "partName": "Parasol",
+    "color": "#176ac0"
+  },
+  {
+    "svgId": "interior_salpicadero-path-5",
+    "svgPath": "interior_salpicadero",
+    "partName": "Parasol",
+    "color": "#b17fde"
+  },
+  {
+    "svgId": "interior_salpicadero-path-35",
+    "svgPath": "interior_salpicadero",
+    "partName": "Parasol",
+    "color": "#aeeebb"
+  },
+  {
+    "svgId": "interior_salpicadero-path-42",
+    "svgPath": "interior_salpicadero",
+    "partName": "Parasol",
+    "color": "#b0bae2"
+  },
+  {
+    "svgId": "interior_salpicadero-path-36",
+    "svgPath": "interior_salpicadero",
+    "partName": "Parasol",
+    "color": "#edb320"
+  },
+  {
+    "svgId": "interior_salpicadero-path-43",
+    "svgPath": "interior_salpicadero",
+    "partName": "Parasol",
+    "color": "#ad3777"
+  },
+  {
+    "svgId": "interior_salpicadero-path-1",
+    "svgPath": "interior_salpicadero",
+    "partName": "Volante",
+    "color": "#f54da8"
+  },
+  {
+    "svgId": "interior_salpicadero-path-2",
+    "svgPath": "interior_salpicadero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#822121"
+  },
+  {
+    "svgId": "interior_salpicadero-path-6",
+    "svgPath": "interior_salpicadero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#eb7148"
+  },
+  {
+    "svgId": "interior_salpicadero-path-17",
+    "svgPath": "interior_salpicadero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#9d739b"
+  },
+  {
+    "svgId": "interior_salpicadero-path-13",
+    "svgPath": "interior_salpicadero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#3adb9a"
+  },
+  {
+    "svgId": "interior_salpicadero-path-14",
+    "svgPath": "interior_salpicadero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#7a32ff"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-4",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "Guarnecido techo",
+    "color": "#ae9a37"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-8",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "Tapizado banqueta delantera izquierda",
+    "color": "#86efc2"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-5",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "Tapizado respaldo delantero izquierda",
+    "color": "#9a6198"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-10",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "Tapizado respaldo delantero izquierda",
+    "color": "#81721a"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-19",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "Tapizado respaldo delantero izquierda",
+    "color": "#dc09b6"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-31",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "Tapizado respaldo delantero izquierda",
+    "color": "#bb47cd"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-28",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "Tapa apoyabrazos",
+    "color": "#98feb5"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-15",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "Tapizado respaldo delantero derecho",
+    "color": "#49143e"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-38",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "Tapizado respaldo delantero derecho",
+    "color": "#efc73b"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-42",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "Tapizado respaldo delantero derecho",
+    "color": "#a170bf"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-56",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "Tapizado respaldo delantero derecho",
+    "color": "#f9150c"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-13",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "Guarnecido puerta delantera derecha",
+    "color": "#63de9c"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-29",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "Tapizado banqueta delantera derecha",
+    "color": "#70653d"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-28",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "Tapa apoya brazos",
+    "color": "#d60eca"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-26",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "Volante",
+    "color": "#5150e9"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-1",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#95da23"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-45",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#9d2c08"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-20",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#d42af8"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-7",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#ab9e13"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-22",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#804be3"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-9",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#eceed4"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-2",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#38fc5a"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-17",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#b81b4c"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-40",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#5ee987"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-11",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#f11071"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-93",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#171d63"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-81",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#d33411"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-102",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#8a48ae"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-88",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#00efd2"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-162",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#28da63"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-195",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#7817c8"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-149",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#245cea"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-39",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#67d08c"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-12",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#af986f"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-25",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#b7510a"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-24",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#0c51b6"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-14",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#f30d4f"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-30",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#563796"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-16",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#ead209"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-21",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#aba9b1"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-41",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#825949"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-54",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#0beffa"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-63",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#9563c9"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-62",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#672369"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-36",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#991d20"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-48",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "Palanca cambio",
+    "color": "#0e1939"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-49",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "Palanca cambio",
+    "color": "#557ced"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-78",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "Botonera puerta delantera derecha",
+    "color": "#669de4"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-64",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "Botonera puerta delantera derecha",
+    "color": "#ff2c4a"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-13",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "Botonera puerta delantera derecha",
+    "color": "#132fed"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-46",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "Botonera puerta delantera derecha",
+    "color": "#86dc5a"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-37",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#8bb433"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-34",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "⬅️ FLECHA → Interior Trasera Izquierda",
+    "color": "#305d72"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-33",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "⬅️ FLECHA → Interior Salpicadero",
+    "color": "#1c77c9"
+  },
+  {
+    "svgId": "interior_delantero_izquierda-path-35",
+    "svgPath": "interior_delantero_izquierda",
+    "partName": "⬅️ FLECHA → Interior Trasera Izquierda",
+    "color": "#b2a994"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-20",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#22ed5e"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-6",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#8caa85"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-19",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#f849c5"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-3",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#636377"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-2",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#752f95"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-42",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#3a3002"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-12",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#fd9d32"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-10",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#e58da5"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-13",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#01685e"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-7",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#5947b3"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-27",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#0e2d0e"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-37",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#f5ddad"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-25",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#b071bb"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-36",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#968dfb"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-35",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#cca15b"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-79",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#f340b6"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-82",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#7b0b42"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-185",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#b15369"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-11",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#cab273"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-56",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#ec3222"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-4",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "Guarnecido techo",
+    "color": "#27506b"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-40",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "Volante",
+    "color": "#bd9aaa"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-14",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "Guarnecido puerta delantera izquierda",
+    "color": "#7f8cdf"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-18",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "Guarnecido puerta delantera izquierda",
+    "color": "#5e0016"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-33",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "Guarnecido puerta delantera izquierda",
+    "color": "#989c04"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-44",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "Botonera puerta delantera izquierda",
+    "color": "#6f9826"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-64",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "Botonera puerta delantera izquierda",
+    "color": "#f216b7"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-72",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "Botonera puerta delantera izquierda",
+    "color": "#5520d9"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-45",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "Palanca cambio",
+    "color": "#510745"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-47",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "Palanca cambio",
+    "color": "#d450d6"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-52",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "Guarnecido puerta delantera izquierda",
+    "color": "#c9ef3f"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-101",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "Guarnecido puerta delantera izquierda",
+    "color": "#b3821c"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-24",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "Tapa apoya brazos",
+    "color": "#4af6c0"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-21",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#9a8e38"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-5",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "Tapizado respaldo delantero derecho",
+    "color": "#3e024a"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-9",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "Tapizado respaldo delantero derecho",
+    "color": "#61e51b"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-17",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "Tapizado respaldo delantero derecho",
+    "color": "#0055e0"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-26",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "Tapizado respaldo delantero derecho",
+    "color": "#cd3a8c"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-8",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "Tapizado banqueta delantera derecha",
+    "color": "#a097da"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-23",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "Tapizado banqueta delantera izquierda",
+    "color": "#b72814"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-16",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "Tapizado respaldo delantero izquierda",
+    "color": "#20fe04"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-58",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "Tapizado respaldo delantero izquierda",
+    "color": "#ca054e"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-34",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "Tapizado respaldo delantero izquierda",
+    "color": "#9d0510"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-41",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "Tapizado respaldo delantero izquierda",
+    "color": "#25f6e4"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-30",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "⬅️ FLECHA → Interior Delantero Izquierda",
+    "color": "#59ae2b"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-29",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "⬅️ FLECHA → Interior Salpicadero",
+    "color": "#250a60"
+  },
+  {
+    "svgId": "interior_delatero_derecha-path-28",
+    "svgPath": "interior_delatero_derecha",
+    "partName": "⬅️ FLECHA → Interior Delantero Derecha",
+    "color": "#65a1df"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-1",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#fc046a"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-15",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#7db7fd"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-8",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#748605"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-20",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#0fdd3b"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-36",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#3c6322"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-5",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#f22a90"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-41",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#704833"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-6",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#c9765f"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-21",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#eb57b5"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-52",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#8e698c"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-7",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Guarnecido puerta trasera izquierda",
+    "color": "#da829a"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-39",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Tapizado banqueta trasera izquierda",
+    "color": "#746fed"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-34",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Tapizado banqueta trasera izquierda",
+    "color": "#d277ca"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-43",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Tapizado banqueta trasera izquierda",
+    "color": "#9e0653"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-40",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Tapizado banqueta trasera izquierda",
+    "color": "#24e59c"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-12",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Tapizado banqueta trasera izquierda",
+    "color": "#7c1f57"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-44",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Tapizado respaldo trasero izquierdo",
+    "color": "#627664"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-37",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Tapizado respaldo trasero izquierdo",
+    "color": "#20f644"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-56",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Tapizado respaldo trasero izquierdo",
+    "color": "#5736e1"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-33",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Tapizado respaldo trasero izquierdo",
+    "color": "#1fc0f2"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-35",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Tapizado banqueta trasera izquierda",
+    "color": "#da8a86"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-48",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Tapizado respaldo trasero izquierdo",
+    "color": "#20a851"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-48",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Tapizado respaldo trasero izquierdo",
+    "color": "#c70ac1"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-48",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Tapizado respaldo trasero izquierdo",
+    "color": "#fac11b"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-46",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Tapizado respaldo trasero izquierdo",
+    "color": "#74df42"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-13",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Tapizado respaldo trasero izquierdo",
+    "color": "#4393a1"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-42",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Tapizado banqueta trasera derecha",
+    "color": "#43b01a"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-22",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Tapizado respaldo trasero derecho",
+    "color": "#56fa3e"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-25",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Tapizado respaldo trasero derecho",
+    "color": "#dd9e72"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-16",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Tapizado banqueta trasera derecha",
+    "color": "#9c596f"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-10",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Tapizado banqueta trasera derecha",
+    "color": "#6d1bb5"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-17",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Tapizado respaldo trasero derecho",
+    "color": "#938916"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-14",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Tapizado banqueta trasera derecha",
+    "color": "#cb327b"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-11",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Tapizado banqueta trasera derecha",
+    "color": "#00b972"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-18",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Tapizado banqueta trasera derecha",
+    "color": "#419454"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-23",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Tapizado banqueta trasera derecha",
+    "color": "#e73c0e"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-4",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Tapizado banqueta trasera derecha",
+    "color": "#407073"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-29",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Tapizado banqueta trasera derecha",
+    "color": "#b83b1d"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-50",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Asidero trasero izquierda",
+    "color": "#045407"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-51",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Asidero delanteroizquierda",
+    "color": "#b3c1db"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-2",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Guarnecido techo",
+    "color": "#ab4af5"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-26",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Tapizado banqueta delantera derecha",
+    "color": "#806286"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-19",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Tapizado banqueta delantera derecha",
+    "color": "#2eb28b"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-47",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Tapizado banqueta delantera derecha",
+    "color": "#89d351"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-3",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Tapizado banqueta delantera izquierda",
+    "color": "#c87734"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-38",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "Tapizado banqueta delantera izquierda",
+    "color": "#b9984b"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-28",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#83d007"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-49",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#1ee118"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-9",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#6210f7"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-24",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#cdf1d4"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-27",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#9a3139"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-45",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#bfa65b"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-53",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#c5653e"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-32",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "⬅️ FLECHA → Interior Maletero",
+    "color": "#dd177c"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-30",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "⬅️ FLECHA → Interior Maletero",
+    "color": "#c100a8"
+  },
+  {
+    "svgId": "interior_trasera_izquierda-path-31",
+    "svgPath": "interior_trasera_izquierda",
+    "partName": "⬅️ FLECHA → Interior Delantero Izquierda",
+    "color": "#a60ffc"
+  },
+  {
+    "svgId": "interior_trasero-path-65",
+    "svgPath": "interior_trasero",
+    "partName": "Asidero delantero derecha",
+    "color": "#588a42"
+  },
+  {
+    "svgId": "interior_trasero-path-66",
+    "svgPath": "interior_trasero",
+    "partName": "Asidero trasero derecha",
+    "color": "#5b01dc"
+  },
+  {
+    "svgId": "interior_trasero-path-4",
+    "svgPath": "interior_trasero",
+    "partName": "Guarnecido techo",
+    "color": "#449ca4"
+  },
+  {
+    "svgId": "interior_trasero-path-18",
+    "svgPath": "interior_trasero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#b38602"
+  },
+  {
+    "svgId": "interior_trasero-path-50",
+    "svgPath": "interior_trasero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#9e614e"
+  },
+  {
+    "svgId": "interior_trasero-path-11",
+    "svgPath": "interior_trasero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#42c202"
+  },
+  {
+    "svgId": "interior_trasero-path-26",
+    "svgPath": "interior_trasero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#f6e0f9"
+  },
+  {
+    "svgId": "interior_trasero-path-2",
+    "svgPath": "interior_trasero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#4a2795"
+  },
+  {
+    "svgId": "interior_trasero-path-44",
+    "svgPath": "interior_trasero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#9dc9d9"
+  },
+  {
+    "svgId": "interior_trasero-path-55",
+    "svgPath": "interior_trasero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#eadc97"
+  },
+  {
+    "svgId": "interior_trasero-path-12",
+    "svgPath": "interior_trasero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#fd2ade"
+  },
+  {
+    "svgId": "interior_trasero-path-30",
+    "svgPath": "interior_trasero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#b95f66"
+  },
+  {
+    "svgId": "interior_trasero-path-33",
+    "svgPath": "interior_trasero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#1c12ac"
+  },
+  {
+    "svgId": "interior_trasero-path-9",
+    "svgPath": "interior_trasero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#cfc302"
+  },
+  {
+    "svgId": "interior_trasero-path-68",
+    "svgPath": "interior_trasero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#43f0e4"
+  },
+  {
+    "svgId": "interior_trasero-path-28",
+    "svgPath": "interior_trasero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#2d9d7b"
+  },
+  {
+    "svgId": "interior_trasero-path-24",
+    "svgPath": "interior_trasero",
+    "partName": "Tapizado respaldo delantero izquierda",
+    "color": "#b05869"
+  },
+  {
+    "svgId": "interior_trasero-path-59",
+    "svgPath": "interior_trasero",
+    "partName": "Tapizado respaldo delantero izquierda",
+    "color": "#01f6c7"
+  },
+  {
+    "svgId": "interior_trasero-path-32",
+    "svgPath": "interior_trasero",
+    "partName": "Tapizado respaldo delantero izquierda",
+    "color": "#7f7f21"
+  },
+  {
+    "svgId": "interior_trasero-path-5",
+    "svgPath": "interior_trasero",
+    "partName": "Tapizado respaldo delantero derecho",
+    "color": "#257d8e"
+  },
+  {
+    "svgId": "interior_trasero-path-8",
+    "svgPath": "interior_trasero",
+    "partName": "Tapizado respaldo delantero derecho",
+    "color": "#a923bb"
+  },
+  {
+    "svgId": "interior_trasero-path-46",
+    "svgPath": "interior_trasero",
+    "partName": "Tapizado respaldo delantero derecho",
+    "color": "#45a0bf"
+  },
+  {
+    "svgId": "interior_trasero-path-10",
+    "svgPath": "interior_trasero",
+    "partName": "Guarnecido puerta trasera izquierda",
+    "color": "#2b4999"
+  },
+  {
+    "svgId": "interior_trasero-path-47",
+    "svgPath": "interior_trasero",
+    "partName": "Tapizado banqueta trasera izquierda",
+    "color": "#b7b49c"
+  },
+  {
+    "svgId": "interior_trasero-path-51",
+    "svgPath": "interior_trasero",
+    "partName": "Tapizado banqueta trasera izquierda",
+    "color": "#010725"
+  },
+  {
+    "svgId": "interior_trasero-path-40",
+    "svgPath": "interior_trasero",
+    "partName": "Tapizado banqueta trasera izquierda",
+    "color": "#d0024f"
+  },
+  {
+    "svgId": "interior_trasero-path-48",
+    "svgPath": "interior_trasero",
+    "partName": "Tapizado banqueta trasera izquierda",
+    "color": "#5ae91a"
+  },
+  {
+    "svgId": "interior_trasero-path-15",
+    "svgPath": "interior_trasero",
+    "partName": "Tapizado banqueta trasera izquierda",
+    "color": "#f2b535"
+  },
+  {
+    "svgId": "interior_trasero-path-29",
+    "svgPath": "interior_trasero",
+    "partName": "Tapizado banqueta trasera derecha",
+    "color": "#8c69db"
+  },
+  {
+    "svgId": "interior_trasero-path-17",
+    "svgPath": "interior_trasero",
+    "partName": "Tapizado banqueta trasera derecha",
+    "color": "#ab68e1"
+  },
+  {
+    "svgId": "interior_trasero-path-22",
+    "svgPath": "interior_trasero",
+    "partName": "Tapizado banqueta trasera derecha",
+    "color": "#18b013"
+  },
+  {
+    "svgId": "interior_trasero-path-14",
+    "svgPath": "interior_trasero",
+    "partName": "Tapizado banqueta trasera derecha",
+    "color": "#d33743"
+  },
+  {
+    "svgId": "interior_trasero-path-35",
+    "svgPath": "interior_trasero",
+    "partName": "Tapizado banqueta trasera derecha",
+    "color": "#020149"
+  },
+  {
+    "svgId": "interior_trasero-path-6",
+    "svgPath": "interior_trasero",
+    "partName": "Tapizado respaldo trasero derecho",
+    "color": "#06a469"
+  },
+  {
+    "svgId": "interior_trasero-path-21",
+    "svgPath": "interior_trasero",
+    "partName": "Tapizado respaldo trasero derecho",
+    "color": "#d8c002"
+  },
+  {
+    "svgId": "interior_trasero-path-13",
+    "svgPath": "interior_trasero",
+    "partName": "Tapizado respaldo trasero derecho",
+    "color": "#cf532b"
+  },
+  {
+    "svgId": "interior_trasero-path-20",
+    "svgPath": "interior_trasero",
+    "partName": "Tapizado respaldo trasero derecho",
+    "color": "#8aadd0"
+  },
+  {
+    "svgId": "interior_trasero-path-31",
+    "svgPath": "interior_trasero",
+    "partName": "Tapizado respaldo trasero derecho",
+    "color": "#3bc188"
+  },
+  {
+    "svgId": "interior_trasero-path-25",
+    "svgPath": "interior_trasero",
+    "partName": "Tapizado respaldo trasero derecho",
+    "color": "#6e3a4d"
+  },
+  {
+    "svgId": "interior_trasero-path-16",
+    "svgPath": "interior_trasero",
+    "partName": "Tapizado respaldo trasero izquierdo",
+    "color": "#35d114"
+  },
+  {
+    "svgId": "interior_trasero-path-39",
+    "svgPath": "interior_trasero",
+    "partName": "Tapizado respaldo trasero izquierdo",
+    "color": "#40483f"
+  },
+  {
+    "svgId": "interior_trasero-path-43",
+    "svgPath": "interior_trasero",
+    "partName": "Tapizado respaldo trasero izquierdo",
+    "color": "#ff22e2"
+  },
+  {
+    "svgId": "interior_trasero-path-56",
+    "svgPath": "interior_trasero",
+    "partName": "Tapizado respaldo trasero izquierdo",
+    "color": "#0d55f3"
+  },
+  {
+    "svgId": "interior_trasero-path-61",
+    "svgPath": "interior_trasero",
+    "partName": "Tapizado respaldo trasero izquierdo",
+    "color": "#24c347"
+  },
+  {
+    "svgId": "interior_trasero-path-53",
+    "svgPath": "interior_trasero",
+    "partName": "Tapizado respaldo trasero izquierdo",
+    "color": "#ac152a"
+  },
+  {
+    "svgId": "interior_trasero-path-38",
+    "svgPath": "interior_trasero",
+    "partName": "⬅️ FLECHA → Interior Salpicadero",
+    "color": "#76ef91"
+  },
+  {
+    "svgId": "interior_trasero-path-36",
+    "svgPath": "interior_trasero",
+    "partName": "⬅️ FLECHA → Interior Trasera Izquierda",
+    "color": "#f758f1"
+  },
+  {
+    "svgId": "interior_trasero-path-37",
+    "svgPath": "interior_trasero",
+    "partName": "⬅️ FLECHA → Interior Maletero",
+    "color": "#41d931"
+  },
+  {
+    "svgId": "interior_maletero-path-3",
+    "svgPath": "interior_maletero",
+    "partName": "Moqueta maletero",
+    "color": "#09f7eb"
+  },
+  {
+    "svgId": "interior_maletero-path-4",
+    "svgPath": "interior_maletero",
+    "partName": "Bandeja",
+    "color": "#762198"
+  },
+  {
+    "svgId": "interior_maletero-path-1",
+    "svgPath": "interior_maletero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#b8ce56"
+  },
+  {
+    "svgId": "interior_maletero-path-8",
+    "svgPath": "interior_maletero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#6c6f34"
+  },
+  {
+    "svgId": "interior_maletero-path-23",
+    "svgPath": "interior_maletero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#9f2447"
+  },
+  {
+    "svgId": "interior_maletero-path-19",
+    "svgPath": "interior_maletero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#a6bdc4"
+  },
+  {
+    "svgId": "interior_maletero-path-9",
+    "svgPath": "interior_maletero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#59e05e"
+  },
+  {
+    "svgId": "interior_maletero-path-24",
+    "svgPath": "interior_maletero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#f96b93"
+  },
+  {
+    "svgId": "interior_maletero-path-29",
+    "svgPath": "interior_maletero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#b994f9"
+  },
+  {
+    "svgId": "interior_maletero-path-13",
+    "svgPath": "interior_maletero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#8b76db"
+  },
+  {
+    "svgId": "interior_maletero-path-36",
+    "svgPath": "interior_maletero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#93bb6a"
+  },
+  {
+    "svgId": "interior_maletero-path-44",
+    "svgPath": "interior_maletero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#336372"
+  },
+  {
+    "svgId": "interior_maletero-path-11",
+    "svgPath": "interior_maletero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#2706a6"
+  },
+  {
+    "svgId": "interior_maletero-path-28",
+    "svgPath": "interior_maletero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#f18332"
+  },
+  {
+    "svgId": "interior_maletero-path-12",
+    "svgPath": "interior_maletero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#03fab5"
+  },
+  {
+    "svgId": "interior_maletero-path-21",
+    "svgPath": "interior_maletero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#fc0fd7"
+  },
+  {
+    "svgId": "interior_maletero-path-30",
+    "svgPath": "interior_maletero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#9c1298"
+  },
+  {
+    "svgId": "interior_maletero-path-2",
+    "svgPath": "interior_maletero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#3c1a72"
+  },
+  {
+    "svgId": "interior_maletero-path-10",
+    "svgPath": "interior_maletero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#5df0a1"
+  },
+  {
+    "svgId": "interior_maletero-path-15",
+    "svgPath": "interior_maletero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#7228c5"
+  },
+  {
+    "svgId": "interior_maletero-path-5",
+    "svgPath": "interior_maletero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#c786dd"
+  },
+  {
+    "svgId": "interior_maletero-path-7",
+    "svgPath": "interior_maletero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#e25a15"
+  },
+  {
+    "svgId": "interior_maletero-path-22",
+    "svgPath": "interior_maletero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#8f34ca"
+  },
+  {
+    "svgId": "interior_maletero-path-46",
+    "svgPath": "interior_maletero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#1e45ac"
+  },
+  {
+    "svgId": "interior_maletero-path-17",
+    "svgPath": "interior_maletero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#f3080b"
+  },
+  {
+    "svgId": "interior_maletero-path-35",
+    "svgPath": "interior_maletero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#4ca49c"
+  },
+  {
+    "svgId": "interior_maletero-path-58",
+    "svgPath": "interior_maletero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#1eeae5"
+  },
+  {
+    "svgId": "interior_maletero-path-34",
+    "svgPath": "interior_maletero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#d2c324"
+  },
+  {
+    "svgId": "interior_maletero-path-680",
+    "svgPath": "interior_maletero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#437004"
+  },
+  {
+    "svgId": "interior_maletero-path-49",
+    "svgPath": "interior_maletero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#ddc809"
+  },
+  {
+    "svgId": "interior_maletero-path-50",
+    "svgPath": "interior_maletero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#7afabb"
+  },
+  {
+    "svgId": "interior_maletero-path-33",
+    "svgPath": "interior_maletero",
+    "partName": "❌ NO MAPEAR (ignorar esta zona)",
+    "color": "#322898"
+  },
+  {
+    "svgId": "interior_maletero-path-14",
+    "svgPath": "interior_maletero",
+    "partName": "⬅️ FLECHA → Interior Salpicadero",
+    "color": "#12ecf4"
+  }
+]
