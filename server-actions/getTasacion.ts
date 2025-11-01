@@ -73,7 +73,7 @@ export async function getTasacionById(tasacionId: string) {
           : ['ninguno']),
       comproNuevo: tasacion.compro_nuevo,
       color: tasacion.color,
-      movilidad: tasacion.movilidad,
+      movilidad: tasacion.movilidad_transporte,
       servicioPublico: tasacion.servicio_publico,
       etiquetaMedioambiental: tasacion.etiqueta_medioambiental,
       itvEnVigor: tasacion.itv_en_vigor,

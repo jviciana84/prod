@@ -26,6 +26,97 @@ async function imageToBase64(url: string): Promise<string> {
   }
 }
 
+// Función para convertir todas las fotos del formulario a base64
+async function convertPhotosToBase64(data: TasacionFormData): Promise<TasacionFormData> {
+  const result = { ...data }
+  
+  // Convertir fotos del vehículo
+  if (data.fotosVehiculo) {
+    const vehiculoBase64: Record<string, string> = {}
+    for (const [key, url] of Object.entries(data.fotosVehiculo)) {
+      if (url && !url.startsWith('data:')) {
+        try {
+          console.log(`Convirtiendo foto vehículo ${key}...`)
+          vehiculoBase64[key] = await imageToBase64(url)
+        } catch (error) {
+          console.error(`Error convirtiendo foto vehículo ${key}:`, error)
+        }
+      } else if (url) {
+        vehiculoBase64[key] = url // Ya es base64
+      }
+    }
+    result.fotosVehiculo = vehiculoBase64
+  }
+  
+  // Convertir cuentakm
+  if (data.fotosCuentakm && !data.fotosCuentakm.startsWith('data:')) {
+    try {
+      console.log('Convirtiendo foto cuentakm...')
+      result.fotosCuentakm = await imageToBase64(data.fotosCuentakm)
+    } catch (error) {
+      console.error('Error convirtiendo foto cuentakm:', error)
+    }
+  }
+  
+  // Convertir interior delantero
+  if (data.fotosInteriorDelantero && !data.fotosInteriorDelantero.startsWith('data:')) {
+    try {
+      console.log('Convirtiendo foto interior delantero...')
+      result.fotosInteriorDelantero = await imageToBase64(data.fotosInteriorDelantero)
+    } catch (error) {
+      console.error('Error convirtiendo foto interior delantero:', error)
+    }
+  }
+  
+  // Convertir interior trasero
+  if (data.fotosInteriorTrasero && !data.fotosInteriorTrasero.startsWith('data:')) {
+    try {
+      console.log('Convirtiendo foto interior trasero...')
+      result.fotosInteriorTrasero = await imageToBase64(data.fotosInteriorTrasero)
+    } catch (error) {
+      console.error('Error convirtiendo foto interior trasero:', error)
+    }
+  }
+  
+  // Convertir documentación
+  if (data.fotosDocumentacion) {
+    const docBase64: Record<string, string> = {}
+    for (const [key, url] of Object.entries(data.fotosDocumentacion)) {
+      if (url && !url.startsWith('data:')) {
+        try {
+          console.log(`Convirtiendo foto documentación ${key}...`)
+          docBase64[key] = await imageToBase64(url)
+        } catch (error) {
+          console.error(`Error convirtiendo foto documentación ${key}:`, error)
+        }
+      } else if (url) {
+        docBase64[key] = url // Ya es base64
+      }
+    }
+    result.fotosDocumentacion = docBase64
+  }
+  
+  // Convertir otras fotos
+  if (data.fotosOtras && data.fotosOtras.length > 0) {
+    const otrasBase64: string[] = []
+    for (const url of data.fotosOtras) {
+      if (url && !url.startsWith('data:')) {
+        try {
+          console.log('Convirtiendo foto adicional...')
+          otrasBase64.push(await imageToBase64(url))
+        } catch (error) {
+          console.error('Error convirtiendo foto adicional:', error)
+        }
+      } else if (url) {
+        otrasBase64.push(url) // Ya es base64
+      }
+    }
+    result.fotosOtras = otrasBase64
+  }
+  
+  return result
+}
+
 interface GeneratePDFOptions {
   data: TasacionFormData
   metadata?: {
@@ -67,6 +158,10 @@ export async function generateAndDownloadPDF({
       return undefined
     })
     
+    // Convertir todas las fotos a base64
+    console.log('Convirtiendo fotos a base64...')
+    const dataWithBase64Photos = await convertPhotosToBase64(data)
+    
     // Generar imágenes SVG de daños
     console.log('Generando imágenes SVG de daños...')
     const allDamages = [
@@ -78,7 +173,7 @@ export async function generateAndDownloadPDF({
     
     console.log('Imágenes convertidas, creando documento PDF...')
     const doc = TasacionPDF({ 
-      data, 
+      data: dataWithBase64Photos, 
       metadata, 
       tasacionId,
       logoBase64,
@@ -128,6 +223,9 @@ export async function generatePDFBlob({
   
   const logoBase64 = await imageToBase64(logoUrl).catch(() => undefined)
   
+  // Convertir todas las fotos a base64
+  const dataWithBase64Photos = await convertPhotosToBase64(data)
+  
   // Generar imágenes SVG de daños
   const allDamages = [
     ...(data.danosExteriores || []),
@@ -137,7 +235,7 @@ export async function generatePDFBlob({
   
   const blob = await pdf(
     TasacionPDF({ 
-      data, 
+      data: dataWithBase64Photos, 
       metadata, 
       tasacionId,
       logoBase64,

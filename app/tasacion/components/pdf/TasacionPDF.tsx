@@ -71,6 +71,12 @@ const formatFieldName = (fieldName: string): string => {
     'total': 'Total',
     'solo_rueda': 'Solo rueda',
     'no_rueda': 'No rueda',
+    // Etiqueta medioambiental
+    'sin_etiqueta': 'Sin etiqueta',
+    'eco': 'ECO',
+    'c': 'C',
+    'b': 'B',
+    'cero': 'Cero',
     // Servicio público
     'ambulancia': 'Ambulancia',
     'autoescuela': 'Autoescuela',
@@ -487,7 +493,13 @@ const TasacionPDF = ({ data, metadata, tasacionId, logoBase64, watermarkBase64, 
                 </View>
                 <View style={styles.dataItem}>
                   <Text style={[styles.dataLabel, { fontSize: 7 }]}>ITV en Vigor</Text>
-                  <Text style={[styles.dataValue, { fontSize: 8 }]}>{data.itvEnVigor ? 'Sí' : 'No'}</Text>
+                  <Text style={[
+                    styles.dataValue, 
+                    { fontSize: 8 },
+                    !data.itvEnVigor && { color: '#dc2626', fontWeight: 'bold' }
+                  ]}>
+                    {data.itvEnVigor ? 'Sí' : 'No'}
+                  </Text>
                 </View>
                 {data.proximaITV && (
                   <View style={styles.dataItem}>
