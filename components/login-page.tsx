@@ -118,7 +118,6 @@ export default function LoginPage() {
             muted
             playsInline
             onEnded={() => setVideoEnded(true)}
-            onContextMenu={(e) => e.preventDefault()}
             controlsList="nodownload nofullscreen noremoteplayback"
             disablePictureInPicture
             className="absolute inset-0 w-full h-full object-cover pointer-events-none"

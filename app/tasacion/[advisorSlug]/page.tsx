@@ -7,6 +7,7 @@ import InicioStep from '../components/steps/InicioStep'
 import DatosBasicosStep from '../components/steps/DatosBasicosStep'
 import MarcaModeloStep from '../components/steps/MarcaModeloStep'
 import EstadoEsteticoStep from '../components/steps/EstadoEsteticoStep'
+import EstadoInteriorStep from '../components/steps/EstadoInteriorStep'
 import EstadoMecanicoStep from '../components/steps/EstadoMecanicoStep'
 import DatosAdicionalesStep from '../components/steps/DatosAdicionalesStep'
 import FotografiasStep from '../components/steps/FotografiasStep'
@@ -19,7 +20,8 @@ export default function TasacionPage() {
   
   const [currentStep, setCurrentStep] = useState(0)
   const [formData, setFormData] = useState<Partial<TasacionFormData>>({})
-  const totalSteps = 7
+  const [isProcessing, setIsProcessing] = useState(false)
+  const totalSteps = 8 // Ahora son 8 pasos (añadido Estado Interior)
 
   useEffect(() => {
     // Capturar metadata del cliente
@@ -78,6 +80,8 @@ export default function TasacionPage() {
     console.log('handleFinish llamado con:', finalData)
     console.log('formData actual:', formData)
     
+    setIsProcessing(true)
+    
     const completedData: TasacionFormData = {
       ...formData,
       ...finalData,
@@ -117,11 +121,27 @@ export default function TasacionPage() {
       console.error('Error al guardar o redirigir:', error)
       // En caso de error, al menos redirigimos con los datos en localStorage
       router.push('/tasacion/completada')
+    } finally {
+      setIsProcessing(false)
     }
   }
 
   return (
     <>
+      {/* Overlay de carga */}
+      {isProcessing && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm mx-4 text-center">
+            <div className="w-16 h-16 mx-auto mb-4 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin" />
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Procesando tasación...</h3>
+            <p className="text-sm text-gray-600 mb-1">📸 Subiendo fotografías</p>
+            <p className="text-sm text-gray-600 mb-1">💾 Guardando datos</p>
+            <p className="text-sm text-gray-600">📄 Generando informe</p>
+            <p className="text-xs text-gray-500 mt-4">Por favor, espera...</p>
+          </div>
+        </div>
+      )}
+
       {/* Barra de progreso siempre visible */}
       <ProgressBar currentStep={currentStep + 1} totalSteps={totalSteps} />
 
@@ -161,20 +181,29 @@ export default function TasacionPage() {
       )}
 
       {currentStep === 4 && (
+        <EstadoInteriorStep
+          onComplete={(danos) => {
+            handleStepComplete({ danosInteriores: danos })
+          }}
+          onBack={handleBack}
+        />
+      )}
+
+      {currentStep === 5 && (
         <EstadoMecanicoStep
           onComplete={handleStepComplete}
           onBack={handleBack}
         />
       )}
 
-      {currentStep === 5 && (
+      {currentStep === 6 && (
         <DatosAdicionalesStep
           onComplete={handleStepComplete}
           onBack={handleBack}
         />
       )}
 
-      {currentStep === 6 && (
+      {currentStep === 7 && (
         <FotografiasStep
           onComplete={handleFinish}
           onBack={handleBack}

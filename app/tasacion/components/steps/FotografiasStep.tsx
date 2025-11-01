@@ -76,7 +76,9 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
   const [fotosInteriorDelantero, setFotosInteriorDelantero] = useState<string | undefined>(undefined)
   const [fotosInteriorTrasero, setFotosInteriorTrasero] = useState<string | undefined>(undefined)
   const [fotoActual, setFotoActual] = useState<string | null>(null)
+  const [showPhotoOptions, setShowPhotoOptions] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const galleryInputRef = useRef<HTMLInputElement>(null)
 
   // Auto-scroll cuando se entra a la sección de documentos
   useEffect(() => {
@@ -155,18 +157,25 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
   const handleCapturarFoto = (tipo: 'vehiculo' | 'documento' | 'otra' | 'cuentakm' | 'interiorDelantero' | 'interiorTrasero', key?: string) => {
     console.log('handleCapturarFoto llamado:', { tipo, key })
     setFotoActual(key || 'otra')
-    console.log('fileInputRef.current:', fileInputRef.current)
+    setShowPhotoOptions(true)
+  }
+
+  const handlePhotoOption = (option: 'camera' | 'gallery') => {
+    setShowPhotoOptions(false)
     
-    // Auto-scroll cuando se hace clic en capturar en cualquier sección
+    // Auto-scroll cuando se hace clic en capturar
     setTimeout(() => {
-      // Scroll al final al hacer clic
       window.scrollTo({ 
         top: document.documentElement.scrollHeight, 
         behavior: 'smooth' 
       })
     }, 300)
     
-    fileInputRef.current?.click()
+    if (option === 'camera') {
+      fileInputRef.current?.click()
+    } else {
+      galleryInputRef.current?.click()
+    }
   }
 
   const handleEliminarFotoOtra = (index: number) => {
@@ -654,12 +663,70 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
           )}
         </AnimatePresence>
 
-        {/* Input oculto para captura */}
+        {/* Modal compacto de opciones de foto */}
+        {showPhotoOptions && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-white rounded-2xl shadow-2xl p-6 max-w-xs w-full"
+            >
+              <h3 className="text-lg font-bold text-gray-900 mb-4 text-center">Selecciona opción</h3>
+              <div className="space-y-3">
+                <button
+                  onClick={() => handlePhotoOption('camera')}
+                  className="w-full p-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:scale-105 transition-all shadow-lg"
+                >
+                  <Camera className="w-5 h-5" />
+                  Tomar Foto
+                </button>
+                <button
+                  onClick={() => handlePhotoOption('gallery')}
+                  className="w-full p-4 bg-white border-2 border-gray-300 text-gray-700 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-gray-50 transition-all"
+                >
+                  <ImageIcon className="w-5 h-5" />
+                  Subir de Galería
+                </button>
+                <button
+                  onClick={() => setShowPhotoOptions(false)}
+                  className="w-full p-3 bg-gray-100 text-gray-600 rounded-xl font-medium hover:bg-gray-200 transition-all"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Input oculto para cámara */}
         <input
           ref={fileInputRef}
           type="file"
           accept="image/*"
           capture="environment"
+          className="hidden"
+          onChange={(e) => {
+            if (fotoActual === 'otra') {
+              handleFileChange(e, 'otra')
+            } else if (fotoActual === 'cuentakm') {
+              handleFileChange(e, 'cuentakm')
+            } else if (fotoActual === 'interiorDelantero') {
+              handleFileChange(e, 'interiorDelantero')
+            } else if (fotoActual === 'interiorTrasero') {
+              handleFileChange(e, 'interiorTrasero')
+            } else if (fotoActual && fotosVehiculoConfig.some(f => f.key === fotoActual)) {
+              handleFileChange(e, 'vehiculo', fotoActual)
+            } else if (fotoActual && fotosDocConfig.some(f => f.key === fotoActual)) {
+              handleFileChange(e, 'documento', fotoActual)
+            }
+          }}
+        />
+
+        {/* Input oculto para galería */}
+        <input
+          ref={galleryInputRef}
+          type="file"
+          accept="image/*"
           className="hidden"
           onChange={(e) => {
             if (fotoActual === 'otra') {

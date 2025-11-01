@@ -4,8 +4,9 @@ export type DamageType = 'pulir' | 'rayado' | 'golpe' | 'sustituir'
 export type InteriorDamageType = 'reparar' | 'sustituir'
 
 export interface VehicleDamage {
-  part: string
-  damageType: DamageType
+  parte: string     // Nombre de la parte del vehículo (ej: "Puerta delantera izquierda")
+  tipo: DamageType  // Tipo de daño (pulir, rayado, golpe, sustituir)
+  vista?: string    // Vista donde se marcó el daño (ej: "frontal", "lateral_izquierda")
 }
 
 export interface InteriorDamage {
@@ -65,7 +66,7 @@ export interface TasacionFormData {
   danosExteriores: VehicleDamage[]
 
   // Paso 5: Estado estético interior
-  danosInteriores: InteriorDamage[]
+  danosInteriores: VehicleDamage[] // Ahora usa el mismo tipo que exteriores
 
   // Paso 6: Estado mecánico
   estadoMotor: EstadoMecanico

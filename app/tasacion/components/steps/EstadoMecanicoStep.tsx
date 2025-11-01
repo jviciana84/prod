@@ -100,39 +100,28 @@ export default function EstadoMecanicoStep({ onComplete, onBack }: EstadoMecanic
     estadoTransmision && estadoEmbrague && estadoGeneral && danoEstructural !== null &&
     testigosEncendidos.length > 0 && (!danoEstructural || danoEstructuralDetalle.trim())
 
-  // Auto-scroll cuando se marca el estado de frenos
+  // Scroll automático progresivo
   useEffect(() => {
-    if (estadoFrenos) {
+    if (estadoCajaCambios) {
       setTimeout(() => {
-        window.scrollTo({ 
-          top: document.documentElement.scrollHeight, 
-          behavior: 'smooth' 
-        })
-      }, 300)
+        window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' })
+      }, 200)
     }
-  }, [estadoFrenos])
-  
-  // Auto-scroll cuando se marca el estado general
+  }, [estadoCajaCambios])
+
   useEffect(() => {
     if (estadoGeneral) {
       setTimeout(() => {
-        window.scrollTo({ 
-          top: document.documentElement.scrollHeight, 
-          behavior: 'smooth' 
-        })
-      }, 300)
+        window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' })
+      }, 200)
     }
   }, [estadoGeneral])
-  
-  // Auto-scroll cuando se marca daño estructural
+
   useEffect(() => {
     if (danoEstructural !== null) {
       setTimeout(() => {
-        window.scrollTo({ 
-          top: document.documentElement.scrollHeight, 
-          behavior: 'smooth' 
-        })
-      }, 300)
+        window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' })
+      }, 200)
     }
   }, [danoEstructural])
   
@@ -145,11 +134,7 @@ export default function EstadoMecanicoStep({ onComplete, onBack }: EstadoMecanic
     value: EstadoMecanico | null
     onChange: (v: EstadoMecanico) => void
   }) => (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="mb-4"
-    >
+    <div className="mb-4">
       <Label className="text-sm font-semibold text-gray-700 mb-2 block">{label}</Label>
       <div className="grid grid-cols-3 gap-2">
         {estadoOptions.map((option) => (
@@ -158,7 +143,7 @@ export default function EstadoMecanicoStep({ onComplete, onBack }: EstadoMecanic
             onClick={() => {
               onChange(option.value)
             }}
-            className={`p-3 rounded-lg border-2 transition-all font-semibold text-sm ${
+            className={`p-3 rounded-lg border-2 transition-colors font-semibold text-sm ${
               value === option.value ? option.color : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50'
             }`}
           >
@@ -166,7 +151,7 @@ export default function EstadoMecanicoStep({ onComplete, onBack }: EstadoMecanic
           </button>
         ))}
       </div>
-    </motion.div>
+    </div>
   )
 
   return (
