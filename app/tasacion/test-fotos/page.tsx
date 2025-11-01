@@ -64,6 +64,11 @@ export default function TestFotosPage() {
     
     if (option === 'camera') {
       try {
+        // Solicitar fullscreen para ocultar barras del navegador
+        if (document.documentElement.requestFullscreen) {
+          await document.documentElement.requestFullscreen()
+        }
+        
         // Solicitar acceso a la cámara trasera
         const mediaStream = await navigator.mediaDevices.getUserMedia({
           video: { 
@@ -197,6 +202,11 @@ export default function TestFotosPage() {
     if (stream) {
       stream.getTracks().forEach(track => track.stop())
       setStream(null)
+    }
+    
+    // Salir de fullscreen
+    if (document.fullscreenElement) {
+      document.exitFullscreen()
     }
     
     setShowCameraView(false)
@@ -363,18 +373,15 @@ export default function TestFotosPage() {
       {/* Vista de cámara con overlay */}
       {showCameraView && (
         <div className="fixed inset-0 bg-black z-50 flex flex-col">
-          {/* Header */}
-          <div className="bg-black/80 p-4 flex items-center justify-between">
-            <h3 className="text-white font-bold">{fotosConfig.find(f => f.key === currentFoto)?.label}</h3>
-            <button
-              onClick={handleClosCamera}
-              className="text-white p-2 hover:bg-white/20 rounded-full transition-all"
-            >
-              <X className="w-6 h-6" />
-            </button>
-          </div>
+          {/* Botón cerrar flotante (sin header) */}
+          <button
+            onClick={handleClosCamera}
+            className="absolute top-2 right-2 z-50 text-white p-2 bg-black/50 hover:bg-black/70 rounded-full transition-all"
+          >
+            <X className="w-6 h-6" />
+          </button>
 
-          {/* Área de cámara con overlay */}
+          {/* Área de cámara con overlay - MAXIMIZADA */}
           <div className="flex-1 relative overflow-hidden">
             {capturedImage ? (
               <img src={capturedImage} alt="Captura" className="w-full h-full object-cover" />
@@ -394,11 +401,11 @@ export default function TestFotosPage() {
                   <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
                     <img 
                       src={currentOverlay} 
-                      alt="Guía" 
+                      alt="" 
                       className="w-full h-full object-contain"
                       style={{ 
-                        opacity: 0.9,
-                        filter: 'brightness(1.5) contrast(1.2)'
+                        opacity: 1,
+                        filter: 'brightness(2) drop-shadow(0 0 2px rgba(255,255,255,0.8))'
                       }}
                     />
                   </div>
@@ -407,32 +414,29 @@ export default function TestFotosPage() {
             )}
           </div>
 
-          {/* Controles */}
-          <div className="bg-black/80 p-6">
+          {/* Controles compactos */}
+          <div className="bg-black/60 p-3">
             {capturedImage ? (
-              <div className="flex gap-3">
+              <div className="flex gap-2">
                 <button
                   onClick={handleRetakePhoto}
-                  className="flex-1 p-4 bg-gray-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-gray-700 transition-all"
+                  className="flex-1 p-3 bg-gray-600 text-white rounded-lg font-bold text-sm"
                 >
-                  <RotateCcw className="w-5 h-5" />
-                  Repetir
+                  🔄 Repetir
                 </button>
                 <button
                   onClick={handleConfirmPhoto}
-                  className="flex-1 p-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:scale-105 transition-all shadow-lg"
+                  className="flex-1 p-3 bg-green-600 text-white rounded-lg font-bold text-sm"
                 >
-                  <CheckCircle2 className="w-5 h-5" />
-                  Confirmar
+                  ✓ Confirmar
                 </button>
               </div>
             ) : (
               <button
                 onClick={handleCapture}
-                className="w-full p-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:scale-105 transition-all shadow-lg"
+                className="w-full p-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg font-bold text-sm"
               >
-                <Camera className="w-6 h-6" />
-                Capturar Foto
+                📸 Capturar
               </button>
             )}
           </div>
