@@ -28,6 +28,7 @@ const formatFieldName = (fieldName: string): string => {
     'interior_delantero_izq': 'Interior Delantero Izquierdo',
     'interior_delantero_izquierda': 'Interior Delantero Izquierda',
     'interior_trasero_izq': 'Interior Trasero Izquierdo',
+    'interior_trasero': 'Interior Trasero',
     'interior_trasera_izquierda': 'Interior Trasera Izquierda',
     'interior_salpicadero': 'Interior Salpicadero',
     'interior_maletero': 'Interior Maletero',
@@ -293,7 +294,10 @@ const styles = StyleSheet.create({
     paddingLeft: 15,
   },
   certificateFooter: {
-    marginTop: 30,
+    position: 'absolute',
+    bottom: 30,
+    left: 40,
+    right: 40,
     textAlign: 'center',
     fontSize: 9,
     color: '#9ca3af',
@@ -434,7 +438,11 @@ const TasacionPDF = ({ data, metadata, tasacionId, logoBase64, watermarkBase64, 
                 </View>
                 <View style={styles.dataItem}>
                   <Text style={[styles.dataLabel, { fontSize: 7 }]}>Origen</Text>
-                  <Text style={[styles.dataValue, { fontSize: 8 }]}>
+                  <Text style={[
+                    styles.dataValue, 
+                    { fontSize: 8 },
+                    data.origenVehiculo === 'importacion' && { color: '#f59e0b', fontWeight: 'bold' }
+                  ]}>
                     {formatFieldName(data.origenVehiculo || '')}
                   </Text>
                 </View>
@@ -448,15 +456,34 @@ const TasacionPDF = ({ data, metadata, tasacionId, logoBase64, watermarkBase64, 
                 </View>
                 <View style={styles.dataItem}>
                   <Text style={[styles.dataLabel, { fontSize: 7 }]}>Movilidad</Text>
-                  <Text style={[styles.dataValue, { fontSize: 8 }]}>{formatFieldName(data.movilidad || '') || 'N/A'}</Text>
+                  <Text style={[
+                    styles.dataValue, 
+                    { fontSize: 8 },
+                    data.movilidad === 'solo_rueda' && { color: '#dc2626', fontWeight: 'bold' },
+                    data.movilidad === 'no_rueda' && { color: '#dc2626', fontWeight: 'bold' }
+                  ]}>
+                    {formatFieldName(data.movilidad || '') || 'N/A'}
+                  </Text>
                 </View>
                 <View style={styles.dataItem}>
                   <Text style={[styles.dataLabel, { fontSize: 7 }]}>Servicio Público</Text>
-                  <Text style={[styles.dataValue, { fontSize: 8 }]}>{formatFieldName(data.servicioPublico || '') || 'Ninguno'}</Text>
+                  <Text style={[
+                    styles.dataValue, 
+                    { fontSize: 8 },
+                    (data.servicioPublico && data.servicioPublico !== 'ninguno') && { color: '#f59e0b', fontWeight: 'bold' }
+                  ]}>
+                    {formatFieldName(data.servicioPublico || '') || 'Ninguno'}
+                  </Text>
                 </View>
                 <View style={styles.dataItem}>
                   <Text style={[styles.dataLabel, { fontSize: 7 }]}>Etiqueta Ambiental</Text>
-                  <Text style={[styles.dataValue, { fontSize: 8 }]}>{data.etiquetaMedioambiental?.toUpperCase() || 'N/A'}</Text>
+                  <Text style={[
+                    styles.dataValue, 
+                    { fontSize: 8 },
+                    data.etiquetaMedioambiental === 'sin_etiqueta' && { color: '#dc2626', fontWeight: 'bold' }
+                  ]}>
+                    {data.etiquetaMedioambiental?.toUpperCase() || 'N/A'}
+                  </Text>
                 </View>
                 <View style={styles.dataItem}>
                   <Text style={[styles.dataLabel, { fontSize: 7 }]}>ITV en Vigor</Text>
@@ -469,13 +496,35 @@ const TasacionPDF = ({ data, metadata, tasacionId, logoBase64, watermarkBase64, 
                   </View>
                 )}
               </View>
-              {data.documentosKm && (
+              {Array.isArray(data.documentosKm) && data.documentosKm.length > 0 && (
                 <View style={styles.dataItemFull}>
                   <Text style={[styles.dataLabel, { fontSize: 7, color: '#8b5cf6' }]}>Documentos que acreditan KM</Text>
-                  <Text style={[styles.dataValue, { fontSize: 7 }]}>• {formatFieldName(data.documentosKm)}</Text>
+                  {data.documentosKm.map((doc, idx) => (
+                    <Text key={idx} style={[
+                      styles.dataValue, 
+                      { fontSize: 7, marginBottom: 2 },
+                      (data.documentosKm.length === 1 && data.documentosKm[0] === 'ninguno') && { color: '#dc2626', fontWeight: 'bold' }
+                    ]}>
+                      • {formatFieldName(doc)}
+                    </Text>
+                  ))}
                 </View>
               )}
             </View>
+
+            {/* Testigos Encendidos en la misma columna */}
+            {data.testigosEncendidos && data.testigosEncendidos.length > 0 && data.testigosEncendidos[0] !== 'ninguno' && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>TESTIGOS ENCENDIDOS</Text>
+                <View style={styles.damageList}>
+                  {data.testigosEncendidos.map((testigo, index) => (
+                    <Text key={index} style={[styles.damageItem, { color: '#dc2626', fontSize: 8 }]}>
+                      • {formatFieldName(testigo)}
+                    </Text>
+                  ))}
+                </View>
+              </View>
+            )}
           </View>
 
           {/* Columna derecha */}
@@ -506,7 +555,13 @@ const TasacionPDF = ({ data, metadata, tasacionId, logoBase64, watermarkBase64, 
                 </View>
                 <View style={styles.dataItem}>
                   <Text style={[styles.dataLabel, { fontSize: 7 }]}>Segunda Llave</Text>
-                  <Text style={[styles.dataValue, { fontSize: 8 }]}>{data.segundaLlave ? 'Sí' : 'No'}</Text>
+                  <Text style={[
+                    styles.dataValue, 
+                    { fontSize: 8 },
+                    !data.segundaLlave && { color: '#dc2626', fontWeight: 'bold' }
+                  ]}>
+                    {data.segundaLlave ? 'Sí' : 'No'}
+                  </Text>
                 </View>
               </View>
               {data.elementosDestacables && (
@@ -523,43 +578,43 @@ const TasacionPDF = ({ data, metadata, tasacionId, logoBase64, watermarkBase64, 
               <View style={styles.dataGrid}>
                 <View style={styles.dataItem}>
                   <Text style={[styles.dataLabel, { fontSize: 7 }]}>Motor</Text>
-                  <Text style={[styles.dataValue, { fontSize: 8 }, data.estadoMotor === 'malo' && { color: '#dc2626' }]}>
+                  <Text style={[styles.dataValue, { fontSize: 8 }, data.estadoMotor === 'regular' && { color: '#f59e0b', fontWeight: 'bold' }, data.estadoMotor === 'malo' && { color: '#dc2626', fontWeight: 'bold' }]}>
                     {formatFieldName(data.estadoMotor) || 'N/A'}
                   </Text>
                 </View>
                 <View style={styles.dataItem}>
                   <Text style={[styles.dataLabel, { fontSize: 7 }]}>Dirección</Text>
-                  <Text style={[styles.dataValue, { fontSize: 8 }, data.estadoDireccion === 'malo' && { color: '#dc2626' }]}>
+                  <Text style={[styles.dataValue, { fontSize: 8 }, data.estadoDireccion === 'regular' && { color: '#f59e0b', fontWeight: 'bold' }, data.estadoDireccion === 'malo' && { color: '#dc2626', fontWeight: 'bold' }]}>
                     {formatFieldName(data.estadoDireccion) || 'N/A'}
                   </Text>
                 </View>
                 <View style={styles.dataItem}>
                   <Text style={[styles.dataLabel, { fontSize: 7 }]}>Frenos</Text>
-                  <Text style={[styles.dataValue, { fontSize: 8 }, data.estadoFrenos === 'malo' && { color: '#dc2626' }]}>
+                  <Text style={[styles.dataValue, { fontSize: 8 }, data.estadoFrenos === 'regular' && { color: '#f59e0b', fontWeight: 'bold' }, data.estadoFrenos === 'malo' && { color: '#dc2626', fontWeight: 'bold' }]}>
                     {formatFieldName(data.estadoFrenos) || 'N/A'}
                   </Text>
                 </View>
                 <View style={styles.dataItem}>
                   <Text style={[styles.dataLabel, { fontSize: 7 }]}>Caja de Cambios</Text>
-                  <Text style={[styles.dataValue, { fontSize: 8 }, data.estadoCajaCambios === 'malo' && { color: '#dc2626' }]}>
+                  <Text style={[styles.dataValue, { fontSize: 8 }, data.estadoCajaCambios === 'regular' && { color: '#f59e0b', fontWeight: 'bold' }, data.estadoCajaCambios === 'malo' && { color: '#dc2626', fontWeight: 'bold' }]}>
                     {formatFieldName(data.estadoCajaCambios) || 'N/A'}
                   </Text>
                 </View>
                 <View style={styles.dataItem}>
                   <Text style={[styles.dataLabel, { fontSize: 7 }]}>Transmisión</Text>
-                  <Text style={[styles.dataValue, { fontSize: 8 }, data.estadoTransmision === 'malo' && { color: '#dc2626' }]}>
+                  <Text style={[styles.dataValue, { fontSize: 8 }, data.estadoTransmision === 'regular' && { color: '#f59e0b', fontWeight: 'bold' }, data.estadoTransmision === 'malo' && { color: '#dc2626', fontWeight: 'bold' }]}>
                     {formatFieldName(data.estadoTransmision) || 'N/A'}
                   </Text>
                 </View>
                 <View style={styles.dataItem}>
                   <Text style={[styles.dataLabel, { fontSize: 7 }]}>Embrague</Text>
-                  <Text style={[styles.dataValue, { fontSize: 8 }, data.estadoEmbrague === 'malo' && { color: '#dc2626' }]}>
+                  <Text style={[styles.dataValue, { fontSize: 8 }, data.estadoEmbrague === 'regular' && { color: '#f59e0b', fontWeight: 'bold' }, data.estadoEmbrague === 'malo' && { color: '#dc2626', fontWeight: 'bold' }]}>
                     {formatFieldName(data.estadoEmbrague) || 'N/A'}
                   </Text>
                 </View>
                 <View style={styles.dataItem}>
                   <Text style={[styles.dataLabel, { fontSize: 7 }]}>Estado General</Text>
-                  <Text style={[styles.dataValue, { fontSize: 8 }, data.estadoGeneral === 'malo' && { color: '#dc2626' }]}>
+                  <Text style={[styles.dataValue, { fontSize: 8 }, data.estadoGeneral === 'regular' && { color: '#f59e0b', fontWeight: 'bold' }, data.estadoGeneral === 'malo' && { color: '#dc2626', fontWeight: 'bold' }]}>
                     {formatFieldName(data.estadoGeneral) || 'N/A'}
                   </Text>
                 </View>
@@ -908,20 +963,6 @@ const TasacionPDF = ({ data, metadata, tasacionId, logoBase64, watermarkBase64, 
             })()}
           </View>
 
-          {/* Testigos Encendidos */}
-          {data.testigosEncendidos && data.testigosEncendidos.length > 0 && data.testigosEncendidos[0] !== 'ninguno' && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>TESTIGOS ENCENDIDOS</Text>
-              <View style={styles.damageList}>
-                {data.testigosEncendidos.map((testigo, index) => (
-                  <Text key={index} style={[styles.damageItem, { color: '#dc2626' }]}>
-                    • {formatFieldName(testigo)}
-                  </Text>
-                ))}
-              </View>
-            </View>
-          )}
-
           <View style={styles.footer}>
             <View style={styles.footerRow}>
               <View style={styles.footerLeft}>
@@ -1041,26 +1082,56 @@ const TasacionPDF = ({ data, metadata, tasacionId, logoBase64, watermarkBase64, 
         
         <View style={styles.certificateHeader}>
           <Text style={styles.certificateTitle}>CERTIFICADO DE AUTENTICIDAD</Text>
-          <Text style={styles.certificateSubtitle}>Datos de Verificación</Text>
+          <Text style={styles.certificateSubtitle}>Datos de Verificación del Cliente</Text>
         </View>
 
         <View style={styles.certificateContent}>
-          <Text style={{ fontSize: 9, color: '#374151', lineHeight: 1.4 }}>
-            Este documento certifica que la información ha sido proporcionada por el cliente 
-            a través del Portal de Tasaciones.
+          <Text style={{ fontSize: 9, color: '#374151', lineHeight: 1.5, marginBottom: 12 }}>
+            Este documento certifica que la información contenida en el presente informe de tasación ha sido 
+            proporcionada directamente por el cliente a través del Portal de Tasaciones, con los siguientes 
+            datos de verificación:
           </Text>
 
-          <Text style={[styles.certificateText, { marginTop: 12, fontWeight: 'bold', fontSize: 10 }]}>
+          <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#374151', marginBottom: 6 }}>
             Datos de Registro:
           </Text>
-          <Text style={[styles.certificateData, { fontSize: 8 }]}>
-            • Fecha: {formatDate(metadata?.timestamp)}
+          <Text style={{ fontSize: 8, color: '#374151', marginBottom: 3 }}>
+            • Fecha y hora: {formatDate(metadata?.timestamp)}
           </Text>
           {metadata?.ip && (
-            <Text style={[styles.certificateData, { fontSize: 8 }]}>
-              • IP: {metadata.ip}
+            <Text style={{ fontSize: 8, color: '#374151', marginBottom: 3 }}>
+              • Dirección IP: {metadata.ip}
             </Text>
           )}
+          {metadata?.geolocalizacion && (
+            <Text style={{ fontSize: 8, color: '#374151', marginBottom: 3 }}>
+              • Geolocalización: Lat {metadata.geolocalizacion.latitude.toFixed(6)}, Lon {metadata.geolocalizacion.longitude.toFixed(6)}
+            </Text>
+          )}
+
+          <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#374151', marginTop: 12, marginBottom: 6 }}>
+            Información del Dispositivo:
+          </Text>
+          {metadata?.dispositivo?.platform && (
+            <Text style={{ fontSize: 8, color: '#374151', marginBottom: 3 }}>
+              • Plataforma: {metadata.dispositivo.platform}
+            </Text>
+          )}
+          {metadata?.dispositivo?.idioma && (
+            <Text style={{ fontSize: 8, color: '#374151', marginBottom: 3 }}>
+              • Idioma: {metadata.dispositivo.idioma}
+            </Text>
+          )}
+          {metadata?.dispositivo?.userAgent && (
+            <Text style={{ fontSize: 7, color: '#374151', marginBottom: 3 }}>
+              • User Agent: {metadata.dispositivo.userAgent}
+            </Text>
+          )}
+
+          <Text style={{ fontSize: 8, color: '#6b7280', marginTop: 12, lineHeight: 1.4, fontStyle: 'italic' }}>
+            Los datos registrados en este documento son responsabilidad del cliente y han sido capturados 
+            mediante sistemas automatizados de verificación para garantizar su autenticidad e integridad.
+          </Text>
 
           <View style={{ 
             marginTop: 15, 
@@ -1073,7 +1144,7 @@ const TasacionPDF = ({ data, metadata, tasacionId, logoBase64, watermarkBase64, 
               DOCUMENTO VERIFICADO DIGITALMENTE
             </Text>
             <Text style={{ fontSize: 7, color: '#6b7280', textAlign: 'center', marginTop: 3 }}>
-              ID de Tasación: {tasacionId || 'Generando...'}
+              ID de Tasación: {tasacionId || 'Sin ID'}
             </Text>
           </View>
         </View>
@@ -1096,19 +1167,21 @@ const TasacionPDF = ({ data, metadata, tasacionId, logoBase64, watermarkBase64, 
             Protección de Datos y Descargo de Responsabilidad (CVO)
           </Text>
           
-          <Text style={{ fontSize: 7, color: '#78350f', lineHeight: 1.3, marginBottom: 4 }}>
-            El tratamiento de los datos se ha realizado por CVO con la finalidad de elaborar esta tasación, 
-            basándose en su consentimiento y en los datos facilitados.
+          <Text style={{ fontSize: 7, color: '#78350f', lineHeight: 1.4, marginBottom: 4 }}>
+            El tratamiento de los datos (nombre del titular y documentación del vehículo) se ha realizado por CVO con la única 
+            y exclusiva finalidad de elaborar esta tasación, basándose en su consentimiento y en los datos facilitados de forma 
+            voluntaria.
           </Text>
           
-          <Text style={{ fontSize: 7, color: '#78350f', lineHeight: 1.3, marginBottom: 4 }}>
-            Sus datos personales y documentación serán eliminados automáticamente al cumplirse 
-            <Text style={{ fontWeight: 'bold' }}> tres (3) meses</Text> desde la emisión de este informe.
+          <Text style={{ fontSize: 7, color: '#78350f', lineHeight: 1.4, marginBottom: 4 }}>
+            Le recordamos que, de acuerdo con nuestra Política de Privacidad, sus datos personales y la documentación del 
+            vehículo serán borrados y eliminados automáticamente de nuestros sistemas al cumplirse tres (3) meses desde la 
+            fecha de emisión de este informe.
           </Text>
           
-          <Text style={{ fontSize: 7, color: '#78350f', lineHeight: 1.3 }}>
-            Puede ejercer sus derechos contactando con CVO en 
-            <Text style={{ fontWeight: 'bold' }}> hola@controlvo.ovh</Text>.
+          <Text style={{ fontSize: 7, color: '#78350f', lineHeight: 1.4 }}>
+            Usted puede ejercer sus derechos de Acceso, Rectificación, Supresión, Oposición y Limitación del tratamiento, así como 
+            solicitar la baja de sus datos, contactando con CVO en el correo electrónico hola@controlvo.ovh.
           </Text>
         </View>
 

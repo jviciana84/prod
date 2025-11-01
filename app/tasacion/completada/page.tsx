@@ -14,27 +14,50 @@ export default function TasacionCompletadaPage() {
   const [tasacionData, setTasacionData] = useState<TasacionFormData | null>(null)
 
   useEffect(() => {
-    // Recuperar datos de localStorage
-    console.log('🔍 Iniciando carga de datos desde localStorage...')
-    const savedData = localStorage.getItem('lastTasacion')
-    console.log('📦 Datos guardados en localStorage:', savedData)
+    // Scroll al final para mostrar botones (esperar 2 segundos)
+    setTimeout(() => {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
+    }, 2000)
     
-    if (savedData) {
-      try {
-        const parsedData = JSON.parse(savedData)
-        console.log('✅ Datos parseados correctamente:', parsedData)
-        setTasacionData(parsedData)
-      } catch (error) {
-        console.error('❌ Error al recuperar datos de tasación:', error)
-      }
-    } else {
-      console.warn('⚠️ No se encontraron datos en localStorage con la clave "lastTasacion"')
-      console.log('🔍 Claves disponibles en localStorage:')
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i)
-        console.log(`  - ${key}: ${localStorage.getItem(key)?.substring(0, 100)}...`)
+    // Recuperar datos completos desde Supabase usando el ID
+    const loadTasacionData = async () => {
+      const tasacionId = localStorage.getItem('lastTasacionId')
+      
+      if (tasacionId) {
+        console.log('🔍 Recuperando tasación desde Supabase con ID:', tasacionId)
+        const { getTasacionById } = await import('@/server-actions/getTasacion')
+        const result = await getTasacionById(tasacionId)
+        
+        if (result.success && result.data) {
+          console.log('✅ Tasación recuperada desde Supabase')
+          setTasacionData(result.data)
+        } else {
+          console.error('❌ Error al recuperar tasación:', result.error)
+          // Fallback a localStorage (sin fotos)
+          tryLoadFromLocalStorage()
+        }
+      } else {
+        console.warn('⚠️ No hay ID de tasación')
+        tryLoadFromLocalStorage()
       }
     }
+    
+    const tryLoadFromLocalStorage = () => {
+      console.log('🔍 Intentando cargar desde localStorage...')
+      const savedData = localStorage.getItem('lastTasacion')
+      
+      if (savedData) {
+        try {
+          const parsedData = JSON.parse(savedData)
+          console.log('✅ Datos parseados desde localStorage')
+          setTasacionData(parsedData)
+        } catch (error) {
+          console.error('❌ Error al recuperar datos:', error)
+        }
+      }
+    }
+    
+    loadTasacionData()
   }, [])
 
   const handleDescargarPDF = async () => {

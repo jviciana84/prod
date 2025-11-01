@@ -19,7 +19,7 @@ import type {
 interface DatosAdicionalesStepProps {
   onComplete: (data: {
     origenVehiculo: OrigenVehiculo
-    documentosKm: DocumentosKm
+    documentosKm: DocumentosKm[]
     comproNuevo: boolean
     color: ColorVehiculo
     movilidad: MovilidadTransporte
@@ -39,7 +39,7 @@ export default function DatosAdicionalesStep({ onComplete, onBack }: DatosAdicio
   }, [])
   
   const [origenVehiculo, setOrigenVehiculo] = useState<OrigenVehiculo | null>(null)
-  const [documentosKm, setDocumentosKm] = useState<DocumentosKm | null>(null)
+  const [documentosKm, setDocumentosKm] = useState<DocumentosKm[]>([])
   const [comproNuevo, setComproNuevo] = useState<boolean | null>(null)
   const [color, setColor] = useState<ColorVehiculo | null>(null)
   const [movilidad, setMovilidad] = useState<MovilidadTransporte | null>(null)
@@ -107,7 +107,7 @@ export default function DatosAdicionalesStep({ onComplete, onBack }: DatosAdicio
   ]
 
   const handleContinue = () => {
-    if (origenVehiculo && documentosKm && comproNuevo !== null && color && movilidad && 
+    if (origenVehiculo && documentosKm.length > 0 && comproNuevo !== null && color && movilidad && 
         servicioPublico && etiquetaMedioambiental && itvEnVigor !== null && proximaITV) {
       onComplete({
         origenVehiculo,
@@ -124,7 +124,7 @@ export default function DatosAdicionalesStep({ onComplete, onBack }: DatosAdicio
     }
   }
 
-  const isValid = origenVehiculo && documentosKm && comproNuevo !== null && color && movilidad && 
+  const isValid = origenVehiculo && documentosKm.length > 0 && comproNuevo !== null && color && movilidad && 
     servicioPublico && etiquetaMedioambiental && itvEnVigor !== null && proximaITV
 
   return (
@@ -210,7 +210,24 @@ export default function DatosAdicionalesStep({ onComplete, onBack }: DatosAdicio
                   <button
                     key={doc.value}
                     onClick={() => {
-                      setDocumentosKm(doc.value)
+                      // Toggle selección múltiple (excepto 'ninguno')
+                      if (doc.value === 'ninguno') {
+                        setDocumentosKm(['ninguno'])
+                      } else {
+                        setDocumentosKm(prev => {
+                          // Quitar 'ninguno' si se selecciona otro
+                          const withoutNinguno = prev.filter(d => d !== 'ninguno')
+                          
+                          // Toggle del documento actual
+                          if (withoutNinguno.includes(doc.value)) {
+                            const filtered = withoutNinguno.filter(d => d !== doc.value)
+                            return filtered.length > 0 ? filtered : ['ninguno']
+                          } else {
+                            return [...withoutNinguno, doc.value]
+                          }
+                        })
+                      }
+                      
                       // Auto-scroll al siguiente elemento
                       setTimeout(() => {
                         const nextElement = document.getElementById('compro-nuevo')
@@ -220,7 +237,7 @@ export default function DatosAdicionalesStep({ onComplete, onBack }: DatosAdicio
                       }, 300)
                     }}
                     className={`p-3 rounded-lg border-2 transition-all text-sm font-semibold ${
-                      documentosKm === doc.value
+                      documentosKm.includes(doc.value)
                         ? 'border-purple-500 bg-gradient-to-br from-blue-50 to-purple-50 text-purple-900'
                         : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50'
                     }`}
@@ -233,7 +250,7 @@ export default function DatosAdicionalesStep({ onComplete, onBack }: DatosAdicio
           )}
 
           {/* Comprado nuevo */}
-          {documentosKm && (
+          {documentosKm.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}

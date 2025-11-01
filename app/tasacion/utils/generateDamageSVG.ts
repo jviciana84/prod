@@ -83,7 +83,9 @@ export async function generateDamageSVG(
       'laterial_derecha': 'laterial_derecha',
       'trasera': 'trasera',
       'interior_delantero_izq': 'interior_delantero_izquierda',
+      'interior_delantero_izquierda': 'interior_delantero_izquierda',
       'interior_trasero_izq': 'interior_trasera_izquierda', // archivo es "trasera" no "trasero"
+      'interior_trasero': 'interior_trasero', // archivo para vista interior trasero general
       'interior_trasera_izquierda': 'interior_trasera_izquierda', // archivo correcto
       'interior_salpicadero': 'interior_salpicadero',
       'interior_maletero': 'interior_maletero',

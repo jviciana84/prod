@@ -54,7 +54,7 @@ export default function TestGuardarPage() {
 
     // Paso 7
     origenVehiculo: 'compra_nueva',
-    documentosKm: 'libro_mantenimiento',
+    documentosKm: ['libro_revisiones', 'itv'],
     comproNuevo: true,
     color: 'blanco',
     movilidad: 'particular',

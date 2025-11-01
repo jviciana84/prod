@@ -91,17 +91,7 @@ export default function TasacionPage() {
     console.log('Tasación completada:', completedData)
     
     try {
-      // Guardar en localStorage como respaldo
-      localStorage.setItem('lastTasacion', JSON.stringify(completedData))
-      console.log('Datos guardados en localStorage')
-      
-      // Guardar metadata separadamente para el PDF
-      if (completedData.metadata) {
-        localStorage.setItem('tasacionMetadata', JSON.stringify(completedData.metadata))
-        console.log('Metadata guardada en localStorage')
-      }
-      
-      // Guardar en Supabase + Subir fotos a OVH
+      // Guardar en Supabase + Subir fotos a OVH PRIMERO
       console.log('🚀 Guardando en Supabase y subiendo fotos a OVH...')
       
       const { saveTasacion } = await import('@/server-actions/saveTasacion')
@@ -110,11 +100,33 @@ export default function TasacionPage() {
       if (result.success) {
         console.log('✅ Tasación guardada con ID:', result.tasacionId)
         localStorage.setItem('lastTasacionId', result.tasacionId)
+        
+        // Guardar datos SIN FOTOS en localStorage (para evitar QuotaExceededError)
+        const dataWithoutPhotos = {
+          ...completedData,
+          fotosVehiculo: undefined,
+          fotosCuentakm: undefined,
+          fotosInteriorDelantero: undefined,
+          fotosInteriorTrasero: undefined,
+          fotosDocumentacion: undefined,
+          fotosOtras: undefined,
+          fotoPermisoCirculacion: undefined,
+          fotoFichaTecnicaFrente: undefined,
+        }
+        localStorage.setItem('lastTasacion', JSON.stringify(dataWithoutPhotos))
+        console.log('Datos (sin fotos) guardados en localStorage')
+        
+        // Guardar metadata separadamente para el PDF
+        if (completedData.metadata) {
+          localStorage.setItem('tasacionMetadata', JSON.stringify(completedData.metadata))
+          console.log('Metadata guardada en localStorage')
+        }
       } else {
         console.error('❌ Error al guardar:', result.error)
         console.error('📋 Detalles del error:', result.details)
-        console.error('📦 Datos completados:', completedData)
-        // Continuamos de todas formas, los datos están en localStorage
+        alert('Error al procesar tasación: ' + (result.error || 'Error desconocido'))
+        setIsProcessing(false)
+        return
       }
       
       // Redirigir a la página de confirmación

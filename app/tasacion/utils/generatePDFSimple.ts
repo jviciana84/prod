@@ -304,7 +304,7 @@ function generateHTMLContent(data: TasacionFormData, metadata?: any): string {
         </div>
         <div class="data-row">
             <span class="label">Documentos que acreditan KM:</span>
-            <span class="value">${data.documentosKm || 'No especificados'}</span>
+            <span class="value">${data.documentosKm?.map(d => formatFieldName(d)).join(', ') || 'No especificados'}</span>
         </div>
         <div class="data-row">
             <span class="label">Comprado nuevo:</span>

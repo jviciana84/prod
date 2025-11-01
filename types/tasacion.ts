@@ -84,7 +84,7 @@ export interface TasacionFormData {
 
   // Paso 8: Datos adicionales
   origenVehiculo: OrigenVehiculo
-  documentosKm: DocumentosKm
+  documentosKm: DocumentosKm[]
   comproNuevo: boolean
   color: ColorVehiculo
   movilidad: MovilidadTransporte

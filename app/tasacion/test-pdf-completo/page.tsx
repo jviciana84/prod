@@ -50,7 +50,7 @@ export default function TestPDFCompletoPage() {
       testigosEncendidos: ['ninguno'],
       
       origenVehiculo: 'nacional',
-      documentosKm: 'libro_revisiones',
+      documentosKm: ['libro_revisiones', 'facturas_taller'],
       comproNuevo: true,
       color: 'blanco',
       movilidad: 'total',
