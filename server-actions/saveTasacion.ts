@@ -11,7 +11,7 @@ interface ImageToUpload {
 
 export async function saveTasacion(data: TasacionFormData, advisorSlug: string) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // 1. Preparar imágenes para subir
     const imagesToUpload: ImageToUpload[] = []
@@ -80,54 +80,84 @@ export async function saveTasacion(data: TasacionFormData, advisorSlug: string) 
       })
     }
 
-    // 2. Insertar tasación en Supabase (sin fotos)
+    // 2. Preparar datos para insert (filtrar undefined/null para campos opcionales)
+    const datosInsert = {
+      advisor_slug: advisorSlug,
+      
+      // Datos básicos
+      matricula: data.matricula,
+      kilometros: data.kmActuales,
+      procedencia: data.procedencia,
+      fecha_matriculacion: data.fechaMatriculacion,
+      fecha_matriculacion_confirmada: data.fechaMatriculacionConfirmada || false,
+      
+      // Marca/Modelo/Versión
+      marca: data.marca,
+      modelo: data.modelo,
+      version: data.version || null,
+      combustible: data.combustible,
+      transmision: data.transmision,
+      segunda_llave: data.segundaLlave,
+      elementos_destacables: data.elementosDestacables || null,
+      
+      // Daños
+      danos_exteriores: data.danosExteriores || [],
+      danos_interiores: data.danosInteriores || [],
+      
+      // Estado mecánico
+      estado_motor: data.estadoMotor,
+      estado_direccion: data.estadoDireccion,
+      estado_frenos: data.estadoFrenos,
+      estado_caja_cambios: data.estadoCajaCambios,
+      estado_transmision: data.estadoTransmision,
+      estado_embrague: data.estadoEmbrague,
+      estado_general: data.estadoGeneral,
+      dano_estructural: data.danoEstructural,
+      dano_estructural_detalle: data.danoEstructuralDetalle || null,
+      testigos_encendidos: data.testigosEncendidos || [],
+      
+      // Datos adicionales
+      origen_vehiculo: data.origenVehiculo,
+      documentos_km: data.documentosKm,
+      comprado_nuevo: data.comproNuevo,
+      color: data.color,
+      movilidad_transporte: data.movilidad,
+      servicio_publico: data.servicioPublico,
+      etiqueta_medioambiental: data.etiquetaMedioambiental,
+      itv_vigente: data.itvEnVigor,
+      proxima_itv: data.proximaITV || null,
+      observaciones: data.observaciones || null,
+      
+      // Metadata
+      metadata: data.metadata || {}
+    }
+
+    // Filtrar valores undefined
+    Object.keys(datosInsert).forEach(key => {
+      if (datosInsert[key as keyof typeof datosInsert] === undefined) {
+        delete datosInsert[key as keyof typeof datosInsert]
+      }
+    })
+
+    console.log('📦 Datos a insertar:', JSON.stringify(datosInsert, null, 2))
+
+    // Insertar tasación en Supabase (sin fotos)
     const { data: tasacion, error: tasacionError } = await supabase
       .from('tasaciones')
-      .insert({
-        advisor_slug: advisorSlug,
-        matricula: data.matricula,
-        kilometros: data.kilometros,
-        procedencia: data.procedencia,
-        fecha_matriculacion: data.fechaMatriculacion,
-        marca: data.marca,
-        modelo: data.modelo,
-        version: data.version,
-        combustible: data.combustible,
-        transmision: data.transmision,
-        segunda_llave: data.segundaLlave,
-        elementos_destacables: data.elementosDestacables,
-        estado_motor: data.estadoMotor,
-        estado_direccion: data.estadoDireccion,
-        estado_frenos: data.estadoFrenos,
-        estado_caja_cambios: data.estadoCajaCambios,
-        estado_transmision: data.estadoTransmision,
-        estado_embrague: data.estadoEmbrague,
-        estado_general: data.estadoGeneral,
-        dano_estructural: data.danoEstructural,
-        dano_estructural_detalle: data.danoEstructuralDetalle,
-        testigos_encendidos: data.testigosEncendidos || [],
-        origen_vehiculo: data.origenVehiculo,
-        documentos_km: data.documentosKm,
-        comprado_nuevo: data.compradoNuevo,
-        color: data.color,
-        movilidad_transporte: data.movilidadTransporte,
-        servicio_publico: data.servicioPublico,
-        etiqueta_medioambiental: data.etiquetaMedioambiental,
-        itv_vigente: data.itvVigente,
-        proxima_itv: data.proximaITV,
-        observaciones: data.observaciones,
-        danos_exteriores: data.danosExteriores || [],
-        metadata: data.metadata || {}
-      })
+      .insert(datosInsert)
       .select()
       .single()
 
     if (tasacionError) {
-      console.error('Error al guardar tasación:', tasacionError)
+      console.error('❌ Error al guardar tasación en BD:', tasacionError)
+      console.error('📋 Código de error:', tasacionError.code)
+      console.error('📋 Mensaje:', tasacionError.message)
+      console.error('📋 Detalles:', tasacionError.details)
+      console.error('📋 Hint:', tasacionError.hint)
       return {
         success: false,
         error: 'Error al guardar tasación en base de datos',
-        details: tasacionError.message
+        details: `${tasacionError.code}: ${tasacionError.message} - ${tasacionError.details || ''} - ${tasacionError.hint || ''}`
       }
     }
 
@@ -190,11 +220,16 @@ export async function saveTasacion(data: TasacionFormData, advisorSlug: string) 
       message: 'Tasación guardada correctamente'
     }
   } catch (error) {
-    console.error('Error general al guardar tasación:', error)
+    console.error('❌ Error general al guardar tasación:', error)
+    console.error('📋 Datos recibidos:', JSON.stringify(data, null, 2))
+    
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
+    const errorStack = error instanceof Error ? error.stack : ''
+    
     return {
       success: false,
-      error: 'Error al procesar tasación',
-      details: error instanceof Error ? error.message : 'Error desconocido'
+      error: `Error al procesar tasación: ${errorMessage}`,
+      details: errorStack || 'Sin detalles adicionales'
     }
   }
 }

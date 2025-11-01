@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Camera, CheckCircle2, FileText, Image as ImageIcon } from 'lucide-react'
+import { Camera, CheckCircle2, FileText, Image as ImageIcon, X, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 
@@ -77,8 +77,31 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
   const [fotosInteriorTrasero, setFotosInteriorTrasero] = useState<string | undefined>(undefined)
   const [fotoActual, setFotoActual] = useState<string | null>(null)
   const [showPhotoOptions, setShowPhotoOptions] = useState(false)
+  const [showCameraView, setShowCameraView] = useState(false)
+  const [stream, setStream] = useState<MediaStream | null>(null)
+  const [capturedImage, setCapturedImage] = useState<string | null>(null)
+  const [currentOverlay, setCurrentOverlay] = useState<string>('')
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const galleryInputRef = useRef<HTMLInputElement>(null)
+
+  // Mapeo de overlays para cada foto
+  const overlayMap: Record<string, string> = {
+    'frontal': '/svg/camara_overlay/overlay_frontal.svg',
+    'lateralDelanteroIzq': '/svg/camara_overlay/overlay_lateral_izquierdo_delantero.svg',
+    'lateralTraseroIzq': '/svg/camara_overlay/overlay_lateral_izquierdo_trasero.svg',
+    'trasera': '/svg/camara_overlay/overlay_trasera.svg',
+    'lateralTraseroDer': '/svg/camara_overlay/overlay_lateral_derecho_trasero.svg',
+    'lateralDelanteroDer': '/svg/camara_overlay/overlay_lateral_derecho_delantero.svg',
+  }
+
+  // Asignar stream al video cuando cambie
+  useEffect(() => {
+    if (stream && videoRef.current && showCameraView) {
+      videoRef.current.srcObject = stream
+    }
+  }, [stream, showCameraView])
 
   // Auto-scroll cuando se entra a la sección de documentos
   useEffect(() => {
@@ -157,25 +180,152 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
   const handleCapturarFoto = (tipo: 'vehiculo' | 'documento' | 'otra' | 'cuentakm' | 'interiorDelantero' | 'interiorTrasero', key?: string) => {
     console.log('handleCapturarFoto llamado:', { tipo, key })
     setFotoActual(key || 'otra')
+    
+    // Establecer overlay si es foto de vehículo
+    if (key && overlayMap[key]) {
+      setCurrentOverlay(overlayMap[key])
+    } else {
+      setCurrentOverlay('')
+    }
+    
     setShowPhotoOptions(true)
   }
 
-  const handlePhotoOption = (option: 'camera' | 'gallery') => {
+  const handlePhotoOption = async (option: 'camera' | 'gallery') => {
     setShowPhotoOptions(false)
     
-    // Auto-scroll cuando se hace clic en capturar
-    setTimeout(() => {
-      window.scrollTo({ 
-        top: document.documentElement.scrollHeight, 
-        behavior: 'smooth' 
-      })
-    }, 300)
-    
     if (option === 'camera') {
-      fileInputRef.current?.click()
+      try {
+        // Solicitar fullscreen
+        if (document.documentElement.requestFullscreen) {
+          await document.documentElement.requestFullscreen()
+        }
+        
+        // Solicitar acceso a la cámara trasera
+        const mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: { 
+            facingMode: 'environment',
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+          }
+        })
+        
+        setStream(mediaStream)
+        setShowCameraView(true)
+        
+        // Solicitar orientación horizontal
+        if (screen.orientation && 'lock' in screen.orientation) {
+          (screen.orientation as any).lock('landscape').catch(() => {
+            console.log('No se pudo bloquear orientación')
+          })
+        }
+      } catch (error) {
+        console.error('Error al acceder a la cámara:', error)
+        alert('No se pudo acceder a la cámara')
+      }
     } else {
       galleryInputRef.current?.click()
     }
+  }
+
+  const handleCapture = () => {
+    if (!videoRef.current || !canvasRef.current) return
+
+    const video = videoRef.current
+    const canvas = canvasRef.current
+    
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    
+    const ctx = canvas.getContext('2d')
+    if (ctx) {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+      const imageData = canvas.toDataURL('image/jpeg', 0.9)
+      setCapturedImage(imageData)
+      
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop())
+        setStream(null)
+      }
+    }
+  }
+
+  const handleConfirmCameraPhoto = () => {
+    if (!capturedImage || !fotoActual) return
+
+    // Guardar la foto en el estado correspondiente
+    const file = dataURLtoFile(capturedImage, 'photo.jpg')
+    const event = {
+      target: {
+        files: [file]
+      }
+    } as any
+
+    if (fotoActual === 'otra') {
+      handleFileChange(event, 'otra')
+    } else if (fotoActual === 'cuentakm') {
+      handleFileChange(event, 'cuentakm')
+    } else if (fotoActual === 'interiorDelantero') {
+      handleFileChange(event, 'interiorDelantero')
+    } else if (fotoActual === 'interiorTrasero') {
+      handleFileChange(event, 'interiorTrasero')
+    } else if (fotosVehiculoConfig.some(f => f.key === fotoActual)) {
+      handleFileChange(event, 'vehiculo', fotoActual)
+    } else if (fotosDocConfig.some(f => f.key === fotoActual)) {
+      handleFileChange(event, 'documento', fotoActual)
+    }
+
+    // Cerrar cámara
+    handleCloseCamera()
+  }
+
+  const handleRetakePhoto = async () => {
+    setCapturedImage(null)
+    
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { 
+          facingMode: 'environment',
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        }
+      })
+      
+      setStream(mediaStream)
+    } catch (error) {
+      console.error('Error al reabrir cámara:', error)
+    }
+  }
+
+  const handleCloseCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop())
+      setStream(null)
+    }
+    
+    if (document.fullscreenElement) {
+      document.exitFullscreen()
+    }
+    
+    setShowCameraView(false)
+    setCapturedImage(null)
+    setCurrentOverlay('')
+    
+    if (screen.orientation && 'unlock' in screen.orientation) {
+      (screen.orientation as any).unlock()
+    }
+  }
+
+  const dataURLtoFile = (dataurl: string, filename: string) => {
+    const arr = dataurl.split(',')
+    const mime = arr[0].match(/:(.*?);/)?.[1]
+    const bstr = atob(arr[1])
+    let n = bstr.length
+    const u8arr = new Uint8Array(n)
+    while(n--) {
+      u8arr[n] = bstr.charCodeAt(n)
+    }
+    return new File([u8arr], filename, { type: mime })
   }
 
   const handleEliminarFotoOtra = (index: number) => {
@@ -762,6 +912,79 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
           </Button>
         </div>
       </motion.div>
+
+      {/* Vista de cámara fullscreen con overlay */}
+      {showCameraView && (
+        <div className="fixed inset-0 bg-black z-50 flex flex-col">
+          <button
+            onClick={handleCloseCamera}
+            className="absolute top-2 right-2 z-50 text-white p-2 bg-black/50 hover:bg-black/70 rounded-full transition-all"
+          >
+            <X className="w-6 h-6" />
+          </button>
+
+          <div className="flex-1 relative overflow-hidden">
+            {capturedImage ? (
+              <img src={capturedImage} alt="Captura" className="w-full h-full object-cover" />
+            ) : (
+              <>
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-cover"
+                />
+                
+                {currentOverlay && (
+                  <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                    <img 
+                      src={currentOverlay} 
+                      alt="" 
+                      className="w-full h-full object-contain"
+                      style={{ 
+                        opacity: 1,
+                        filter: 'brightness(2) drop-shadow(0 0 2px rgba(255,255,255,0.8))'
+                      }}
+                    />
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          <div className="bg-black/60 p-3">
+            {capturedImage ? (
+              <div className="flex gap-2">
+                <button
+                  onClick={handleRetakePhoto}
+                  className="flex-1 p-3 bg-gray-600 text-white rounded-lg font-bold text-sm flex items-center justify-center gap-2"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Repetir
+                </button>
+                <button
+                  onClick={handleConfirmCameraPhoto}
+                  className="flex-1 p-3 bg-green-600 text-white rounded-lg font-bold text-sm flex items-center justify-center gap-2"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  Confirmar
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleCapture}
+                className="w-full p-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg font-bold text-sm flex items-center justify-center gap-2"
+              >
+                <Camera className="w-5 h-5" />
+                Capturar
+              </button>
+            )}
+          </div>
+
+          <canvas ref={canvasRef} className="hidden" />
+        </div>
+      )}
     </div>
   )
 }

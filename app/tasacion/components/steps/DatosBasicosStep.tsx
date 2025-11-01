@@ -39,26 +39,71 @@ export default function DatosBasicosStep({ onComplete, onBack }: DatosBasicosSte
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [])
 
-  // Simular obtención de fecha desde matrícula
+  // Obtener fecha desde matrícula española (formato NNNN-XXX)
   const obtenerFechaDesdeMatricula = (mat: string) => {
-    // Aquí iría la lógica real de obtener la fecha
-    // Por ahora retornamos una fecha simulada
-    if (mat.length >= 4) {
-      return '15/03/2018'
+    if (mat.length < 7) return ''
+    
+    // Extraer números y letras: 7188MBH -> 7188 y MBH
+    const match = mat.match(/(\d{4})\s*-?\s*([A-Z]{3})/)
+    if (!match) return ''
+    
+    const numeros = parseInt(match[1])
+    const letras = match[2]
+    
+    // Las letras van de BBB a ZZZ (sin vocales A,E,I,O,U ni Q)
+    // Alfabeto válido: BCDFGHJKLMNPRSTUVWXYZ (20 letras)
+    const alfabeto = 'BCDFGHJKLMNPRSTUVWXYZ'
+    
+    // Convertir letras a número
+    let valorLetras = 0
+    for (let i = 0; i < 3; i++) {
+      const letra = letras[i]
+      const posicion = alfabeto.indexOf(letra)
+      if (posicion === -1) return '' // Letra inválida
+      valorLetras += posicion * Math.pow(20, 2 - i)
     }
-    return ''
+    
+    // Combinación total: números (0-9999) + letras (0-7999)
+    // Total = números * 8000 + letras
+    const matriculaTotal = numeros * 8000 + valorLetras
+    
+    // 0000-BBB = Sep 2000 (matricula 0)
+    // Fecha base: Septiembre 2000
+    const fechaBase = new Date(2000, 8, 1) // Mes 8 = Septiembre
+    
+    // Aproximadamente 80,000 matrículas por mes
+    const matriculasPorMes = 80000
+    const mesesDesdeInicio = Math.floor(matriculaTotal / matriculasPorMes)
+    
+    // Calcular fecha
+    const fechaCalculada = new Date(fechaBase)
+    fechaCalculada.setMonth(fechaCalculada.getMonth() + mesesDesdeInicio)
+    
+    const dia = 15
+    const mes = (fechaCalculada.getMonth() + 1).toString().padStart(2, '0')
+    const año = fechaCalculada.getFullYear()
+    
+    return `${dia}/${mes}/${año}`
   }
 
   const handleMatriculaChange = (value: string) => {
     const upperValue = value.toUpperCase()
     setMatricula(upperValue)
-    if (upperValue.length >= 4) {
-      const fecha = obtenerFechaDesdeMatricula(upperValue)
-      setFechaMatriculacion(fecha)
-    }
   }
   
-  // Auto-scroll solo cuando se selecciona procedencia (aparece nuevo contenido)
+  // Auto-scroll cuando se completa KM (para ver procedencia)
+  useEffect(() => {
+    if (kmActuales && parseInt(kmActuales) > 0) {
+      setTimeout(() => {
+        window.scrollTo({ 
+          top: document.documentElement.scrollHeight, 
+          behavior: 'smooth' 
+        })
+      }, 200)
+    }
+  }, [kmActuales])
+
+  // Auto-scroll cuando se selecciona procedencia (aparece fecha)
   useEffect(() => {
     if (procedencia) {
       setTimeout(() => {
@@ -138,20 +183,17 @@ export default function DatosBasicosStep({ onComplete, onBack }: DatosBasicosSte
 
   const handleContinue = () => {
     if (matricula && kmActuales && procedencia && fechaMatriculacion) {
-      // Si no marcó como incorrecta, la fecha es correcta
-      const fechaFinal = fechaIncorrecta ? fechaManual : fechaMatriculacion
       onComplete({
         matricula,
         kmActuales: parseInt(kmActuales),
         procedencia,
-        fechaMatriculacion: fechaFinal,
-        fechaMatriculacionConfirmada: !fechaIncorrecta,
+        fechaMatriculacion: fechaMatriculacion,
+        fechaMatriculacionConfirmada: true,
       })
     }
   }
 
-  const isValid = matricula && kmActuales && procedencia && fechaMatriculacion && 
-    (!fechaIncorrecta || (fechaManual && motivoFechaIncorrecta))
+  const isValid = matricula && kmActuales && procedencia && fechaMatriculacion && fechaMatriculacion.length === 10
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50 pt-6 pb-24 px-4">
@@ -279,76 +321,39 @@ export default function DatosBasicosStep({ onComplete, onBack }: DatosBasicosSte
           )}
 
           {/* Fecha de matriculación */}
-          {fechaMatriculacion && (
+          {procedencia && (
             <motion.div
               ref={fechaRef}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
             >
-              <Label className="text-sm font-semibold text-gray-700 mb-3 block flex items-center gap-2">
+              <Label htmlFor="fecha-matriculacion" className="text-sm font-semibold text-gray-700 mb-2 block flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
-                Fecha de matriculación
+                Fecha de primera matriculación (DD/MM/AAAA) *
               </Label>
-              
-              <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-xl border border-purple-200 mb-3">
-                <p className="text-sm text-gray-600 mb-2">Según la matrícula, la fecha es:</p>
-                <p className="text-xl font-bold text-purple-900 text-center">{fechaMatriculacion}</p>
-              </div>
-
-              {!fechaIncorrecta ? (
-                <button
-                  onClick={() => setFechaIncorrecta(true)}
-                  className="w-full p-3 rounded-lg border-2 border-gray-300 bg-white hover:border-red-400 hover:bg-red-50 text-gray-700 hover:text-red-700 transition-all duration-300 font-semibold"
-                >
-                  ✗ La fecha es incorrecta
-                </button>
-              ) : (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  className="space-y-3"
-                >
-                  <div>
-                    <Label htmlFor="fecha-manual" className="text-sm font-medium text-gray-700 mb-2 block">
-                      Fecha correcta (DD/MM/AAAA)
-                    </Label>
-                    <Input
-                      id="fecha-manual"
-                      type="text"
-                      placeholder="15/03/2018"
-                      value={fechaManual}
-                      onChange={(e) => handleFechaManualChange(e.target.value)}
-                      maxLength={10}
-                      className="h-12 text-center border-2 focus:border-red-500 bg-white text-gray-900"
-                    />
-                  </div>
+              <Input
+                id="fecha-matriculacion"
+                type="text"
+                inputMode="numeric"
+                placeholder="15/03/2018"
+                value={fechaMatriculacion}
+                onChange={(e) => {
+                  let value = e.target.value.replace(/\D/g, '') // Solo números
                   
-                  <div>
-                    <Label htmlFor="motivo-fecha" className="text-sm font-medium text-gray-700 mb-2 block">
-                      Motivo de la fecha incorrecta
-                    </Label>
-                    <Textarea
-                      id="motivo-fecha"
-                      placeholder="Ej: Error en los datos del registro, matrícula transferida..."
-                      value={motivoFechaIncorrecta}
-                      onChange={(e) => setMotivoFechaIncorrecta(e.target.value)}
-                      className="min-h-20 resize-none bg-white text-gray-900"
-                    />
-                  </div>
+                  // Formatear como DD/MM/AAAA
+                  if (value.length >= 3) {
+                    value = value.substring(0, 2) + '/' + value.substring(2)
+                  }
+                  if (value.length >= 6) {
+                    value = value.substring(0, 5) + '/' + value.substring(5, 9)
+                  }
                   
-                  <button
-                    onClick={() => {
-                      setFechaIncorrecta(false)
-                      setFechaManual('')
-                      setMotivoFechaIncorrecta('')
-                    }}
-                    className="w-full p-2 text-sm text-gray-600 hover:text-gray-900"
-                  >
-                    ← Cancelar, la fecha es correcta
-                  </button>
-                </motion.div>
-              )}
+                  setFechaMatriculacion(value)
+                }}
+                className="h-12 text-center border-2 focus:border-purple-500 bg-white text-gray-900"
+                maxLength={10}
+              />
             </motion.div>
           )}
         </div>
@@ -374,5 +379,6 @@ export default function DatosBasicosStep({ onComplete, onBack }: DatosBasicosSte
     </div>
   )
 }
+
 
 

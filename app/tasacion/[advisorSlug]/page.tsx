@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { Camera, FileText, CheckCircle2 } from 'lucide-react'
 import ProgressBar from '../components/ProgressBar'
 import InicioStep from '../components/steps/InicioStep'
 import DatosBasicosStep from '../components/steps/DatosBasicosStep'
@@ -111,6 +112,8 @@ export default function TasacionPage() {
         localStorage.setItem('lastTasacionId', result.tasacionId)
       } else {
         console.error('❌ Error al guardar:', result.error)
+        console.error('📋 Detalles del error:', result.details)
+        console.error('📦 Datos completados:', completedData)
         // Continuamos de todas formas, los datos están en localStorage
       }
       
@@ -133,10 +136,21 @@ export default function TasacionPage() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm mx-4 text-center">
             <div className="w-16 h-16 mx-auto mb-4 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin" />
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Procesando tasación...</h3>
-            <p className="text-sm text-gray-600 mb-1">📸 Subiendo fotografías</p>
-            <p className="text-sm text-gray-600 mb-1">💾 Guardando datos</p>
-            <p className="text-sm text-gray-600">📄 Generando informe</p>
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Procesando tasación...</h3>
+            <div className="space-y-2 text-left">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Camera className="w-4 h-4" />
+                <span>Subiendo fotografías</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <FileText className="w-4 h-4" />
+                <span>Guardando datos</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Generando informe</span>
+              </div>
+            </div>
             <p className="text-xs text-gray-500 mt-4">Por favor, espera...</p>
           </div>
         </div>

@@ -420,23 +420,26 @@ export default function TestFotosPage() {
               <div className="flex gap-2">
                 <button
                   onClick={handleRetakePhoto}
-                  className="flex-1 p-3 bg-gray-600 text-white rounded-lg font-bold text-sm"
+                  className="flex-1 p-3 bg-gray-600 text-white rounded-lg font-bold text-sm flex items-center justify-center gap-2"
                 >
-                  🔄 Repetir
+                  <RotateCcw className="w-4 h-4" />
+                  Repetir
                 </button>
                 <button
                   onClick={handleConfirmPhoto}
-                  className="flex-1 p-3 bg-green-600 text-white rounded-lg font-bold text-sm"
+                  className="flex-1 p-3 bg-green-600 text-white rounded-lg font-bold text-sm flex items-center justify-center gap-2"
                 >
-                  ✓ Confirmar
+                  <CheckCircle2 className="w-4 h-4" />
+                  Confirmar
                 </button>
               </div>
             ) : (
               <button
                 onClick={handleCapture}
-                className="w-full p-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg font-bold text-sm"
+                className="w-full p-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg font-bold text-sm flex items-center justify-center gap-2"
               >
-                📸 Capturar
+                <Camera className="w-5 h-5" />
+                Capturar
               </button>
             )}
           </div>
