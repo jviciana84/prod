@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = createClient()
+    const supabase = await createClient()
     const uploadedUrls: Record<string, string> = {}
     const errors: Array<{ key: string, error: string }> = []
 
