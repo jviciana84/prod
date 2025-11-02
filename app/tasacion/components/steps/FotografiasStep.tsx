@@ -91,6 +91,7 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
   const [stream, setStream] = useState<MediaStream | null>(null)
   const [capturedImage, setCapturedImage] = useState<string | null>(null)
   const [currentOverlay, setCurrentOverlay] = useState<string>('')
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState<number>(0) // Para flujo automático
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -129,13 +130,14 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
     }
   }, [seccionActual])
 
+  // Orden en sentido horario (agujas del reloj) - rotación natural del vehículo
   const fotosVehiculoConfig: { key: FotoVehiculoKey; label: string; emoji: string }[] = [
     { key: 'frontal', label: 'Frontal', emoji: '🚗' },
-    { key: 'lateralDelanteroIzq', label: 'Lateral delantero izq.', emoji: '◀️' },
-    { key: 'lateralTraseroIzq', label: 'Lateral trasero izq.', emoji: '↙️' },
-    { key: 'trasera', label: 'Trasera', emoji: '🔙' },
-    { key: 'lateralTraseroDer', label: 'Lateral trasero der.', emoji: '↘️' },
     { key: 'lateralDelanteroDer', label: 'Lateral delantero der.', emoji: '▶️' },
+    { key: 'lateralTraseroDer', label: 'Lateral trasero der.', emoji: '↘️' },
+    { key: 'trasera', label: 'Trasera', emoji: '🔙' },
+    { key: 'lateralTraseroIzq', label: 'Lateral trasero izq.', emoji: '↙️' },
+    { key: 'lateralDelanteroIzq', label: 'Lateral delantero izq.', emoji: '◀️' },
   ]
 
   const fotosDocConfig: { key: FotoDocKey; label: string; emoji: string }[] = [
@@ -160,6 +162,10 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
       
       if (tipo === 'vehiculo' && key) {
         setFotosVehiculo(prev => ({ ...prev, [key]: base64 }))
+        // Si es foto de vehículo subida desde galería dentro de cámara, avanzar automáticamente
+        if (showCameraView) {
+          advanceToNextVehiclePhoto()
+        }
       } else if (tipo === 'documento' && key) {
         setFotosDocumentacion(prev => ({ ...prev, [key]: base64 }))
       } else if (tipo === 'otra') {
@@ -175,14 +181,15 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
       setFotoActual(null)
       console.log('Foto guardada para tipo:', tipo)
       
-      // Auto-scroll después de cargar imagen en cualquier sección
-      setTimeout(() => {
-        // Scroll al máximo hacia abajo después de cargar foto
-        window.scrollTo({ 
-          top: document.documentElement.scrollHeight, 
-          behavior: 'smooth' 
-        })
-      }, 400)
+      // Auto-scroll después de cargar imagen en cualquier sección (solo si no estamos en cámara)
+      if (!showCameraView) {
+        setTimeout(() => {
+          window.scrollTo({ 
+            top: document.documentElement.scrollHeight, 
+            behavior: 'smooth' 
+          })
+        }, 400)
+      }
     }
     reader.readAsDataURL(file)
   }
@@ -281,12 +288,87 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
       handleFileChange(event, 'interiorTrasero')
     } else if (fotosVehiculoConfig.some(f => f.key === fotoActual)) {
       handleFileChange(event, 'vehiculo', fotoActual)
+      // Pasar a la siguiente foto automáticamente si es foto de vehículo
+      advanceToNextVehiclePhoto()
+      return // No cerrar cámara, solo resetear captura
     } else if (fotosDocConfig.some(f => f.key === fotoActual)) {
       handleFileChange(event, 'documento', fotoActual)
     }
 
-    // Cerrar cámara
+    // Cerrar cámara (solo si NO es foto de vehículo)
     handleCloseCamera()
+  }
+
+  // Función para avanzar a la siguiente foto del vehículo automáticamente
+  const advanceToNextVehiclePhoto = async () => {
+    const currentIndex = fotosVehiculoConfig.findIndex(f => f.key === fotoActual)
+    const nextIndex = currentIndex + 1
+    
+    if (nextIndex < fotosVehiculoConfig.length) {
+      // Hay más fotos, pasar a la siguiente
+      const nextPhoto = fotosVehiculoConfig[nextIndex]
+      setFotoActual(nextPhoto.key)
+      setCurrentPhotoIndex(nextIndex)
+      
+      // Cambiar overlay
+      if (overlayMap[nextPhoto.key]) {
+        setCurrentOverlay(overlayMap[nextPhoto.key])
+      }
+      
+      // Resetear captura para que pueda tomar la siguiente
+      setCapturedImage(null)
+      
+      // Asegurar que el stream sigue activo
+      if (!stream && videoRef.current) {
+        try {
+          const mediaStream = await navigator.mediaDevices.getUserMedia({
+            video: { 
+              facingMode: 'environment',
+              width: { ideal: 1920 },
+              height: { ideal: 1080 }
+            }
+          })
+          setStream(mediaStream)
+        } catch (error) {
+          console.error('Error al reactivar cámara:', error)
+        }
+      }
+    } else {
+      // Era la última foto, cerrar cámara
+      handleCloseCamera()
+    }
+  }
+
+  // Función para obtener el nombre legible de la vista actual
+  const getCurrentViewName = (): string => {
+    if (!fotoActual) return ''
+    
+    const vehiculoPhoto = fotosVehiculoConfig.find(f => f.key === fotoActual)
+    if (vehiculoPhoto) return vehiculoPhoto.label.toUpperCase()
+    
+    const docPhoto = fotosDocConfig.find(f => f.key === fotoActual)
+    if (docPhoto) return docPhoto.label.toUpperCase()
+    
+    if (fotoActual === 'cuentakm') return 'CUENTAKILÓMETROS'
+    if (fotoActual === 'interiorDelantero') return 'INTERIOR DELANTERO'
+    if (fotoActual === 'interiorTrasero') return 'INTERIOR TRASERO'
+    if (fotoActual === 'otra') return 'FOTO ADICIONAL'
+    
+    return ''
+  }
+
+  // Manejar subida desde galería dentro de la cámara
+  const handleUploadFromCamera = () => {
+    // Cerrar la cámara actual
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop())
+      setStream(null)
+    }
+    setCapturedImage(null)
+    setShowCameraView(false)
+    
+    // Abrir selector de galería
+    galleryInputRef.current?.click()
   }
 
   const handleRetakePhoto = async () => {
@@ -936,12 +1018,10 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
       {/* Vista de cámara fullscreen con overlay */}
       {showCameraView && (
         <div className="fixed inset-0 bg-black z-50 flex flex-col">
-          <button
-            onClick={handleCloseCamera}
-            className="absolute top-2 right-2 z-50 text-white p-2 bg-black/50 hover:bg-black/70 rounded-full transition-all"
-          >
-            <X className="w-6 h-6" />
-          </button>
+          {/* Indicador de vista actual (superior derecha, discreto) */}
+          <div className="absolute top-4 right-4 z-50 bg-black/70 px-3 py-1.5 rounded-lg">
+            <p className="text-white text-xs font-semibold">{getCurrentViewName()}</p>
+          </div>
 
           <div className="flex-1 relative overflow-hidden">
             {capturedImage ? (
@@ -956,6 +1036,25 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
                   className="w-full h-full object-cover"
                 />
                 
+                {/* Rejilla fotográfica con punto central */}
+                <div className="absolute inset-0 pointer-events-none">
+                  {/* Grid de regla de tercios */}
+                  <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                    {/* Líneas verticales */}
+                    <line x1="33.33" y1="0" x2="33.33" y2="100" stroke="white" strokeWidth="0.2" opacity="0.4" />
+                    <line x1="66.67" y1="0" x2="66.67" y2="100" stroke="white" strokeWidth="0.2" opacity="0.4" />
+                    {/* Líneas horizontales */}
+                    <line x1="0" y1="33.33" x2="100" y2="33.33" stroke="white" strokeWidth="0.2" opacity="0.4" />
+                    <line x1="0" y1="66.67" x2="100" y2="66.67" stroke="white" strokeWidth="0.2" opacity="0.4" />
+                  </svg>
+                  
+                  {/* Punto central */}
+                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                    <div className="w-2 h-2 bg-white rounded-full opacity-60"></div>
+                  </div>
+                </div>
+                
+                {/* Overlay de silueta (solo si existe) */}
                 {currentOverlay && (
                   <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
                     <img 
@@ -973,19 +1072,41 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
             )}
           </div>
 
-          <div className="bg-black/60 p-3">
+          {/* Botonera con fondo negro */}
+          <div className="bg-black p-4 space-y-2">
+            {/* Botones compactos superiores (Menú y Subir) - Solo cuando NO hay captura */}
+            {!capturedImage && (
+              <div className="flex gap-2 mb-2">
+                <button
+                  onClick={handleCloseCamera}
+                  className="px-3 py-2 bg-gray-800 text-white rounded-lg text-xs font-medium flex items-center gap-1.5 hover:bg-gray-700 transition-all"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  Menú
+                </button>
+                <button
+                  onClick={handleUploadFromCamera}
+                  className="px-3 py-2 bg-gray-800 text-white rounded-lg text-xs font-medium flex items-center gap-1.5 hover:bg-gray-700 transition-all"
+                >
+                  <ImageIcon className="w-3.5 h-3.5" />
+                  Subir
+                </button>
+              </div>
+            )}
+            
+            {/* Botones principales */}
             {capturedImage ? (
               <div className="flex gap-2">
                 <button
                   onClick={handleRetakePhoto}
-                  className="flex-1 p-3 bg-gray-600 text-white rounded-lg font-bold text-sm flex items-center justify-center gap-2"
+                  className="flex-1 p-3 bg-gray-700 text-white rounded-lg font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-600 transition-all"
                 >
                   <RotateCcw className="w-4 h-4" />
                   Repetir
                 </button>
                 <button
                   onClick={handleConfirmCameraPhoto}
-                  className="flex-1 p-3 bg-green-600 text-white rounded-lg font-bold text-sm flex items-center justify-center gap-2"
+                  className="flex-1 p-3 bg-green-600 text-white rounded-lg font-bold text-sm flex items-center justify-center gap-2 hover:bg-green-500 transition-all"
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   Confirmar
@@ -994,10 +1115,11 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
             ) : (
               <button
                 onClick={handleCapture}
-                className="w-full p-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg font-bold text-sm flex items-center justify-center gap-2"
+                className="w-full p-4 bg-white text-black rounded-full font-bold text-base flex items-center justify-center gap-2 hover:bg-gray-200 transition-all shadow-lg"
               >
-                <Camera className="w-5 h-5" />
-                Capturar
+                <div className="w-16 h-16 bg-white border-4 border-gray-300 rounded-full flex items-center justify-center">
+                  <div className="w-14 h-14 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"></div>
+                </div>
               </button>
             )}
           </div>
