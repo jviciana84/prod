@@ -92,6 +92,7 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
   const [capturedImage, setCapturedImage] = useState<string | null>(null)
   const [currentOverlay, setCurrentOverlay] = useState<string>('')
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState<number>(0) // Para flujo automático
+  const [showBackConfirmation, setShowBackConfirmation] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -472,6 +473,35 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
 
   const handleEliminarFotoOtra = (index: number) => {
     setFotosOtras(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const handleBackButton = () => {
+    // Navegar entre secciones: otras → documentos → interiorTrasero → interiorDelantero → cuentakm → vehiculo
+    if (seccionActual === 'otras') {
+      setSeccionActual('documentos')
+    } else if (seccionActual === 'documentos') {
+      setSeccionActual('interiorTrasero')
+    } else if (seccionActual === 'interiorTrasero') {
+      setSeccionActual('interiorDelantero')
+    } else if (seccionActual === 'interiorDelantero') {
+      setSeccionActual('cuentakm')
+    } else if (seccionActual === 'cuentakm') {
+      setSeccionActual('vehiculo')
+    } else if (seccionActual === 'vehiculo') {
+      // Mostrar advertencia de pérdida de fotos
+      const tieneFotos = Object.values(fotosVehiculo).some(Boolean) || 
+                         fotosCuentakm || 
+                         fotosInteriorDelantero || 
+                         fotosInteriorTrasero ||
+                         Object.values(fotosDocumentacion).some(Boolean) ||
+                         fotosOtras.length > 0
+      
+      if (tieneFotos) {
+        setShowBackConfirmation(true)
+      } else {
+        onBack()
+      }
+    }
   }
 
   const handleContinue = () => {
@@ -1040,7 +1070,7 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
         {/* Botones de navegación */}
         <div className="flex gap-3 mt-6">
           <Button
-            onClick={onBack}
+            onClick={handleBackButton}
             variant="outline"
             className="flex-1 h-12 border-2"
           >
@@ -1054,6 +1084,40 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
           </Button>
         </div>
       </motion.div>
+
+      {/* Modal de confirmación para volver */}
+      {showBackConfirmation && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full"
+          >
+            <h3 className="text-lg font-bold text-gray-900 mb-3">¿Estás seguro?</h3>
+            <p className="text-sm text-gray-600 mb-6">
+              Si vuelves a "Datos del Vehículo" perderás todas las fotografías capturadas.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                onClick={() => setShowBackConfirmation(false)}
+                variant="outline"
+                className="flex-1"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowBackConfirmation(false)
+                  onBack()
+                }}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+              >
+                Sí, volver
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       {/* Vista de cámara fullscreen con overlay */}
       {showCameraView && (

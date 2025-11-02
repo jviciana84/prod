@@ -129,7 +129,7 @@ export default function DatosAdicionalesStep({ onComplete, onBack }: DatosAdicio
   }
 
   const isValid = origenVehiculo && documentosKm.length > 0 && comproNuevo !== null && color && movilidad && 
-    servicioPublico && etiquetaMedioambiental && itvEnVigor !== null && proximaITV
+    servicioPublico && etiquetaMedioambiental && itvEnVigor !== null && proximaITV && proximaITV.length === 10
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50 pt-6 pb-24 px-4">
