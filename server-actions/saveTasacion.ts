@@ -254,7 +254,11 @@ export async function saveTasacion(data: TasacionFormData, advisorSlug: string) 
     return {
       success: true,
       tasacionId: tasacion.id,
-      message: 'Tasación guardada correctamente'
+      message: 'Tasación guardada correctamente',
+      debug: {
+        totalImagenesProcesadas: imagesToUpload.length,
+        categorias: imagesToUpload.map(i => i.category).join(', ')
+      }
     }
   } catch (error) {
     console.error('❌ Error general al guardar tasación:', error)
