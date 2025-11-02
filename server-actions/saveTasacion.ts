@@ -163,38 +163,67 @@ export async function saveTasacion(data: TasacionFormData, advisorSlug: string) 
 
     console.log('✅ Tasación guardada en Supabase:', tasacion.id)
 
-    // 3. Subir imágenes a OVH
+    // 3. Subir imágenes DIRECTAMENTE a Supabase Storage
     if (imagesToUpload.length > 0) {
       try {
-        console.log(`📸 Preparando subida de ${imagesToUpload.length} imágenes a OVH...`)
-        const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/upload-tasacion-images`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            images: imagesToUpload,
-            tasacionId: tasacion.id
-          })
-        })
+        console.log(`📸 Preparando subida de ${imagesToUpload.length} imágenes a Supabase Storage...`)
+        
+        const uploadedUrls: Record<string, string> = {}
+        const errors: string[] = []
 
-        const uploadResult = await uploadResponse.json()
-        console.log('📸 Resultado de subida:', uploadResult)
+        for (const image of imagesToUpload) {
+          try {
+            // Convertir base64 a blob
+            const base64Data = image.data.replace(/^data:image\/\w+;base64,/, '')
+            const buffer = Buffer.from(base64Data, 'base64')
+            
+            // Determinar extensión
+            const extension = image.data.match(/^data:image\/(\w+);base64,/)?.[1] || 'jpg'
+            const fileName = `${image.key}.${extension}`
+            const filePath = `${tasacion.id}/${image.category}/${fileName}`
 
-        if (uploadResult.success && uploadResult.uploadedUrls) {
-          console.log(`✅ Subidas ${uploadResult.totalUploaded} imágenes a OVH`)
-          console.log('📸 URLs recibidas:', Object.keys(uploadResult.uploadedUrls))
+            // Subir a Supabase Storage
+            const { data: uploadData, error: uploadError } = await supabase.storage
+              .from('tasacion-fotos')
+              .upload(filePath, buffer, {
+                contentType: `image/${extension}`,
+                upsert: true
+              })
 
+            if (uploadError) {
+              console.error(`❌ Error al subir ${image.key}:`, uploadError)
+              errors.push(`${image.key}: ${uploadError.message}`)
+              continue
+            }
+
+            // Obtener URL pública
+            const { data: publicUrlData } = supabase.storage
+              .from('tasacion-fotos')
+              .getPublicUrl(filePath)
+
+            uploadedUrls[image.key] = publicUrlData.publicUrl
+            console.log(`✅ Subida exitosa: ${image.key}`)
+          } catch (error) {
+            console.error(`❌ Error al subir ${image.key}:`, error)
+            errors.push(`${image.key}: ${error instanceof Error ? error.message : 'Error desconocido'}`)
+          }
+        }
+
+        const totalUploaded = Object.keys(uploadedUrls).length
+        console.log(`✅ Subidas ${totalUploaded} de ${imagesToUpload.length} imágenes`)
+
+        if (totalUploaded > 0) {
           // 4. Guardar URLs de fotos en tabla tasacion_fotos
-          const fotosToInsert = Object.entries(uploadResult.uploadedUrls).map(([key, url]) => {
+          const fotosToInsert = Object.entries(uploadedUrls).map(([key, url]) => {
             const image = imagesToUpload.find(img => img.key === key)
+            const extension = image?.data.match(/^data:image\/(\w+);base64,/)?.[1] || 'jpg'
             return {
               tasacion_id: tasacion.id,
               categoria: image?.category || 'otras',
               foto_key: key,
-              url: url as string,
-              sftp_path: `${tasacion.id}/${image?.category}/${key}`,
-              mime_type: 'image/jpeg'
+              url: url,
+              sftp_path: `${tasacion.id}/${image?.category}/${key}.${extension}`,
+              mime_type: `image/${extension}`
             }
           })
 
@@ -206,16 +235,16 @@ export async function saveTasacion(data: TasacionFormData, advisorSlug: string) 
           if (fotosError) {
             console.error('❌ Error al guardar URLs de fotos:', fotosError)
             console.error('📋 Datos que se intentaron insertar:', fotosToInsert)
-            // No es crítico, continuamos
           } else {
             console.log(`✅ ${fotosToInsert.length} URLs de fotos guardadas en Supabase`)
           }
-        } else {
-          console.warn('⚠️ Algunas imágenes no se pudieron subir:', uploadResult.errors)
+        }
+
+        if (errors.length > 0) {
+          console.warn(`⚠️ ${errors.length} imágenes no se pudieron subir:`, errors)
         }
       } catch (uploadError) {
-        console.error('❌ Error al subir imágenes a OVH:', uploadError)
-        // No es crítico, la tasación ya está guardada
+        console.error('❌ Error general al subir imágenes:', uploadError)
       }
     }
 
