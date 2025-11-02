@@ -87,7 +87,7 @@ export function PWAInstaller() {
       window.removeEventListener('resize', checkMobile)
       clearInterval(intervalCheck)
     }
-  }, [showInstallPrompt]), [])
+  }, [showInstallPrompt])
 
   // Countdown timer
   useEffect(() => {
