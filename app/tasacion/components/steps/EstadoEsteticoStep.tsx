@@ -18,6 +18,16 @@ export default function EstadoEsteticoStep({ onComplete, onBack }: EstadoEstetic
   // Scroll al inicio cuando se monta el componente
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
+    
+    // Auto-scroll a los 3 segundos para mostrar botones de navegación
+    const scrollTimer = setTimeout(() => {
+      window.scrollTo({ 
+        top: document.documentElement.scrollHeight, 
+        behavior: 'smooth' 
+      })
+    }, 3000)
+    
+    return () => clearTimeout(scrollTimer)
   }, [])
   
   const [vistaActual, setVistaActual] = useState<Vista>('frontal')

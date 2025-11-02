@@ -29,10 +29,10 @@ export default function DatosBasicosStep({ onComplete, onBack }: DatosBasicosSte
   const [motivoFechaIncorrecta, setMotivoFechaIncorrecta] = useState('')
   const [showDisclaimer, setShowDisclaimer] = useState(false)
   
-  // Refs para auto-scroll
-  const kmRef = useRef<HTMLDivElement>(null)
+  // Refs para auto-scroll y navegación
+  const kmRef = useRef<HTMLInputElement>(null)
   const procedenciaRef = useRef<HTMLDivElement>(null)
-  const fechaRef = useRef<HTMLDivElement>(null)
+  const fechaRef = useRef<HTMLInputElement>(null)
   
   // Scroll al inicio cuando se monta el componente
   useEffect(() => {
@@ -145,6 +145,11 @@ export default function DatosBasicosStep({ onComplete, onBack }: DatosBasicosSte
     } else {
       setShowDisclaimer(false)
     }
+    
+    // Focus automático a fecha de matriculación
+    setTimeout(() => {
+      fechaRef.current?.focus()
+    }, 300)
   }
 
   const handleFechaManualChange = (value: string) => {
@@ -230,6 +235,12 @@ export default function DatosBasicosStep({ onComplete, onBack }: DatosBasicosSte
               placeholder="Ej: 1234ABC"
               value={matricula}
               onChange={(e) => handleMatriculaChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && matricula) {
+                  e.preventDefault()
+                  kmRef.current?.focus()
+                }
+              }}
               className="h-12 text-lg font-mono uppercase text-center border-2 focus:border-purple-500 bg-white text-gray-900"
               maxLength={10}
             />
@@ -246,12 +257,20 @@ export default function DatosBasicosStep({ onComplete, onBack }: DatosBasicosSte
               Kilómetros actuales
             </Label>
             <Input
+              ref={kmRef}
               id="km"
               type="number"
               inputMode="numeric"
               placeholder="150000"
               value={kmActuales}
               onChange={(e) => setKmActuales(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && kmActuales) {
+                  e.preventDefault()
+                  // Ocultar teclado
+                  kmRef.current?.blur()
+                }
+              }}
               className="h-12 text-lg text-center border-2 focus:border-purple-500 bg-white text-gray-900"
             />
           </motion.div>
@@ -333,6 +352,7 @@ export default function DatosBasicosStep({ onComplete, onBack }: DatosBasicosSte
                 Fecha de primera matriculación (DD/MM/AAAA) *
               </Label>
               <Input
+                ref={fechaRef}
                 id="fecha-matriculacion"
                 type="text"
                 inputMode="numeric"
@@ -350,6 +370,19 @@ export default function DatosBasicosStep({ onComplete, onBack }: DatosBasicosSte
                   }
                   
                   setFechaMatriculacion(value)
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && fechaMatriculacion.length === 10) {
+                    e.preventDefault()
+                    // Ocultar teclado y scroll al final
+                    fechaRef.current?.blur()
+                    setTimeout(() => {
+                      window.scrollTo({ 
+                        top: document.documentElement.scrollHeight, 
+                        behavior: 'smooth' 
+                      })
+                    }, 100)
+                  }
                 }}
                 className="h-12 text-center border-2 focus:border-purple-500 bg-white text-gray-900"
                 maxLength={10}

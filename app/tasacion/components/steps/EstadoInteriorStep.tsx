@@ -22,6 +22,16 @@ export default function EstadoInteriorStep({ onComplete, onBack }: EstadoInterio
   // Scroll al inicio cuando se monta el componente
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
+    
+    // Auto-scroll a los 3 segundos para mostrar botones de navegación
+    const scrollTimer = setTimeout(() => {
+      window.scrollTo({ 
+        top: document.documentElement.scrollHeight, 
+        behavior: 'smooth' 
+      })
+    }, 3000)
+    
+    return () => clearTimeout(scrollTimer)
   }, [])
   
   const [vistaActual, setVistaActual] = useState<VistaInterior>('interior_salpicadero')
@@ -111,7 +121,7 @@ export default function EstadoInteriorStep({ onComplete, onBack }: EstadoInterio
             <span className="text-xs font-medium text-gray-600">Progreso de vistas:</span>
             <span className="text-xs font-bold text-teal-600">{getProgressText()}</span>
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-4 gap-2">
             {vistas.map((vista) => (
               <button
                 key={vista.id}

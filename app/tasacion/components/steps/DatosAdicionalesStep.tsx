@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { FileText, Calendar, Palette } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -48,6 +48,10 @@ export default function DatosAdicionalesStep({ onComplete, onBack }: DatosAdicio
   const [itvEnVigor, setItvEnVigor] = useState<boolean | null>(null)
   const [proximaITV, setProximaITV] = useState('')
   const [observaciones, setObservaciones] = useState('')
+  
+  // Refs para navegación
+  const proximaITVRef = useRef<HTMLInputElement>(null)
+  const observacionesRef = useRef<HTMLTextAreaElement>(null)
   
   // Auto-scroll cuando se marca ITV en vigor
   useEffect(() => {
@@ -554,12 +558,9 @@ export default function DatosAdicionalesStep({ onComplete, onBack }: DatosAdicio
                 <button
                   onClick={() => {
                     setItvEnVigor(true)
-                    // Auto-scroll al siguiente elemento
+                    // Focus al campo de fecha ITV
                     setTimeout(() => {
-                      const nextElement = document.getElementById('proxima-itv-field')
-                      if (nextElement) {
-                        nextElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                      }
+                      proximaITVRef.current?.focus()
                     }, 300)
                   }}
                   className={`p-4 rounded-lg border-2 transition-all font-semibold ${
@@ -573,12 +574,9 @@ export default function DatosAdicionalesStep({ onComplete, onBack }: DatosAdicio
                 <button
                   onClick={() => {
                     setItvEnVigor(false)
-                    // Auto-scroll al siguiente elemento
+                    // Focus al campo de fecha ITV
                     setTimeout(() => {
-                      const nextElement = document.getElementById('proxima-itv-field')
-                      if (nextElement) {
-                        nextElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                      }
+                      proximaITVRef.current?.focus()
                     }, 300)
                   }}
                   className={`p-4 rounded-lg border-2 transition-all font-semibold ${
@@ -597,6 +595,7 @@ export default function DatosAdicionalesStep({ onComplete, onBack }: DatosAdicio
                   Próxima ITV (DD/MM/AAAA) *
                 </Label>
                 <Input
+                  ref={proximaITVRef}
                   id="proxima-itv"
                   type="text"
                   inputMode="numeric"
@@ -616,6 +615,16 @@ export default function DatosAdicionalesStep({ onComplete, onBack }: DatosAdicio
                     
                     setProximaITV(value)
                   }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && proximaITV.length === 10) {
+                      e.preventDefault()
+                      // Focus a observaciones y scroll
+                      observacionesRef.current?.focus()
+                      setTimeout(() => {
+                        observacionesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                      }, 100)
+                    }
+                  }}
                   className="h-12 text-center bg-white text-gray-900"
                   maxLength={10}
                 />
@@ -634,6 +643,7 @@ export default function DatosAdicionalesStep({ onComplete, onBack }: DatosAdicio
                 Observaciones (opcional)
               </Label>
               <Textarea
+                ref={observacionesRef}
                 id="observaciones"
                 placeholder="Cualquier información adicional relevante..."
                 value={observaciones}

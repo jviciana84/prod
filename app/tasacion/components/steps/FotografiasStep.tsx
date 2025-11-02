@@ -52,6 +52,16 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
   // Scroll al inicio cuando se monta el componente
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
+    
+    // Auto-scroll a los 3 segundos
+    const scrollTimer = setTimeout(() => {
+      window.scrollTo({ 
+        top: document.documentElement.scrollHeight, 
+        behavior: 'smooth' 
+      })
+    }, 3000)
+    
+    return () => clearTimeout(scrollTimer)
   }, [])
   
   const [seccionActual, setSeccionActual] = useState<'vehiculo' | 'cuentakm' | 'interiorDelantero' | 'interiorTrasero' | 'documentos' | 'otras'>('vehiculo')
@@ -311,8 +321,18 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
     setCapturedImage(null)
     setCurrentOverlay('')
     
+    // Desbloquear orientación y volver a portrait
     if (screen.orientation && 'unlock' in screen.orientation) {
       (screen.orientation as any).unlock()
+      
+      // Volver a forzar orientación vertical
+      setTimeout(() => {
+        if (screen.orientation && 'lock' in screen.orientation) {
+          (screen.orientation as any).lock('portrait').catch(() => {
+            console.log('No se pudo restaurar orientación vertical')
+          })
+        }
+      }, 100)
     }
   }
 
