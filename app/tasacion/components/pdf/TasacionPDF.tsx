@@ -1363,9 +1363,15 @@ function renderPhotoPages(data: TasacionFormData, tasacionId?: string, metadata?
     })
   }
   
-  // Si no hay fotos, generar UNA página con placeholders
+  // Si no hay fotos, generar placeholders en grid 2x3 (6 recuadros)
   if (photos.length === 0) {
     const photoStartPage = getPhotoStartPage(data)
+    const placeholderLabels = [
+      'Frontal', 'Lateral Delantero Derecho',
+      'Lateral Trasero Derecho', 'Trasera',
+      'Lateral Trasero Izquierdo', 'Lateral Delantero Izquierdo'
+    ]
+    
     return (
       <Page size="A4" style={styles.photoPage}>
         <View style={styles.header}>
@@ -1380,19 +1386,24 @@ function renderPhotoPages(data: TasacionFormData, tasacionId?: string, metadata?
           </View>
         </View>
         
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <View style={{ 
-            padding: 40, 
-            backgroundColor: '#f9fafb', 
-            borderRadius: 8, 
-            border: '2 dashed #d1d5db',
-            alignItems: 'center'
-          }}>
-            <Text style={{ fontSize: 48, color: '#d1d5db', marginBottom: 10 }}>📷</Text>
-            <Text style={{ fontSize: 12, color: '#9ca3af', fontStyle: 'italic' }}>
-              Sin fotografías
-            </Text>
-          </View>
+        <View style={styles.photoGrid}>
+          {placeholderLabels.map((label, idx) => (
+            <View key={idx} style={styles.photoItem}>
+              <View style={{ 
+                width: '100%', 
+                height: 160, 
+                backgroundColor: '#f9fafb',
+                border: '2 dashed #d1d5db',
+                borderRadius: 4,
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}>
+                <Text style={{ fontSize: 32, color: '#d1d5db', marginBottom: 5 }}>📷</Text>
+                <Text style={{ fontSize: 8, color: '#9ca3af', fontStyle: 'italic' }}>Sin foto</Text>
+              </View>
+              <Text style={styles.photoLabel}>{label}</Text>
+            </View>
+          ))}
         </View>
         
         <View style={styles.footer}>
