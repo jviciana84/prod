@@ -227,6 +227,9 @@ export default function PoliticaPrivacidadPage() {
           </p>
           <Button
             onClick={() => {
+              // Scroll al inicio antes de volver
+              window.scrollTo({ top: 0, behavior: 'auto' })
+              
               // Si viene desde tasaciones, volver ahí
               if (document.referrer.includes('/tasacion/')) {
                 window.close()

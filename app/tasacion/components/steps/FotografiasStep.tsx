@@ -114,6 +114,21 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
     }
   }, [stream, showCameraView])
 
+  // Prevenir scroll del body cuando la cámara está abierta
+  useEffect(() => {
+    if (showCameraView) {
+      // Prevenir scroll
+      document.body.style.overflow = 'hidden'
+      document.documentElement.style.overflow = 'hidden'
+      
+      return () => {
+        // Restaurar scroll al cerrar
+        document.body.style.overflow = ''
+        document.documentElement.style.overflow = ''
+      }
+    }
+  }, [showCameraView])
+
   // Auto-scroll cuando se entra a la sección de documentos
   useEffect(() => {
     if (seccionActual === 'documentos') {
@@ -147,8 +162,8 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
     { key: 'fichaTecnicaDorso', label: 'Ficha técnica (dorso)', emoji: '📋' },
   ]
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, tipo: 'vehiculo' | 'documento' | 'otra' | 'cuentakm' | 'interiorDelantero' | 'interiorTrasero', key?: string) => {
-    console.log('handleFileChange llamado:', { tipo, key, files: e.target.files })
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, tipo: 'vehiculo' | 'documento' | 'otra' | 'cuentakm' | 'interiorDelantero' | 'interiorTrasero', key?: string, skipAutoAdvance = false) => {
+    console.log('handleFileChange llamado:', { tipo, key, files: e.target.files, skipAutoAdvance })
     const file = e.target.files?.[0]
     if (!file) {
       console.log('No hay archivo seleccionado')
@@ -163,7 +178,8 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
       if (tipo === 'vehiculo' && key) {
         setFotosVehiculo(prev => ({ ...prev, [key]: base64 }))
         // Si es foto de vehículo subida desde galería dentro de cámara, avanzar automáticamente
-        if (showCameraView) {
+        if (showCameraView && !skipAutoAdvance) {
+          console.log('📸 Foto subida desde galería en cámara, avanzando...')
           advanceToNextVehiclePhoto()
         }
       } else if (tipo === 'documento' && key) {
@@ -178,7 +194,9 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
         setFotosInteriorTrasero(base64)
       }
       
-      setFotoActual(null)
+      if (!skipAutoAdvance) {
+        setFotoActual(null)
+      }
       console.log('Foto guardada para tipo:', tipo)
       
       // Auto-scroll después de cargar imagen en cualquier sección (solo si no estamos en cámara)
@@ -279,20 +297,22 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
     } as any
 
     if (fotoActual === 'otra') {
-      handleFileChange(event, 'otra')
+      handleFileChange(event, 'otra', undefined, true)
     } else if (fotoActual === 'cuentakm') {
-      handleFileChange(event, 'cuentakm')
+      handleFileChange(event, 'cuentakm', undefined, true)
     } else if (fotoActual === 'interiorDelantero') {
-      handleFileChange(event, 'interiorDelantero')
+      handleFileChange(event, 'interiorDelantero', undefined, true)
     } else if (fotoActual === 'interiorTrasero') {
-      handleFileChange(event, 'interiorTrasero')
+      handleFileChange(event, 'interiorTrasero', undefined, true)
     } else if (fotosVehiculoConfig.some(f => f.key === fotoActual)) {
-      handleFileChange(event, 'vehiculo', fotoActual)
-      // Pasar a la siguiente foto automáticamente si es foto de vehículo
+      // Para fotos de vehículo: guardar SIN auto-advance (skipAutoAdvance=true)
+      handleFileChange(event, 'vehiculo', fotoActual, true)
+      console.log('📸 Foto de vehículo confirmada, avanzando a siguiente...')
+      // Luego avanzar manualmente UNA VEZ
       advanceToNextVehiclePhoto()
       return // No cerrar cámara, solo resetear captura
     } else if (fotosDocConfig.some(f => f.key === fotoActual)) {
-      handleFileChange(event, 'documento', fotoActual)
+      handleFileChange(event, 'documento', fotoActual, true)
     }
 
     // Cerrar cámara (solo si NO es foto de vehículo)
@@ -1017,11 +1037,31 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
 
       {/* Vista de cámara fullscreen con overlay */}
       {showCameraView && (
-        <div className="fixed inset-0 bg-black z-50 flex flex-col">
+        <div className="fixed inset-0 bg-black z-50 flex flex-col overflow-hidden touch-none">
           {/* Indicador de vista actual (superior derecha, discreto) */}
-          <div className="absolute top-4 right-4 z-50 bg-black/70 px-3 py-1.5 rounded-lg">
+          <div className="absolute top-4 right-4 z-50 bg-black/70 px-3 py-1.5 rounded-lg pointer-events-none">
             <p className="text-white text-xs font-semibold">{getCurrentViewName()}</p>
           </div>
+
+          {/* Botones compactos superpuestos (inferior izquierda) - Solo cuando NO hay captura */}
+          {!capturedImage && (
+            <div className="absolute bottom-24 left-4 z-50 flex flex-col gap-2">
+              <button
+                onClick={handleCloseCamera}
+                className="px-3 py-2 bg-black/80 text-white rounded-lg text-xs font-medium flex items-center gap-1.5 hover:bg-black/90 transition-all backdrop-blur-sm border border-white/20"
+              >
+                <X className="w-3.5 h-3.5" />
+                Menú
+              </button>
+              <button
+                onClick={handleUploadFromCamera}
+                className="px-3 py-2 bg-black/80 text-white rounded-lg text-xs font-medium flex items-center gap-1.5 hover:bg-black/90 transition-all backdrop-blur-sm border border-white/20"
+              >
+                <ImageIcon className="w-3.5 h-3.5" />
+                Subir
+              </button>
+            </div>
+          )}
 
           <div className="flex-1 relative overflow-hidden">
             {capturedImage ? (
@@ -1073,27 +1113,7 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
           </div>
 
           {/* Botonera con fondo negro */}
-          <div className="bg-black p-4 space-y-2">
-            {/* Botones compactos superiores (Menú y Subir) - Solo cuando NO hay captura */}
-            {!capturedImage && (
-              <div className="flex gap-2 mb-2">
-                <button
-                  onClick={handleCloseCamera}
-                  className="px-3 py-2 bg-gray-800 text-white rounded-lg text-xs font-medium flex items-center gap-1.5 hover:bg-gray-700 transition-all"
-                >
-                  <X className="w-3.5 h-3.5" />
-                  Menú
-                </button>
-                <button
-                  onClick={handleUploadFromCamera}
-                  className="px-3 py-2 bg-gray-800 text-white rounded-lg text-xs font-medium flex items-center gap-1.5 hover:bg-gray-700 transition-all"
-                >
-                  <ImageIcon className="w-3.5 h-3.5" />
-                  Subir
-                </button>
-              </div>
-            )}
-            
+          <div className="bg-black p-3">
             {/* Botones principales */}
             {capturedImage ? (
               <div className="flex gap-2">
@@ -1115,11 +1135,10 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
             ) : (
               <button
                 onClick={handleCapture}
-                className="w-full p-4 bg-white text-black rounded-full font-bold text-base flex items-center justify-center gap-2 hover:bg-gray-200 transition-all shadow-lg"
+                className="w-full p-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg font-bold text-sm flex items-center justify-center gap-2"
               >
-                <div className="w-16 h-16 bg-white border-4 border-gray-300 rounded-full flex items-center justify-center">
-                  <div className="w-14 h-14 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"></div>
-                </div>
+                <Camera className="w-5 h-5" />
+                Capturar
               </button>
             )}
           </div>
