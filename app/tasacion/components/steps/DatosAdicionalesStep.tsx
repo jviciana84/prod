@@ -33,11 +33,9 @@ interface DatosAdicionalesStepProps {
 }
 
 export default function DatosAdicionalesStep({ onComplete, onBack }: DatosAdicionalesStepProps) {
-  // Scroll mínimo para ocultar barra de direcciones
+  // Scroll al inicio
   useEffect(() => {
-    setTimeout(() => {
-      window.scrollTo({ top: 1, behavior: 'auto' })
-    }, 100)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [])
   
   const [origenVehiculo, setOrigenVehiculo] = useState<OrigenVehiculo | null>(null)

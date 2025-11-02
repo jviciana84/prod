@@ -14,13 +14,6 @@ export default function InicioStep({ onComplete }: InicioStepProps) {
   const [permisosAceptados, setPermisosAceptados] = useState(false)
   const [politicaAceptada, setPoliticaAceptada] = useState(false)
 
-  // Scroll mínimo para ocultar barra de direcciones en móvil
-  useEffect(() => {
-    setTimeout(() => {
-      window.scrollTo({ top: 1, behavior: 'auto' })
-    }, 100)
-  }, [])
-
   const handleCheckboxChange = (checked: boolean) => {
     setPermisosAceptados(checked)
     
