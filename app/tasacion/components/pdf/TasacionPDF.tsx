@@ -873,7 +873,6 @@ const TasacionPDF = ({ data, metadata, tasacionId, logoBase64, watermarkBase64, 
             </View>
           </View>
         </Page>
-      )}
 
       {/* PÁGINA 3: DAÑOS INTERIORES - SIEMPRE se muestra */}
       <Page size="A4" style={styles.page}>
