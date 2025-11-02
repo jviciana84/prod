@@ -10,6 +10,15 @@ interface ImageToUpload {
 }
 
 export async function saveTasacion(data: TasacionFormData, advisorSlug: string) {
+  console.log('🟢 saveTasacion INICIADA')
+  console.log('📸 Fotos recibidas en saveTasacion:')
+  console.log('  fotosVehiculo:', data.fotosVehiculo ? Object.keys(data.fotosVehiculo).length : 0)
+  console.log('  fotosCuentakm:', !!data.fotosCuentakm)
+  console.log('  fotosInteriorDelantero:', !!data.fotosInteriorDelantero)
+  console.log('  fotosInteriorTrasero:', !!data.fotosInteriorTrasero)
+  console.log('  fotosDocumentacion:', data.fotosDocumentacion ? Object.keys(data.fotosDocumentacion).length : 0)
+  console.log('  fotosOtras:', data.fotosOtras?.length || 0)
+  
   try {
     const supabase = await createClient()
 
