@@ -236,6 +236,7 @@ export default function DatosBasicosStep({ onComplete, onBack }: DatosBasicosSte
                 id="matricula"
                 type="text"
                 inputMode="text"
+                enterKeyHint="next"
                 placeholder="Ej: 1234ABC"
                 value={matricula}
                 onChange={(e) => handleMatriculaChange(e.target.value)}
@@ -264,6 +265,7 @@ export default function DatosBasicosStep({ onComplete, onBack }: DatosBasicosSte
                 id="km"
                 type="number"
                 inputMode="numeric"
+                enterKeyHint="done"
                 placeholder="150000"
                 value={kmActuales}
                 onChange={(e) => setKmActuales(e.target.value)}
@@ -365,6 +367,7 @@ export default function DatosBasicosStep({ onComplete, onBack }: DatosBasicosSte
                   id="fecha-matriculacion"
                   type="text"
                   inputMode="numeric"
+                  enterKeyHint="done"
                   placeholder="15/03/2018"
                   value={fechaMatriculacion}
                   onChange={(e) => {
