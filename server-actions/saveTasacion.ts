@@ -163,9 +163,10 @@ export async function saveTasacion(data: TasacionFormData, advisorSlug: string) 
 
     console.log('✅ Tasación guardada en Supabase:', tasacion.id)
 
-    // 3. Subir imágenes a Supabase Storage
+    // 3. Subir imágenes a OVH
     if (imagesToUpload.length > 0) {
       try {
+        console.log(`📸 Preparando subida de ${imagesToUpload.length} imágenes a OVH...`)
         const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/upload-tasacion-images`, {
           method: 'POST',
           headers: {
@@ -178,9 +179,11 @@ export async function saveTasacion(data: TasacionFormData, advisorSlug: string) 
         })
 
         const uploadResult = await uploadResponse.json()
+        console.log('📸 Resultado de subida:', uploadResult)
 
         if (uploadResult.success && uploadResult.uploadedUrls) {
-          console.log(`✅ Subidas ${uploadResult.totalUploaded} imágenes a Supabase Storage`)
+          console.log(`✅ Subidas ${uploadResult.totalUploaded} imágenes a OVH`)
+          console.log('📸 URLs recibidas:', Object.keys(uploadResult.uploadedUrls))
 
           // 4. Guardar URLs de fotos en tabla tasacion_fotos
           const fotosToInsert = Object.entries(uploadResult.uploadedUrls).map(([key, url]) => {
@@ -195,21 +198,23 @@ export async function saveTasacion(data: TasacionFormData, advisorSlug: string) 
             }
           })
 
+          console.log(`📸 Guardando ${fotosToInsert.length} URLs en tasacion_fotos...`)
           const { error: fotosError } = await supabase
             .from('tasacion_fotos')
             .insert(fotosToInsert)
 
           if (fotosError) {
-            console.error('Error al guardar URLs de fotos:', fotosError)
+            console.error('❌ Error al guardar URLs de fotos:', fotosError)
+            console.error('📋 Datos que se intentaron insertar:', fotosToInsert)
             // No es crítico, continuamos
           } else {
-            console.log(`✅ URLs de fotos guardadas en Supabase`)
+            console.log(`✅ ${fotosToInsert.length} URLs de fotos guardadas en Supabase`)
           }
         } else {
           console.warn('⚠️ Algunas imágenes no se pudieron subir:', uploadResult.errors)
         }
       } catch (uploadError) {
-        console.error('❌ Error al subir imágenes:', uploadError)
+        console.error('❌ Error al subir imágenes a OVH:', uploadError)
         // No es crítico, la tasación ya está guardada
       }
     }
