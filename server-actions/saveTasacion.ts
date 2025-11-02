@@ -182,8 +182,9 @@ export async function saveTasacion(data: TasacionFormData, advisorSlug: string) 
       try {
         console.log(`📸 Preparando subida de ${imagesToUpload.length} imágenes a OVH...`)
         
-        // Construir URL correctamente (localhost en desarrollo, dominio en producción)
-        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+        // FORZAR localhost en desarrollo
+        const isDev = process.env.NODE_ENV === 'development'
+        const baseUrl = isDev ? 'http://localhost:3000' : process.env.NEXT_PUBLIC_SITE_URL
         const apiUrl = `${baseUrl}/api/upload-tasacion-images`
         
         console.log(`📸 URL de subida: ${apiUrl}`)
