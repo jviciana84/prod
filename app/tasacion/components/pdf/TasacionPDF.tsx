@@ -1252,15 +1252,11 @@ const TasacionPDF = ({ data, metadata, tasacionId, logoBase64, watermarkBase64, 
 function getTotalPages(data: TasacionFormData): number {
   let pages = 1 // Página 1 (datos compactos en 2 columnas)
   
-  // Página 2: Daños exteriores (si hay)
-  if (data.danosExteriores && data.danosExteriores.length > 0) {
-    pages += 1
-  }
+  // Página 2: Daños exteriores (SIEMPRE existe)
+  pages += 1
   
-  // Página 3: Daños interiores (si hay)
-  if (data.danosInteriores && data.danosInteriores.length > 0) {
-    pages += 1
-  }
+  // Página 3: Daños interiores (SIEMPRE existe)
+  pages += 1
   
   // Contar fotos reales
   let totalPhotos = 0
@@ -1292,9 +1288,13 @@ function getTotalPages(data: TasacionFormData): number {
     totalPhotos += data.fotosOtras.length
   }
   
-  // Cada 6 fotos = 1 página
+  // Página de fotos (SIEMPRE existe, aunque sea con placeholder)
+  // Si hay fotos: cada 6 fotos = 1 página
+  // Si NO hay fotos: 1 página con placeholder
   if (totalPhotos > 0) {
     pages += Math.ceil(totalPhotos / 6)
+  } else {
+    pages += 1 // Página con placeholder "Sin fotografías"
   }
   
   // Página final (certificado)
@@ -1305,19 +1305,11 @@ function getTotalPages(data: TasacionFormData): number {
 
 // Función auxiliar para calcular el número de página de inicio de fotos
 function getPhotoStartPage(data: TasacionFormData): number {
-  let startPage = 1 // Página 1 siempre existe
-  
-  // +1 si hay daños exteriores
-  if (data.danosExteriores && data.danosExteriores.length > 0) {
-    startPage += 1
-  }
-  
-  // +1 si hay daños interiores
-  if (data.danosInteriores && data.danosInteriores.length > 0) {
-    startPage += 1
-  }
-  
-  return startPage
+  // Página 1 siempre existe
+  // Página 2 siempre existe (daños exteriores)
+  // Página 3 siempre existe (daños interiores)
+  // Las fotos empiezan en página 4 (después de página 3)
+  return 3
 }
 
 // Función para renderizar páginas de fotografías
