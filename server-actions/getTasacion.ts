@@ -20,14 +20,17 @@ export async function getTasacionById(tasacionId: string) {
     }
 
     // Obtener URLs de fotos
+    console.log('📸 Buscando fotos para tasacion_id:', tasacionId)
     const { data: fotos, error: fotosError } = await supabase
       .from('tasacion_fotos')
       .select('*')
       .eq('tasacion_id', tasacionId)
 
     if (fotosError) {
-      console.error('Error al obtener fotos:', fotosError)
+      console.error('❌ Error al obtener fotos:', fotosError)
       // Continuamos sin fotos
+    } else {
+      console.log('✅ Fotos encontradas en BD:', fotos?.length || 0)
     }
 
     // Reconstruir el objeto TasacionFormData con las URLs de fotos
@@ -35,7 +38,7 @@ export async function getTasacionById(tasacionId: string) {
       recaptchaToken: tasacion.recaptcha_token || '',
       permisosAceptados: true,
       matricula: tasacion.matricula,
-      kmActuales: tasacion.km_actuales,
+      kmActuales: tasacion.kilometros,
       procedencia: tasacion.procedencia,
       fechaMatriculacion: tasacion.fecha_matriculacion,
       fechaMatriculacionConfirmada: true,
@@ -92,8 +95,10 @@ export async function getTasacionById(tasacionId: string) {
     }
 
     // Mapear fotos
+    console.log('📸 Fotos recuperadas de BD:', fotos?.length || 0)
     if (fotos && fotos.length > 0) {
       fotos.forEach(foto => {
+        console.log(`📸 Procesando foto: categoria=${foto.categoria}, key=${foto.foto_key}, url=${foto.url?.substring(0, 80)}`)
         if (foto.categoria === 'vehiculo') {
           tasacionData.fotosVehiculo[foto.foto_key] = foto.url
         } else if (foto.categoria === 'cuentakm') {
@@ -108,6 +113,16 @@ export async function getTasacionById(tasacionId: string) {
           tasacionData.fotosOtras.push(foto.url)
         }
       })
+      console.log('✅ Fotos mapeadas:', {
+        vehiculo: Object.keys(tasacionData.fotosVehiculo).length,
+        cuentakm: !!tasacionData.fotosCuentakm,
+        interiorDel: !!tasacionData.fotosInteriorDelantero,
+        interiorTras: !!tasacionData.fotosInteriorTrasero,
+        documentacion: Object.keys(tasacionData.fotosDocumentacion).length,
+        otras: tasacionData.fotosOtras.length
+      })
+    } else {
+      console.warn('⚠️ No se encontraron fotos en la BD para tasacion_id:', tasacionId)
     }
 
     return {
