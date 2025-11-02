@@ -47,6 +47,14 @@ export default function TasacionCompletadaPage() {
         
         if (result.success && result.data) {
           console.log('✅ Tasación recuperada desde Supabase')
+          console.log('📸 Fotos en tasación recuperada:', {
+            vehiculo: result.data.fotosVehiculo ? Object.keys(result.data.fotosVehiculo).length : 0,
+            cuentakm: !!result.data.fotosCuentakm,
+            interiorDel: !!result.data.fotosInteriorDelantero,
+            interiorTras: !!result.data.fotosInteriorTrasero,
+            documentacion: result.data.fotosDocumentacion ? Object.keys(result.data.fotosDocumentacion).length : 0,
+            otras: result.data.fotosOtras?.length || 0
+          })
           setTasacionData(result.data)
           // Guardar el tasacionId para el PDF antes de limpiarlo
           setSavedTasacionId(tasacionId)
