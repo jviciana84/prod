@@ -1477,47 +1477,55 @@ function renderPhotoPages(data: TasacionFormData, tasacionId?: string, metadata?
     </Page>
   )
   
-  // PÁGINA 4: OTRAS FOTOS (solo si hay alguna, máximo 6)
-  if (data.fotosOtras && data.fotosOtras.length > 0) {
-    const otrasToShow = data.fotosOtras.slice(0, 6)
-    
-    pages.push(
-      <Page key="fotos-otras" size="A4" style={styles.photoPage}>
-        <View style={styles.header}>
-          {logoSrc && <Image src={logoSrc} style={styles.headerLogo} />}
-          <View style={styles.headerLeft}>
-            <Text style={styles.title}>FOTOS ADICIONALES</Text>
-          </View>
-        </View>
-        
-        <View style={styles.photoGrid}>
-          {otrasToShow.map((foto, idx) => (
-            <View key={idx} style={styles.photoItem}>
-              <Image src={foto} style={styles.photoImage} />
-              <Text style={styles.photoLabel}>Foto Adicional {idx + 1}</Text>
-            </View>
-          ))}
-        </View>
-        
-        <View style={styles.footer}>
-          <View style={styles.footerRow}>
-            <View style={styles.footerLeft}>
-              {logoSrc && <Image src={logoSrc} style={styles.footerLogo} />}
-              <View>
-                <Text style={{ fontSize: 7 }}>ID de Tasación: {tasacionId || 'Generando...'}</Text>
-                <Text style={{ fontSize: 7, marginTop: 2 }}>
-                  Fecha de registro: {metadata?.timestamp ? new Date(metadata.timestamp).toLocaleDateString('es-ES') : 'N/A'}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.footerRight}>
-              <Text style={styles.pageNumber}>Pág. {photoStartPage + 4} de {getTotalPages(data)}</Text>
-            </View>
-          </View>
-        </View>
-      </Page>
-    )
+  // PÁGINA 4: OTRAS FOTOS (SIEMPRE FIJA, máximo 6)
+  const otrasPhotos = []
+  for (let i = 0; i < 6; i++) {
+    otrasPhotos.push({
+      src: data.fotosOtras?.[i],
+      label: `Foto Adicional ${i + 1}`
+    })
   }
+  
+  pages.push(
+    <Page key="fotos-otras" size="A4" style={styles.photoPage}>
+      <View style={styles.header}>
+        {logoSrc && <Image src={logoSrc} style={styles.headerLogo} />}
+        <View style={styles.headerLeft}>
+          <Text style={styles.title}>FOTOS ADICIONALES</Text>
+        </View>
+      </View>
+      
+      <View style={styles.photoGrid}>
+        {otrasPhotos.map((photo, idx) => (
+          <View key={idx} style={styles.photoItem}>
+            {photo.src ? (
+              <Image src={photo.src} style={styles.photoImage} />
+            ) : (
+              createPlaceholder()
+            )}
+            <Text style={styles.photoLabel}>{photo.label}</Text>
+          </View>
+        ))}
+      </View>
+      
+      <View style={styles.footer}>
+        <View style={styles.footerRow}>
+          <View style={styles.footerLeft}>
+            {logoSrc && <Image src={logoSrc} style={styles.footerLogo} />}
+            <View>
+              <Text style={{ fontSize: 7 }}>ID de Tasación: {tasacionId || 'Generando...'}</Text>
+              <Text style={{ fontSize: 7, marginTop: 2 }}>
+                Fecha de registro: {metadata?.timestamp ? new Date(metadata.timestamp).toLocaleDateString('es-ES') : 'N/A'}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.footerRight}>
+            <Text style={styles.pageNumber}>Pág. {photoStartPage + 4} de {getTotalPages(data)}</Text>
+          </View>
+        </View>
+      </View>
+    </Page>
+  )
   
   return pages
 }

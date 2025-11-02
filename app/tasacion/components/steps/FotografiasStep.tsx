@@ -186,7 +186,7 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
       } else if (tipo === 'documento' && key) {
         setFotosDocumentacion(prev => ({ ...prev, [key]: base64 }))
       } else if (tipo === 'otra') {
-        setFotosOtras(prev => [...prev, base64])
+        setFotosOtras(prev => prev.length < 6 ? [...prev, base64] : prev)
       } else if (tipo === 'cuentakm') {
         setFotosCuentakm(base64)
       } else if (tipo === 'interiorDelantero') {
