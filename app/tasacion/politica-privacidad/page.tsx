@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Shield, Mail, FileText, Clock, UserCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -7,6 +8,11 @@ import { useRouter } from 'next/navigation'
 
 export default function PoliticaPrivacidadPage() {
   const router = useRouter()
+
+  // Scroll al inicio al montar
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' })
+  }, [])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50 py-12 px-4">
@@ -227,21 +233,7 @@ export default function PoliticaPrivacidadPage() {
           </p>
           <Button
             onClick={() => {
-              // Scroll al inicio antes de volver
-              window.scrollTo({ top: 0, behavior: 'auto' })
-              
-              // Si viene desde tasaciones, volver ahí
-              if (document.referrer.includes('/tasacion/')) {
-                window.close()
-                // Si no se puede cerrar la pestaña, volver con router
-                setTimeout(() => {
-                  if (!window.closed) {
-                    router.back()
-                  }
-                }, 100)
-              } else {
-                router.back()
-              }
+              router.back()
             }}
             variant="outline"
             className="border-2 border-purple-200 hover:border-purple-400 hover:bg-purple-50"

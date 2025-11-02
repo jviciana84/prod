@@ -324,22 +324,32 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
     const currentIndex = fotosVehiculoConfig.findIndex(f => f.key === fotoActual)
     const nextIndex = currentIndex + 1
     
+    console.log(`📸 Avanzando: índice actual ${currentIndex} → siguiente ${nextIndex}`)
+    
     if (nextIndex < fotosVehiculoConfig.length) {
       // Hay más fotos, pasar a la siguiente
       const nextPhoto = fotosVehiculoConfig[nextIndex]
-      setFotoActual(nextPhoto.key)
-      setCurrentPhotoIndex(nextIndex)
+      console.log(`📸 Siguiente foto: ${nextPhoto.key}`)
       
-      // Cambiar overlay
+      // Cambiar overlay primero
       if (overlayMap[nextPhoto.key]) {
         setCurrentOverlay(overlayMap[nextPhoto.key])
+      } else {
+        setCurrentOverlay('')
       }
       
       // Resetear captura para que pueda tomar la siguiente
       setCapturedImage(null)
       
-      // Asegurar que el stream sigue activo
-      if (!stream && videoRef.current) {
+      // Cambiar fotoActual
+      setFotoActual(nextPhoto.key)
+      setCurrentPhotoIndex(nextIndex)
+      
+      // Asegurar que el stream está activo
+      console.log('📸 Stream activo antes de verificar:', !!stream)
+      
+      if (!stream || !videoRef.current?.srcObject) {
+        console.log('⚠️ Stream no activo, reactivando cámara...')
         try {
           const mediaStream = await navigator.mediaDevices.getUserMedia({
             video: { 
@@ -349,12 +359,22 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
             }
           })
           setStream(mediaStream)
+          
+          if (videoRef.current) {
+            videoRef.current.srcObject = mediaStream
+          }
+          console.log('✅ Cámara reactivada correctamente')
         } catch (error) {
-          console.error('Error al reactivar cámara:', error)
+          console.error('❌ Error al reactivar cámara:', error)
         }
+      } else {
+        console.log('✅ Stream ya activo, continuando...')
       }
+      
+      console.log('📸 Cámara lista para siguiente foto')
     } else {
       // Era la última foto, cerrar cámara
+      console.log('📸 Última foto completada, cerrando cámara')
       handleCloseCamera()
     }
   }

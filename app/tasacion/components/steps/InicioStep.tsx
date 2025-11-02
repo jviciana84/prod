@@ -155,9 +155,7 @@ export default function InicioStep({ onComplete }: InicioStepProps) {
               <span className="text-xs text-gray-800 font-medium group-hover:text-purple-900 transition-colors flex-1">
                 He leído y acepto la{' '}
                 <a 
-                  href="/politica-privacidad" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
+                  href="/tasacion/politica-privacidad"
                   className="text-purple-600 hover:text-purple-800 underline font-semibold"
                   onClick={(e) => e.stopPropagation()}
                 >

@@ -32,9 +32,17 @@ export function PWAInstaller() {
       const path = window.location.pathname
       const isTasacion = path.startsWith('/tasacion') || path.includes('/backoffice/tasaciones')
       setIsTaskacionRoute(isTasacion)
+      
+      // Si estamos en tasaciones, cerrar prompt inmediatamente
+      if (isTasacion && showInstallPrompt) {
+        setShowInstallPrompt(false)
+      }
     }
     
     checkRoute()
+    
+    // Verificar ruta en cada cambio de URL
+    const intervalCheck = setInterval(checkRoute, 500)
     
     // Detectar si es móvil
     const checkMobile = () => {
@@ -59,6 +67,13 @@ export function PWAInstaller() {
 
     // Escuchar evento de instalación
     const handleBeforeInstallPrompt = (e: Event) => {
+      // NO mostrar en tasaciones NUNCA
+      const path = window.location.pathname
+      if (path.startsWith('/tasacion')) {
+        e.preventDefault()
+        return
+      }
+      
       e.preventDefault()
       setDeferredPrompt(e as BeforeInstallPromptEvent)
       setShowInstallPrompt(true)
@@ -70,8 +85,9 @@ export function PWAInstaller() {
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
       window.removeEventListener('resize', checkMobile)
+      clearInterval(intervalCheck)
     }
-  }, [])
+  }, [showInstallPrompt]), [])
 
   // Countdown timer
   useEffect(() => {
