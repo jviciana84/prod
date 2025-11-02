@@ -130,19 +130,16 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
     }
   }, [showCameraView])
 
-  // Auto-scroll cuando se entra a la sección de documentos
+  // Auto-scroll cuando se entra a sección de documentos u otras
   useEffect(() => {
-    if (seccionActual === 'documentos') {
+    if (seccionActual === 'documentos' || seccionActual === 'otras') {
       setTimeout(() => {
-        // Scroll más agresivo - buscar cualquier elemento de documentación
-        const docSection = document.querySelector('[data-foto-key]')
-        if (docSection) {
-          docSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
-        } else {
-          // Fallback: scroll general hacia abajo
-          window.scrollTo({ top: window.scrollY + 200, behavior: 'smooth' })
-        }
-      }, 500)
+        // Scroll hasta el final para ver botones de navegación
+        window.scrollTo({ 
+          top: document.documentElement.scrollHeight, 
+          behavior: 'smooth' 
+        })
+      }, 3000)
     }
   }, [seccionActual])
 
