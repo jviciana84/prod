@@ -1,8 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { CheckCircle2, Download, Home } from 'lucide-react'
-import { BMWMSpinner } from '@/components/ui/bmw-m-spinner'
+import { CheckCircle2, Download, Home, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
@@ -254,7 +253,7 @@ export default function TasacionCompletadaPage() {
           >
             {isGeneratingPDF ? (
               <>
-                <BMWMSpinner size={20} className="mr-2" />
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                 Generando PDF...
               </>
             ) : !tasacionData ? (
