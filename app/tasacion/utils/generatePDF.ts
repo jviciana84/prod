@@ -30,32 +30,50 @@ async function imageToBase64(url: string): Promise<string> {
 async function convertPhotosToBase64(data: TasacionFormData): Promise<TasacionFormData> {
   const result = { ...data }
   
+  console.log('🔄 Iniciando conversión de fotos a base64...')
+  console.log('📸 Fotos recibidas:', {
+    vehiculo: data.fotosVehiculo ? Object.keys(data.fotosVehiculo).length : 0,
+    cuentakm: !!data.fotosCuentakm,
+    interiorDel: !!data.fotosInteriorDelantero,
+    interiorTras: !!data.fotosInteriorTrasero,
+    documentacion: data.fotosDocumentacion ? Object.keys(data.fotosDocumentacion).length : 0,
+    otras: data.fotosOtras?.length || 0
+  })
+  
   // Convertir fotos del vehículo
   if (data.fotosVehiculo) {
     const vehiculoBase64: Record<string, string> = {}
     for (const [key, url] of Object.entries(data.fotosVehiculo)) {
       if (url && !url.startsWith('data:')) {
         try {
-          console.log(`Convirtiendo foto vehículo ${key}...`)
+          console.log(`📸 Convirtiendo foto vehículo ${key} desde URL: ${url.substring(0, 80)}...`)
           vehiculoBase64[key] = await imageToBase64(url)
+          console.log(`✅ Foto vehículo ${key} convertida correctamente`)
         } catch (error) {
-          console.error(`Error convirtiendo foto vehículo ${key}:`, error)
+          console.error(`❌ Error convirtiendo foto vehículo ${key}:`, error)
+          console.error(`URL problemática: ${url}`)
         }
       } else if (url) {
+        console.log(`✅ Foto vehículo ${key} ya es base64`)
         vehiculoBase64[key] = url // Ya es base64
       }
     }
     result.fotosVehiculo = vehiculoBase64
+    console.log(`📸 Fotos de vehículo procesadas: ${Object.keys(vehiculoBase64).length}`)
   }
   
   // Convertir cuentakm
   if (data.fotosCuentakm && !data.fotosCuentakm.startsWith('data:')) {
     try {
-      console.log('Convirtiendo foto cuentakm...')
+      console.log(`📸 Convirtiendo foto cuentakm desde URL: ${data.fotosCuentakm.substring(0, 80)}...`)
       result.fotosCuentakm = await imageToBase64(data.fotosCuentakm)
+      console.log('✅ Foto cuentakm convertida correctamente')
     } catch (error) {
-      console.error('Error convirtiendo foto cuentakm:', error)
+      console.error('❌ Error convirtiendo foto cuentakm:', error)
+      console.error(`URL problemática: ${data.fotosCuentakm}`)
     }
+  } else if (data.fotosCuentakm) {
+    console.log('✅ Foto cuentakm ya es base64')
   }
   
   // Convertir interior delantero
@@ -113,6 +131,16 @@ async function convertPhotosToBase64(data: TasacionFormData): Promise<TasacionFo
     }
     result.fotosOtras = otrasBase64
   }
+  
+  console.log('✅ Conversión de fotos completada')
+  console.log('📸 Fotos finales:', {
+    vehiculo: result.fotosVehiculo ? Object.keys(result.fotosVehiculo).length : 0,
+    cuentakm: !!result.fotosCuentakm,
+    interiorDel: !!result.fotosInteriorDelantero,
+    interiorTras: !!result.fotosInteriorTrasero,
+    documentacion: result.fotosDocumentacion ? Object.keys(result.fotosDocumentacion).length : 0,
+    otras: result.fotosOtras?.length || 0
+  })
   
   return result
 }
