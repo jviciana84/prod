@@ -594,40 +594,40 @@ export default function DatosAdicionalesStep({ onComplete, onBack }: DatosAdicio
                 <Label htmlFor="proxima-itv" className="text-sm font-medium text-gray-700 mb-2 block">
                   Próxima ITV (DD/MM/AAAA) *
                 </Label>
-                <Input
-                  ref={proximaITVRef}
-                  id="proxima-itv"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  placeholder="15/06/2025"
-                  value={proximaITV}
-                  onChange={(e) => {
-                    let value = e.target.value.replace(/\D/g, '') // Solo números
-                    
-                    // Formatear como DD/MM/AAAA
-                    if (value.length >= 3) {
-                      value = value.substring(0, 2) + '/' + value.substring(2)
-                    }
-                    if (value.length >= 6) {
-                      value = value.substring(0, 5) + '/' + value.substring(5, 9)
-                    }
-                    
-                    setProximaITV(value)
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && proximaITV.length === 10) {
-                      e.preventDefault()
-                      // Focus a observaciones y scroll
-                      observacionesRef.current?.focus()
-                      setTimeout(() => {
-                        observacionesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                      }, 100)
-                    }
-                  }}
-                  className="h-12 text-center bg-white text-gray-900"
-                  maxLength={10}
-                />
+                <form onSubmit={(e) => {
+                  e.preventDefault()
+                  if (proximaITV.length === 10) {
+                    observacionesRef.current?.focus()
+                    setTimeout(() => {
+                      observacionesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                    }, 100)
+                  }
+                }}>
+                  <Input
+                    ref={proximaITVRef}
+                    id="proxima-itv"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    placeholder="15/06/2025"
+                    value={proximaITV}
+                    onChange={(e) => {
+                      let value = e.target.value.replace(/\D/g, '') // Solo números
+                      
+                      // Formatear como DD/MM/AAAA
+                      if (value.length >= 3) {
+                        value = value.substring(0, 2) + '/' + value.substring(2)
+                      }
+                      if (value.length >= 6) {
+                        value = value.substring(0, 5) + '/' + value.substring(5, 9)
+                      }
+                      
+                      setProximaITV(value)
+                    }}
+                    className="h-12 text-center bg-white text-gray-900"
+                    maxLength={10}
+                  />
+                </form>
               </div>
             </motion.div>
           )}

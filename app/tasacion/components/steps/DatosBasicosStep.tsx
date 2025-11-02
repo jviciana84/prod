@@ -228,22 +228,21 @@ export default function DatosBasicosStep({ onComplete, onBack }: DatosBasicosSte
             <Label htmlFor="matricula" className="text-sm font-semibold text-gray-700 mb-2 block">
               Matrícula del vehículo
             </Label>
-            <Input
-              id="matricula"
-              type="text"
-              inputMode="text"
-              placeholder="Ej: 1234ABC"
-              value={matricula}
-              onChange={(e) => handleMatriculaChange(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && matricula) {
-                  e.preventDefault()
-                  kmRef.current?.focus()
-                }
-              }}
-              className="h-12 text-lg font-mono uppercase text-center border-2 focus:border-purple-500 bg-white text-gray-900"
-              maxLength={10}
-            />
+            <form onSubmit={(e) => {
+              e.preventDefault()
+              if (matricula) kmRef.current?.focus()
+            }}>
+              <Input
+                id="matricula"
+                type="text"
+                inputMode="text"
+                placeholder="Ej: 1234ABC"
+                value={matricula}
+                onChange={(e) => handleMatriculaChange(e.target.value)}
+                className="h-12 text-lg font-mono uppercase text-center border-2 focus:border-purple-500 bg-white text-gray-900"
+                maxLength={10}
+              />
+            </form>
           </motion.div>
 
           {/* Kilómetros */}
@@ -256,23 +255,21 @@ export default function DatosBasicosStep({ onComplete, onBack }: DatosBasicosSte
             <Label htmlFor="km" className="text-sm font-semibold text-gray-700 mb-2 block">
               Kilómetros actuales
             </Label>
-            <Input
-              ref={kmRef}
-              id="km"
-              type="number"
-              inputMode="numeric"
-              placeholder="150000"
-              value={kmActuales}
-              onChange={(e) => setKmActuales(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && kmActuales) {
-                  e.preventDefault()
-                  // Ocultar teclado
-                  kmRef.current?.blur()
-                }
-              }}
-              className="h-12 text-lg text-center border-2 focus:border-purple-500 bg-white text-gray-900"
-            />
+            <form onSubmit={(e) => {
+              e.preventDefault()
+              if (kmActuales) kmRef.current?.blur()
+            }}>
+              <Input
+                ref={kmRef}
+                id="km"
+                type="number"
+                inputMode="numeric"
+                placeholder="150000"
+                value={kmActuales}
+                onChange={(e) => setKmActuales(e.target.value)}
+                className="h-12 text-lg text-center border-2 focus:border-purple-500 bg-white text-gray-900"
+              />
+            </form>
           </motion.div>
 
           {/* Procedencia */}
@@ -351,42 +348,42 @@ export default function DatosBasicosStep({ onComplete, onBack }: DatosBasicosSte
                 <Calendar className="w-4 h-4" />
                 Fecha de primera matriculación (DD/MM/AAAA) *
               </Label>
-              <Input
-                ref={fechaRef}
-                id="fecha-matriculacion"
-                type="text"
-                inputMode="numeric"
-                placeholder="15/03/2018"
-                value={fechaMatriculacion}
-                onChange={(e) => {
-                  let value = e.target.value.replace(/\D/g, '') // Solo números
-                  
-                  // Formatear como DD/MM/AAAA
-                  if (value.length >= 3) {
-                    value = value.substring(0, 2) + '/' + value.substring(2)
-                  }
-                  if (value.length >= 6) {
-                    value = value.substring(0, 5) + '/' + value.substring(5, 9)
-                  }
-                  
-                  setFechaMatriculacion(value)
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && fechaMatriculacion.length === 10) {
-                    e.preventDefault()
-                    // Ocultar teclado y scroll al final
-                    fechaRef.current?.blur()
-                    setTimeout(() => {
-                      window.scrollTo({ 
-                        top: document.documentElement.scrollHeight, 
-                        behavior: 'smooth' 
-                      })
-                    }, 100)
-                  }
-                }}
-                className="h-12 text-center border-2 focus:border-purple-500 bg-white text-gray-900"
-                maxLength={10}
-              />
+              <form onSubmit={(e) => {
+                e.preventDefault()
+                if (fechaMatriculacion.length === 10) {
+                  fechaRef.current?.blur()
+                  setTimeout(() => {
+                    window.scrollTo({ 
+                      top: document.documentElement.scrollHeight, 
+                      behavior: 'smooth' 
+                    })
+                  }, 100)
+                }
+              }}>
+                <Input
+                  ref={fechaRef}
+                  id="fecha-matriculacion"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="15/03/2018"
+                  value={fechaMatriculacion}
+                  onChange={(e) => {
+                    let value = e.target.value.replace(/\D/g, '') // Solo números
+                    
+                    // Formatear como DD/MM/AAAA
+                    if (value.length >= 3) {
+                      value = value.substring(0, 2) + '/' + value.substring(2)
+                    }
+                    if (value.length >= 6) {
+                      value = value.substring(0, 5) + '/' + value.substring(5, 9)
+                    }
+                    
+                    setFechaMatriculacion(value)
+                  }}
+                  className="h-12 text-center border-2 focus:border-purple-500 bg-white text-gray-900"
+                  maxLength={10}
+                />
+              </form>
             </motion.div>
           )}
         </div>
