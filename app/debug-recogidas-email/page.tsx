@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Mail, AlertCircle, CheckCircle, XCircle, RefreshCw } from "lucide-react"
+import { Mail, AlertCircle, CheckCircle, XCircle, RefreshCw } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { toast } from "sonner"
 
 interface Recogida {
@@ -197,7 +198,7 @@ export default function DebugRecogidasEmailPage() {
     return (
       <div className="container mx-auto p-6">
         <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin" />
+          <BMWMSpinner size={32} />
           <span className="ml-2">Cargando datos...</span>
         </div>
       </div>
@@ -221,7 +222,7 @@ export default function DebugRecogidasEmailPage() {
            <Button onClick={cleanCookies} variant="destructive" disabled={cleaningCookies}>
              {cleaningCookies ? (
                <>
-                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                 <BMWMSpinner size={16} className="mr-2" />
                  Limpiando...
                </>
              ) : (
@@ -404,7 +405,7 @@ export default function DebugRecogidasEmailPage() {
             >
               {sending ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <BMWMSpinner size={16} className="mr-2" />
                   Enviando...
                 </>
               ) : (

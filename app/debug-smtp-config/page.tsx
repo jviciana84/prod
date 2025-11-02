@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
-import { Mail, Loader2, CheckCircle, XCircle } from "lucide-react"
+import { Mail, CheckCircle, XCircle } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 
 export default function DebugSMTPConfig() {
   const [loading, setLoading] = useState(false)
@@ -73,7 +74,7 @@ export default function DebugSMTPConfig() {
           >
             {loading ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <BMWMSpinner size={16} />
                 Verificando...
               </>
             ) : (

@@ -4,7 +4,8 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, CheckCircle, XCircle, AlertTriangle } from "lucide-react"
+import { CheckCircle, XCircle, AlertTriangle } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { useToast } from "@/hooks/use-toast"
 
 export default function CleanupStockPage() {
@@ -120,7 +121,7 @@ export default function CleanupStockPage() {
             >
               {isTestingConnection ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <BMWMSpinner size={16} className="mr-2" />
                   Probando conexión...
                 </>
               ) : (
@@ -136,7 +137,7 @@ export default function CleanupStockPage() {
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <BMWMSpinner size={16} className="mr-2" />
                   Ejecutando limpieza...
                 </>
               ) : (

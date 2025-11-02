@@ -1,7 +1,8 @@
 "use client"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Loader2, AlertCircle } from "lucide-react"
+import { AlertCircle } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { toast } from "sonner"
 import { createClient } from "@/utils/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -286,7 +287,7 @@ export function EntregasTableFixed({ onRefreshRequest }: EntregasTableProps) {
     return (
       <Card>
         <CardContent className="pt-6 flex justify-center items-center">
-          <Loader2 className="h-6 w-6 animate-spin mr-2" />
+          <BMWMSpinner size={24} className="mr-2" />
           <span>Verificando autenticación...</span>
         </CardContent>
       </Card>

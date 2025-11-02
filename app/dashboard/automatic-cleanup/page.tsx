@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, CheckCircle, XCircle, AlertTriangle, Settings, Activity } from "lucide-react"
+import { CheckCircle, XCircle, AlertTriangle, Settings, Activity } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { useToast } from "@/hooks/use-toast"
 
 interface SystemStatus {
@@ -111,7 +112,7 @@ export default function AutomaticCleanupPage() {
           <div className="flex items-center justify-between">
             <span>Estado del Sistema</span>
             {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <BMWMSpinner size={16} />
             ) : systemStatus ? (
               <Badge variant={systemStatus.triggersInstalled ? "default" : "destructive"}>
                 {systemStatus.triggersInstalled ? "✅ Activo" : "❌ Inactivo"}
@@ -150,7 +151,7 @@ export default function AutomaticCleanupPage() {
           >
             {isLoading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <BMWMSpinner size={16} className="mr-2" />
                 Verificando...
               </>
             ) : (
@@ -198,7 +199,7 @@ export default function AutomaticCleanupPage() {
           >
             {isInstalling ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <BMWMSpinner size={16} className="mr-2" />
                 Instalando...
               </>
             ) : systemStatus?.triggersInstalled ? (

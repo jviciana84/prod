@@ -2,7 +2,8 @@
 
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { CompactSearchWithModal } from "@/components/dashboard/compact-search-with-modal"
-import { Trophy, Settings, RefreshCw, Loader2, CheckCircle, Car, Tag, Euro, Calculator, Calendar } from "lucide-react"
+import { Trophy, Settings, RefreshCw, CheckCircle, Car, Tag, Euro, Calculator, Calendar } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table"
@@ -207,7 +208,7 @@ export default function IncentivosPageClient({
                 title="Actualizar Pendientes"
               >
                 {refreshingPendingCard ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <BMWMSpinner size={16} />
                 ) : (
                   <RefreshCw className="h-4 w-4" />
                 )}
@@ -274,7 +275,7 @@ export default function IncentivosPageClient({
                     <TableRow>
                       <TableCell colSpan={6} className="text-center py-12">
                         <div className="flex justify-center items-center text-muted-foreground">
-                          <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                          <BMWMSpinner size={24} className="mr-2" />
                           <span>Cargando incentivos pendientes...</span>
                         </div>
                       </TableCell>

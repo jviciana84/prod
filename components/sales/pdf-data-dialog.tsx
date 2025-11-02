@@ -16,28 +16,8 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createClientComponentClient } from "@/lib/supabase/client"
-import {
-  FileText,
-  Loader2,
-  AlertCircle,
-  UserCircle,
-  Car,
-  BadgePercent,
-  Banknote,
-  CalendarDays,
-  Hash,
-  Mail,
-  Phone,
-  MapPin,
-  KeySquare,
-  Briefcase,
-  Globe,
-  Building2,
-  Building,
-  Save,
-  Edit,
-  X,
-} from "lucide-react"
+import { FileText, AlertCircle, UserCircle, Car, BadgePercent, Banknote, CalendarDays, Hash, Mail, Phone, MapPin, KeySquare, Briefcase, Globe, Building2, Building, Save, Edit, X } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { formatDateForDisplay, formatDateForDatabase } from "@/lib/date-utils"
@@ -489,7 +469,7 @@ export function PdfDataDialog({ vehicleId, licensePlate }: PdfDataDialogProps) {
                     Cancelar
                   </Button>
                   <Button size="sm" onClick={handleSave} disabled={saving}>
-                    {saving ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Save className="h-3 w-3 mr-1" />}
+                    {saving ? <BMWMSpinner size={12} className="mr-1" /> : <Save className="h-3 w-3 mr-1" />}
                     Guardar
                   </Button>
                 </>
@@ -505,7 +485,7 @@ export function PdfDataDialog({ vehicleId, licensePlate }: PdfDataDialogProps) {
 
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin mr-2" />
+            <BMWMSpinner size={24} className="mr-2" />
             <span>Cargando datos del PDF...</span>
           </div>
         ) : error ? (

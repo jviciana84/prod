@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
-import { Loader2 } from "lucide-react"
+
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 
 // Importar la función de detección de tipo de vehículo
 import { detectVehicleType } from "@/utils/vehicle-type-detector"
@@ -335,7 +336,7 @@ export default function AddSalePage() {
               Cancelar
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {loading ? <BMWMSpinner size={16} className="mr-2" /> : null}
               Registrar Venta
             </Button>
           </CardFooter>

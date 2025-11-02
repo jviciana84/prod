@@ -3,7 +3,8 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, RefreshCw, Search, Trash2 } from "lucide-react"
+import { RefreshCw, Search, Trash2 } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { toast } from "sonner"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { getAdminUser, resolveUserName } from "@/utils/fix-auth"
@@ -221,7 +222,7 @@ export function EntregasTableAdmin({ onRefreshRequest }: EntregasTableAdminProps
     return (
       <Card>
         <CardContent className="pt-6 flex justify-center items-center">
-          <Loader2 className="h-6 w-6 animate-spin mr-2" />
+          <BMWMSpinner size={24} className="mr-2" />
           <span>Cargando entregas...</span>
         </CardContent>
       </Card>

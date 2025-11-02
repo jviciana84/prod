@@ -6,30 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  Car,
-  User,
-  Phone,
-  Mail,
-  MapPin,
-  AlertCircle,
-  CheckCircle,
-  Clock,
-  FileText,
-  Key,
-  Wrench,
-  Sparkles,
-  Shield,
-  TrendingUp,
-  DollarSign,
-  Award,
-
-  LogOut,
-  Loader2,
-  Receipt,
-  File,
-  Calendar,
-} from "lucide-react"
+import { Car, User, Phone, Mail, MapPin, AlertCircle, CheckCircle, Clock, FileText, Key, Wrench, Sparkles, Shield, TrendingUp, DollarSign, Award, LogOut, Receipt, File, Calendar } from "lucide-react"
 import React from "react"
 
 import { CarFrontIcon } from "@/components/ui/car-front-icon"
@@ -40,6 +17,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Upload, X, Image as ImageIcon } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -362,7 +340,7 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+          <BMWMSpinner size={48} />
           <p className="text-gray-600">Cargando datos del vehículo...</p>
         </div>
       </div>
@@ -1111,7 +1089,7 @@ export default function Dashboard() {
             >
               {submittingIncident ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <BMWMSpinner size={16} className="mr-2" />
                   Enviando...
                 </>
               ) : (

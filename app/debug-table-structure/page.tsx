@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
-import { Database, Search, Loader2 } from "lucide-react"
+import { Database, Search } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 
 export default function DebugTableStructure() {
   const [tableName, setTableName] = useState("")
@@ -98,7 +99,7 @@ export default function DebugTableStructure() {
             >
               {loading ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <BMWMSpinner size={16} />
                   Verificando...
                 </>
               ) : (

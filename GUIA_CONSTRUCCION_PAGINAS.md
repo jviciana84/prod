@@ -67,6 +67,7 @@ import { createClientComponentClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { CompactSearchWithModal } from "@/components/dashboard/compact-search-with-modal"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 
 export default function MiPagina() {
   const supabase = createClientComponentClient()
@@ -126,7 +127,14 @@ export default function MiPagina() {
           <CardTitle>Contenido</CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Tu contenido aquí */}
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <BMWMSpinner size={32} />
+            </div>
+          ) : (
+            /* Tu contenido aquí */
+            <div>Datos cargados</div>
+          )}
         </CardContent>
       </Card>
     </div>
@@ -190,6 +198,7 @@ import { useState, useEffect } from "react"
 import { createClientComponentClient } from "@/lib/supabase/client"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { useToast } from "@/hooks/use-toast"
 
 export default function MiTabla({ onRefresh }) {
@@ -284,7 +293,11 @@ export default function MiTabla({ onRefresh }) {
   }
 
   if (loading) {
-    return <div>Cargando...</div>
+    return (
+      <div className="flex justify-center py-8">
+        <BMWMSpinner size={32} />
+      </div>
+    )
   }
 
   return (
@@ -467,6 +480,95 @@ await cargarDatos() // Recargar
 
 ---
 
+## 🔄 SPINNER OFICIAL (BMWMSpinner)
+
+### **Uso del Spinner BMW M**
+
+**Ubicación:** `@/components/ui/bmw-m-spinner`
+
+```typescript
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
+
+// ✅ BIEN - Estados de carga
+{loading && <BMWMSpinner size={48} />}
+
+// ✅ BIEN - Con clases adicionales
+{loading && <BMWMSpinner size={32} className="mx-auto mb-3" />}
+
+// ✅ BIEN - En botones
+<Button disabled={loading}>
+  {loading ? (
+    <>
+      <BMWMSpinner size={16} className="mr-2" />
+      Guardando...
+    </>
+  ) : (
+    "Guardar"
+  )}
+</Button>
+```
+
+### **Tamaños Recomendados**
+
+| Contexto | Tamaño | Uso |
+|----------|--------|-----|
+| **Botón pequeño** | `size={16}` | Botones con texto pequeño |
+| **Botón normal** | `size={20}` | Botones estándar |
+| **Card/Modal** | `size={32}` | Contenido de tarjetas |
+| **Página completa** | `size={48}` | Loading de página entera |
+| **Splash/Inicial** | `size={64}` | Pantallas de carga inicial |
+
+### **Ejemplos de Uso Común**
+
+```typescript
+// Loading completo de página
+if (loading) {
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <BMWMSpinner size={48} />
+    </div>
+  )
+}
+
+// Loading en tabla
+{loading ? (
+  <div className="flex justify-center py-8">
+    <BMWMSpinner size={32} />
+  </div>
+) : (
+  <Table>...</Table>
+)}
+
+// Loading en botón con texto
+<Button disabled={saving}>
+  {saving ? (
+    <>
+      <BMWMSpinner size={16} className="mr-2" />
+      Guardando...
+    </>
+  ) : (
+    "Guardar"
+  )}
+</Button>
+```
+
+### **❌ NO Usar**
+
+```typescript
+// ❌ MAL - No uses Loader2
+import { Loader2 } from "lucide-react"
+<Loader2 className="animate-spin" />
+
+// ❌ MAL - No uses spinner genérico con divs
+<div className="animate-spin rounded-full h-12 w-12 border-b-2" />
+
+// ✅ BIEN - Usa BMWMSpinner
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
+<BMWMSpinner size={48} />
+```
+
+---
+
 ## 📦 IMPORTS NECESARIOS
 
 ### **Para Componentes Cliente**
@@ -477,6 +579,7 @@ await cargarDatos() // Recargar
 import { useState, useEffect, useCallback } from "react"
 import { createClientComponentClient } from "@/lib/supabase/client"
 import { useToast } from "@/hooks/use-toast"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner" // ✅ Spinner oficial
 ```
 
 ### **Para API Routes**
@@ -498,6 +601,7 @@ import { cookies } from "next/headers"
 - [ ] ¿Recargo datos después de mutación? → Llamar a función de carga
 - [ ] ¿Tengo breadcrumbs y search? → Incluir componentes estándar
 - [ ] ¿Uso !inner en queries? → Quitar `!inner`, usar join normal
+- [ ] ¿Uso el spinner oficial? → `BMWMSpinner` en lugar de `Loader2`
 
 ---
 
@@ -510,6 +614,10 @@ import { cookies } from "next/headers"
 | **UPDATE** | API Route | `createServerClient()` + Service Role |
 | **DELETE** | API Route | `createServerClient()` + Service Role |
 
-**Versión:** 1.2.356-ed422b9  
-**Última actualización:** 23/10/2025
+**Versión:** 1.3.0-bmw-spinner  
+**Última actualización:** 02/11/2025  
+**Cambios recientes:**
+- ✅ Agregado BMWMSpinner como spinner oficial del proyecto
+- ✅ Ejemplos actualizados con el nuevo spinner
+- ✅ Guía de tamaños y contextos de uso
 

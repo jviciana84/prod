@@ -5,9 +5,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { AlertTriangle, Car, Calendar, Tag, CheckCircle } from 'lucide-react'
+import { AlertTriangle, Car, Calendar, Tag, CheckCircle } from "lucide-react"
 import { useToast } from '@/hooks/use-toast'
-import { Loader2 } from 'lucide-react'
+
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 
 interface RemovedVehicle {
   id: string
@@ -139,7 +140,7 @@ export function RemovedVehiclesModal({
 
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin" />
+            <BMWMSpinner size={24} />
             <span className="ml-2">Cargando vehículos ausentes...</span>
           </div>
         ) : vehicles.length === 0 ? (
@@ -205,7 +206,7 @@ export function RemovedVehiclesModal({
                           className="flex items-center gap-1"
                         >
                           {isProcessing === vehicle.id ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
+                            <BMWMSpinner size={12} />
                           ) : (
                             <Tag className="h-3 w-3" />
                           )}
@@ -219,7 +220,7 @@ export function RemovedVehiclesModal({
                           className="flex items-center gap-1"
                         >
                           {isProcessing === vehicle.id ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
+                            <BMWMSpinner size={12} />
                           ) : (
                             <CheckCircle className="h-3 w-3" />
                           )}
@@ -233,7 +234,7 @@ export function RemovedVehiclesModal({
                           className="flex items-center gap-1"
                         >
                           {isProcessing === vehicle.id ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
+                            <BMWMSpinner size={12} />
                           ) : (
                             <Car className="h-3 w-3" />
                           )}

@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Save, Mail, Plus, X, Settings } from "lucide-react"
+import { Save, Mail, Plus, X, Settings } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { toast } from "sonner"
 
 interface EmailConfig {
@@ -127,7 +128,7 @@ export function RecogidasEmailConfig() {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin" />
+          <BMWMSpinner size={24} />
           <span className="ml-2">Cargando configuración...</span>
         </CardContent>
       </Card>
@@ -308,7 +309,7 @@ export function RecogidasEmailConfig() {
             >
               {saving ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <BMWMSpinner size={16} className="mr-2" />
                   Guardando...
                 </>
               ) : (

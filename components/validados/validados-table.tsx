@@ -10,7 +10,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Search,
   RefreshCw,
-  Loader2,
   Calendar,
   ChevronLeft,
   ChevronRight,
@@ -29,6 +28,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { ReusablePagination } from "@/components/ui/reusable-pagination"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -805,7 +805,7 @@ export function ValidadosTable({ onRefreshRequest }: ValidadosTableProps) {
                 className="h-9 w-9"
                 title="Actualizar y completar datos faltantes"
               >
-                {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                {refreshing ? <BMWMSpinner size={16} /> : <RefreshCw className="h-4 w-4" />}
               </Button>
 
               <Button
@@ -984,7 +984,7 @@ export function ValidadosTable({ onRefreshRequest }: ValidadosTableProps) {
                     <TableRow>
                       <TableCell colSpan={isSimplifiedView ? 8 : 25} className="text-center py-8">
                         <div className="flex justify-center items-center">
-                          <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                          <BMWMSpinner size={24} className="mr-2" />
                           <span>Cargando pedidos validados...</span>
                         </div>
                       </TableCell>
@@ -1407,7 +1407,7 @@ export function ValidadosTable({ onRefreshRequest }: ValidadosTableProps) {
                       <TableRow>
                         <TableCell colSpan={isSimplifiedView ? 8 : (activeTab === "ventas_caidas" ? 26 : 25)} className="text-center py-8">
                           <div className="flex justify-center items-center">
-                            <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                            <BMWMSpinner size={24} className="mr-2" />
                             <span>Cargando pedidos validados...</span>
                           </div>
                         </TableCell>

@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { Bell, BellOff, TestTube, CheckCircle, XCircle, Loader2, Database, RefreshCw } from "lucide-react"
+import { Bell, BellOff, TestTube, CheckCircle, XCircle, Database, RefreshCw } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { toast } from "sonner"
 
 export default function NotificationTestPanel() {
@@ -118,7 +119,7 @@ export default function NotificationTestPanel() {
           <Button onClick={handleSendTest} disabled={isSending} className="w-full">
             {isSending ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <BMWMSpinner size={16} className="mr-2" />
                 Enviando...
               </>
             ) : (

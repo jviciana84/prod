@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
-import { Database, CheckCircle, XCircle, AlertTriangle, Loader2, RefreshCw } from "lucide-react"
+import { Database, CheckCircle, XCircle, AlertTriangle, RefreshCw } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 
 interface DiagnosticResult {
   timestamp: string
@@ -118,7 +119,7 @@ export default function DebugRecogidasTable() {
             >
               {loading ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <BMWMSpinner size={16} />
                   Ejecutando diagnóstico...
                 </>
               ) : (

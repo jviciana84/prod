@@ -13,7 +13,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { FileText, Key, CreditCard, FileCheck, Printer, Plus, Loader2, ChevronDown, Search, RefreshCw } from "lucide-react"
+import { FileText, Key, CreditCard, FileCheck, Printer, Plus, ChevronDown, Search, RefreshCw } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { toast } from "sonner"
 import { useAuth } from "@/hooks/use-auth"
 import { createClientComponentClient } from "@/lib/supabase/client"
@@ -1163,7 +1164,7 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
                 className="h-8 w-8 p-0"
               >
                 {refreshing ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <BMWMSpinner size={16} />
                 ) : (
                   <RefreshCw className="h-4 w-4" />
                 )}
@@ -1183,7 +1184,7 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
               >
                 {confirming ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <BMWMSpinner size={16} />
                     Registrando...
                   </>
                 ) : (
@@ -1207,12 +1208,12 @@ export function DocuwareRequestsModal({ open, onOpenChange }: DocuwareRequestsMo
 
           {loading ? (
             <div className="flex flex-col items-center justify-center py-12 gap-4">
-              <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
+              <BMWMSpinner size={40} />
               <div className="text-lg font-medium text-muted-foreground">Consultando datos...</div>
             </div>
           ) : refreshing ? (
             <div className="flex items-center justify-center py-4 gap-2">
-              <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+              <BMWMSpinner size={16} />
               <span className="text-sm text-muted-foreground">Actualizando datos...</span>
             </div>
           ) : (

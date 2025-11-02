@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { assignPhotographersToExistingVehicles } from "@/server-actions/assign-photographers"
 import { useToast } from "@/hooks/use-toast"
-import { Camera, Loader2, CheckCircle, AlertTriangle } from "lucide-react"
+import { Camera, CheckCircle, AlertTriangle } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { Badge } from "@/components/ui/badge"
 
 export default function AssignExistingVehicles() {
@@ -109,7 +110,7 @@ export default function AssignExistingVehicles() {
         <Button onClick={handleAssign} disabled={isLoading} className="w-full">
           {isLoading ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <BMWMSpinner size={16} className="mr-2" />
               Asignando...
             </>
           ) : (

@@ -4,7 +4,8 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, RefreshCw, Database, Table } from "lucide-react"
+import { RefreshCw, Database, Table } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 interface ColumnInfo {
@@ -122,7 +123,7 @@ export default function DiagnosticoTablasPage() {
           </p>
         </div>
         <Button onClick={fetchDiagnostic} disabled={loading} className="gap-2">
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          {loading ? <BMWMSpinner size={16} /> : <RefreshCw className="h-4 w-4" />}
           Actualizar
         </Button>
       </div>
@@ -148,7 +149,7 @@ export default function DiagnosticoTablasPage() {
 
       {loading && !data && (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin" />
+          <BMWMSpinner size={32} />
           <span className="ml-2">Cargando diagnóstico...</span>
         </div>
       )}

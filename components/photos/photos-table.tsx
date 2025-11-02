@@ -7,33 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import {
-  Search,
-  RefreshCw,
-  AlertTriangle,
-  Trash2,
-  AlertOctagon,
-  Calendar,
-  CheckCircle,
-  Clock,
-  XCircle,
-  Camera,
-  Users,
-  AlertCircle,
-  Hash,
-  CheckSquare,
-  Ban,
-  ChevronLeft,
-  ChevronRight,
-  Settings,
-  Loader2,
-  Printer,
-  FileSpreadsheet,
-  ArrowUpDown,
-  RotateCcw,
-  CheckCircle2,
-  TriangleAlert,
-} from "lucide-react"
+import { Search, RefreshCw, AlertTriangle, Trash2, AlertOctagon, Calendar, CheckCircle, Clock, XCircle, Camera, Users, AlertCircle, Hash, CheckSquare, Ban, ChevronLeft, ChevronRight, Settings, Printer, FileSpreadsheet, ArrowUpDown, RotateCcw, CheckCircle2, TriangleAlert } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 // Supabase client no necesario - todas las mutations usan API Routes
 import { differenceInDays } from "date-fns"
 import { useToast } from "@/hooks/use-toast"
@@ -1515,7 +1490,7 @@ export default function PhotosTable() {
                   className="h-9 w-9"
                   title="Actualizar datos"
                 >
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                {isLoading ? <BMWMSpinner size={16} /> : <RefreshCw className="h-4 w-4" />}
               </Button>
 
                 {/* Popover de ordenamiento */}
@@ -1788,7 +1763,7 @@ export default function PhotosTable() {
                   className="h-9 w-9"
                   title="Sincronizar y actualizar datos"
               >
-                  <RotateCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                  {isLoading ? <BMWMSpinner size={16} /> : <RotateCcw className="h-4 w-4" />}
               </Button>
             </div>
 
@@ -1931,7 +1906,7 @@ export default function PhotosTable() {
                   <TableRow>
                     <TableCell colSpan={8} className="text-center py-8">
                       <div className="flex justify-center items-center">
-                        <RefreshCw className="h-5 w-5 animate-spin mr-2" />
+                        <BMWMSpinner size={20} className="mr-2" />
                         <span>Cargando datos...</span>
                       </div>
                     </TableCell>

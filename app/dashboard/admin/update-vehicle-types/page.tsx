@@ -4,7 +4,8 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Loader2, AlertTriangle, CheckCircle } from "lucide-react"
+import { AlertTriangle, CheckCircle } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { updateAllVehicleTypes } from "@/server-actions/update-vehicle-types"
 
 export default function UpdateVehicleTypesPage() {
@@ -84,7 +85,7 @@ export default function UpdateVehicleTypesPage() {
           <Button onClick={handleUpdate} disabled={loading}>
             {loading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <BMWMSpinner size={16} className="mr-2" />
                 Actualizando...
               </>
             ) : (

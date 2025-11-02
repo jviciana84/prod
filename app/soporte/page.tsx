@@ -11,7 +11,8 @@ import { Separator } from "@/components/ui/separator"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-import { Loader2, Car, User, Mail, Phone, Calendar, Ticket, AlertTriangle, CheckCircle, Clock, Shield, Key, FileText, Wrench, Sparkles, TrendingUp, DollarSign, Award, MapPin, AlertCircle } from "lucide-react"
+import { Car, User, Mail, Phone, Calendar, Ticket, AlertTriangle, CheckCircle, Clock, Shield, Key, FileText, Wrench, Sparkles, TrendingUp, DollarSign, Award, MapPin, AlertCircle } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { useToast } from "@/hooks/use-toast"
 import { motion, AnimatePresence } from "framer-motion"
 import BuildingLines from "@/components/ui/building-lines"
@@ -505,7 +506,7 @@ export default function SoportePage() {
                       >
                         {verifying ? (
                           <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            <BMWMSpinner size={16} className="mr-2" />
                             Verificando...
                           </>
                         ) : (
@@ -579,7 +580,7 @@ export default function SoportePage() {
                       >
                         {loading ? (
                           <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            <BMWMSpinner size={16} className="mr-2" />
                             Validando...
                           </>
                         ) : (

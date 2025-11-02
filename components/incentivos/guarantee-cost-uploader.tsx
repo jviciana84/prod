@@ -7,7 +7,8 @@ import { DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/co
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, Upload, CheckCircle, XCircle } from "lucide-react"
+import { Upload, CheckCircle, XCircle } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { toast } from "sonner"
 import { uploadGuaranteeCosts } from "@/server-actions/incentivos-actions" // Nuevo server action
 
@@ -88,7 +89,7 @@ export function GuaranteeCostUploader() {
         <Button onClick={handleSubmit} disabled={loading || !file}>
           {loading ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <BMWMSpinner size={16} className="mr-2" />
               Procesando...
             </>
           ) : (

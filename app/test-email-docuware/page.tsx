@@ -4,7 +4,8 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Mail, CheckCircle, XCircle, AlertCircle } from "lucide-react"
+import { Mail, CheckCircle, XCircle, AlertCircle } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { toast } from "sonner"
 
 export default function TestEmailDocuwarePage() {
@@ -105,7 +106,7 @@ export default function TestEmailDocuwarePage() {
           >
             {testing ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <BMWMSpinner size={16} className="mr-2" />
                 Enviando email de prueba...
               </>
             ) : (

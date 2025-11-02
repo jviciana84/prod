@@ -35,35 +35,7 @@ import {
 import { toast } from "@/hooks/use-toast"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
-import {
-  ArrowRightLeft,
-  Plus,
-  Copy,
-  Clock,
-  CheckCircle,
-  Circle,
-  AlertCircle,
-  User,
-  CreditCard,
-  Building,
-  Calendar,
-  Euro,
-  Send,
-  Check,
-  Car,
-  RefreshCw,
-  Eye,
-  UserCircle,
-  Database,
-  XCircle,
-  Trash,
-  FileText,
-  Upload,
-  Download,
-  CreditCard as CreditCardIcon,
-  Search,
-  Loader2,
-} from "lucide-react"
+import { ArrowRightLeft, Plus, Copy, Clock, CheckCircle, Circle, AlertCircle, User, CreditCard, Building, Calendar, Euro, Send, Check, Car, RefreshCw, Eye, UserCircle, Database, XCircle, Trash, FileText, Upload, Download, CreditCard as CreditCardIcon, Search } from "lucide-react"
 
 import { createClientComponentClient } from "@/lib/supabase/client"
 
@@ -1425,7 +1397,7 @@ Muchas gracias`.trim()
                     <Button type="submit" disabled={submitting}>
                       {submitting ? (
                         <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          <BMWMSpinner size={16} className="mr-2" />
                           Creando...
                         </>
                       ) : (
@@ -1465,7 +1437,7 @@ Muchas gracias`.trim()
                   className="h-9 w-9"
                   title="Actualizar"
                 >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                  {loading ? <BMWMSpinner size={16} /> : <RefreshCw className="h-4 w-4" />}
                 </Button>
                 <Button
                   variant="outline"
@@ -1537,7 +1509,7 @@ Muchas gracias`.trim()
                           <TableRow>
                             <TableCell colSpan={9} className="text-center py-8">
                               <div className="flex justify-center items-center">
-                                <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                                <BMWMSpinner size={24} className="mr-2" />
                                 <span>Cargando solicitudes...</span>
                               </div>
                             </TableCell>
@@ -2062,7 +2034,7 @@ Muchas gracias`.trim()
                                 >
                                   {isConfirmingPayment ? (
                                     <>
-                                      <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                                      <BMWMSpinner size={24} className="mr-2" />
                                       Confirmando...
                                     </>
                                   ) : (

@@ -7,7 +7,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/use-toast"
-import { Mail, CheckCircle, XCircle, AlertTriangle, Loader2, RefreshCw } from "lucide-react"
+import { Mail, CheckCircle, XCircle, AlertTriangle, RefreshCw } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 
 interface TestResult {
   timestamp: string
@@ -103,7 +104,7 @@ export default function DebugTestRecogidasEmail() {
             >
               {loading ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <BMWMSpinner size={16} />
                   Ejecutando prueba...
                 </>
               ) : (

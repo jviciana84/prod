@@ -12,7 +12,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Search,
   RefreshCw,
-  Loader2,
   Car,
   Bike,
   Check,
@@ -32,6 +31,7 @@ import {
   AlertTriangle,
   ChevronsUpDown,
 } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { differenceInDays, addDays, format } from "date-fns"
 import { toast } from "sonner"
@@ -1640,7 +1640,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                 className="h-9 w-9"
                 title="Actualizar"
               >
-                {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                {refreshing ? <BMWMSpinner size={16} /> : <RefreshCw className="h-4 w-4" />}
               </Button>
 
 
@@ -1746,7 +1746,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                       <TableRow>
                         <TableCell colSpan={visibleColumnCount} className="text-center py-8">
                           <div className="flex justify-center items-center">
-                            <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                            <BMWMSpinner size={24} className="mr-2" />
                             <span>Cargando vehículos vendidos...</span>
                           </div>
                         </TableCell>
@@ -1778,7 +1778,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                           <TableCell className="py-1 px-1 w-6">
                             <div className="flex items-center justify-center">
                               {updatingId === vehicle.id ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
+                                <BMWMSpinner size={12} />
                               ) : (
                                 <div className={salesPriorityStyles.container}>
                                   <div
@@ -2095,7 +2095,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                                 <SelectValue>
                                   {updatingId === vehicle.id ? (
                                     <div className="flex items-center justify-center">
-                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                      <BMWMSpinner size={12} />
                                     </div>
                                   ) : (
                                     <div className="flex items-center justify-center">
@@ -2187,7 +2187,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                                 disabled={updatingId === vehicle.id}
                               >
                                 {updatingId === vehicle.id ? (
-                                  <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                  <BMWMSpinner size={12} className="mr-1" />
                                 ) : (
                                   <>
                                     <Clock className="h-3 w-3 mr-1" />
@@ -2226,7 +2226,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                                 disabled={updatingId === vehicle.id}
                               >
                                 {updatingId === vehicle.id ? (
-                                  <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                  <BMWMSpinner size={12} className="mr-1" />
                                 ) : (
                                   <>
                                     <Camera360 className="h-3 w-3 mr-1" />
@@ -2252,7 +2252,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                               disabled={updatingId === vehicle.id}
                             >
                               {updatingId === vehicle.id ? (
-                                <Loader2 className="h-5 w-5 animate-spin" />
+                                <BMWMSpinner size={20} />
                               ) : vehicle.validated ? (
                                 <Check className="h-5 w-5 text-green-600 dark:text-green-400" />
                               ) : (
@@ -2325,7 +2325,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                                   disabled={updatingId === vehicle.id}
                                 >
                                   {updatingId === vehicle.id ? (
-                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                    <BMWMSpinner size={12} />
                                   ) : (
                                     <Save className="h-3 w-3" />
                                   )}
@@ -2344,7 +2344,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
                                     <SelectValue>
                                       {updatingId === vehicle.id ? (
                                         <div className="flex items-center">
-                                          <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                          <BMWMSpinner size={12} className="mr-1" />
                                           <span>Actualizando...</span>
                                         </div>
                                       ) : vehicle.delivery_center ? (
@@ -2543,7 +2543,7 @@ export default function SalesTable({ onRefreshRequest }: SalesTableProps) {
               >
                 {isDeleting ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <BMWMSpinner size={16} className="mr-2" />
                     Eliminando...
                   </>
                 ) : (

@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { AlertCircle, Loader2 } from "lucide-react"
+import { AlertCircle } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { toast } from "sonner"
 import { createClient } from "@/utils/supabase/client"
 import { registerIncident } from "@/app/actions/register-incident"
@@ -139,7 +140,7 @@ export function RegistrarIncidencia({ entregaId, onSuccess, onCancel }: Registra
     return (
       <Card>
         <CardContent className="pt-6 flex justify-center items-center">
-          <Loader2 className="h-6 w-6 animate-spin" />
+          <BMWMSpinner size={24} />
           <span className="ml-2">Verificando permisos...</span>
         </CardContent>
       </Card>
@@ -203,7 +204,7 @@ export function RegistrarIncidencia({ entregaId, onSuccess, onCancel }: Registra
         <Button onClick={handleSubmit} disabled={isSubmitting}>
           {isSubmitting ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <BMWMSpinner size={16} className="mr-2" />
               Registrando...
             </>
           ) : (

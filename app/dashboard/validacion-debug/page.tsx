@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, CheckCircle, XCircle, AlertTriangle, Database, RefreshCw } from "lucide-react"
+import { CheckCircle, XCircle, AlertTriangle, Database, RefreshCw } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { syncValidatedVehicle } from "@/server-actions/validation-actions"
 import { toast } from "sonner"
 
@@ -198,7 +199,7 @@ export default function ValidacionDebugPage() {
           </p>
         </div>
         <Button onClick={loadAllData} disabled={loading}>
-          {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+          {loading ? <BMWMSpinner size={16} className="mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
           Actualizar
         </Button>
       </div>

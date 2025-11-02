@@ -6,7 +6,8 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClientComponentClient } from "@/lib/supabase/client"
 import { hasPermission, hasRole } from "@/lib/auth/permissions"
-import { Loader2 } from "lucide-react"
+
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -55,7 +56,7 @@ export default function ProtectedRoute({ children, requiredPermission, requiredR
   if (isAuthorized === null) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <BMWMSpinner size={32} />
       </div>
     )
   }

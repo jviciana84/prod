@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { assignVehiclesToPhotographers } from "@/server-actions/photos-assignment"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertCircle, CheckCircle, Loader2 } from "lucide-react"
+import { AlertCircle, CheckCircle } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import UserDisplay from "./user-display"
 
 interface AssignmentDetails {
@@ -60,7 +61,7 @@ export default function AutoAssignment() {
             porcentajes configurados.
           </p>
           <Button onClick={handleAssign} disabled={isLoading}>
-            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {isLoading ? <BMWMSpinner size={16} className="mr-2" /> : null}
             Asignar Automáticamente
           </Button>
         </div>

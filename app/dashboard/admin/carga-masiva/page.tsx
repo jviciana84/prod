@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Loader2, AlertCircle, CheckCircle2, FileSpreadsheet, Upload } from "lucide-react"
+import { AlertCircle, CheckCircle2, FileSpreadsheet, Upload } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -432,7 +432,7 @@ function CargaMasivaForm() {
                       >
                         {status === "parsing" ? (
                           <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            <BMWMSpinner size={16} className="mr-2" />
                             Procesando...
                           </>
                         ) : (
@@ -517,7 +517,7 @@ function CargaMasivaForm() {
                       <Button onClick={procesarYGuardar} disabled={status === "processing"}>
                         {status === "processing" ? (
                           <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            <BMWMSpinner size={16} className="mr-2" />
                             Procesando...
                           </>
                         ) : (
@@ -636,7 +636,7 @@ function CargaMasivaForm() {
                 >
                   {mapeoStatus === "processing" ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <BMWMSpinner size={16} className="mr-2" />
                       Procesando...
                     </>
                   ) : (
@@ -734,7 +734,7 @@ function CargaMasivaForm() {
                       <Button onClick={procesarMapeoMatricula} disabled={mapeoStatus === "processing" || !columnaExcel || !columnaDestino}>
                         {mapeoStatus === "processing" ? (
                           <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            <BMWMSpinner size={16} className="mr-2" />
                             Procesando...
                           </>
                         ) : (

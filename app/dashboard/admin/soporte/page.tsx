@@ -10,22 +10,8 @@ import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { 
-  Loader2, 
-  Search, 
-  Ticket, 
-  Car, 
-  User, 
-  Mail, 
-  Phone, 
-  Calendar, 
-  Clock, 
-  MessageSquare,
-  Send,
-  Image as ImageIcon,
-  Download,
-  Eye
-} from "lucide-react"
+import { Search, Ticket, Car, User, Mail, Phone, Calendar, Clock, MessageSquare, Send, Image as ImageIcon, Download, Eye } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { useToast } from "@/hooks/use-toast"
 
 interface VehicleData {
@@ -291,7 +277,7 @@ export default function SoporteAdminPage() {
           >
             {loading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <BMWMSpinner size={16} className="mr-2" />
                 Cargando...
               </>
             ) : (
@@ -916,7 +902,7 @@ export default function SoporteAdminPage() {
             >
               {sendingResponse ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <BMWMSpinner size={16} className="mr-2" />
                   Enviando...
                 </>
               ) : (

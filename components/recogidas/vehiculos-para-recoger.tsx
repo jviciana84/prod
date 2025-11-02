@@ -11,7 +11,8 @@ import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, RefreshCw, Calendar, Phone, MessageSquare, Package, Loader2, Truck, Hand, FileText, Car, UserCircle, FileCheck, Key, CreditCard, Leaf, Send, TestTube } from "lucide-react"
+import { Search, RefreshCw, Calendar, Phone, MessageSquare, Package, Truck, Hand, FileText, Car, UserCircle, FileCheck, Key, CreditCard, Leaf, Send, TestTube } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
@@ -886,7 +887,7 @@ export function VehiculosParaRecoger({ onSolicitarRecogida }: VehiculosParaRecog
                 title="Actualizar"
               >
                 {initialLoad || loading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <BMWMSpinner size={16} />
                 ) : (
                   <RefreshCw className="h-4 w-4" />
                 )}
@@ -931,7 +932,7 @@ export function VehiculosParaRecoger({ onSolicitarRecogida }: VehiculosParaRecog
                     <TableRow>
                       <TableCell colSpan={7} className="text-center py-8">
                         <div className="flex flex-col items-center justify-center gap-2">
-                          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                          <BMWMSpinner size={24} />
                           <span className="text-sm text-muted-foreground">Cargando vehículos...</span>
                           <span className="text-xs text-muted-foreground">Esto puede tomar unos segundos</span>
                         </div>
@@ -941,7 +942,7 @@ export function VehiculosParaRecoger({ onSolicitarRecogida }: VehiculosParaRecog
                     <TableRow>
                       <TableCell colSpan={7} className="text-center py-4">
                         <div className="flex items-center justify-center gap-2">
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <BMWMSpinner size={16} />
                           <span className="text-sm text-muted-foreground">Actualizando...</span>
                         </div>
                       </TableCell>
@@ -1186,7 +1187,7 @@ export function VehiculosParaRecoger({ onSolicitarRecogida }: VehiculosParaRecog
                     >
                       {enviandoRecogidas ? (
                         <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          <BMWMSpinner size={16} className="mr-2" />
                           Procesando...
                         </>
                       ) : (
@@ -1644,7 +1645,7 @@ export function VehiculosParaRecoger({ onSolicitarRecogida }: VehiculosParaRecog
                 >
                   {enviandoConfirmacion ? (
                     <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      <BMWMSpinner size={16} className="mr-2" />
                       Enviando...
                     </>
                   ) : (

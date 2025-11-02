@@ -13,7 +13,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Loader2, CheckCircle } from "lucide-react"
+import { CheckCircle } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { useToast } from "@/hooks/use-toast"
 import { markVehicleAsSold } from "@/server-actions/mark-vehicle-sold"
 
@@ -106,7 +107,7 @@ export function MarkAsSoldButton({
           >
             {isLoading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <BMWMSpinner size={16} className="mr-2" />
                 Procesando...
               </>
             ) : (

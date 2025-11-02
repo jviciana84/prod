@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Loader2, CheckCircle2, XCircle, AlertCircle, Upload, RefreshCw } from "lucide-react"
+import { CheckCircle2, XCircle, AlertCircle, Upload, RefreshCw } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { useToast } from "@/hooks/use-toast"
 import Image from "next/image"
 
@@ -238,7 +239,7 @@ export default function AvatarDiagnostic({ avatars, blobTokenAvailable, userId }
           </CardContent>
           <CardFooter>
             <Button onClick={testApiEndpoint} disabled={isTestingApi}>
-              {isTestingApi ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {isTestingApi ? <BMWMSpinner size={16} className="mr-2" /> : null}
               Probar API
             </Button>
           </CardFooter>
@@ -276,7 +277,7 @@ export default function AvatarDiagnostic({ avatars, blobTokenAvailable, userId }
           </CardContent>
           <CardFooter>
             <Button onClick={testBlobUpload} disabled={isTestingBlob}>
-              {isTestingBlob ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+              {isTestingBlob ? <BMWMSpinner size={16} className="mr-2" /> : <Upload className="mr-2 h-4 w-4" />}
               Probar Subida
             </Button>
           </CardFooter>
@@ -301,7 +302,7 @@ export default function AvatarDiagnostic({ avatars, blobTokenAvailable, userId }
           <CardFooter>
             <Button onClick={testAvatarUpdate} disabled={isTestingUpdate || !testImageUrl}>
               {isTestingUpdate ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <BMWMSpinner size={16} className="mr-2" />
               ) : (
                 <RefreshCw className="mr-2 h-4 w-4" />
               )}

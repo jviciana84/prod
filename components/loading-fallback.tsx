@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
-import { Loader2, RefreshCw, AlertTriangle } from "lucide-react"
+import { RefreshCw, AlertTriangle } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { Button } from "@/components/ui/button"
 
 interface LoadingFallbackProps {
@@ -56,7 +57,7 @@ export function LoadingFallback({
       <Card className="w-full max-w-md mx-4">
         <CardContent className="flex flex-col items-center justify-center p-8 space-y-4">
           <div className="relative">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <BMWMSpinner size={32} />
             <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-ping"></div>
           </div>
           
@@ -90,7 +91,7 @@ export function LoadingFallback({
                 >
                   {isReloading ? (
                     <>
-                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      <BMWMSpinner size={12} className="mr-1" />
                       Recargando...
                     </>
                   ) : (

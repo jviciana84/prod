@@ -8,7 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { AlertCircle, Loader2 } from "lucide-react"
+import { AlertCircle } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { createClientComponentClient } from "@/lib/supabase/client"
 import { useAuth } from "@/hooks/use-auth"
 
@@ -81,7 +82,7 @@ export function AuthGuard({ children, redirectTo = "/" }: AuthGuardProps) {
       <div className="min-h-screen flex items-center justify-center">
         <Card className="w-96">
           <CardContent className="flex items-center justify-center p-6">
-            <Loader2 className="h-6 w-6 animate-spin mr-2" />
+            <BMWMSpinner size={24} className="mr-2" />
             <span>Verificando autenticación...</span>
           </CardContent>
         </Card>
@@ -132,7 +133,7 @@ export function AuthGuard({ children, redirectTo = "/" }: AuthGuardProps) {
               <Button type="submit" className="w-full" disabled={loginLoading}>
                 {loginLoading ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <BMWMSpinner size={16} className="mr-2" />
                     Iniciando sesión...
                   </>
                 ) : (

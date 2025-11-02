@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Camera, X, Loader2, Check } from 'lucide-react';
+import { Camera, X, Check } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner";
 import { useRouter } from 'next/navigation';
 import * as Tesseract from 'tesseract.js';
 
@@ -605,7 +606,7 @@ export default function OCRTestPage() {
         {isProcessing && (
           <div className="absolute top-20 left-4 bg-black/70 text-white px-3 py-2 rounded-lg">
             <div className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <BMWMSpinner size={16} />
               <span className="text-sm">Analizando...</span>
             </div>
           </div>
@@ -669,7 +670,7 @@ export default function OCRTestPage() {
             className="flex-1 max-w-xs h-14 text-lg font-semibold bg-blue-600 hover:bg-blue-700 shadow-lg"
           >
             {isLoading ? (
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              <BMWMSpinner size={20} className="mr-2" />
             ) : (
               <Camera className="mr-2 h-5 w-5" />
             )}

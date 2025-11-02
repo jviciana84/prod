@@ -9,7 +9,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
-import { Package, Loader2, CheckCircle, Eye, Copy, Database, Mail } from "lucide-react"
+import { Package, CheckCircle, Eye, Copy, Database, Mail } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 
 const MATERIALES_OPCIONES = [
   "Permiso circulación",
@@ -320,7 +321,7 @@ export default function TestEntregaEnMano() {
           >
             {loading ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <BMWMSpinner size={16} className="mr-2" />
                 Probando...
               </>
             ) : (

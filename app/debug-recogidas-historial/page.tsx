@@ -4,7 +4,8 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Database, AlertCircle, CheckCircle } from "lucide-react"
+import { Database, AlertCircle, CheckCircle } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { toast } from "sonner"
 
 interface DebugData {
@@ -69,7 +70,7 @@ export default function DebugRecogidasHistorial() {
           >
             {loading ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <BMWMSpinner size={16} className="mr-2" />
                 Verificando...
               </>
             ) : (

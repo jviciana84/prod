@@ -13,7 +13,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Loader2, Plus, ChevronsUpDown, Check, AlertTriangle, X, Send } from "lucide-react"
+import { Plus, ChevronsUpDown, Check, AlertTriangle, X, Send } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { cn } from "@/lib/utils"
 
 // Importar la función de resolución automática de forma segura
@@ -646,7 +647,7 @@ export function KeyManagementForm({ onMovementRegistered }: KeyManagementFormPro
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-8">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <BMWMSpinner size={24} />
         <p className="mt-4 text-muted-foreground">Cargando datos...</p>
       </div>
     )
@@ -1004,7 +1005,7 @@ export function KeyManagementForm({ onMovementRegistered }: KeyManagementFormPro
           <Button onClick={submitPendingEntries} disabled={submitting} className="w-full">
             {submitting ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground mr-2" />
+                <BMWMSpinner size={16} className="mr-2" />
                 Registrando...
               </>
             ) : (

@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
-import { Package, Loader2, CheckCircle, XCircle, Calendar, User, Mail, Car } from "lucide-react"
+import { Package, CheckCircle, XCircle, Calendar, User, Mail, Car } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 
 interface Entrega {
   id: number
@@ -104,7 +105,7 @@ function ConfirmarEntregaContent() {
       <div className="container mx-auto p-6 flex items-center justify-center min-h-screen">
         <Card className="w-full max-w-md">
           <CardContent className="flex items-center justify-center p-6">
-            <Loader2 className="h-8 w-8 animate-spin" />
+            <BMWMSpinner size={32} />
             <span className="ml-2">Cargando entrega...</span>
           </CardContent>
         </Card>
@@ -259,7 +260,7 @@ function ConfirmarEntregaContent() {
               >
                 {confirming ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <BMWMSpinner size={16} className="mr-2" />
                     Confirmando...
                   </>
                 ) : (
@@ -293,7 +294,7 @@ export default function ConfirmarEntrega() {
       <div className="container mx-auto p-6 flex items-center justify-center min-h-screen">
         <Card className="w-full max-w-md">
           <CardContent className="flex items-center justify-center p-6">
-            <Loader2 className="h-8 w-8 animate-spin" />
+            <BMWMSpinner size={32} />
             <span className="ml-2">Cargando...</span>
           </CardContent>
         </Card>

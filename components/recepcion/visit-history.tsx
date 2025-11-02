@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Loader2, Calendar, RefreshCw } from "lucide-react"
+import { Calendar, RefreshCw } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 
@@ -82,7 +83,7 @@ export function VisitHistory() {
                 className="h-9 w-9"
                 title="Actualizar"
               >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                {loading ? <BMWMSpinner size={16} /> : <RefreshCw className="h-4 w-4" />}
               </Button>
               <Button
                 variant="outline"
@@ -107,7 +108,7 @@ export function VisitHistory() {
         <CardContent>
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin" />
+              <BMWMSpinner size={32} />
             </div>
           ) : filteredHistory.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">

@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Calendar, CheckCircle, AlertCircle, Database, ArrowRight } from "lucide-react"
+import { Calendar, CheckCircle, AlertCircle, Database, ArrowRight } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { toast } from "sonner"
 
 interface MigrationStats {
@@ -125,7 +126,7 @@ export default function MigrateDatesPage() {
               <Button onClick={runMigration} disabled={loading} className="w-full" size="lg">
                 {loading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <BMWMSpinner size={16} className="mr-2" />
                     Migrando fechas...
                   </>
                 ) : (

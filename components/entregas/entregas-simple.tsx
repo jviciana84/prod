@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
-import { Loader2, RefreshCw } from "lucide-react"
+import { RefreshCw } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 
 // Crear cliente Supabase sin autenticación
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -179,7 +180,7 @@ export function EntregasSimple() {
     return (
       <Card>
         <CardContent className="pt-6 flex justify-center items-center">
-          <Loader2 className="h-6 w-6 animate-spin mr-2" />
+          <BMWMSpinner size={24} className="mr-2" />
           <span>Cargando entregas...</span>
         </CardContent>
       </Card>
@@ -241,7 +242,7 @@ export function EntregasSimple() {
                 </div>
                 {updating === entrega.id && (
                   <div className="mt-2 flex items-center text-sm text-muted-foreground">
-                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                    <BMWMSpinner size={12} className="mr-1" />
                     Actualizando...
                   </div>
                 )}

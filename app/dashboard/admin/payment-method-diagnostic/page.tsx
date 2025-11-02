@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Loader2, RefreshCw, CheckCircle, Info } from "lucide-react"
+import { RefreshCw, CheckCircle, Info } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { toast } from "sonner"
 
 interface PaymentMethodStats {
@@ -229,7 +230,7 @@ export default function PaymentMethodDiagnosticPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex items-center space-x-2">
-          <Loader2 className="h-6 w-6 animate-spin" />
+          <BMWMSpinner size={24} />
           <span>Cargando diagnóstico...</span>
         </div>
       </div>
@@ -249,7 +250,7 @@ export default function PaymentMethodDiagnosticPage() {
             Actualizar
           </Button>
           <Button onClick={updatePaymentMethods} disabled={updating}>
-            {updating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-2" />}
+            {updating ? <BMWMSpinner size={16} className="mr-2" /> : <CheckCircle className="h-4 w-4 mr-2" />}
             Corregir Métodos de Pago
           </Button>
         </div>

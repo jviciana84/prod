@@ -5,7 +5,8 @@ import type React from "react"
 import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Loader2, Upload, X, Check, AlertCircle } from "lucide-react"
+import { Upload, X, Check, AlertCircle } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { useToast } from "@/hooks/use-toast"
 import Image from "next/image"
 
@@ -146,7 +147,7 @@ export function AvatarUploader({ onUploadComplete }: AvatarUploaderProps) {
           <Button onClick={handleUpload} disabled={!previewUrl || isUploading || uploadSuccess}>
             {isUploading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <BMWMSpinner size={16} className="mr-2" />
                 Subiendo...
               </>
             ) : uploadSuccess ? (

@@ -16,7 +16,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2, Search, RefreshCw, AlertCircle, Upload, Plus } from "lucide-react"
+import { Search, RefreshCw, AlertCircle, Upload, Plus } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import type { UserWithRoles } from "@/lib/auth/types"
@@ -176,7 +177,7 @@ export default function AdminAvatarManager({ users, avatars }: AdminAvatarManage
         </div>
       ) : loading ? (
         <div className="flex justify-center p-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <BMWMSpinner size={32} />
         </div>
       ) : (
         <Table>
@@ -333,7 +334,7 @@ export default function AdminAvatarManager({ users, avatars }: AdminAvatarManage
               onClick={handleUpdateAvatar}
               disabled={loading || !selectedAvatar || selectedAvatar === selectedUser?.avatar_url}
             >
-              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {loading ? <BMWMSpinner size={16} className="mr-2" /> : null}
               Guardar
             </Button>
           </DialogFooter>

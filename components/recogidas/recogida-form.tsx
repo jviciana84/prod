@@ -9,7 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { Loader2, Search, Truck, Key, CreditCard, FileText, FileCheck, Car, Leaf, Plus, Package, User, Phone, Mail, MapPin } from "lucide-react"
+import { Search, Truck, Key, CreditCard, FileText, FileCheck, Car, Leaf, Plus, Package, User, Phone, Mail, MapPin } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { toast } from "sonner"
 import type { RecogidaFormData, MaterialTipo } from "@/types/recogidas"
 
@@ -266,7 +267,7 @@ export function RecogidaForm({ onSuccess, preselectedMatricula }: RecogidaFormPr
                     required
                   />
                   {searchingVehicle && (
-                    <Loader2 className="absolute right-3 top-3 h-4 w-4 animate-spin text-muted-foreground" />
+                    <BMWMSpinner size={16} />
                   )}
                 </div>
               </div>
@@ -493,7 +494,7 @@ export function RecogidaForm({ onSuccess, preselectedMatricula }: RecogidaFormPr
           <Button type="submit" disabled={loading} className="min-w-[150px] bg-blue-600 hover:bg-blue-700">
             {loading ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <BMWMSpinner size={16} className="mr-2" />
                 Procesando...
               </>
             ) : (

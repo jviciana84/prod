@@ -4,7 +4,8 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { CheckCircle, AlertCircle, Loader2, ArrowRight } from "lucide-react"
+import { CheckCircle, AlertCircle, ArrowRight } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 
 export default function AvatarMigrationTool() {
   const [tableExists, setTableExists] = useState<boolean | null>(null)
@@ -123,7 +124,7 @@ export default function AvatarMigrationTool() {
         <CardContent>
           {isCheckingTable ? (
             <div className="flex items-center space-x-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <BMWMSpinner size={16} />
               <span>Verificando tabla...</span>
             </div>
           ) : tableExists === null ? (
@@ -172,7 +173,7 @@ export default function AvatarMigrationTool() {
           <Button variant="outline" onClick={checkTableExists} disabled={isCheckingTable}>
             {isCheckingTable ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <BMWMSpinner size={16} className="mr-2" />
                 Verificando...
               </>
             ) : (
@@ -182,7 +183,7 @@ export default function AvatarMigrationTool() {
           <Button onClick={createTable} disabled={isCreatingTable || tableExists === true}>
             {isCreatingTable ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <BMWMSpinner size={16} className="mr-2" />
                 Creando...
               </>
             ) : (
@@ -251,7 +252,7 @@ export default function AvatarMigrationTool() {
           <Button onClick={migrateAvatars} disabled={isMigrating || !tableExists}>
             {isMigrating ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <BMWMSpinner size={16} className="mr-2" />
                 Migrando...
               </>
             ) : (

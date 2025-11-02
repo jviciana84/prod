@@ -7,9 +7,10 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Loader2 } from "lucide-react"
+
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { History, Key, FileText, ArrowRight, User, Calendar, Search, Filter, Download, RefreshCw } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 
@@ -200,7 +201,7 @@ export default function KeyHistoryPage() {
           </div>
         </div>
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <BMWMSpinner size={32} />
           <span className="ml-4 text-lg text-muted-foreground">Cargando historial...</span>
         </div>
       </div>

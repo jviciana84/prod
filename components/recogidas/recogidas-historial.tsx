@@ -8,22 +8,8 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { 
-  Search, 
-  RefreshCw, 
-  Loader2, 
-  History, 
-  Calendar, 
-  User, 
-  Package, 
-  Truck, 
-  Hand,
-  FileCheck,
-  FileText,
-  Leaf,
-  Key,
-  CreditCard
-} from "lucide-react"
+import { Search, RefreshCw, History, Calendar, User, Package, Truck, Hand, FileCheck, FileText, Leaf, Key, CreditCard } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { toast } from "sonner"
 import { formatDateForDisplay } from "@/lib/date-utils"
 import type { Recogida } from "@/types/recogidas"
@@ -160,7 +146,7 @@ export function RecogidasHistorial() {
     return (
       <Card>
         <CardContent className="flex justify-center items-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin mr-2" />
+          <BMWMSpinner size={24} className="mr-2" />
           <span>Cargando historial...</span>
         </CardContent>
       </Card>
@@ -206,7 +192,7 @@ export function RecogidasHistorial() {
                 title="Actualizar"
               >
                 {refreshing ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <BMWMSpinner size={16} />
                 ) : (
                   <RefreshCw className="h-4 w-4" />
                 )}

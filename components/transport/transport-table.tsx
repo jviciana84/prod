@@ -18,9 +18,9 @@ import {
   CheckCircle,
   ArrowUpDown,
   X,
-  Loader2,
   Check,
 } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { format, parseISO, differenceInDays } from "date-fns"
 import { es } from "date-fns/locale"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -435,7 +435,7 @@ export default function TransportTable({
              className="h-9 w-9"
              title="Actualizar datos"
            >
-             {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+             {isLoading ? <BMWMSpinner size={16} /> : <RefreshCw className="h-4 w-4" />}
            </Button>
 
           {/* Popover de ordenamiento */}

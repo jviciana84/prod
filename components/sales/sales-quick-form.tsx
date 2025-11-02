@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { toast } from "sonner"
-import { Check, ChevronsUpDown, Search, Loader2, AlertCircle, FileText } from "lucide-react"
+import { Check, ChevronsUpDown, Search, AlertCircle, FileText } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClientComponentClient } from "@/lib/supabase/client"
 import { fixCorruptedCookies, clearCorruptedSession } from "@/utils/fix-auth"
@@ -499,7 +499,7 @@ export function SalesQuickForm({ onSaleRegistered }: { onSaleRegistered?: () => 
                         </FormControl>
                         <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                           {isBuscando ? (
-                            <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                            <BMWMSpinner size={12} />
                           ) : (
                             field.value && <Search className="h-3 w-3 text-muted-foreground" />
                           )}
@@ -571,7 +571,7 @@ export function SalesQuickForm({ onSaleRegistered }: { onSaleRegistered?: () => 
                               <span className="truncate">
                                 {loadingAsesores ? (
                                   <span className="flex items-center">
-                                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                    <BMWMSpinner size={12} className="mr-1" />
                                     Cargando...
                                   </span>
                                 ) : field.value ? (
@@ -592,7 +592,7 @@ export function SalesQuickForm({ onSaleRegistered }: { onSaleRegistered?: () => 
                               <CommandGroup>
                                 {loadingAsesores ? (
                                   <div className="flex items-center justify-center p-2">
-                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                    <BMWMSpinner size={16} className="mr-2" />
                                     <span>Cargando asesores...</span>
                                   </div>
                                 ) : asesores.length === 0 ? (

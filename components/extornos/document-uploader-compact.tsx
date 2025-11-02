@@ -6,7 +6,8 @@ import { useState, useCallback, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { FileText, Upload, X, Loader2, Eye } from "lucide-react"
+import { FileText, Upload, X, Eye } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { toast } from "@/hooks/use-toast"
 import { Card, CardContent } from "@/components/ui/card"
 
@@ -246,7 +247,7 @@ export function DocumentUploaderCompact({
           disabled={disabled || isUploading}
           className="flex items-center gap-2"
         >
-          {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+          {isUploading ? <BMWMSpinner size={16} /> : <Upload className="h-4 w-4" />}
           {isUploading ? "Subiendo..." : "Seleccionar Archivo(s)"}
         </Button>
       </div>

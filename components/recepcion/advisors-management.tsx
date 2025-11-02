@@ -24,7 +24,8 @@ import {
 } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Pencil, Trash2, Loader2 } from "lucide-react"
+import { Plus, Pencil, Trash2 } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { useToast } from "@/hooks/use-toast"
 
 interface Advisor {
@@ -345,7 +346,7 @@ export function AdvisorsManagement({ onUpdate }: AdvisorsManagementProps) {
               </Button>
               <Button onClick={handleSubmit} disabled={loading}>
                 {loading ? (
-                  <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Guardando...</>
+                  <><BMWMSpinner size={16} className="mr-2" /> Guardando...</>
                 ) : (
                   editing ? 'Actualizar' : 'Crear'
                 )}
@@ -358,7 +359,7 @@ export function AdvisorsManagement({ onUpdate }: AdvisorsManagementProps) {
       <CardContent>
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <BMWMSpinner size={32} />
           </div>
         ) : advisors.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">

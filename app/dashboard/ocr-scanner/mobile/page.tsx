@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Camera, X, Loader2, Check } from 'lucide-react';
+import { Camera, X, Check } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner";
 import { useRouter } from 'next/navigation';
 import * as Tesseract from 'tesseract.js';
 
@@ -898,7 +899,7 @@ export default function OCRScannerMobilePage() {
               disabled={locationPermission === 'denied' || isGettingAddress}
             >
               {isGettingAddress ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <BMWMSpinner size={16} />
               ) : (
                 location?.address ? '📍✓' : '📍'
               )}
@@ -1029,7 +1030,7 @@ export default function OCRScannerMobilePage() {
               {/* Texto de procesamiento */}
               <div className="absolute bottom-1/3 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-full shadow-lg">
                 <div className="flex items-center gap-3">
-                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <BMWMSpinner size={20} />
                   <span className="text-sm font-semibold">Procesando imagen...</span>
                 </div>
               </div>
@@ -1135,7 +1136,7 @@ export default function OCRScannerMobilePage() {
         {isProcessing && (
           <div className="absolute top-20 left-4 bg-black/70 text-white px-3 py-2 rounded-lg">
             <div className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <BMWMSpinner size={16} />
               <span className="text-sm">Analizando...</span>
             </div>
           </div>
@@ -1260,7 +1261,7 @@ export default function OCRScannerMobilePage() {
             }`}
           >
             {isLoading ? (
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              <BMWMSpinner size={20} className="mr-2" />
             ) : (
               <Camera className="mr-2 h-5 w-5" />
             )}

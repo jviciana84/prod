@@ -10,7 +10,8 @@ import { Switch } from "@/components/ui/switch"
 import { createClientComponentClient } from "@/lib/supabase/client"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/use-auth"
-import { RefreshCw, Plus, Save, Trash2, AlertCircle, Info, Users, CheckCircle, Eye, EyeOff, Settings, ChevronDown, Lock, Unlock, Calendar, BarChart2, BarChart, Printer, X, Loader2 } from "lucide-react"
+import { RefreshCw, Plus, Save, Trash2, AlertCircle, Info, Users, CheckCircle, Eye, EyeOff, Settings, ChevronDown, Lock, Unlock, Calendar, BarChart2, BarChart, Printer, X } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
@@ -1250,7 +1251,7 @@ export default function PhotographerAssignments() {
                 onClick={handleReassignPhotographers}
                 disabled={isSaving || !canEdit()}
               >
-                {isSaving ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : <Users className="h-4 w-4 mr-2" />}
+                {isSaving ? <BMWMSpinner size={16} className="mr-2" /> : <Users className="h-4 w-4 mr-2" />}
                 Reasignar fotógrafos
               </Button>
             </div>
@@ -1339,7 +1340,7 @@ export default function PhotographerAssignments() {
                   {showHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
                 <Button variant="outline" size="icon" onClick={fetchData} disabled={isLoading} title="Actualizar">
-                  <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+                  {isLoading ? <BMWMSpinner size={16} /> : <RefreshCw className="h-4 w-4" />}
                 </Button>
                 <Button variant="outline" size="icon" onClick={handleSaveChanges} disabled={isSaving} title="Guardar Cambios">
                   <Save className="h-4 w-4" />
@@ -1711,7 +1712,7 @@ export default function PhotographerAssignments() {
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="icon" onClick={() => loadRealStats(!canEdit())} disabled={isLoadingStats} title="Actualizar estadísticas">
-                  <RefreshCw className={`h-4 w-4 ${isLoadingStats ? "animate-spin" : ""}`} />
+                  {isLoadingStats ? <BMWMSpinner size={16} /> : <RefreshCw className="h-4 w-4" />}
               </Button>
                 <Button variant="outline" size="icon" onClick={() => generateDetailedReport(!canEdit())} title="Generar informe detallado">
                   <Printer className="h-4 w-4" />
@@ -1745,7 +1746,7 @@ export default function PhotographerAssignments() {
                   <div className="space-y-2">
                     {isLoadingStats ? (
                       <div className="flex items-center justify-center py-4">
-                        <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                        <BMWMSpinner size={16} className="mr-2" />
                         <span className="text-sm text-muted-foreground">Cargando...</span>
                       </div>
                     ) : photographerStats.length > 0 ? (
@@ -1830,7 +1831,7 @@ export default function PhotographerAssignments() {
                     disabled={!selectedUserId || isSaving || !canEdit()}
                     className="w-full"
                   >
-                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+                    {isSaving ? <BMWMSpinner size={16} className="mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
                     Añadir Fotógrafo
                   </Button>
                 </div>
@@ -1916,7 +1917,7 @@ export default function PhotographerAssignments() {
               </div>
               <div className="mt-4">
                 <Button variant="outline" onClick={fetchData} disabled={isLoading}>
-                  <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
+                  {isLoading ? <BMWMSpinner size={16} className="mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
                   Actualizar Diagnóstico
                 </Button>
               </div>

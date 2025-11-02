@@ -4,7 +4,8 @@ import { createClientComponentClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Loader2, RefreshCw } from "lucide-react"
+import { RefreshCw } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 
 export function EntregasTableSimple() {
   const [loading, setLoading] = useState(true)
@@ -110,7 +111,7 @@ export function EntregasTableSimple() {
         <CardTitle className="flex items-center justify-between">
           Entregas - Debug Mode
           <Button onClick={loadData} disabled={loading} size="sm">
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            {loading ? <BMWMSpinner size={16} /> : <RefreshCw className="h-4 w-4" />}
             Recargar
           </Button>
         </CardTitle>

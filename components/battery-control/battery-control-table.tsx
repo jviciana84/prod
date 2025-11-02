@@ -18,7 +18,6 @@ import {
   Search,
   RefreshCw,
   Settings,
-  Loader2,
   Calendar,
   CheckCircle2,
   AlertCircle,
@@ -560,7 +559,7 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
               className="h-9 w-9"
               title="Actualizar"
             >
-              {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              {refreshing ? <BMWMSpinner size={16} /> : <RefreshCw className="h-4 w-4" />}
             </Button>
             {isAdmin && (
               <Button
@@ -651,7 +650,7 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
             {loading ? (
               <div className="rounded-lg border shadow-sm overflow-hidden">
                 <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mr-2" />
+                  <BMWMSpinner size={32} className="mr-2" />
                   <span>Cargando vehículos...</span>
                 </div>
               </div>
@@ -1113,7 +1112,7 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
             <Button onClick={handleSaveConfig} disabled={savingConfig}>
               {savingConfig ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <BMWMSpinner size={16} className="mr-2" />
                   Guardando...
                 </>
               ) : (

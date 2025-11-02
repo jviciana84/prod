@@ -10,26 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import {
-  Search,
-  RefreshCw,
-  Loader2,
-  Calendar,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-  Euro,
-  Car,
-  User,
-  Eye,
-  EyeOff,
-  Tag,
-  Receipt,
-  FileSpreadsheet,
-  CalendarDays,
-  Filter,
-} from "lucide-react"
+import { Search, RefreshCw, Calendar, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Euro, Car, User, Eye, EyeOff, Tag, Receipt, FileSpreadsheet, CalendarDays, Filter } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { toast } from "sonner"
@@ -677,7 +659,7 @@ export function IncentivosTable({
                 title="Actualizar"
               >
                 {refreshing || loading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <BMWMSpinner size={16} />
                 ) : (
                   <RefreshCw className="h-4 w-4" />
                 )}
@@ -701,7 +683,7 @@ export function IncentivosTable({
                 className="h-9 w-9"
                 title="Exportar a Excel"
               >
-                {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
+                {exporting ? <BMWMSpinner size={16} /> : <FileSpreadsheet className="h-4 w-4" />}
               </Button>
             </div>
 
@@ -787,7 +769,7 @@ export function IncentivosTable({
                     <TableRow>
                       <TableCell colSpan={isSimplifiedView ? 14 : 19} className="text-center py-8">
                         <div className="flex justify-center items-center">
-                          <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                          <BMWMSpinner size={24} className="mr-2" />
                           <span>Cargando incentivos...</span>
                         </div>
                       </TableCell>

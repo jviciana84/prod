@@ -10,34 +10,8 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import {
-  AlertCircle,
-  Loader2,
-  Check,
-  Upload,
-  Edit2,
-  Save,
-  ArrowLeft,
-  FileUp,
-  FilePlus2,
-  FileCheck2,
-  Paperclip,
-  X,
-  Building,
-  UserCircle,
-  Car,
-  BadgePercent,
-  Banknote,
-  CalendarDays,
-  Hash,
-  Mail,
-  Phone,
-  MapPin,
-  KeySquare,
-  Briefcase,
-  Globe,
-  Building2,
-} from "lucide-react"
+import { AlertCircle, Check, Upload, Edit2, Save, ArrowLeft, FileUp, FilePlus2, FileCheck2, Paperclip, X, Building, UserCircle, Car, BadgePercent, Banknote, CalendarDays, Hash, Mail, Phone, MapPin, KeySquare, Briefcase, Globe, Building2 } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
@@ -438,7 +412,7 @@ export default function UploadPdfPage() {
               className="w-full sm:w-auto ml-auto bg-primary hover:bg-primary/90 text-primary-foreground text-xs px-3 py-1.5 h-auto"
             >
               {loading ? (
-                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                <BMWMSpinner size={12} className="mr-1" />
               ) : (
                 <Upload className="mr-1.5 h-3.5 w-3.5" />
               )}
@@ -469,7 +443,7 @@ export default function UploadPdfPage() {
                     className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs px-2.5 py-1 h-auto"
                   >
                     {saving ? (
-                      <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                      <BMWMSpinner size={12} className="mr-1" />
                     ) : (
                       <Save className="mr-1.5 h-3.5 w-3.5" />
                     )}

@@ -25,7 +25,8 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, UserPlus, Pencil, Trash2 } from "lucide-react"
+import { UserPlus, Pencil, Trash2 } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { useToast } from "@/hooks/use-toast"
 import Image from "next/image"
 import { AvatarSelector } from "./avatar-selector"
@@ -917,7 +918,7 @@ export default function UserManagement() {
                       <Button type="submit" disabled={isSubmitting}>
                         {isSubmitting ? (
                           <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            <BMWMSpinner size={16} className="mr-2" />
                             Procesando...
                           </>
                         ) : (
@@ -940,7 +941,7 @@ export default function UserManagement() {
         <CardContent>
           {loading ? (
             <div className="flex justify-center p-4">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <BMWMSpinner size={32} />
             </div>
           ) : (
             <Table>
@@ -1019,7 +1020,7 @@ export default function UserManagement() {
                                     disabled={sendingWelcomeEmail === user.id}
                                   >
                                     {sendingWelcomeEmail === user.id ? (
-                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                      <BMWMSpinner size={16} />
                                     ) : (
                                       <Mail className="h-4 w-4" />
                                     )}
@@ -1041,7 +1042,7 @@ export default function UserManagement() {
                                   disabled={sendingResetEmail === user.email}
                                 >
                                   {sendingResetEmail === user.email ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <BMWMSpinner size={16} />
                                   ) : (
                                     <KeyRound className="h-4 w-4" />
                                   )}
@@ -1062,7 +1063,7 @@ export default function UserManagement() {
                                   disabled={settingPassword === user.id}
                                 >
                                   {settingPassword === user.id ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <BMWMSpinner size={16} />
                                   ) : (
                                     <Key className="h-4 w-4" />
                                   )}
@@ -1212,7 +1213,7 @@ export default function UserManagement() {
                                 <Button onClick={handleUpdateUser} disabled={isSubmitting}>
                                   {isSubmitting ? (
                                     <>
-                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      <BMWMSpinner size={16} className="mr-2" />
                                       Guardando...
                                     </>
                                   ) : (
@@ -1361,7 +1362,7 @@ export default function UserManagement() {
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <BMWMSpinner size={16} className="mr-2" />
                     Procesando...
                   </>
                 ) : (

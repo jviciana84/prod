@@ -4,9 +4,10 @@ import { useEffect, useState } from "react"
 import { createClientComponentClient } from "@/lib/supabase/client"
 import { KeyDocumentIncidencesTable } from "@/components/keys/key-document-incidences-table"
 import type { IncidenciaHistorialConDetalles } from "@/types/incidencias"
-import { Loader2 } from "lucide-react"
+
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { Key } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 
 // Tipos de incidencia específicos para esta página
 const RELEVANT_INCIDENCE_TYPES = ["2ª llave", "CardKey", "Ficha técnica", "Permiso circulación"]
@@ -148,7 +149,7 @@ export default function KeyDocumentIncidencesPage() {
           </div>
         </div>
         <div className="flex justify-center items-center min-h-[200px]">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <BMWMSpinner size={32} />
         </div>
       </div>
     )

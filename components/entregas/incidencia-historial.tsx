@@ -4,7 +4,8 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2, Plus, RefreshCw, FileDown, AlertCircle } from "lucide-react"
+import { Plus, RefreshCw, FileDown, AlertCircle } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { createClientComponentClient } from "@/lib/supabase/client"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
@@ -122,7 +123,7 @@ export function IncidenciaHistorialComponent({ entregaId }: IncidenciaHistorialC
           <CardTitle>Historial de Incidencias</CardTitle>
           <div className="flex gap-2">
             <Button variant="outline" size="icon" onClick={handleRefresh} disabled={refreshing} title="Actualizar">
-              {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              {refreshing ? <BMWMSpinner size={16} /> : <RefreshCw className="h-4 w-4" />}
             </Button>
 
             <Button
@@ -154,7 +155,7 @@ export function IncidenciaHistorialComponent({ entregaId }: IncidenciaHistorialC
           <CardContent className="pt-4">
             {loading ? (
               <div className="flex justify-center items-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                <BMWMSpinner size={24} className="mr-2" />
                 <span>Cargando historial...</span>
               </div>
             ) : historial.length === 0 ? (

@@ -16,34 +16,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import {
-  AlertCircle,
-  Loader2,
-  Check,
-  Upload,
-  Edit2,
-  Save,
-  ArrowLeft,
-  FileUp,
-  FilePlus2,
-  FileCheck2,
-  Paperclip,
-  X,
-  Building,
-  UserCircle,
-  Car,
-  BadgePercent,
-  Banknote,
-  CalendarDays,
-  Hash,
-  Mail,
-  Phone,
-  MapPin,
-  KeySquare,
-  Briefcase,
-  Globe,
-  Building2,
-} from "lucide-react"
+import { AlertCircle, Check, Upload, Edit2, Save, ArrowLeft, FileUp, FilePlus2, FileCheck2, Paperclip, X, Building, UserCircle, Car, BadgePercent, Banknote, CalendarDays, Hash, Mail, Phone, MapPin, KeySquare, Briefcase, Globe, Building2 } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
@@ -542,7 +516,7 @@ export default function PdfUploadModal({ isOpen, onClose }: PdfUploadModalProps)
                       className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs px-2.5 py-1 h-auto"
                     >
                       {loading ? (
-                        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                        <BMWMSpinner size={12} className="mr-1" />
                       ) : (
                         <Save className="mr-1.5 h-3.5 w-3.5" />
                       )}
@@ -660,7 +634,7 @@ export default function PdfUploadModal({ isOpen, onClose }: PdfUploadModalProps)
                     className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs px-2.5 py-1 h-auto"
                   >
                     {loading ? (
-                      <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                      <BMWMSpinner size={12} className="mr-1" />
                     ) : (
                       <Save className="mr-1.5 h-3.5 w-3.5" />
                     )}

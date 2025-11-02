@@ -4,7 +4,8 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2 } from "lucide-react"
+
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 
 export default function TestSavePdfPage() {
   const [loading, setLoading] = useState(false)
@@ -94,7 +95,7 @@ export default function TestSavePdfPage() {
           <Button onClick={handleTest} disabled={loading} className="w-full">
             {loading ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <BMWMSpinner size={16} className="mr-2" />
                 Probando...
               </>
             ) : (

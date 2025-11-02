@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2 } from "lucide-react"
+
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 
 export default function TestPDFExtractPage() {
   const [file, setFile] = useState<File | null>(null)
@@ -133,7 +134,7 @@ export default function TestPDFExtractPage() {
             <Button type="submit" disabled={!file || loading} className="w-full">
               {loading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <BMWMSpinner size={16} className="mr-2" />
                   Extrayendo texto...
                 </>
               ) : (
@@ -168,7 +169,7 @@ export default function TestPDFExtractPage() {
                 >
                   {saving ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <BMWMSpinner size={16} className="mr-2" />
                       Guardando...
                     </>
                   ) : saved ? (

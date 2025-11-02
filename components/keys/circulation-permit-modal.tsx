@@ -12,7 +12,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { FileCheck, Search, Loader2, ChevronDown, Car, User, RefreshCw, Printer } from "lucide-react"
+import { FileCheck, Search, ChevronDown, Car, User, RefreshCw, Printer } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { toast } from "sonner"
 import { useAuth } from "@/hooks/use-auth"
 import { createClientComponentClient } from "@/lib/supabase/client"
@@ -925,7 +926,7 @@ export function CirculationPermitModal({ open, onOpenChange }: CirculationPermit
                 className="h-8 w-8 p-0"
               >
                 {refreshing ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <BMWMSpinner size={16} />
                 ) : (
                   <RefreshCw className="h-4 w-4" />
                 )}
@@ -945,7 +946,7 @@ export function CirculationPermitModal({ open, onOpenChange }: CirculationPermit
               >
                 {confirming ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <BMWMSpinner size={16} />
                     Registrando...
                   </>
                 ) : (
@@ -1030,7 +1031,7 @@ export function CirculationPermitModal({ open, onOpenChange }: CirculationPermit
             <TabsContent value="pending" className="space-y-4">
               {loading ? (
                 <div className="flex justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin" />
+                  <BMWMSpinner size={32} />
                 </div>
               ) : filteredRequests.filter(r => 
                 r.circulation_permit_materials?.some(m => !m.selected)
@@ -1050,7 +1051,7 @@ export function CirculationPermitModal({ open, onOpenChange }: CirculationPermit
             <TabsContent value="completed" className="space-y-4">
               {loading ? (
                 <div className="flex justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin" />
+                  <BMWMSpinner size={32} />
                 </div>
               ) : filteredRequests.filter(r => 
                 r.circulation_permit_materials?.every(m => m.selected)

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
 import { RefreshCw, AlertCircle, CheckCircle } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { getAssignmentStats } from "@/server-actions/photos-assignment"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
@@ -84,7 +85,7 @@ export default function AssignmentStats() {
           </CardDescription>
         </div>
         <Button variant="outline" size="sm" onClick={loadStats} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+          {loading ? <BMWMSpinner size={16} className="mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
           Actualizar
         </Button>
       </CardHeader>

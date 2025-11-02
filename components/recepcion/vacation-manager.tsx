@@ -18,7 +18,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Calendar, Loader2 } from "lucide-react"
+import { Calendar } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { useToast } from "@/hooks/use-toast"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
@@ -148,7 +149,7 @@ export function VacationManager({ onUpdate }: VacationManagerProps) {
       <CardContent>
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin" />
+            <BMWMSpinner size={32} />
           </div>
         ) : (
           <Table>
@@ -243,7 +244,7 @@ export function VacationManager({ onUpdate }: VacationManagerProps) {
                               Cancelar
                             </Button>
                             <Button onClick={handleSetVacation} disabled={loading}>
-                              {loading ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Guardando...</> : 'Guardar'}
+                              {loading ? <><BMWMSpinner size={16} className="mr-2" /> Guardando...</> : 'Guardar'}
                             </Button>
                           </DialogFooter>
                         </DialogContent>

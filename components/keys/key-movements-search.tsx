@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Loader2 } from "lucide-react"
+
 import { Search, Key, FileText, ArrowRight, Calendar, CheckCircle, Clock, X, CreditCard } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 
@@ -321,7 +322,7 @@ export function KeyMovementsSearch() {
 
       {loading && (
         <div className="flex items-center justify-center py-6">
-          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          <BMWMSpinner size={16} />
           <span className="ml-2 text-sm text-muted-foreground">Buscando...</span>
         </div>
       )}

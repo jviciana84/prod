@@ -6,7 +6,8 @@ import { createClientComponentClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2 } from "lucide-react"
+
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { getAllAvatars } from "@/lib/avatars"
 
 interface AvatarSelectorProps {
@@ -108,7 +109,7 @@ export default function AvatarSelector({ userId, currentAvatar }: AvatarSelector
           Cancelar
         </Button>
         <Button onClick={handleSaveAvatar} disabled={!selectedAvatar || isLoading}>
-          {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+          {isLoading ? <BMWMSpinner size={16} className="mr-2" /> : null}
           Guardar Avatar
         </Button>
       </div>

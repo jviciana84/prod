@@ -4,7 +4,8 @@ import React from "react"
 
 import { useActionState } from "react"
 import { Button } from "@/components/ui/button"
-import { Trophy, Loader2 } from "lucide-react"
+import { Trophy } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { toast } from "sonner"
 import { syncEntregas } from "@/server-actions/sync-entregas" // Import the server action
 
@@ -38,7 +39,7 @@ export function SyncEntregasButton({ onSyncComplete }: SyncButtonProps) {
       className="h-9 w-9"
       title="Sincronizar Entregas"
     >
-      {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trophy className="h-4 w-4" />}
+      {isPending ? <BMWMSpinner size={16} /> : <Trophy className="h-4 w-4" />}
     </Button>
   )
 }

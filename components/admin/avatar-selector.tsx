@@ -6,7 +6,8 @@ import { useState, useEffect } from "react"
 import Image from "next/image"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Loader2, ImageIcon } from "lucide-react"
+import { ImageIcon } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { useToast } from "@/hooks/use-toast"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
@@ -82,7 +83,7 @@ export function AvatarSelector({ currentAvatarUrl, onSelect, triggerButton }: Av
           <div className="py-4">
             {loading ? (
               <div className="flex justify-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <BMWMSpinner size={32} />
               </div>
             ) : avatars.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
