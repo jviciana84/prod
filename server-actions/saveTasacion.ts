@@ -173,6 +173,8 @@ export async function saveTasacion(data: TasacionFormData, advisorSlug: string) 
         const apiUrl = `${baseUrl}/api/upload-tasacion-images`
         
         console.log(`📸 URL de subida: ${apiUrl}`)
+        console.log(`📸 Número de imágenes a subir: ${imagesToUpload.length}`)
+        console.log(`📸 Categorías: ${imagesToUpload.map(i => i.category).join(', ')}`)
         
         const uploadResponse = await fetch(apiUrl, {
           method: 'POST',
@@ -185,12 +187,16 @@ export async function saveTasacion(data: TasacionFormData, advisorSlug: string) 
           })
         })
 
+        console.log(`📸 Respuesta HTTP status: ${uploadResponse.status}`)
+
         if (!uploadResponse.ok) {
-          throw new Error(`HTTP error! status: ${uploadResponse.status}`)
+          const errorText = await uploadResponse.text()
+          console.error(`❌ Error HTTP ${uploadResponse.status}: ${errorText}`)
+          throw new Error(`HTTP error! status: ${uploadResponse.status} - ${errorText}`)
         }
 
         const uploadResult = await uploadResponse.json()
-        console.log('📸 Resultado de subida:', uploadResult)
+        console.log('📸 Resultado de subida:', JSON.stringify(uploadResult, null, 2))
 
         if (uploadResult.success && uploadResult.uploadedUrls) {
           console.log(`✅ Subidas ${uploadResult.totalUploaded} imágenes a OVH`)
