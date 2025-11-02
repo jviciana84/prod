@@ -580,12 +580,14 @@ const TasacionPDF = ({ data, metadata, tasacionId, logoBase64, watermarkBase64, 
                   </Text>
                 </View>
               </View>
-              {data.elementosDestacables && (
-                <View style={styles.dataItemFull}>
-                  <Text style={[styles.dataLabel, { fontSize: 7, color: '#8b5cf6' }]}>Elementos Destacables</Text>
+              <View style={styles.dataItemFull}>
+                <Text style={[styles.dataLabel, { fontSize: 7, color: '#8b5cf6' }]}>Elementos Destacables</Text>
+                {data.elementosDestacables ? (
                   <Text style={[styles.dataValue, { fontSize: 7 }]}>{data.elementosDestacables}</Text>
-                </View>
-              )}
+                ) : (
+                  <Text style={[styles.dataValue, { fontSize: 7, fontStyle: 'italic', color: '#9ca3af' }]}>Vacío</Text>
+                )}
+              </View>
             </View>
 
             {/* Estado Mecánico */}
