@@ -1328,8 +1328,7 @@ function renderPhotoPages(data: TasacionFormData, tasacionId?: string, metadata?
       justifyContent: 'center',
       alignItems: 'center'
     }}>
-      <Text style={{ fontSize: 32, color: '#d1d5db', marginBottom: 5 }}>📷</Text>
-      <Text style={{ fontSize: 8, color: '#9ca3af', fontStyle: 'italic' }}>Sin foto</Text>
+      <Text style={{ fontSize: 9, color: '#9ca3af', fontStyle: 'italic' }}>Sin foto</Text>
     </View>
   )
   

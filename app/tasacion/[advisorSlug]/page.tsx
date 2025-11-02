@@ -109,6 +109,8 @@ export default function TasacionPage() {
       if (result.success) {
         console.log('✅ Tasación guardada con ID:', result.tasacionId)
         console.log('🔍 DEBUG resultado saveTasacion:', result)
+        console.log('🔍 DEBUG.totalImagenesProcesadas:', (result as any).debug?.totalImagenesProcesadas)
+        console.log('🔍 DEBUG.categorias:', (result as any).debug?.categorias)
         localStorage.setItem('lastTasacionId', result.tasacionId)
         localStorage.setItem('lastTasacionTimestamp', Date.now().toString())
         
