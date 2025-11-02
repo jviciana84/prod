@@ -249,9 +249,12 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
         setStream(mediaStream)
         setShowCameraView(true)
         
-        // Solicitar orientación horizontal
+        // Solicitar orientación según tipo de foto
+        const tipoFoto = (window as any).__tipoFotoActual
+        const orientacion = tipoFoto === 'documento' ? 'portrait' : 'landscape'
+        
         if (screen.orientation && 'lock' in screen.orientation) {
-          (screen.orientation as any).lock('landscape').catch(() => {
+          (screen.orientation as any).lock(orientacion).catch(() => {
             console.log('No se pudo bloquear orientación')
           })
         }
