@@ -496,9 +496,15 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
                          Object.values(fotosDocumentacion).some(Boolean) ||
                          fotosOtras.length > 0
       
+      console.log('🔙 Volver desde vehículo. ¿Tiene fotos?', tieneFotos)
+      console.log('📸 Fotos vehículo:', Object.values(fotosVehiculo).filter(Boolean).length)
+      console.log('📸 Otras fotos:', { cuentakm: !!fotosCuentakm, intDel: !!fotosInteriorDelantero, intTr: !!fotosInteriorTrasero, docs: Object.values(fotosDocumentacion).filter(Boolean).length, otras: fotosOtras.length })
+      
       if (tieneFotos) {
+        console.log('⚠️ Mostrando advertencia de pérdida de fotos')
         setShowBackConfirmation(true)
       } else {
+        console.log('✅ No hay fotos, volviendo sin advertencia')
         onBack()
       }
     }

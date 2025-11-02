@@ -434,9 +434,16 @@ const TasacionPDF = ({ data, metadata, tasacionId, logoBase64, watermarkBase64, 
                 </View>
                 <View style={styles.dataItem}>
                   <Text style={[styles.dataLabel, { fontSize: 7 }]}>Procedencia</Text>
-                  <Text style={[styles.dataValue, { fontSize: 8 }]}>
-                    {data.procedencia === 'particular' ? 'Particular' : 'Empresa'}
-                  </Text>
+                  {data.procedencia === 'particular' ? (
+                    <Text style={[styles.dataValue, { fontSize: 8 }]}>Particular</Text>
+                  ) : (
+                    <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
+                      <Text style={[styles.dataValue, { fontSize: 8 }]}>Empresa</Text>
+                      <Text style={[styles.dataValue, { fontSize: 7, color: '#3b82f6', fontWeight: 'bold' }]}>
+                        (21% IVA incluido)
+                      </Text>
+                    </View>
+                  )}
                 </View>
                 <View style={styles.dataItem}>
                   <Text style={[styles.dataLabel, { fontSize: 7 }]}>F. Matriculación</Text>

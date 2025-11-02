@@ -609,7 +609,6 @@ export default function DatosAdicionalesStep({ onComplete, onBack }: DatosAdicio
                     type="text"
                     inputMode="numeric"
                     enterKeyHint="next"
-                    pattern="[0-9]*"
                     placeholder="15/06/2025"
                     value={proximaITV}
                     onChange={(e) => {
