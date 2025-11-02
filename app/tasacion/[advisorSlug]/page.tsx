@@ -90,6 +90,15 @@ export default function TasacionPage() {
 
     console.log('Tasación completada:', completedData)
     
+    // DEBUG: Verificar fotos en completedData
+    console.log('🔍 DEBUG FOTOS EN completedData:')
+    console.log('  fotosVehiculo:', completedData.fotosVehiculo ? Object.keys(completedData.fotosVehiculo).length : 0)
+    console.log('  fotosCuentakm:', !!completedData.fotosCuentakm)
+    console.log('  fotosInteriorDelantero:', !!completedData.fotosInteriorDelantero)
+    console.log('  fotosInteriorTrasero:', !!completedData.fotosInteriorTrasero)
+    console.log('  fotosDocumentacion:', completedData.fotosDocumentacion ? Object.keys(completedData.fotosDocumentacion).length : 0)
+    console.log('  fotosOtras:', completedData.fotosOtras?.length || 0)
+    
     try {
       // Guardar en Supabase + Subir fotos a OVH PRIMERO
       console.log('🚀 Guardando en Supabase y subiendo fotos a OVH...')

@@ -80,6 +80,11 @@ export async function saveTasacion(data: TasacionFormData, advisorSlug: string) 
       })
     }
 
+    console.log(`🔍 DEBUG: Total imágenes preparadas = ${imagesToUpload.length}`)
+    if (imagesToUpload.length > 0) {
+      console.log(`🔍 DEBUG: Categorías encontradas:`, imagesToUpload.map(i => `${i.category}:${i.key}`).join(', '))
+    }
+
     // 2. Preparar datos para insert (filtrar undefined/null para campos opcionales)
     const datosInsert = {
       advisor_slug: advisorSlug,
