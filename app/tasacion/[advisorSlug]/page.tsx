@@ -100,6 +100,7 @@ export default function TasacionPage() {
       if (result.success) {
         console.log('✅ Tasación guardada con ID:', result.tasacionId)
         localStorage.setItem('lastTasacionId', result.tasacionId)
+        localStorage.setItem('lastTasacionTimestamp', Date.now().toString())
         
         // Guardar datos SIN FOTOS en localStorage (para evitar QuotaExceededError)
         const dataWithoutPhotos = {

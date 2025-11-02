@@ -22,8 +22,24 @@ export default function TasacionCompletadaPage() {
     // Recuperar datos completos desde Supabase usando el ID
     const loadTasacionData = async () => {
       const tasacionId = localStorage.getItem('lastTasacionId')
+      const timestamp = localStorage.getItem('lastTasacionTimestamp')
       
-      if (tasacionId) {
+      // Validar que el ID no sea muy antiguo (máximo 1 hora)
+      if (tasacionId && timestamp) {
+        const timeElapsed = Date.now() - parseInt(timestamp)
+        const maxAge = 60 * 60 * 1000 // 1 hora en milisegundos
+        
+        if (timeElapsed > maxAge) {
+          console.warn('⚠️ ID de tasación expirado (más de 1 hora)')
+          // Limpiar datos antiguos
+          localStorage.removeItem('lastTasacionId')
+          localStorage.removeItem('lastTasacionTimestamp')
+          localStorage.removeItem('lastTasacion')
+          localStorage.removeItem('tasacionMetadata')
+          tryLoadFromLocalStorage()
+          return
+        }
+        
         console.log('🔍 Recuperando tasación desde Supabase con ID:', tasacionId)
         const { getTasacionById } = await import('@/server-actions/getTasacion')
         const result = await getTasacionById(tasacionId)
@@ -31,11 +47,21 @@ export default function TasacionCompletadaPage() {
         if (result.success && result.data) {
           console.log('✅ Tasación recuperada desde Supabase')
           setTasacionData(result.data)
+          
+          // Limpiar ID después de cargar exitosamente para no reutilizar
+          console.log('🧹 Limpiando IDs de localStorage después de carga exitosa')
+          localStorage.removeItem('lastTasacionId')
+          localStorage.removeItem('lastTasacionTimestamp')
         } else {
           console.error('❌ Error al recuperar tasación:', result.error)
           // Fallback a localStorage (sin fotos)
           tryLoadFromLocalStorage()
         }
+      } else if (tasacionId && !timestamp) {
+        // ID sin timestamp = ID antiguo, limpiar
+        console.warn('⚠️ ID de tasación sin timestamp (antiguo)')
+        localStorage.removeItem('lastTasacionId')
+        tryLoadFromLocalStorage()
       } else {
         console.warn('⚠️ No hay ID de tasación')
         tryLoadFromLocalStorage()
@@ -107,10 +133,11 @@ export default function TasacionCompletadaPage() {
   }
 
   const handleVolver = () => {
-    // Limpiar localStorage
+    // Limpiar localStorage (por si acaso quedó algo)
     localStorage.removeItem('lastTasacion')
     localStorage.removeItem('tasacionMetadata')
     localStorage.removeItem('lastTasacionId')
+    localStorage.removeItem('lastTasacionTimestamp')
     
     // Volver a la página de inicio de tasaciones
     router.push('/tasacion/test-advisor')
