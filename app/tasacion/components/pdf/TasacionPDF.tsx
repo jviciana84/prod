@@ -651,13 +651,15 @@ const TasacionPDF = ({ data, metadata, tasacionId, logoBase64, watermarkBase64, 
           </View>
         </View>
 
-        {/* Observaciones - Ancho completo */}
-        {data.observaciones && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>OBSERVACIONES</Text>
+        {/* Observaciones - Ancho completo - SIEMPRE se muestra */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>OBSERVACIONES</Text>
+          {data.observaciones ? (
             <Text style={[styles.dataValue, { fontSize: 8 }]}>{data.observaciones}</Text>
-          </View>
-        )}
+          ) : (
+            <Text style={[styles.dataValue, { fontSize: 8, fontStyle: 'italic', color: '#9ca3af' }]}>Vacío</Text>
+          )}
+        </View>
 
         {/* Documentos */}
         {(data.fotoPermisoCirculacion || data.fotoFichaTecnicaFrente) && (
