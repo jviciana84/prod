@@ -7,6 +7,7 @@ import StockTable from "@/components/vehicles/stock-table"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { CompactSearchWithModal } from "@/components/dashboard/compact-search-with-modal"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { AutoRefreshIndicator } from "@/components/ui/auto-refresh-indicator"
 import { AutoRefreshSettings } from "@/components/ui/auto-refresh-settings"
 import { AutoRefreshNotification } from "@/components/ui/auto-refresh-notification"
@@ -210,7 +211,7 @@ export default function VehiclesPage() {
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                <BMWMSpinner size={32} className="mx-auto mb-2" />
                 <p className="text-sm text-muted-foreground">Cargando inventario...</p>
               </div>
             </div>

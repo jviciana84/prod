@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Camera, FileText, CheckCircle2 } from 'lucide-react'
+import { BMWMSpinner } from '@/components/ui/bmw-m-spinner'
 import ProgressBar from '../components/ProgressBar'
 import InicioStep from '../components/steps/InicioStep'
 import DatosBasicosStep from '../components/steps/DatosBasicosStep'
@@ -160,7 +161,9 @@ export default function TasacionPage() {
       {isProcessing && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm mx-4 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin" />
+            <div className="mb-4">
+              <BMWMSpinner size={64} />
+            </div>
             <h3 className="text-xl font-bold text-gray-900 mb-4">Procesando tasación...</h3>
             <div className="space-y-2 text-left">
               <div className="flex items-center gap-2 text-sm text-gray-600">

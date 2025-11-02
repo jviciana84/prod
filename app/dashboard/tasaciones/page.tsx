@@ -421,34 +421,6 @@ export default function TasacionesPage() {
         </div>
       </div>
 
-      {/* Enlace personal (solo para usuarios no-admin) */}
-      {!isAdmin && advisorLink && (
-        <Card className="shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <ExternalLink className="h-4 w-4" />
-              Tu enlace personal
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-              <div className="flex gap-2">
-                <Input
-                  value={advisorLink.full_url}
-                  readOnly
-                className="font-mono text-xs"
-                />
-                <Button
-                  onClick={() => handleCopyLink(advisorLink.full_url)}
-                  variant="outline"
-                size="sm"
-                >
-                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Stats */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
         <Card className="shadow-sm">
@@ -481,13 +453,13 @@ export default function TasacionesPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 xl:col-span-2">
           <Card className="shadow-sm">
             <CardContent className="p-3">
-              <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground">Sin Tramitar</p>
                   <p className="text-xl font-bold">{tasaciones.filter(t => !t.tramitada).length}</p>
                 </div>
                 <ClipboardList className="h-6 w-6 text-red-600" />
-              </div>
+            </div>
             </CardContent>
           </Card>
           <Card className="shadow-sm">
@@ -496,14 +468,14 @@ export default function TasacionesPage() {
                 <div>
                   <p className="text-xs text-muted-foreground">Tramitadas</p>
                   <p className="text-xl font-bold">{tasaciones.filter(t => t.tramitada).length}</p>
-                </div>
+          </div>
                 <ClipboardList className="h-6 w-6 text-green-600" />
-              </div>
+            </div>
             </CardContent>
           </Card>
           <Card className="shadow-sm">
             <CardContent className="p-3">
-              <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground">Total</p>
                   <p className="text-xl font-bold">{tasaciones.length}</p>

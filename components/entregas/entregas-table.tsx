@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Send,
-  Loader2,
   Trophy,
   Eye,
   AlertCircle,
@@ -27,6 +26,7 @@ import {
   CreditCard,
   Truck,
 } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { parse, isValid } from "date-fns"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -666,7 +666,7 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
                     className="h-9 w-9"
                     title="Actualizar"
                   >
-                    {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                    {refreshing ? <BMWMSpinner size={16} /> : <RefreshCw className="h-4 w-4" />}
                   </Button>
 
                   <PrintExportButton
@@ -738,7 +738,7 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
                         <TableRow>
                           <TableCell colSpan={9} className="text-center py-8">
                             <div className="flex justify-center items-center">
-                              <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                              <BMWMSpinner size={24} className="mr-2" />
                               <span>Cargando entregas...</span>
                             </div>
                           </TableCell>
@@ -907,7 +907,7 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
                                   disabled={enviandoIncentivo === entrega.id || !entrega.fecha_entrega} // Deshabilitado mientras se envía o si no hay fecha de entrega
                                 >
                                   {enviandoIncentivo === entrega.id ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <BMWMSpinner size={16} />
                                   ) : (
                                     <Trophy className="h-4 w-4" />
                                   )}
@@ -929,7 +929,7 @@ export function EntregasTable({ onRefreshRequest }: EntregasTableProps) {
                                   } // El email SÍ requiere fecha de entrega
                                 >
                                   {enviandoEmail === entrega.id ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <BMWMSpinner size={16} />
                                   ) : (
                                     <Send className={cn("h-4 w-4", entrega.email_enviado && "text-green-600")} />
                                   )}

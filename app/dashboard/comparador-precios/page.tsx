@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { CompactSearchWithModal } from "@/components/dashboard/compact-search-with-modal"
 import { InformeComparador } from "@/components/dashboard/informe-comparador"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { TrendingDown, TrendingUp, Minus, Target, Euro, AlertCircle, ExternalLink, Search, Filter, RefreshCw, BarChart3, Edit, Trash2, Link as LinkIcon, Settings, FileText, Printer } from "lucide-react"
 import { BMWLogo, MINILogo } from "@/components/ui/brand-logos"
 import { Button } from "@/components/ui/button"
@@ -1416,7 +1417,7 @@ export default function ComparadorPreciosPage() {
       {loading && (
         <Card>
           <CardContent className="p-12 text-center">
-            <RefreshCw className="w-12 h-12 mx-auto mb-3 text-muted-foreground animate-spin" />
+            <BMWMSpinner size={48} className="mx-auto mb-3" />
             <p className="text-muted-foreground">Cargando análisis de precios...</p>
           </CardContent>
         </Card>

@@ -8,8 +8,9 @@ import { DocuwareRequestsModal } from "@/components/keys/docuware-requests-modal
 import { CirculationPermitModal } from "@/components/keys/circulation-permit-modal"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { createClientComponentClient } from "@/lib/supabase/client"
-import { Loader2, FileText } from "lucide-react"
+import { FileText } from "lucide-react"
 import { KeyDocumentIncidencesCard } from "@/components/keys/key-document-incidences-card"
 import { Key, Search, Clock } from "lucide-react"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
@@ -274,7 +275,7 @@ export default function KeysManagementPage() {
             <CardContent className="p-4">
               {loading ? (
                 <div className="flex justify-center py-4">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  <BMWMSpinner size={24} />
                 </div>
               ) : (
                 <RecentKeyMovements movements={recentMovements} users={usersForDisplay} vehicles={[...vehiclesForDisplay, ...externalVehicles]} />

@@ -6,6 +6,7 @@ import { createClientComponentClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { 
   BarChart, 
@@ -269,7 +270,7 @@ export default function InformePreciosPage() {
         <Breadcrumbs className="mt-4" />
         <Card>
           <CardContent className="p-12 text-center">
-            <RefreshCw className="w-12 h-12 mx-auto mb-3 text-muted-foreground animate-spin" />
+            <BMWMSpinner size={48} className="mx-auto mb-3" />
             <p className="text-muted-foreground">Cargando informe...</p>
           </CardContent>
         </Card>

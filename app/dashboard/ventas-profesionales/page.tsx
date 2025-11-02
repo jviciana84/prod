@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { Search, RefreshCw, Calendar, Tag } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { toast as sonnerToast } from "sonner"
@@ -167,7 +168,7 @@ export default function VentasProfesionalesPage() {
           {/* Tabla */}
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
-              <RefreshCw className="h-6 w-6 animate-spin" />
+              <BMWMSpinner size={24} className="mr-2" />
               <span className="ml-2">Cargando ventas profesionales...</span>
             </div>
           ) : paginatedSales.length === 0 ? (

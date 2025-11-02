@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react"
 import { createClientComponentClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
-import { Loader2, Car, Bike } from "lucide-react"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
+import { Car, Bike } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 type VisitType = 'COCHE_VN' | 'COCHE_VO' | 'MOTO_VN' | 'MOTO_VO'
@@ -140,7 +141,7 @@ export default function RecepcionPage() {
   if (loadingInicial) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
-        <Loader2 className="h-16 w-16 animate-spin text-blue-500" />
+        <BMWMSpinner size={64} />
       </div>
     )
   }
@@ -162,7 +163,7 @@ export default function RecepcionPage() {
           <div className="mb-4 min-h-[60px] flex items-center">
             <div className={`text-5xl font-black ${asesor ? 'text-white' : 'text-gray-600'}`}>
               {isLoading ? (
-                <Loader2 className="h-12 w-12 animate-spin text-gray-400" />
+                <BMWMSpinner size={48} />
               ) : (
                 asesor ? asesor.full_name.toUpperCase() : 'AUSENTE'
               )}
@@ -175,7 +176,7 @@ export default function RecepcionPage() {
               disabled={!asesor || isLoading}
               className={`flex-1 h-12 text-base font-bold ${color} hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed`}
             >
-              {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Asignar'}
+              {isLoading ? <BMWMSpinner size={20} /> : 'Asignar'}
             </Button>
             
             {asesor && (
