@@ -709,64 +709,67 @@ const TasacionPDF = ({ data, metadata, tasacionId, logoBase64, watermarkBase64, 
         </View>
       </Page>
 
-      {/* PÁGINA 2: DAÑOS EXTERIORES */}
-      {data.danosExteriores && data.danosExteriores.length > 0 && (
-        <Page size="A4" style={styles.page}>
-          {/* Filigrana de fondo */}
-          {watermarkSrc && (
+      {/* PÁGINA 2: DAÑOS EXTERIORES - SIEMPRE se muestra */}
+      <Page size="A4" style={styles.page}>
+        {/* Filigrana de fondo */}
+        {watermarkSrc && (
+          <Image 
+            src={watermarkSrc} 
+            style={styles.watermark}
+          />
+        )}
+        
+        <View style={styles.header}>
+          {logoSrc && (
             <Image 
-              src={watermarkSrc} 
-              style={styles.watermark}
+              src={logoSrc} 
+              style={styles.headerLogo}
             />
           )}
+          <View style={styles.headerLeft}>
+            <Text style={styles.title}>DAÑOS EXTERIORES</Text>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>DAÑOS EXTERIORES</Text>
           
-          <View style={styles.header}>
-            {logoSrc && (
-              <Image 
-                src={logoSrc} 
-                style={styles.headerLogo}
-              />
-            )}
-            <View style={styles.headerLeft}>
-              <Text style={styles.title}>DAÑOS EXTERIORES</Text>
+          {/* Leyenda de colores */}
+          <View style={{ 
+            flexDirection: 'row', 
+            gap: 12, 
+            marginBottom: 12,
+            padding: 8,
+            backgroundColor: '#f9fafb',
+            borderRadius: 4,
+            border: '1 solid #e5e7eb'
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <View style={{ width: 14, height: 14, backgroundColor: '#22c55e', borderRadius: 2 }} />
+              <Text style={{ fontSize: 8, color: '#374151', fontWeight: 'bold' }}>Pulir</Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <View style={{ width: 14, height: 14, backgroundColor: '#eab308', borderRadius: 2 }} />
+              <Text style={{ fontSize: 8, color: '#374151', fontWeight: 'bold' }}>Rayado</Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <View style={{ width: 14, height: 14, backgroundColor: '#f97316', borderRadius: 2 }} />
+              <Text style={{ fontSize: 8, color: '#374151', fontWeight: 'bold' }}>Golpe</Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <View style={{ width: 14, height: 14, backgroundColor: '#ef4444', borderRadius: 2 }} />
+              <Text style={{ fontSize: 8, color: '#374151', fontWeight: 'bold' }}>Sustituir</Text>
             </View>
           </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>DAÑOS EXTERIORES</Text>
+          
+          {/* Daños agrupados por vista - 2 columnas por fila - TODAS las vistas exteriores */}
+          {(() => {
+            // Todas las vistas exteriores posibles
+            const allExteriorViews = ['frontal', 'lateral_izquierda', 'laterial_derecha', 'trasera']
             
-            {/* Leyenda de colores */}
-            <View style={{ 
-              flexDirection: 'row', 
-              gap: 12, 
-              marginBottom: 12,
-              padding: 8,
-              backgroundColor: '#f9fafb',
-              borderRadius: 4,
-              border: '1 solid #e5e7eb'
-            }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <View style={{ width: 14, height: 14, backgroundColor: '#22c55e', borderRadius: 2 }} />
-                <Text style={{ fontSize: 8, color: '#374151', fontWeight: 'bold' }}>Pulir</Text>
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <View style={{ width: 14, height: 14, backgroundColor: '#eab308', borderRadius: 2 }} />
-                <Text style={{ fontSize: 8, color: '#374151', fontWeight: 'bold' }}>Rayado</Text>
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <View style={{ width: 14, height: 14, backgroundColor: '#f97316', borderRadius: 2 }} />
-                <Text style={{ fontSize: 8, color: '#374151', fontWeight: 'bold' }}>Golpe</Text>
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <View style={{ width: 14, height: 14, backgroundColor: '#ef4444', borderRadius: 2 }} />
-                <Text style={{ fontSize: 8, color: '#374151', fontWeight: 'bold' }}>Sustituir</Text>
-              </View>
-            </View>
-            
-            {/* Daños agrupados por vista - 2 columnas por fila */}
-            {(() => {
-              // Agrupar daños por vista
-              const damagesByView: Record<string, typeof data.danosExteriores> = {}
+            // Agrupar daños por vista
+            const damagesByView: Record<string, typeof data.danosExteriores> = {}
+            if (data.danosExteriores) {
               data.danosExteriores.forEach(dano => {
                 const vista = dano.vista || 'sin_vista'
                 if (!damagesByView[vista]) {
@@ -774,63 +777,77 @@ const TasacionPDF = ({ data, metadata, tasacionId, logoBase64, watermarkBase64, 
                 }
                 damagesByView[vista].push(dano)
               })
-              
-              const entries = Object.entries(damagesByView)
-              const rows = []
-              
-              // Dividir en filas de 2 columnas
-              for (let i = 0; i < entries.length; i += 2) {
-                const pair = entries.slice(i, i + 2)
-                rows.push(
-                  <View key={`row-${i}`} style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
-                    {pair.map(([vista, danos]) => (
-                      <View key={vista} style={{ 
-                        width: '49.5%',
-                        padding: 10,
-                        backgroundColor: '#f9fafb',
-                        borderRadius: 4,
-                        border: '1 solid #e5e7eb'
-                      }}>
-                        {/* Título de la vista */}
-                        <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#374151', marginBottom: 6 }}>
-                          {formatFieldName(vista)}
-                        </Text>
-                        
-                        {/* Lista de daños */}
-                        <View style={{ marginBottom: 8 }}>
-                          {danos.map((dano, index) => (
+            }
+            
+            // Asegurar que todas las vistas estén presentes
+            allExteriorViews.forEach(vista => {
+              if (!damagesByView[vista]) {
+                damagesByView[vista] = []
+              }
+            })
+            
+            const entries = Object.entries(damagesByView).filter(([vista]) => allExteriorViews.includes(vista))
+            const rows = []
+            
+            // Dividir en filas de 2 columnas
+            for (let i = 0; i < entries.length; i += 2) {
+              const pair = entries.slice(i, i + 2)
+              rows.push(
+                <View key={`row-${i}`} style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
+                  {pair.map(([vista, danos]) => (
+                    <View key={vista} style={{ 
+                      width: '49.5%',
+                      padding: 10,
+                      backgroundColor: '#f9fafb',
+                      borderRadius: 4,
+                      border: '1 solid #e5e7eb'
+                    }}>
+                      {/* Título de la vista */}
+                      <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#374151', marginBottom: 6 }}>
+                        {formatFieldName(vista)}
+                      </Text>
+                      
+                      {/* Lista de daños o mensaje "Sin daños registrados" */}
+                      <View style={{ marginBottom: 8 }}>
+                        {danos.length > 0 ? (
+                          danos.map((dano, index) => (
                             <Text key={index} style={{ fontSize: 8, color: '#374151', marginBottom: 3 }}>
                               • {dano.parte} - {damageTypeLabel[dano.tipo] || capitalize(dano.tipo)}
                             </Text>
-                          ))}
-                        </View>
-                        
-                        {/* Imagen SVG debajo */}
-                        <View style={{ alignItems: 'center' }}>
-                          {damageSVGs && damageSVGs[vista] ? (
-                            <Image 
-                              src={damageSVGs[vista]} 
-                              style={{ 
-                                width: '100%', 
-                                height: 90, 
-                                objectFit: 'contain'
-                              }}
-                            />
-                          ) : (
-                            <Text style={{ fontSize: 8, color: '#9ca3af', fontStyle: 'italic' }}>
-                              Sin imagen
-                            </Text>
-                          )}
-                        </View>
+                          ))
+                        ) : (
+                          <Text style={{ fontSize: 8, color: '#9ca3af', fontStyle: 'italic' }}>
+                            Sin daños registrados
+                          </Text>
+                        )}
                       </View>
-                    ))}
-                  </View>
-                )
-              }
-              
-              return rows
-            })()}
-          </View>
+                      
+                      {/* Imagen SVG debajo */}
+                      <View style={{ alignItems: 'center' }}>
+                        {damageSVGs && damageSVGs[vista] ? (
+                          <Image 
+                            src={damageSVGs[vista]} 
+                            style={{ 
+                              width: '100%', 
+                              height: 90, 
+                              objectFit: 'contain'
+                            }}
+                          />
+                        ) : (
+                          <Text style={{ fontSize: 8, color: '#9ca3af', fontStyle: 'italic' }}>
+                            Sin imagen
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              )
+            }
+            
+            return rows
+          })()}
+        </View>
 
           <View style={styles.footer}>
             <View style={styles.footerRow}>
@@ -856,64 +873,67 @@ const TasacionPDF = ({ data, metadata, tasacionId, logoBase64, watermarkBase64, 
         </Page>
       )}
 
-      {/* PÁGINA 3: DAÑOS INTERIORES */}
-      {data.danosInteriores && data.danosInteriores.length > 0 && (
-        <Page size="A4" style={styles.page}>
-          {/* Filigrana de fondo */}
-          {watermarkSrc && (
+      {/* PÁGINA 3: DAÑOS INTERIORES - SIEMPRE se muestra */}
+      <Page size="A4" style={styles.page}>
+        {/* Filigrana de fondo */}
+        {watermarkSrc && (
+          <Image 
+            src={watermarkSrc} 
+            style={styles.watermark}
+          />
+        )}
+        
+        <View style={styles.header}>
+          {logoSrc && (
             <Image 
-              src={watermarkSrc} 
-              style={styles.watermark}
+              src={logoSrc} 
+              style={styles.headerLogo}
             />
           )}
+          <View style={styles.headerLeft}>
+            <Text style={styles.title}>DAÑOS INTERIORES Y OTROS</Text>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>DAÑOS INTERIORES</Text>
           
-          <View style={styles.header}>
-            {logoSrc && (
-              <Image 
-                src={logoSrc} 
-                style={styles.headerLogo}
-              />
-            )}
-            <View style={styles.headerLeft}>
-              <Text style={styles.title}>DAÑOS INTERIORES Y OTROS</Text>
+          {/* Leyenda de colores */}
+          <View style={{ 
+            flexDirection: 'row', 
+            gap: 12, 
+            marginBottom: 12,
+            padding: 8,
+            backgroundColor: '#f9fafb',
+            borderRadius: 4,
+            border: '1 solid #e5e7eb'
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <View style={{ width: 14, height: 14, backgroundColor: '#22c55e', borderRadius: 2 }} />
+              <Text style={{ fontSize: 8, color: '#374151', fontWeight: 'bold' }}>Pulir</Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <View style={{ width: 14, height: 14, backgroundColor: '#eab308', borderRadius: 2 }} />
+              <Text style={{ fontSize: 8, color: '#374151', fontWeight: 'bold' }}>Rayado</Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <View style={{ width: 14, height: 14, backgroundColor: '#f97316', borderRadius: 2 }} />
+              <Text style={{ fontSize: 8, color: '#374151', fontWeight: 'bold' }}>Golpe</Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <View style={{ width: 14, height: 14, backgroundColor: '#ef4444', borderRadius: 2 }} />
+              <Text style={{ fontSize: 8, color: '#374151', fontWeight: 'bold' }}>Sustituir</Text>
             </View>
           </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>DAÑOS INTERIORES</Text>
+          
+          {/* Daños agrupados por vista - 2 columnas por fila - TODAS las vistas interiores */}
+          {(() => {
+            // Todas las vistas interiores posibles
+            const allInteriorViews = ['interior_salpicadero', 'interior_delantero_izquierda', 'interior_trasera_izquierda', 'interior_maletero']
             
-            {/* Leyenda de colores */}
-            <View style={{ 
-              flexDirection: 'row', 
-              gap: 12, 
-              marginBottom: 12,
-              padding: 8,
-              backgroundColor: '#f9fafb',
-              borderRadius: 4,
-              border: '1 solid #e5e7eb'
-            }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <View style={{ width: 14, height: 14, backgroundColor: '#22c55e', borderRadius: 2 }} />
-                <Text style={{ fontSize: 8, color: '#374151', fontWeight: 'bold' }}>Pulir</Text>
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <View style={{ width: 14, height: 14, backgroundColor: '#eab308', borderRadius: 2 }} />
-                <Text style={{ fontSize: 8, color: '#374151', fontWeight: 'bold' }}>Rayado</Text>
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <View style={{ width: 14, height: 14, backgroundColor: '#f97316', borderRadius: 2 }} />
-                <Text style={{ fontSize: 8, color: '#374151', fontWeight: 'bold' }}>Golpe</Text>
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <View style={{ width: 14, height: 14, backgroundColor: '#ef4444', borderRadius: 2 }} />
-                <Text style={{ fontSize: 8, color: '#374151', fontWeight: 'bold' }}>Sustituir</Text>
-              </View>
-            </View>
-            
-            {/* Daños agrupados por vista - 2 columnas por fila */}
-            {(() => {
-              // Agrupar daños por vista
-              const damagesByView: Record<string, typeof data.danosInteriores> = {}
+            // Agrupar daños por vista
+            const damagesByView: Record<string, typeof data.danosInteriores> = {}
+            if (data.danosInteriores) {
               data.danosInteriores.forEach(dano => {
                 const vista = dano.vista || 'sin_vista'
                 if (!damagesByView[vista]) {
@@ -921,87 +941,100 @@ const TasacionPDF = ({ data, metadata, tasacionId, logoBase64, watermarkBase64, 
                 }
                 damagesByView[vista].push(dano)
               })
-              
-              const entries = Object.entries(damagesByView)
-              const rows = []
-              
-              // Dividir en filas de 2 columnas
-              for (let i = 0; i < entries.length; i += 2) {
-                const pair = entries.slice(i, i + 2)
-                rows.push(
-                  <View key={`row-${i}`} style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
-                    {pair.map(([vista, danos]) => (
-                      <View key={vista} style={{ 
-                        width: '49.5%',
-                        padding: 10,
-                        backgroundColor: '#f9fafb',
-                        borderRadius: 4,
-                        border: '1 solid #e5e7eb'
-                      }}>
-                        {/* Título de la vista */}
-                        <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#374151', marginBottom: 6 }}>
-                          {formatFieldName(vista)}
-                        </Text>
-                        
-                        {/* Lista de daños */}
-                        <View style={{ marginBottom: 8 }}>
-                          {danos.map((dano, index) => (
+            }
+            
+            // Asegurar que todas las vistas estén presentes
+            allInteriorViews.forEach(vista => {
+              if (!damagesByView[vista]) {
+                damagesByView[vista] = []
+              }
+            })
+            
+            const entries = Object.entries(damagesByView).filter(([vista]) => allInteriorViews.includes(vista))
+            const rows = []
+            
+            // Dividir en filas de 2 columnas
+            for (let i = 0; i < entries.length; i += 2) {
+              const pair = entries.slice(i, i + 2)
+              rows.push(
+                <View key={`row-${i}`} style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
+                  {pair.map(([vista, danos]) => (
+                    <View key={vista} style={{ 
+                      width: '49.5%',
+                      padding: 10,
+                      backgroundColor: '#f9fafb',
+                      borderRadius: 4,
+                      border: '1 solid #e5e7eb'
+                    }}>
+                      {/* Título de la vista */}
+                      <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#374151', marginBottom: 6 }}>
+                        {formatFieldName(vista)}
+                      </Text>
+                      
+                      {/* Lista de daños o mensaje "Sin daños registrados" */}
+                      <View style={{ marginBottom: 8 }}>
+                        {danos.length > 0 ? (
+                          danos.map((dano, index) => (
                             <Text key={index} style={{ fontSize: 8, color: '#374151', marginBottom: 3 }}>
                               • {dano.parte} - {damageTypeLabel[dano.tipo] || capitalize(dano.tipo)}
                             </Text>
-                          ))}
-                        </View>
-                        
-                        {/* Imagen SVG debajo */}
-                        <View style={{ alignItems: 'center' }}>
-                          {damageSVGs && damageSVGs[vista] ? (
-                            <Image 
-                              src={damageSVGs[vista]} 
-                              style={{ 
-                                width: '100%', 
-                                height: 90, 
-                                objectFit: 'contain'
-                              }}
-                            />
-                          ) : (
-                            <Text style={{ fontSize: 8, color: '#9ca3af', fontStyle: 'italic' }}>
-                              Sin imagen
-                            </Text>
-                          )}
-                        </View>
+                          ))
+                        ) : (
+                          <Text style={{ fontSize: 8, color: '#9ca3af', fontStyle: 'italic' }}>
+                            Sin daños registrados
+                          </Text>
+                        )}
                       </View>
-                    ))}
-                  </View>
-                )
-              }
-              
-              return rows
-            })()}
-          </View>
-
-          <View style={styles.footer}>
-            <View style={styles.footerRow}>
-              <View style={styles.footerLeft}>
-                {logoSrc && (
-                  <Image 
-                    src={logoSrc} 
-                    style={styles.footerLogo}
-                  />
-                )}
-                <View>
-                  <Text style={{ fontSize: 7 }}>ID de Tasación: {tasacionId || 'Generando...'}</Text>
-                  <Text style={{ fontSize: 7, marginTop: 2 }}>
-                    Fecha de registro: {formatDate(metadata?.timestamp)}
-                  </Text>
+                      
+                      {/* Imagen SVG debajo */}
+                      <View style={{ alignItems: 'center' }}>
+                        {damageSVGs && damageSVGs[vista] ? (
+                          <Image 
+                            src={damageSVGs[vista]} 
+                            style={{ 
+                              width: '100%', 
+                              height: 90, 
+                              objectFit: 'contain'
+                            }}
+                          />
+                        ) : (
+                          <Text style={{ fontSize: 8, color: '#9ca3af', fontStyle: 'italic' }}>
+                            Sin imagen
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                  ))}
                 </View>
-              </View>
-              <View style={styles.footerRight}>
-                <Text style={styles.pageNumber}>Pág. 3 de {getTotalPages(data)}</Text>
+              )
+            }
+            
+            return rows
+          })()}
+        </View>
+
+        <View style={styles.footer}>
+          <View style={styles.footerRow}>
+            <View style={styles.footerLeft}>
+              {logoSrc && (
+                <Image 
+                  src={logoSrc} 
+                  style={styles.footerLogo}
+                />
+              )}
+              <View>
+                <Text style={{ fontSize: 7 }}>ID de Tasación: {tasacionId || 'Sin ID'}</Text>
+                <Text style={{ fontSize: 7, marginTop: 2 }}>
+                  Fecha de registro: {formatDate(metadata?.timestamp)}
+                </Text>
               </View>
             </View>
+            <View style={styles.footerRight}>
+              <Text style={styles.pageNumber}>Pág. 3 de {getTotalPages(data)}</Text>
+            </View>
           </View>
-        </Page>
-      )}
+        </View>
+      </Page>
 
       {/* PÁGINAS DE FOTOGRAFÍAS */}
       {renderPhotoPages(data, tasacionId, metadata, logoSrc)}

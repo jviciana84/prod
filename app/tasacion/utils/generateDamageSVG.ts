@@ -243,6 +243,11 @@ export async function generateDamageSVG(
 export async function generateAllDamageSVGs(
   damages: VehicleDamage[]
 ): Promise<Record<string, string>> {
+  // Todas las vistas posibles (exteriores e interiores)
+  const allExteriorViews = ['frontal', 'lateral_izquierda', 'laterial_derecha', 'trasera']
+  const allInteriorViews = ['interior_salpicadero', 'interior_delantero_izquierda', 'interior_trasera_izquierda', 'interior_maletero']
+  const allViews = [...allExteriorViews, ...allInteriorViews]
+  
   // Agrupar daños por vista
   const damagesByView = new Map<string, VehicleDamage[]>()
   
@@ -254,7 +259,14 @@ export async function generateAllDamageSVGs(
     }
   })
 
-  // Generar SVG para cada vista
+  // Asegurar que todas las vistas estén presentes (aunque sin daños)
+  allViews.forEach(vista => {
+    if (!damagesByView.has(vista)) {
+      damagesByView.set(vista, [])
+    }
+  })
+
+  // Generar SVG para cada vista (incluso si no tiene daños)
   const result: Record<string, string> = {}
   
   for (const [vista, viewDamages] of damagesByView.entries()) {

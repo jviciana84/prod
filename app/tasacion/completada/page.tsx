@@ -12,6 +12,7 @@ export default function TasacionCompletadaPage() {
   const router = useRouter()
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
   const [tasacionData, setTasacionData] = useState<TasacionFormData | null>(null)
+  const [savedTasacionId, setSavedTasacionId] = useState<string | null>(null)
 
   useEffect(() => {
     // Scroll al final para mostrar botones (esperar 2 segundos)
@@ -47,11 +48,8 @@ export default function TasacionCompletadaPage() {
         if (result.success && result.data) {
           console.log('✅ Tasación recuperada desde Supabase')
           setTasacionData(result.data)
-          
-          // Limpiar ID después de cargar exitosamente para no reutilizar
-          console.log('🧹 Limpiando IDs de localStorage después de carga exitosa')
-          localStorage.removeItem('lastTasacionId')
-          localStorage.removeItem('lastTasacionTimestamp')
+          // Guardar el tasacionId para el PDF antes de limpiarlo
+          setSavedTasacionId(tasacionId)
         } else {
           console.error('❌ Error al recuperar tasación:', result.error)
           // Fallback a localStorage (sin fotos)
@@ -105,9 +103,10 @@ export default function TasacionCompletadaPage() {
       
       console.log('Metadata:', metadata)
 
-      // Recuperar ID de tasación si existe
-      const tasacionId = localStorage.getItem('lastTasacionId')
+      // Usar el tasacionId guardado o intentar recuperarlo de localStorage
+      const tasacionId = savedTasacionId || localStorage.getItem('lastTasacionId')
       
+      console.log('ID de tasación para PDF:', tasacionId)
       console.log('Llamando a generateAndDownloadPDF...')
       const result = await generateAndDownloadPDF({
         data: tasacionData,
@@ -117,6 +116,14 @@ export default function TasacionCompletadaPage() {
       })
 
       console.log('Resultado de generateAndDownloadPDF:', result)
+      
+      // Limpiar ID después de generar el PDF exitosamente
+      if (result.success) {
+        console.log('🧹 Limpiando IDs de localStorage después de generar PDF')
+        localStorage.removeItem('lastTasacionId')
+        localStorage.removeItem('lastTasacionTimestamp')
+        setSavedTasacionId(null)
+      }
 
       if (!result.success) {
         console.error('Error en la generación:', result.error)
