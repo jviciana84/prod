@@ -1314,152 +1314,188 @@ function getPhotoStartPage(data: TasacionFormData): number {
 
 // Función para renderizar páginas de fotografías
 function renderPhotoPages(data: TasacionFormData, tasacionId?: string, metadata?: any, logoSrc?: string) {
-  const photos: { src: string; label: string }[] = []
-  
-  // Fotos del vehículo
-  if (data.fotosVehiculo) {
-    Object.entries(data.fotosVehiculo).forEach(([key, value]) => {
-      if (value) {
-        photos.push({ src: value, label: `Vehículo - ${formatFieldName(key)}` })
-      }
-    })
-  }
-  
-  // Cuentakm
-  if (data.fotosCuentakm) {
-    photos.push({ src: data.fotosCuentakm, label: 'Cuentakilómetros' })
-  }
-  
-  // Interior delantero
-  if (data.fotosInteriorDelantero) {
-    photos.push({ src: data.fotosInteriorDelantero, label: 'Interior Delantero' })
-  }
-  
-  // Interior trasero
-  if (data.fotosInteriorTrasero) {
-    photos.push({ src: data.fotosInteriorTrasero, label: 'Interior Trasero' })
-  }
-  
-  // Fotos de documentación
-  if (data.fotosDocumentacion) {
-    if (data.fotosDocumentacion.permisoCirculacionFrente) {
-      photos.push({ src: data.fotosDocumentacion.permisoCirculacionFrente, label: 'Permiso de Circulación (Frente)' })
-    }
-    if (data.fotosDocumentacion.permisoCirculacionDorso) {
-      photos.push({ src: data.fotosDocumentacion.permisoCirculacionDorso, label: 'Permiso de Circulación (Dorso)' })
-    }
-    if (data.fotosDocumentacion.fichaTecnicaFrente) {
-      photos.push({ src: data.fotosDocumentacion.fichaTecnicaFrente, label: 'Ficha Técnica (Frente)' })
-    }
-    if (data.fotosDocumentacion.fichaTecnicaDorso) {
-      photos.push({ src: data.fotosDocumentacion.fichaTecnicaDorso, label: 'Ficha Técnica (Dorso)' })
-    }
-  }
-  
-  // Otras fotos
-  if (data.fotosOtras && data.fotosOtras.length > 0) {
-    data.fotosOtras.forEach((foto, index) => {
-      photos.push({ src: foto, label: `Foto Adicional ${index + 1}` })
-    })
-  }
-  
-  // Si no hay fotos, generar placeholders en grid 2x3 (6 recuadros)
-  if (photos.length === 0) {
-    const photoStartPage = getPhotoStartPage(data)
-    const placeholderLabels = [
-      'Frontal', 'Lateral Delantero Derecho',
-      'Lateral Trasero Derecho', 'Trasera',
-      'Lateral Trasero Izquierdo', 'Lateral Delantero Izquierdo'
-    ]
-    
-    return (
-      <Page size="A4" style={styles.photoPage}>
-        <View style={styles.header}>
-          {logoSrc && (
-            <Image 
-              src={logoSrc} 
-              style={styles.headerLogo}
-            />
-          )}
-          <View style={styles.headerLeft}>
-            <Text style={styles.title}>FOTOGRAFÍAS</Text>
-          </View>
-        </View>
-        
-        <View style={styles.photoGrid}>
-          {placeholderLabels.map((label, idx) => (
-            <View key={idx} style={styles.photoItem}>
-              <View style={{ 
-                width: '100%', 
-                height: 160, 
-                backgroundColor: '#f9fafb',
-                border: '2 dashed #d1d5db',
-                borderRadius: 4,
-                justifyContent: 'center',
-                alignItems: 'center'
-              }}>
-                <Text style={{ fontSize: 32, color: '#d1d5db', marginBottom: 5 }}>📷</Text>
-                <Text style={{ fontSize: 8, color: '#9ca3af', fontStyle: 'italic' }}>Sin foto</Text>
-              </View>
-              <Text style={styles.photoLabel}>{label}</Text>
-            </View>
-          ))}
-        </View>
-        
-        <View style={styles.footer}>
-          <View style={styles.footerRow}>
-            <View style={styles.footerLeft}>
-              {logoSrc && (
-                <Image 
-                  src={logoSrc} 
-                  style={styles.footerLogo}
-                />
-              )}
-              <View>
-                <Text style={{ fontSize: 7 }}>ID de Tasación: {tasacionId || 'Generando...'}</Text>
-                <Text style={{ fontSize: 7, marginTop: 2 }}>
-                  Fecha de registro: {metadata?.timestamp ? new Date(metadata.timestamp).toLocaleDateString('es-ES') : 'N/A'}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.footerRight}>
-              <Text style={styles.pageNumber}>Pág. {photoStartPage + 1} de {getTotalPages(data)}</Text>
-            </View>
-          </View>
-        </View>
-      </Page>
-    )
-  }
-  
-  // Calcular número de página inicial para fotos
   const photoStartPage = getPhotoStartPage(data)
-  
-  // Dividir fotos en páginas de 6
   const pages = []
-  for (let i = 0; i < photos.length; i += 6) {
-    const pagePhotos = photos.slice(i, i + 6)
-    const currentPhotoPage = Math.floor(i / 6)
-    const absolutePageNumber = photoStartPage + currentPhotoPage + 1
+  
+  // Helper para crear placeholder
+  const createPlaceholder = () => (
+    <View style={{ 
+      width: '100%', 
+      height: 160, 
+      backgroundColor: '#f9fafb',
+      border: '2 dashed #d1d5db',
+      borderRadius: 4,
+      justifyContent: 'center',
+      alignItems: 'center'
+    }}>
+      <Text style={{ fontSize: 32, color: '#d1d5db', marginBottom: 5 }}>📷</Text>
+      <Text style={{ fontSize: 8, color: '#9ca3af', fontStyle: 'italic' }}>Sin foto</Text>
+    </View>
+  )
+  
+  // PÁGINA 1: FOTOS EXTERIORES (6 fotos del vehículo)
+  const exteriorLabels = ['frontal', 'lateralDelanteroDer', 'lateralTraseroDer', 'trasera', 'lateralTraseroIzq', 'lateralDelanteroIzq']
+  const exteriorPhotos = exteriorLabels.map(key => ({
+    src: data.fotosVehiculo?.[key as keyof typeof data.fotosVehiculo],
+    label: formatFieldName(key)
+  }))
+  
+  pages.push(
+    <Page key="fotos-exterior" size="A4" style={styles.photoPage}>
+      <View style={styles.header}>
+        {logoSrc && <Image src={logoSrc} style={styles.headerLogo} />}
+        <View style={styles.headerLeft}>
+          <Text style={styles.title}>FOTOS EXTERIORES</Text>
+        </View>
+      </View>
+      
+      <View style={styles.photoGrid}>
+        {exteriorPhotos.map((photo, idx) => (
+          <View key={idx} style={styles.photoItem}>
+            {photo.src ? (
+              <Image src={photo.src} style={styles.photoImage} />
+            ) : (
+              createPlaceholder()
+            )}
+            <Text style={styles.photoLabel}>{photo.label}</Text>
+          </View>
+        ))}
+      </View>
+      
+      <View style={styles.footer}>
+        <View style={styles.footerRow}>
+          <View style={styles.footerLeft}>
+            {logoSrc && <Image src={logoSrc} style={styles.footerLogo} />}
+            <View>
+              <Text style={{ fontSize: 7 }}>ID de Tasación: {tasacionId || 'Generando...'}</Text>
+              <Text style={{ fontSize: 7, marginTop: 2 }}>
+                Fecha de registro: {metadata?.timestamp ? new Date(metadata.timestamp).toLocaleDateString('es-ES') : 'N/A'}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.footerRight}>
+            <Text style={styles.pageNumber}>Pág. {photoStartPage + 1} de {getTotalPages(data)}</Text>
+          </View>
+        </View>
+      </View>
+    </Page>
+  )
+  
+  // PÁGINA 2: FOTOS INTERIORES (3 fotos: cuentakm, delantero, trasero)
+  const interiorPhotos = [
+    { src: data.fotosCuentakm, label: 'Cuentakilómetros' },
+    { src: data.fotosInteriorDelantero, label: 'Interior Delantero' },
+    { src: data.fotosInteriorTrasero, label: 'Interior Trasero' }
+  ]
+  
+  pages.push(
+    <Page key="fotos-interior" size="A4" style={styles.photoPage}>
+      <View style={styles.header}>
+        {logoSrc && <Image src={logoSrc} style={styles.headerLogo} />}
+        <View style={styles.headerLeft}>
+          <Text style={styles.title}>FOTOS INTERIORES</Text>
+        </View>
+      </View>
+      
+      <View style={styles.photoGrid}>
+        {interiorPhotos.map((photo, idx) => (
+          <View key={idx} style={styles.photoItem}>
+            {photo.src ? (
+              <Image src={photo.src} style={styles.photoImage} />
+            ) : (
+              createPlaceholder()
+            )}
+            <Text style={styles.photoLabel}>{photo.label}</Text>
+          </View>
+        ))}
+      </View>
+      
+      <View style={styles.footer}>
+        <View style={styles.footerRow}>
+          <View style={styles.footerLeft}>
+            {logoSrc && <Image src={logoSrc} style={styles.footerLogo} />}
+            <View>
+              <Text style={{ fontSize: 7 }}>ID de Tasación: {tasacionId || 'Generando...'}</Text>
+              <Text style={{ fontSize: 7, marginTop: 2 }}>
+                Fecha de registro: {metadata?.timestamp ? new Date(metadata.timestamp).toLocaleDateString('es-ES') : 'N/A'}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.footerRight}>
+            <Text style={styles.pageNumber}>Pág. {photoStartPage + 2} de {getTotalPages(data)}</Text>
+          </View>
+        </View>
+      </View>
+    </Page>
+  )
+  
+  // PÁGINA 3: FOTOS DOCUMENTACIÓN (4 fotos)
+  const docPhotos = [
+    { src: data.fotosDocumentacion?.permisoCirculacionFrente, label: 'Permiso Circulación (Frente)' },
+    { src: data.fotosDocumentacion?.permisoCirculacionDorso, label: 'Permiso Circulación (Dorso)' },
+    { src: data.fotosDocumentacion?.fichaTecnicaFrente, label: 'Ficha Técnica (Frente)' },
+    { src: data.fotosDocumentacion?.fichaTecnicaDorso, label: 'Ficha Técnica (Dorso)' }
+  ]
+  
+  pages.push(
+    <Page key="fotos-documentacion" size="A4" style={styles.photoPage}>
+      <View style={styles.header}>
+        {logoSrc && <Image src={logoSrc} style={styles.headerLogo} />}
+        <View style={styles.headerLeft}>
+          <Text style={styles.title}>FOTOS DOCUMENTACIÓN</Text>
+        </View>
+      </View>
+      
+      <View style={styles.photoGrid}>
+        {docPhotos.map((photo, idx) => (
+          <View key={idx} style={styles.photoItem}>
+            {photo.src ? (
+              <Image src={photo.src} style={styles.photoImage} />
+            ) : (
+              createPlaceholder()
+            )}
+            <Text style={styles.photoLabel}>{photo.label}</Text>
+          </View>
+        ))}
+      </View>
+      
+      <View style={styles.footer}>
+        <View style={styles.footerRow}>
+          <View style={styles.footerLeft}>
+            {logoSrc && <Image src={logoSrc} style={styles.footerLogo} />}
+            <View>
+              <Text style={{ fontSize: 7 }}>ID de Tasación: {tasacionId || 'Generando...'}</Text>
+              <Text style={{ fontSize: 7, marginTop: 2 }}>
+                Fecha de registro: {metadata?.timestamp ? new Date(metadata.timestamp).toLocaleDateString('es-ES') : 'N/A'}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.footerRight}>
+            <Text style={styles.pageNumber}>Pág. {photoStartPage + 3} de {getTotalPages(data)}</Text>
+          </View>
+        </View>
+      </View>
+    </Page>
+  )
+  
+  // PÁGINA 4: OTRAS FOTOS (solo si hay alguna, máximo 6)
+  if (data.fotosOtras && data.fotosOtras.length > 0) {
+    const otrasToShow = data.fotosOtras.slice(0, 6)
     
     pages.push(
-      <Page key={`photo-page-${i}`} size="A4" style={styles.photoPage}>
+      <Page key="fotos-otras" size="A4" style={styles.photoPage}>
         <View style={styles.header}>
-          {logoSrc && (
-            <Image 
-              src={logoSrc} 
-              style={styles.headerLogo}
-            />
-          )}
+          {logoSrc && <Image src={logoSrc} style={styles.headerLogo} />}
           <View style={styles.headerLeft}>
-            <Text style={styles.title}>FOTOGRAFÍAS</Text>
+            <Text style={styles.title}>FOTOS ADICIONALES</Text>
           </View>
         </View>
         
         <View style={styles.photoGrid}>
-          {pagePhotos.map((photo, idx) => (
+          {otrasToShow.map((foto, idx) => (
             <View key={idx} style={styles.photoItem}>
-              <Image src={photo.src} style={styles.photoImage} />
-              <Text style={styles.photoLabel}>{photo.label}</Text>
+              <Image src={foto} style={styles.photoImage} />
+              <Text style={styles.photoLabel}>Foto Adicional {idx + 1}</Text>
             </View>
           ))}
         </View>
@@ -1467,12 +1503,7 @@ function renderPhotoPages(data: TasacionFormData, tasacionId?: string, metadata?
         <View style={styles.footer}>
           <View style={styles.footerRow}>
             <View style={styles.footerLeft}>
-              {logoSrc && (
-                <Image 
-                  src={logoSrc} 
-                  style={styles.footerLogo}
-                />
-              )}
+              {logoSrc && <Image src={logoSrc} style={styles.footerLogo} />}
               <View>
                 <Text style={{ fontSize: 7 }}>ID de Tasación: {tasacionId || 'Generando...'}</Text>
                 <Text style={{ fontSize: 7, marginTop: 2 }}>
@@ -1481,7 +1512,7 @@ function renderPhotoPages(data: TasacionFormData, tasacionId?: string, metadata?
               </View>
             </View>
             <View style={styles.footerRight}>
-              <Text style={styles.pageNumber}>Pág. {absolutePageNumber} de {getTotalPages(data)}</Text>
+              <Text style={styles.pageNumber}>Pág. {photoStartPage + 4} de {getTotalPages(data)}</Text>
             </View>
           </View>
         </View>
