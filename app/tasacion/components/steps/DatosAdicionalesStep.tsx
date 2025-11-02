@@ -33,9 +33,11 @@ interface DatosAdicionalesStepProps {
 }
 
 export default function DatosAdicionalesStep({ onComplete, onBack }: DatosAdicionalesStepProps) {
-  // Scroll al inicio cuando se monta el componente
+  // Scroll mínimo para ocultar barra de direcciones
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    setTimeout(() => {
+      window.scrollTo({ top: 1, behavior: 'auto' })
+    }, 100)
   }, [])
   
   const [origenVehiculo, setOrigenVehiculo] = useState<OrigenVehiculo | null>(null)

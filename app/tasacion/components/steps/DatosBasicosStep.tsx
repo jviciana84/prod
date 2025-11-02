@@ -34,9 +34,11 @@ export default function DatosBasicosStep({ onComplete, onBack }: DatosBasicosSte
   const procedenciaRef = useRef<HTMLDivElement>(null)
   const fechaRef = useRef<HTMLInputElement>(null)
   
-  // Scroll al inicio cuando se monta el componente
+  // Scroll mínimo para ocultar barra de direcciones
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    setTimeout(() => {
+      window.scrollTo({ top: 1, behavior: 'auto' })
+    }, 100)
   }, [])
 
   // Obtener fecha desde matrícula española (formato NNNN-XXX)

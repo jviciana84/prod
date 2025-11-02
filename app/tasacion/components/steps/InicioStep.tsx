@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Camera, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,13 @@ interface InicioStepProps {
 export default function InicioStep({ onComplete }: InicioStepProps) {
   const [permisosAceptados, setPermisosAceptados] = useState(false)
   const [politicaAceptada, setPoliticaAceptada] = useState(false)
+
+  // Scroll mínimo para ocultar barra de direcciones en móvil
+  useEffect(() => {
+    setTimeout(() => {
+      window.scrollTo({ top: 1, behavior: 'auto' })
+    }, 100)
+  }, [])
 
   const handleCheckboxChange = (checked: boolean) => {
     setPermisosAceptados(checked)
