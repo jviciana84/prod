@@ -240,6 +240,12 @@ export default function DatosBasicosStep({ onComplete, onBack }: DatosBasicosSte
                 placeholder="Ej: 1234ABC"
                 value={matricula}
                 onChange={(e) => handleMatriculaChange(e.target.value)}
+                onKeyUp={(e) => {
+                  if (e.key === 'Enter' && matricula) {
+                    e.preventDefault()
+                    kmRef.current?.focus()
+                  }
+                }}
                 className="h-12 text-lg font-mono uppercase text-center border-2 focus:border-purple-500 bg-white text-gray-900"
                 maxLength={10}
               />
@@ -269,6 +275,12 @@ export default function DatosBasicosStep({ onComplete, onBack }: DatosBasicosSte
                 placeholder="150000"
                 value={kmActuales}
                 onChange={(e) => setKmActuales(e.target.value)}
+                onKeyUp={(e) => {
+                  if (e.key === 'Enter' && kmActuales) {
+                    e.preventDefault()
+                    kmRef.current?.blur()
+                  }
+                }}
                 className="h-12 text-lg text-center border-2 focus:border-purple-500 bg-white text-gray-900"
               />
             </form>
@@ -382,6 +394,18 @@ export default function DatosBasicosStep({ onComplete, onBack }: DatosBasicosSte
                     }
                     
                     setFechaMatriculacion(value)
+                  }}
+                  onKeyUp={(e) => {
+                    if (e.key === 'Enter' && fechaMatriculacion.length === 10) {
+                      e.preventDefault()
+                      fechaRef.current?.blur()
+                      setTimeout(() => {
+                        window.scrollTo({ 
+                          top: document.documentElement.scrollHeight, 
+                          behavior: 'smooth' 
+                        })
+                      }, 100)
+                    }
                   }}
                   className="h-12 text-center border-2 focus:border-purple-500 bg-white text-gray-900"
                   maxLength={10}
