@@ -1371,9 +1371,61 @@ function renderPhotoPages(data: TasacionFormData, tasacionId?: string, metadata?
     })
   }
   
-  // Si no hay fotos, no generar páginas
+  // Si no hay fotos, generar UNA página con placeholders
   if (photos.length === 0) {
-    return null
+    const photoStartPage = getPhotoStartPage(data)
+    return (
+      <Page size="A4" style={styles.photoPage}>
+        <View style={styles.header}>
+          {logoSrc && (
+            <Image 
+              src={logoSrc} 
+              style={styles.headerLogo}
+            />
+          )}
+          <View style={styles.headerLeft}>
+            <Text style={styles.title}>FOTOGRAFÍAS</Text>
+          </View>
+        </View>
+        
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ 
+            padding: 40, 
+            backgroundColor: '#f9fafb', 
+            borderRadius: 8, 
+            border: '2 dashed #d1d5db',
+            alignItems: 'center'
+          }}>
+            <Text style={{ fontSize: 48, color: '#d1d5db', marginBottom: 10 }}>📷</Text>
+            <Text style={{ fontSize: 12, color: '#9ca3af', fontStyle: 'italic' }}>
+              Sin fotografías
+            </Text>
+          </View>
+        </View>
+        
+        <View style={styles.footer}>
+          <View style={styles.footerRow}>
+            <View style={styles.footerLeft}>
+              {logoSrc && (
+                <Image 
+                  src={logoSrc} 
+                  style={styles.footerLogo}
+                />
+              )}
+              <View>
+                <Text style={{ fontSize: 7 }}>ID de Tasación: {tasacionId || 'Generando...'}</Text>
+                <Text style={{ fontSize: 7, marginTop: 2 }}>
+                  Fecha de registro: {metadata?.timestamp ? new Date(metadata.timestamp).toLocaleDateString('es-ES') : 'N/A'}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.footerRight}>
+              <Text style={styles.pageNumber}>Pág. {photoStartPage + 1} de {getTotalPages(data)}</Text>
+            </View>
+          </View>
+        </View>
+      </Page>
+    )
   }
   
   // Calcular número de página inicial para fotos
