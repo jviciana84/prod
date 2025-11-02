@@ -224,6 +224,9 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
       setCurrentOverlay('')
     }
     
+    // Guardar tipo de foto para orientación
+    ;(window as any).__tipoFotoActual = tipo
+    
     setShowPhotoOptions(true)
   }
 
