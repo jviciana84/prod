@@ -8,7 +8,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { createClientComponentClient } from "@/lib/supabase/client"
+import { getSupabaseClient } from "@/lib/supabase/singleton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
@@ -21,7 +21,7 @@ import { VacationManager } from "@/components/recepcion/vacation-manager"
 import { Users, BarChart3, History, Calendar } from "lucide-react"
 
 export default function RecepcionAdminPage() {
-  const supabase = createClientComponentClient()
+  const supabase = getSupabaseClient()
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({
     total_advisors: 0,

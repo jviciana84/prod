@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { createClientComponentClient } from "@/lib/supabase/client"
+import { getSupabaseClient } from "@/lib/supabase/singleton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,7 +13,7 @@ import { format } from "date-fns"
 import { es } from "date-fns/locale"
 
 export function VisitStatistics() {
-  const supabase = createClientComponentClient()
+  const supabase = getSupabaseClient()
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<any[]>([])
   const [allAssignments, setAllAssignments] = useState<any[]>([])

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { createClientComponentClient } from "@/lib/supabase/client"
+import { getSupabaseClient } from "@/lib/supabase/singleton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -29,7 +29,7 @@ interface VacationManagerProps {
 }
 
 export function VacationManager({ onUpdate }: VacationManagerProps) {
-  const supabase = createClientComponentClient()
+  const supabase = getSupabaseClient()
   const { toast } = useToast()
   const [advisors, setAdvisors] = useState<any[]>([])
   const [loading, setLoading] = useState(true)

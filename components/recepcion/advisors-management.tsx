@@ -7,7 +7,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { createClientComponentClient } from "@/lib/supabase/client"
+import { getSupabaseClient } from "@/lib/supabase/singleton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -47,7 +47,7 @@ interface AdvisorsManagementProps {
 }
 
 export function AdvisorsManagement({ onUpdate }: AdvisorsManagementProps) {
-  const supabase = createClientComponentClient()
+  const supabase = getSupabaseClient()
   const { toast } = useToast()
   const [advisors, setAdvisors] = useState<Advisor[]>([])
   const [loading, setLoading] = useState(true)
