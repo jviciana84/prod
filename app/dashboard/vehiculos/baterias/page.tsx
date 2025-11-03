@@ -6,36 +6,13 @@ import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { CompactSearchWithModal } from "@/components/dashboard/compact-search-with-modal"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { BatteryControlTable } from "@/components/battery-control/battery-control-table"
-import { AutoRefreshIndicator } from "@/components/ui/auto-refresh-indicator"
-import { AutoRefreshSettings } from "@/components/ui/auto-refresh-settings"
-import { AutoRefreshNotification } from "@/components/ui/auto-refresh-notification"
-import { useAutoRefresh } from "@/hooks/use-auto-refresh"
-import { useAutoRefreshPreferences } from "@/hooks/use-auto-refresh-preferences"
 
 export default function BatteryControlPage() {
   const [refreshKey, setRefreshKey] = useState(0)
-  const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
-
-  // Usar preferencias guardadas
-  const { preferences, isLoaded, setEnabled, setInterval } = useAutoRefreshPreferences()
 
   const handleRefresh = useCallback(() => {
     setRefreshKey((prev) => prev + 1)
-    setLastRefresh(new Date())
   }, [])
-
-  const { isActive } = useAutoRefresh({
-    interval: preferences.interval,
-    enabled: preferences.enabled && isLoaded,
-    onRefresh: handleRefresh,
-    onError: (error) => {
-      console.error("Error en auto refresh de baterías:", error)
-    },
-  })
-
-  const toggleAutoRefresh = () => {
-    setEnabled(!preferences.enabled)
-  }
 
   return (
     <div className="p-4 md:p-5 space-y-4 pb-20">
@@ -78,29 +55,12 @@ export default function BatteryControlPage() {
                 Control de niveles de carga y estado de vehículos BEV (eléctricos) y PHEV (híbridos enchufables)
               </CardDescription>
             </div>
-            <div className="flex items-center gap-2">
-              <AutoRefreshIndicator
-                isActive={isActive}
-                interval={preferences.interval}
-                onToggle={toggleAutoRefresh}
-                lastRefresh={lastRefresh}
-              />
-              <AutoRefreshSettings currentInterval={preferences.interval} onIntervalChange={setInterval} />
-            </div>
           </div>
         </CardHeader>
         <CardContent className="p-6">
           <BatteryControlTable key={refreshKey} onRefresh={handleRefresh} />
         </CardContent>
       </Card>
-
-      {/* Componente de notificaciones de auto refresh */}
-      <AutoRefreshNotification
-        isActive={isActive}
-        onRefresh={handleRefresh}
-        showNotifications={preferences.enabled}
-      />
     </div>
   )
 }
-
