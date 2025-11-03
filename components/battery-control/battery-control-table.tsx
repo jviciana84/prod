@@ -93,6 +93,7 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
   const [editingCell, setEditingCell] = useState<{ id: string; field: string } | null>(null)
   const [tempValues, setTempValues] = useState<Record<string, any>>({})
   const [unavailableVehicles, setUnavailableVehicles] = useState<Set<string>>(new Set())
+  const [currentDate, setCurrentDate] = useState<Date | null>(null)
 
   // Paginación
   const [currentPage, setCurrentPage] = useState(1)
@@ -126,6 +127,11 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
 
   // Selección de filas
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null)
+
+  // Inicializar fecha actual solo en cliente
+  useEffect(() => {
+    setCurrentDate(new Date())
+  }, [])
 
   // Cargar datos
   useEffect(() => {
@@ -381,8 +387,8 @@ export function BatteryControlTable({ onRefresh }: BatteryControlTableProps = {}
     }
 
     // PRIORIDAD 3: Días sin revisar ping ámbar
-    if (vehicle.status_date) {
-      const daysSinceReview = differenceInDays(new Date(), new Date(vehicle.status_date))
+    if (vehicle.status_date && currentDate) {
+      const daysSinceReview = differenceInDays(currentDate, new Date(vehicle.status_date))
       if (daysSinceReview >= config.days_alert_1) {
         return "bg-amber-500" // Ping ámbar - Alerta 1
       }
