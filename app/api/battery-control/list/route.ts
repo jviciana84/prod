@@ -24,9 +24,7 @@ export async function GET() {
     // 1. Consultar vehículos BEV/PHEV desde duc_scraper
     const { data: ducVehicles, error: ducError } = await supabase
       .from("duc_scraper")
-      .select(
-        `"Chasis", "e-code", "Matrícula", "Marca", "Modelo", "Color Carrocería", "Carrocería", "Tipo motor", "Combustible", "Disponibilidad"`
-      )
+      .select(`*`)
       .or('"Tipo motor".ilike.%BEV%,"Tipo motor".ilike.%PHEV%,"Tipo motor".ilike.%eléctric%,"Tipo motor".ilike.%electric%,"Combustible".ilike.%eléctric%,"Combustible".ilike.%electric%')
 
     if (ducError) {
