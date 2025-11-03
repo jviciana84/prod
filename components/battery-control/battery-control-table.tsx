@@ -25,6 +25,7 @@ import {
   TriangleAlert,
 } from "lucide-react"
 import { BatteryControlPrintExport } from "./battery-control-print-export"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { toast } from "sonner"
 import { differenceInDays, format } from "date-fns"
 import { cn } from "@/lib/utils"
