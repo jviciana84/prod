@@ -620,6 +620,7 @@ export default function UserManagement() {
       })
     } finally {
       setIsSubmitting(false)
+      setSettingPassword(null)
     }
   }
 
