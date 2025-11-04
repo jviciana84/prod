@@ -14,12 +14,11 @@ interface Props {
   onClose: () => void
   vehiculo: any
   competidores: any[]
-  loading: boolean
   precioVentaObjetivo: number | null
   config: any
 }
 
-export function ExcelAnalysisModal({ open, onClose, vehiculo, competidores, loading, precioVentaObjetivo, config }: Props) {
+export function ExcelAnalysisModal({ open, onClose, vehiculo, competidores, precioVentaObjetivo, config }: Props) {
   const [mostrarDesglose, setMostrarDesglose] = useState(false)
   
   if (!vehiculo) return null
@@ -90,9 +89,10 @@ export function ExcelAnalysisModal({ open, onClose, vehiculo, competidores, load
   }
 
   // SCATTER DATA - Los datos YA vienen procesados de la página
+  const competidoresArray = Array.isArray(competidores) ? competidores : []
   const scatterData = [
     // Competidores primero (azules)
-    ...competidores
+    ...competidoresArray
       .filter((comp: any) => comp.km && comp.precio && comp.km > 0 && comp.precio > 0)
       .map((comp: any) => ({
         km: comp.km,
@@ -133,32 +133,79 @@ export function ExcelAnalysisModal({ open, onClose, vehiculo, competidores, load
     ejemploCompetitivo: scatterData.find(d => d.tipo === 'competitivo')
   })
 
-  // Tooltip EXACTO del original
+  // Tooltip EXACTO del original del comparador
   const CustomTooltip = ({ active, payload }: any) => {
     if (!active || !payload || !payload.length) return null
     
     const data = payload[0].payload
+    const tipo = data.tipo
+    
+    let emoji = '🔵'
+    let titulo = data.concesionario || 'Desconocido'
+    
+    if (tipo === 'nuestro') {
+      emoji = '🔴'
+      titulo = `${data.matricula} (Mi vehículo)`
+    } else if (tipo === 'competitivo') {
+      emoji = '🟢'
+      titulo = 'Precio Competitivo'
+    }
+    
+    const tieneBajada = data.numeroBajadas > 0
     
     return (
-      <div className="bg-background border-2 p-2 rounded-md shadow-lg">
-        <p className="font-semibold text-xs">
-          {data.tipo === 'nuestro' ? '🔴 Tu Precio Venta' : 
-           data.tipo === 'competitivo' ? '🟢 Precio Competitivo' : 
-           '🔵 Competencia'}
-        </p>
-        {data.concesionario && <p className="text-xs">{data.concesionario}</p>}
-        <p className="text-xs">{data.modelo}</p>
-        {data.año && <p className="text-xs text-muted-foreground">Año: {data.año}</p>}
-        <p className="text-xs"><strong>KM:</strong> {data.km?.toLocaleString()}</p>
-        <p className="text-xs"><strong>Precio:</strong> {data.precio?.toLocaleString()}€</p>
-        {data.url && <p className="text-xs text-blue-500 mt-1">Click para abrir</p>}
-      </div>
+      <Card className={`p-3 shadow-lg max-w-xs ${tieneBajada ? 'animate-pulse-border' : ''}`}>
+        <div className="space-y-1">
+          <div className="font-semibold text-sm">
+            {emoji} {titulo}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {data.modelo && /\s\d+$/.test(data.modelo) ? `${data.modelo} CV` : data.modelo}
+            {` `}
+            {data.fechaPrimeraMatriculacion ? (
+              <span>• {data.fechaPrimeraMatriculacion}</span>
+            ) : (
+              <span className="text-amber-500 font-mono">• No Hard scraping</span>
+            )}
+            {typeof data.dias === 'number' && data.dias >= 0 && (
+              <span>
+                {` • `}
+                {data.dias === 1 ? '1 día' : data.dias > 1 ? `${data.dias} días` : 'Hoy'}
+              </span>
+            )}
+          </div>
+          <div className="text-xs">
+            <strong>{data.precio?.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€</strong> • {data.km?.toLocaleString()} km
+            {data.año && <span> • {data.año}</span>}
+          </div>
+            {data.precioNuevo && (
+              <div className="text-xs text-muted-foreground">
+                Nuevo: {data.precioNuevo.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€ ({((1 - data.precio/data.precioNuevo) * 100).toFixed(2)}% desc.)
+              </div>
+            )}
+            {data.numeroBajadas > 0 ? (
+              <div className="text-xs text-green-600 font-medium mt-1">
+                🔽 Bajada: -{data.importeTotalBajado?.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€ ({data.numeroBajadas} {data.numeroBajadas === 1 ? 'vez' : 'veces'})
+              </div>
+            ) : data.tipo !== 'nuestro' && (
+              <div className="text-xs text-blue-500/70 mt-1">
+                📌 Precio igual desde 1ª Publicación
+              </div>
+            )}
+            {data.url && (
+              <div className="text-xs text-blue-500 mt-1 flex items-center gap-1">
+                <ExternalLink className="w-3 h-3" />
+                🔗 Click para ver anuncio
+              </div>
+            )}
+        </div>
+      </Card>
     )
   }
 
   // Encontrar mejor oferta - Los datos YA están procesados
-  const mejorOferta = competidores.length > 0 
-    ? competidores.filter(c => c.precio && c.km).sort((a, b) => a.precio - b.precio)[0]
+  const mejorOferta = competidoresArray.length > 0 
+    ? competidoresArray.filter(c => c.precio && c.km).sort((a, b) => a.precio - b.precio)[0]
     : null
 
   return (
@@ -275,7 +322,7 @@ export function ExcelAnalysisModal({ open, onClose, vehiculo, competidores, load
                   <div className="text-xs font-semibold">2️⃣ Mercado Real</div>
                   <div className="space-y-1 text-xs">
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Precio medio ({competidores.length} coches):</span>
+                      <span className="text-muted-foreground">Precio medio ({competidoresArray.length} coches):</span>
                       <span className="font-medium text-blue-400">{precioMedioRed?.toLocaleString()}€</span>
                     </div>
                     <div className="flex justify-between">
@@ -316,12 +363,7 @@ export function ExcelAnalysisModal({ open, onClose, vehiculo, competidores, load
           )}
         </div>
 
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <BMWMSpinner size={48} />
-          </div>
-        ) : (
-          <div className="space-y-4">
+        <div className="space-y-4">
             {/* KPIs */}
             <div className="grid grid-cols-5 gap-2">
               <Card>
@@ -357,13 +399,13 @@ export function ExcelAnalysisModal({ open, onClose, vehiculo, competidores, load
               <Card>
                 <CardContent className="p-3">
                   <div className="text-xs text-muted-foreground">Competidores</div>
-                  <div className="text-base font-bold">{competidores.length}</div>
+                  <div className="text-base font-bold">{competidoresArray.length}</div>
                 </CardContent>
               </Card>
             </div>
 
             {/* Gráfico + Mejor Oferta */}
-            {competidores.length > 0 && (
+            {competidoresArray.length > 0 && (
               <div className="grid grid-cols-[1fr,300px] gap-4 items-start">
                 <Card className="h-full">
                   <CardHeader className="pb-2">
@@ -446,7 +488,7 @@ export function ExcelAnalysisModal({ open, onClose, vehiculo, competidores, load
                     </CardHeader>
                     <CardContent className="space-y-3 flex-1 flex flex-col">
                       {(() => {
-                        const competidoresReales = competidores.filter((c: any) => {
+                        const competidoresReales = competidoresArray.filter((c: any) => {
                           if (!c.concesionario) return false
                           const concLower = c.concesionario.toLowerCase()
                           return !concLower.includes('quadis') && !concLower.includes('duc')
@@ -550,11 +592,11 @@ export function ExcelAnalysisModal({ open, onClose, vehiculo, competidores, load
             )}
 
             {/* Mini Cards - EXACTAS DEL ORIGINAL */}
-            {competidores.length > 0 && (
+            {competidoresArray.length > 0 && (
               <div>
-                <h3 className="text-sm font-semibold mb-2">Competidores Directos ({competidores.length})</h3>
+                <h3 className="text-sm font-semibold mb-2">Competidores Directos ({competidoresArray.length})</h3>
                 <div className="grid grid-cols-3 gap-2">
-                  {competidores.map((comp: any, idx: number) => {
+                  {competidoresArray.map((comp: any, idx: number) => {
                     const modeloCompleto = comp.modelo || 'N/A'
                     const modeloLower = modeloCompleto.toLowerCase()
                     
@@ -605,7 +647,9 @@ export function ExcelAnalysisModal({ open, onClose, vehiculo, competidores, load
                                 )}
                               </div>
                               <div className="text-xs text-muted-foreground">
-                                {comp.dias === 1 ? '1 día' : comp.dias > 1 ? `${comp.dias} días` : 'Hoy'} • Desc: {comp.precioNuevo ? ((1 - comp.precio/comp.precioNuevo) * 100).toFixed(2) : 'N/A'}%
+                                {comp.dias === 1 ? '1 día' : comp.dias > 1 ? `${comp.dias} días` : 'Hoy'}
+                                {comp.precioNuevo && <span> • Nuevo: {comp.precioNuevo.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>}
+                                {' • Desc: '}{comp.precioNuevo ? ((1 - comp.precio/comp.precioNuevo) * 100).toFixed(2) : 'N/A'}%
                               </div>
                               {tieneBajada ? (
                                 <div className="text-xs text-green-600 font-medium mt-1">
@@ -639,14 +683,13 @@ export function ExcelAnalysisModal({ open, onClose, vehiculo, competidores, load
               </div>
             )}
 
-            {competidores.length === 0 && (
+            {competidoresArray.length === 0 && (
               <div className="text-center py-12 text-muted-foreground">
                 <p className="text-lg font-semibold mb-2">No se encontraron competidores</p>
                 <p className="text-sm">No hay vehículos similares en la red para comparar</p>
               </div>
             )}
           </div>
-        )}
       </DialogContent>
     </Dialog>
   )

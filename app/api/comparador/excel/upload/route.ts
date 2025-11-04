@@ -204,26 +204,96 @@ export async function POST(request: NextRequest) {
     for (const vehiculo of insertedData) {
       try {
         // Buscar competidores similares en comparador_scraper
-        let query = supabase
-          .from('comparador_scraper')
-          .select('precio, km, año, modelo')
-          .in('estado_anuncio', ['activo', 'nuevo', 'precio_bajado'])
+        // Estrategia: primero búsqueda exacta, luego búsqueda por partes
         
-        // Filtrar por modelo (contiene)
+        let competidores: any[] = []
+        let tipoCoincidencia = 'exacta'
+        
+        // ESTRATEGIA 1: Búsqueda por modelo completo
         if (vehiculo.modelo) {
-          // Buscar modelos similares (flexible)
-          query = query.or(`modelo.ilike.%${vehiculo.modelo}%`)
+          let query = supabase
+            .from('comparador_scraper')
+            .select('precio, km, año, modelo')
+            .in('estado_anuncio', ['activo', 'nuevo', 'precio_bajado'])
+            .ilike('modelo', `%${vehiculo.modelo}%`)
+          
+          // Filtrar por año (±1 año)
+          if (vehiculo.fecha_matriculacion) {
+            const fechaVehiculo = new Date(vehiculo.fecha_matriculacion)
+            const añoVehiculo = fechaVehiculo.getFullYear()
+            query = query.gte('año', (añoVehiculo - 1).toString())
+            query = query.lte('año', (añoVehiculo + 1).toString())
+          }
+          
+          const { data, error } = await query
+          if (!error && data && data.length > 0) {
+            competidores = data
+          }
         }
         
-        // Filtrar por año (±1 año de tolerancia)
-        if (vehiculo.fecha_matriculacion) {
-          const fechaVehiculo = new Date(vehiculo.fecha_matriculacion)
-          const añoVehiculo = fechaVehiculo.getFullYear()
-          query = query.gte('año', (añoVehiculo - 1).toString())
-          query = query.lte('año', (añoVehiculo + 1).toString())
+        // ESTRATEGIA 2: Si no encontró nada, buscar por partes del modelo
+        if (competidores.length === 0 && vehiculo.modelo) {
+          // Extraer partes clave del modelo (números y letras significativas)
+          const partesModelo = vehiculo.modelo.match(/\b\d{2,3}[a-z]+\b/gi) // Ej: "116d", "320i", "40i"
+          
+          if (partesModelo && partesModelo.length > 0) {
+            // Buscar por la parte más específica
+            const parteEspecifica = partesModelo[0]
+            
+            let query = supabase
+              .from('comparador_scraper')
+              .select('precio, km, año, modelo')
+              .in('estado_anuncio', ['activo', 'nuevo', 'precio_bajado'])
+              .ilike('modelo', `%${parteEspecifica}%`)
+            
+            // Si tenemos serie, incluirla
+            if (vehiculo.serie) {
+              const serieLimpia = vehiculo.serie.replace(/serie/i, '').trim()
+              query = query.ilike('modelo', `%${serieLimpia}%`)
+            }
+            
+            // Filtrar por año
+            if (vehiculo.fecha_matriculacion) {
+              const fechaVehiculo = new Date(vehiculo.fecha_matriculacion)
+              const añoVehiculo = fechaVehiculo.getFullYear()
+              query = query.gte('año', (añoVehiculo - 1).toString())
+              query = query.lte('año', (añoVehiculo + 1).toString())
+            }
+            
+            const { data, error } = await query
+            if (!error && data && data.length > 0) {
+              competidores = data
+              tipoCoincidencia = 'parcial'
+            }
+          }
         }
         
-        const { data: competidores, error: compError } = await query
+        // ESTRATEGIA 3: Si aún no hay resultados, buscar solo por serie + marca
+        if (competidores.length === 0 && vehiculo.serie && vehiculo.marca) {
+          const serieLimpia = vehiculo.serie.replace(/serie/i, '').trim()
+          
+          let query = supabase
+            .from('comparador_scraper')
+            .select('precio, km, año, modelo')
+            .in('estado_anuncio', ['activo', 'nuevo', 'precio_bajado'])
+            .ilike('modelo', `%${vehiculo.marca}%`)
+            .ilike('modelo', `%${serieLimpia}%`)
+          
+          if (vehiculo.fecha_matriculacion) {
+            const fechaVehiculo = new Date(vehiculo.fecha_matriculacion)
+            const añoVehiculo = fechaVehiculo.getFullYear()
+            query = query.gte('año', (añoVehiculo - 1).toString())
+            query = query.lte('año', (añoVehiculo + 1).toString())
+          }
+          
+          const { data, error } = await query
+          if (!error && data && data.length > 0) {
+            competidores = data
+            tipoCoincidencia = 'fuzzy'
+          }
+        }
+        
+        const compError = null
         
         if (compError) {
           console.error(`Error buscando competidores para ${vehiculo.id}:`, compError)
@@ -247,6 +317,9 @@ export async function POST(request: NextRequest) {
             // Precio competitivo: 5% menos que el precio medio
             const precioCompetitivo = precioMedio * 0.95
             
+            // Log de la búsqueda exitosa
+            console.log(`✅ [${vehiculo.modelo}] Encontrados ${precios.length} competidores (${tipoCoincidencia})`)
+            
             // Actualizar vehículo con precios calculados
             const { error: updateError } = await supabase
               .from('vehiculos_excel_comparador')
@@ -263,16 +336,19 @@ export async function POST(request: NextRequest) {
                 ...vehiculo,
                 precio_medio_red: Math.round(precioMedio),
                 precio_competitivo: Math.round(precioCompetitivo),
-                num_competidores: precios.length
+                num_competidores: precios.length,
+                tipo_coincidencia: tipoCoincidencia
               })
             }
           }
         } else {
+          console.log(`⚠️ [${vehiculo.modelo}] No se encontraron competidores (serie: ${vehiculo.serie})`)
           vehiculosConPrecios.push({
             ...vehiculo,
             precio_medio_red: null,
             precio_competitivo: null,
-            num_competidores: 0
+            num_competidores: 0,
+            tipo_coincidencia: 'no_encontrado'
           })
         }
       } catch (error: any) {
@@ -282,6 +358,14 @@ export async function POST(request: NextRequest) {
     
     console.log(`✅ [Excel Upload] Proceso completado exitosamente`)
     console.log(`📊 [Excel Upload] Total: ${vehiculosParaInsertar.length} | Con precios: ${vehiculosConPrecios.filter(v => v.precio_medio_red).length}`)
+    
+    // Resumen de coincidencias
+    const exactas = vehiculosConPrecios.filter(v => v.tipo_coincidencia === 'exacta').length
+    const parciales = vehiculosConPrecios.filter(v => v.tipo_coincidencia === 'parcial').length
+    const fuzzy = vehiculosConPrecios.filter(v => v.tipo_coincidencia === 'fuzzy').length
+    const noEncontrados = vehiculosConPrecios.filter(v => v.tipo_coincidencia === 'no_encontrado').length
+    
+    console.log(`🎯 [Excel Upload] Coincidencias: Exactas=${exactas} | Parciales=${parciales} | Fuzzy=${fuzzy} | No encontrados=${noEncontrados}`)
     
     return NextResponse.json({
       success: true,

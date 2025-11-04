@@ -44,12 +44,13 @@ export default function ExcelComparadorPage() {
   const [vehiculosStock, setVehiculosStock] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [uploadingExcel, setUploadingExcel] = useState(false)
+  const [recalculando, setRecalculando] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [marcaFilter, setMarcaFilter] = useState("all")
   const [rentabilidadFilter, setRentabilidadFilter] = useState("all")
   const [modeloFilter, setModeloFilter] = useState("all")
   const [configOpen, setConfigOpen] = useState(false)
-  const [competidoresModal, setCompetidoresModal] = useState<{open: boolean, vehiculo: any}>({open: false, vehiculo: null})
+  const [competidoresModal, setCompetidoresModal] = useState<{open: boolean, vehiculo: any, competidores: any[]}>({open: false, vehiculo: null, competidores: []})
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   
   // Configuración de costes (aplicada)
@@ -133,6 +134,210 @@ export default function ExcelComparadorPage() {
     } catch (error: any) {
       console.warn('⚠️ Error cargando stock (no crítico):', error.message)
       // No es crítico, solo afecta a las oportunidades
+    }
+  }
+
+  const cargarCompetidoresDetalle = async (vehiculo: any) => {
+    try {
+      console.log('🔍 Cargando competidores para:', vehiculo.modelo, 'Serie:', vehiculo.serie)
+      
+      const parsePrice = (precio: any) => {
+        if (typeof precio === 'number') return precio
+        if (typeof precio === 'string') {
+          return parseFloat(precio.replace(/[€.\s]/g, '').replace(',', '.'))
+        }
+        return 0
+      }
+      
+      const parseKm = (km: any) => {
+        if (typeof km === 'number') return km
+        if (typeof km === 'string') {
+          return parseInt(km.replace(/[.\s]/g, ''))
+        }
+        return 0
+      }
+      
+      let competidores: any[] = []
+      let estrategia = ''
+      
+      // ESTRATEGIA 1: Búsqueda por modelo completo
+      if (vehiculo.modelo) {
+        let query = supabase
+          .from('comparador_scraper')
+          .select('*')
+          .in('estado_anuncio', ['activo', 'nuevo', 'precio_bajado'])
+          .ilike('modelo', `%${vehiculo.modelo}%`)
+        
+        if (vehiculo.fecha_matriculacion) {
+          const fechaVehiculo = new Date(vehiculo.fecha_matriculacion)
+          const añoVehiculo = fechaVehiculo.getFullYear()
+          query = query.gte('año', (añoVehiculo - 1).toString())
+          query = query.lte('año', (añoVehiculo + 1).toString())
+        }
+        const { data, error } = await query
+        if (!error && data && data.length > 0) {
+          competidores = data
+          estrategia = 'exacta'
+        }
+      }
+      
+      // ESTRATEGIA 2: Búsqueda por partes del modelo
+      if (competidores.length === 0 && vehiculo.modelo) {
+        const partesModelo = vehiculo.modelo.match(/\b\d{2,3}[a-z]+\b/gi)
+        if (partesModelo && partesModelo.length > 0) {
+          const parteEspecifica = partesModelo[0]
+          let query = supabase
+            .from('comparador_scraper')
+            .select('*')
+            .in('estado_anuncio', ['activo', 'nuevo', 'precio_bajado'])
+            .ilike('modelo', `%${parteEspecifica}%`)
+          
+          if (vehiculo.serie) {
+            const serieLimpia = vehiculo.serie.replace(/serie/i, '').trim()
+            query = query.ilike('modelo', `%${serieLimpia}%`)
+          }
+          if (vehiculo.fecha_matriculacion) {
+            const fechaVehiculo = new Date(vehiculo.fecha_matriculacion)
+            const añoVehiculo = fechaVehiculo.getFullYear()
+            query = query.gte('año', (añoVehiculo - 1).toString())
+            query = query.lte('año', (añoVehiculo + 1).toString())
+          }
+          const { data, error } = await query
+          if (!error && data && data.length > 0) {
+            competidores = data
+            estrategia = 'parcial'
+          }
+        }
+      }
+      
+      // ESTRATEGIA 3: Búsqueda por serie + marca
+      if (competidores.length === 0 && vehiculo.serie && vehiculo.marca) {
+        const serieLimpia = vehiculo.serie.replace(/serie/i, '').trim()
+        let query = supabase
+          .from('comparador_scraper')
+          .select('*')
+          .in('estado_anuncio', ['activo', 'nuevo', 'precio_bajado'])
+          .ilike('modelo', `%${vehiculo.marca}%`)
+          .ilike('modelo', `%${serieLimpia}%`)
+        
+        if (vehiculo.fecha_matriculacion) {
+          const fechaVehiculo = new Date(vehiculo.fecha_matriculacion)
+          const añoVehiculo = fechaVehiculo.getFullYear()
+          query = query.gte('año', (añoVehiculo - 1).toString())
+          query = query.lte('año', (añoVehiculo + 1).toString())
+        }
+        const { data, error } = await query
+        if (!error && data && data.length > 0) {
+          competidores = data
+          estrategia = 'fuzzy'
+        }
+      }
+      
+      // Procesar competidores
+      const competidoresProcesados = competidores.map((comp: any) => {
+        // Parsear precio nuevo desde múltiples campos posibles
+        let precioNuevo = null
+        if (comp.precio_nuevo) {
+          precioNuevo = parsePrice(comp.precio_nuevo)
+        } else if (comp.precioNuevo) {
+          precioNuevo = parsePrice(comp.precioNuevo)
+        } else if (comp.precio_original) {
+          precioNuevo = parsePrice(comp.precio_original)
+        }
+        
+        return {
+          precio: parsePrice(comp.precio),
+          km: parseKm(comp.km),
+          año: comp.año,
+          modelo: comp.modelo,
+          concesionario: comp.concesionario || 'Desconocido',
+          url: comp.url,
+          precioNuevo,
+          fechaPrimeraMatriculacion: comp.fecha_primera_matriculacion || null,
+          numeroBajadas: comp.numero_bajadas_precio || 0,
+          importeTotalBajado: comp.importe_total_bajado || 0,
+          primeraDeteccion: comp.primera_deteccion,
+          estado: comp.estado_anuncio,
+          dias: comp.primera_deteccion ? Math.floor((new Date().getTime() - new Date(comp.primera_deteccion).getTime()) / (1000 * 60 * 60 * 24)) : 0
+        }
+      }).filter(c => c.precio > 0 && c.km > 0)
+      
+      console.log(`✅ ${competidoresProcesados.length} competidores cargados (${estrategia})`)
+      if (competidoresProcesados.length > 0) {
+        const muestra = competidores[0] // RAW de la BD
+        console.log('🔍 RAW de BD:', {
+          precio_nuevo: muestra.precio_nuevo,
+          precioNuevo: muestra.precioNuevo,
+          precio_original: muestra.precio_original,
+          precio: muestra.precio
+        })
+        console.log('🔍 Procesado:', {
+          precio: competidoresProcesados[0].precio,
+          precioNuevo: competidoresProcesados[0].precioNuevo,
+          km: competidoresProcesados[0].km,
+          concesionario: competidoresProcesados[0].concesionario
+        })
+      }
+      return competidoresProcesados
+      
+    } catch (error: any) {
+      console.error('❌ Error inesperado cargando competidores:', error)
+      return []
+    }
+  }
+
+  const abrirModalCompetidores = async (vehiculo: any) => {
+    if (vehiculo.num_competidores === 0) {
+      toast({
+        title: "Sin competidores",
+        description: "No se encontraron competidores para este vehículo",
+        variant: "destructive"
+      })
+      return
+    }
+    
+    // Cargar competidores
+    const competidores = await cargarCompetidoresDetalle(vehiculo)
+    
+    setCompetidoresModal({
+      open: true,
+      vehiculo,
+      competidores
+    })
+  }
+
+  const recalcularPrecios = async () => {
+    setRecalculando(true)
+    try {
+      console.log('🔄 Recalculando precios de la red...')
+      
+      const response = await fetch('/api/comparador/excel/recalcular-precios', {
+        method: 'POST'
+      })
+      
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al recalcular precios')
+      }
+      
+      toast({
+        title: "✅ Precios recalculados",
+        description: `${data.actualizados} vehículos actualizados. ${data.sinDatos} sin datos. Revisa consola para detalles.`,
+      })
+      
+      // Recargar datos
+      await cargarVehiculos()
+      
+    } catch (error: any) {
+      console.error('❌ Error recalculando:', error)
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
+      })
+    } finally {
+      setRecalculando(false)
     }
   }
   
@@ -414,11 +619,7 @@ export default function ExcelComparadorPage() {
     <div className="p-4 md:p-5 space-y-4 pb-20">
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Breadcrumbs className="mt-4" />
-          <CompactSearchWithModal className="mt-4" />
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 mt-4">
             <Button
               variant="outline"
               size="sm"
@@ -427,44 +628,58 @@ export default function ExcelComparadorPage() {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Volver
             </Button>
-            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-              <Upload className="h-8 w-8 text-primary" />
-              Excel - Análisis de Rentabilidad
-            </h1>
+            <Breadcrumbs />
           </div>
+          <CompactSearchWithModal className="mt-4" />
+        </div>
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+            <Upload className="h-8 w-8 text-primary" />
+            Excel - Análisis de Rentabilidad
+          </h1>
           <div className="flex items-center gap-2">
+            {vehiculos.length > 0 && (
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={recalcularPrecios}
+                disabled={recalculando}
+                title="Recalcular precios de la red con búsqueda mejorada"
+              >
+                {recalculando ? (
+                  <BMWMSpinner size={16} />
+                ) : (
+                  <RefreshCw className="w-4 h-4" />
+                )}
+              </Button>
+            )}
             <Button 
               size="sm" 
               variant="outline"
               onClick={() => setConfigOpen(true)}
+              title="Configurar costes y margen"
             >
-              <Settings className="w-4 h-4 mr-2" />
-              Configurar
+              <Settings className="w-4 h-4" />
             </Button>
             <Button 
               size="sm" 
               variant="outline"
               onClick={exportarAExcel}
+              title="Exportar a Excel"
             >
-              <FileDown className="w-4 h-4 mr-2" />
-              Exportar
+              <FileDown className="w-4 h-4" />
             </Button>
             <Button 
               size="sm" 
               variant="outline"
               onClick={() => document.getElementById('excel-upload')?.click()}
               disabled={uploadingExcel}
+              title="Cargar Excel de subasta"
             >
               {uploadingExcel ? (
-                <>
-                  <BMWMSpinner size={16} className="mr-2" />
-                  Cargando...
-                </>
+                <BMWMSpinner size={16} />
               ) : (
-                <>
-                  <Upload className="w-4 h-4 mr-2" />
-                  Cargar Excel
-                </>
+                <Upload className="w-4 h-4" />
               )}
             </Button>
             <input
@@ -480,6 +695,7 @@ export default function ExcelComparadorPage() {
                 variant="outline"
                 onClick={() => setDeleteDialogOpen(true)}
                 className="hover:bg-red-500/10 hover:text-red-500"
+                title="Eliminar todos los vehículos"
               >
                 <Trash2 className="w-4 h-4" />
               </Button>
@@ -663,11 +879,13 @@ export default function ExcelComparadorPage() {
                 return (
                   <div 
                     key={v.id}
-                    className="text-[9px] p-1.5 rounded border bg-card hover:bg-muted/50 transition-colors cursor-default"
+                    className="text-[9px] p-1.5 rounded border bg-card hover:bg-muted/50 transition-colors cursor-pointer"
                     style={{ 
                       borderLeftColor: borderLeftColor,
                       borderLeftWidth: '3px'
                     }}
+                    onClick={() => v.num_competidores > 0 && abrirModalCompetidores(v)}
+                    title="Click para ver análisis de competidores"
                   >
                     <div className="font-medium truncate text-[9px] leading-tight mb-0.5">{v.modelo}</div>
                     <div className="flex items-center justify-between text-[8px] mb-1">
@@ -767,7 +985,13 @@ export default function ExcelComparadorPage() {
                         <td className="p-1.5 text-xs">{vehiculo.lote || '-'}</td>
                         <td className="p-1.5 text-xs">{vehiculo.marca || '-'}</td>
                         <td className="p-1.5 text-xs" title={vehiculo.modelo}>
-                          <div className="max-w-[150px] truncate">{vehiculo.modelo || '-'}</div>
+                          <div className={`max-w-[150px] truncate ${
+                            vehiculo.num_competidores > 0 && vehiculo.num_competidores <= 3 
+                              ? 'text-amber-500 font-medium' 
+                              : ''
+                          }`}>
+                            {vehiculo.modelo || '-'}
+                          </div>
                         </td>
                         <td className="p-1.5 text-xs font-mono">{vehiculo.matricula || '-'}</td>
                         <td className="p-1.5 text-xs">
@@ -822,7 +1046,7 @@ export default function ExcelComparadorPage() {
                           <Badge 
                             variant="outline" 
                             className="text-[10px] cursor-pointer hover:bg-primary/10 transition-colors"
-                            onClick={() => vehiculo.num_competidores > 0 && setCompetidoresModal({open: true, vehiculo})}
+                            onClick={() => vehiculo.num_competidores > 0 && abrirModalCompetidores(vehiculo)}
                           >
                             {vehiculo.num_competidores || 0}
                           </Badge>
@@ -1080,11 +1304,11 @@ export default function ExcelComparadorPage() {
       {competidoresModal.open && competidoresModal.vehiculo && (
         <ExcelAnalysisModal
           vehiculo={competidoresModal.vehiculo}
+          competidores={competidoresModal.competidores}
           open={competidoresModal.open}
-          onClose={() => setCompetidoresModal({open: false, vehiculo: null})}
+          onClose={() => setCompetidoresModal({open: false, vehiculo: null, competidores: []})}
+          precioVentaObjetivo={calcularPrecioVentaObjetivo(competidoresModal.vehiculo)}
           config={config}
-          calcularPrecioVentaObjetivo={calcularPrecioVentaObjetivo}
-          calcularGarantiaAutomatica={calcularGarantiaAutomatica}
         />
       )}
     </>
