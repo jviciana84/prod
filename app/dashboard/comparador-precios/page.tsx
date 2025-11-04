@@ -3,12 +3,13 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { createClientComponentClient } from "@/lib/supabase/client"
+import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { CompactSearchWithModal } from "@/components/dashboard/compact-search-with-modal"
 import { InformeComparador } from "@/components/dashboard/informe-comparador"
 import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
-import { TrendingDown, TrendingUp, Minus, Target, Euro, AlertCircle, ExternalLink, Search, Filter, RefreshCw, BarChart3, Edit, Trash2, Link as LinkIcon, Settings, FileText, Printer } from "lucide-react"
+import { TrendingDown, TrendingUp, Minus, Target, Euro, AlertCircle, ExternalLink, Search, Filter, RefreshCw, BarChart3, Edit, Trash2, Link as LinkIcon, Settings, FileText, Printer, Upload } from "lucide-react"
 import { BMWLogo, MINILogo } from "@/components/ui/brand-logos"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -720,6 +721,7 @@ function CompetitorDetailModal({ vehicle, open, onClose }: { vehicle: any, open:
 export default function ComparadorPreciosPage() {
   const router = useRouter()
   const supabase = createClientComponentClient()
+  const { toast } = useToast()
   
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null)
   const [filter, setFilter] = useState<"all" | "competitivo" | "justo" | "alto">("all")
@@ -729,6 +731,9 @@ export default function ComparadorPreciosPage() {
   const [error, setError] = useState<string | null>(null)
   const [configOpen, setConfigOpen] = useState(false)
   const [informeOpen, setInformeOpen] = useState(false)
+  
+  // Estados para carga de Excel
+  const [uploadingExcel, setUploadingExcel] = useState(false)
   
   // Estados para restricción de acceso
   const [mostrarRestriccion, setMostrarRestriccion] = useState(false)
@@ -859,6 +864,52 @@ export default function ComparadorPreciosPage() {
   const handleRecalcular = () => {
     // TODO: Implementar recálculo con tolerancias
     cargarDatos()
+  }
+
+  const handleExcelUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    
+    setUploadingExcel(true)
+    
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      
+      const response = await fetch('/api/comparador/excel/upload', {
+        method: 'POST',
+        body: formData
+      })
+      
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al cargar Excel')
+      }
+      
+      // Mostrar toast de éxito
+      toast({
+        title: "✅ Excel cargado correctamente",
+        description: `${data.vehiculos?.length || 0} vehículos procesados. Redirigiendo...`,
+      })
+      
+      // Redirigir a página de Excel
+      setTimeout(() => {
+        router.push('/dashboard/comparador-precios/excel')
+      }, 800)
+      
+    } catch (error: any) {
+      console.error('Error cargando Excel:', error)
+      toast({
+        title: "❌ Error al cargar Excel",
+        description: error.message,
+        variant: "destructive"
+      })
+    } finally {
+      setUploadingExcel(false)
+      // Limpiar input
+      event.target.value = ''
+    }
   }
 
   // Obtener modelos únicos para el filtro (con CV al final)
@@ -1124,6 +1175,26 @@ export default function ComparadorPreciosPage() {
             >
               <FileText className="w-4 h-4" />
             </Button>
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => document.getElementById('excel-upload-input')?.click()}
+              disabled={uploadingExcel}
+              title="Cargar Excel de subasta"
+            >
+              {uploadingExcel ? (
+                <BMWMSpinner size={16} />
+              ) : (
+                <Upload className="w-4 h-4" />
+              )}
+            </Button>
+            <input
+              id="excel-upload-input"
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleExcelUpload}
+              className="hidden"
+            />
             <Button 
               size="sm" 
               variant="outline"
