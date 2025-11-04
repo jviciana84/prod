@@ -15,6 +15,7 @@ export interface VehiculoComparador {
   
   // Datos opcionales manuales
   kilometros?: number
+  potencia?: number
   fecha_matriculacion?: string
   precio?: number
   

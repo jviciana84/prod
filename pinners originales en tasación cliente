@@ -1,0 +1,46 @@
+[1mdiff --git a/app/tasacion/[advisorSlug]/page.tsx b/app/tasacion/[advisorSlug]/page.tsx[m
+[1mindex 7235293..c006762 100644[m
+[1m--- a/app/tasacion/[advisorSlug]/page.tsx[m
+[1m+++ b/app/tasacion/[advisorSlug]/page.tsx[m
+[36m@@ -3,6 +3,7 @@[m
+ import { useState, useEffect } from 'react'[m
+ import { useParams, useRouter } from 'next/navigation'[m
+ import { Camera, FileText, CheckCircle2 } from 'lucide-react'[m
+[32m+[m[32mimport { BMWMSpinner } from '@/components/ui/bmw-m-spinner'[m
+ import ProgressBar from '../components/ProgressBar'[m
+ import InicioStep from '../components/steps/InicioStep'[m
+ import DatosBasicosStep from '../components/steps/DatosBasicosStep'[m
+[36m@@ -160,7 +161,9 @@[m [mexport default function TasacionPage() {[m
+       {isProcessing && ([m
+         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center">[m
+           <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm mx-4 text-center">[m
+[31m-            <div className="w-16 h-16 mx-auto mb-4 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin" />[m
+[32m+[m[32m            <div className="mb-4">[m
+[32m+[m[32m              <BMWMSpinner size={64} />[m
+[32m+[m[32m            </div>[m
+             <h3 className="text-xl font-bold text-gray-900 mb-4">Procesando tasación...</h3>[m
+             <div className="space-y-2 text-left">[m
+               <div className="flex items-center gap-2 text-sm text-gray-600">[m
+[1mdiff --git a/app/tasacion/completada/page.tsx b/app/tasacion/completada/page.tsx[m
+[1mindex dedb812..04b36bd 100644[m
+[1m--- a/app/tasacion/completada/page.tsx[m
+[1m+++ b/app/tasacion/completada/page.tsx[m
+[36m@@ -1,7 +1,8 @@[m
+ 'use client'[m
+ [m
+ import { motion } from 'framer-motion'[m
+[31m-import { CheckCircle2, Download, Home, Loader2 } from 'lucide-react'[m
+[32m+[m[32mimport { CheckCircle2, Download, Home } from 'lucide-react'[m
+[32m+[m[32mimport { BMWMSpinner } from '@/components/ui/bmw-m-spinner'[m
+ import { Button } from '@/components/ui/button'[m
+ import { useRouter } from 'next/navigation'[m
+ import { useState, useEffect } from 'react'[m
+[36m@@ -253,7 +254,7 @@[m [mexport default function TasacionCompletadaPage() {[m
+           >[m
+             {isGeneratingPDF ? ([m
+               <>[m
+[31m-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />[m
+[32m+[m[32m                <BMWMSpinner size={20} className="mr-2" />[m
+                 Generando PDF...[m
+               </>[m
+             ) : !tasacionData ? ([m

@@ -810,7 +810,8 @@ export default function ComparadorPreciosPage() {
       // Construir URL absoluta con parámetros de tolerancia del card
       const params = new URLSearchParams({
         toleranciaCv: toleranciaCvCard,
-        toleranciaAño: toleranciaAñoCard
+        toleranciaAño: toleranciaAñoCard,
+        toleranciaKm: toleranciaKm
       })
       
       const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
@@ -843,6 +844,17 @@ export default function ComparadorPreciosPage() {
   useEffect(() => {
     cargarDatos()
   }, [])
+  
+  // Recargar cuando cambien los filtros de tolerancia
+  useEffect(() => {
+    if (ultimaActualizacion) { // Solo recargar si ya se cargó una vez
+      const timer = setTimeout(() => {
+        cargarDatos()
+      }, 500) // Debounce de 500ms
+      
+      return () => clearTimeout(timer)
+    }
+  }, [toleranciaKm, toleranciaAñoCard, toleranciaCvCard])
 
   const handleRecalcular = () => {
     // TODO: Implementar recálculo con tolerancias

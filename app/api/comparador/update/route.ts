@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { id, kilometros, fecha_matriculacion, precio, marca, modelo, version, color, tapiceria, equipacion } = body
+    const { id, kilometros, potencia, fecha_matriculacion, precio, marca, modelo, version, color, tapiceria, equipacion } = body
 
     if (!id) {
       return NextResponse.json({ 
@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
     const updateData: any = {}
     
     if (kilometros !== undefined) updateData.kilometros = kilometros
+    if (potencia !== undefined) updateData.potencia = potencia
     if (fecha_matriculacion !== undefined) updateData.fecha_matriculacion = fecha_matriculacion
     if (precio !== undefined) updateData.precio = precio
     if (marca !== undefined) updateData.marca = marca

@@ -22,6 +22,7 @@ interface VehiculoComparador {
   tapiceria?: string
   equipacion: string[]
   kilometros?: number
+  potencia?: number
   fecha_matriculacion?: string
   precio?: number
 }
@@ -41,6 +42,12 @@ export default function ComparadorTable({ onRefresh }: ComparadorTableProps) {
   const [editingData, setEditingData] = useState<any>({})
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
   const [topN, setTopN] = useState(3)
+  
+  // Estados para filtros
+  const [kmMin, setKmMin] = useState<string>("")
+  const [kmMax, setKmMax] = useState<string>("")
+  const [cvMin, setCvMin] = useState<string>("")
+  const [cvMax, setCvMax] = useState<string>("")
 
   useEffect(() => {
     cargarVehiculos()
@@ -143,10 +150,24 @@ export default function ComparadorTable({ onRefresh }: ComparadorTableProps) {
     event.target.value = ""
   }
 
+  // Aplicar filtros
+  const vehiculosFiltrados = vehiculos.filter(vehiculo => {
+    // Filtro de kilómetros
+    if (kmMin && vehiculo.kilometros && vehiculo.kilometros < parseInt(kmMin)) return false
+    if (kmMax && vehiculo.kilometros && vehiculo.kilometros > parseInt(kmMax)) return false
+    
+    // Filtro de CV/Potencia
+    if (cvMin && vehiculo.potencia && vehiculo.potencia < parseInt(cvMin)) return false
+    if (cvMax && vehiculo.potencia && vehiculo.potencia > parseInt(cvMax)) return false
+    
+    return true
+  })
+
   const handleEdit = (vehiculo: VehiculoComparador) => {
     setEditingId(vehiculo.id)
     setEditingData({
       kilometros: vehiculo.kilometros || "",
+      potencia: vehiculo.potencia || "",
       fecha_matriculacion: vehiculo.fecha_matriculacion || "",
       precio: vehiculo.precio || "",
       marca: vehiculo.marca || "",
@@ -170,6 +191,7 @@ export default function ComparadorTable({ onRefresh }: ComparadorTableProps) {
         body: JSON.stringify({
           id,
           kilometros: editingData.kilometros ? parseInt(editingData.kilometros) : null,
+          potencia: editingData.potencia ? parseInt(editingData.potencia) : null,
           fecha_matriculacion: editingData.fecha_matriculacion || null,
           precio: editingData.precio ? parseFloat(editingData.precio) : null,
           marca: editingData.marca || null,
@@ -259,14 +281,14 @@ export default function ComparadorTable({ onRefresh }: ComparadorTableProps) {
 
   // Obtener todas las opciones de equipación únicas
   const todasEquipaciones = Array.from(
-    new Set(vehiculos.flatMap(v => v.equipacion))
+    new Set(vehiculosFiltrados.flatMap(v => v.equipacion))
   ).sort()
 
   // Generar recomendación con detalles (ponderada por calidad de opcionales)
   const getRecomendacionDetallada = () => {
-    if (vehiculos.length === 0) return null
+    if (vehiculosFiltrados.length === 0) return null
 
-    const resultados = vehiculos.map(vehiculo => {
+    const resultados = vehiculosFiltrados.map(vehiculo => {
       let puntuacion = 0
       const desglose: any = {}
 
@@ -407,6 +429,76 @@ export default function ComparadorTable({ onRefresh }: ComparadorTableProps) {
           </Button>
         </div>
 
+        {/* Filtros */}
+        {vehiculos.length > 0 && (
+          <Card className="border-muted">
+            <CardContent className="py-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">KM Mínimo</label>
+                  <Input
+                    type="number"
+                    placeholder="Ej: 0"
+                    value={kmMin}
+                    onChange={(e) => setKmMin(e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">KM Máximo</label>
+                  <Input
+                    type="number"
+                    placeholder="Ej: 100000"
+                    value={kmMax}
+                    onChange={(e) => setKmMax(e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">CV Mínimo</label>
+                  <Input
+                    type="number"
+                    placeholder="Ej: 100"
+                    value={cvMin}
+                    onChange={(e) => setCvMin(e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">CV Máximo</label>
+                  <Input
+                    type="number"
+                    placeholder="Ej: 300"
+                    value={cvMax}
+                    onChange={(e) => setCvMax(e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                </div>
+              </div>
+              {(kmMin || kmMax || cvMin || cvMax) && (
+                <div className="flex items-center justify-between mt-2 pt-2 border-t">
+                  <span className="text-xs text-muted-foreground">
+                    Mostrando {vehiculosFiltrados.length} de {vehiculos.length} vehículos
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setKmMin("")
+                      setKmMax("")
+                      setCvMin("")
+                      setCvMax("")
+                    }}
+                    className="h-6 text-xs"
+                  >
+                    Limpiar filtros
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Progress indicator */}
         {uploading && uploadProgress.total > 0 && (
           <Card className="border-primary/50 bg-primary/5">
@@ -435,6 +527,12 @@ export default function ComparadorTable({ onRefresh }: ComparadorTableProps) {
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground">
             No hay vehículos cargados. Sube PDFs para comenzar la comparación.
+          </CardContent>
+        </Card>
+      ) : vehiculosFiltrados.length === 0 ? (
+        <Card>
+          <CardContent className="py-8 text-center text-muted-foreground">
+            No hay vehículos que coincidan con los filtros seleccionados.
           </CardContent>
         </Card>
       ) : (
@@ -526,6 +624,7 @@ export default function ComparadorTable({ onRefresh }: ComparadorTableProps) {
                       <TableHead className="py-1">Color</TableHead>
                       <TableHead className="py-1">Tapicería</TableHead>
                       <TableHead className="py-1">KM</TableHead>
+                      <TableHead className="py-1">CV</TableHead>
                       <TableHead className="py-1">Fecha</TableHead>
                       <TableHead className="py-1">Precio</TableHead>
                       <TableHead className="py-1">PDF</TableHead>
@@ -533,7 +632,7 @@ export default function ComparadorTable({ onRefresh }: ComparadorTableProps) {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {vehiculos.map((vehiculo) => (
+                    {vehiculosFiltrados.map((vehiculo) => (
                       <TableRow key={vehiculo.id} className="text-xs">
                         <TableCell className="font-mono py-1">{vehiculo.vin}</TableCell>
                         <TableCell className="py-1">
@@ -594,6 +693,18 @@ export default function ComparadorTable({ onRefresh }: ComparadorTableProps) {
                             />
                           ) : (
                             vehiculo.kilometros?.toLocaleString() || "-"
+                          )}
+                        </TableCell>
+                        <TableCell className="py-1">
+                          {editingId === vehiculo.id ? (
+                            <Input
+                              type="number"
+                              value={editingData.potencia}
+                              onChange={(e) => setEditingData({ ...editingData, potencia: e.target.value })}
+                              className="w-16 h-7 text-xs"
+                            />
+                          ) : (
+                            vehiculo.potencia ? `${vehiculo.potencia} CV` : "-"
                           )}
                         </TableCell>
                         <TableCell className="py-1">
@@ -707,7 +818,7 @@ export default function ComparadorTable({ onRefresh }: ComparadorTableProps) {
                       >
                         Característica
                       </th>
-                      {vehiculos.map((vehiculo) => (
+                      {vehiculosFiltrados.map((vehiculo) => (
                         <th 
                           key={vehiculo.id} 
                           className="text-center py-1.5 px-3 border-b-2"
@@ -764,7 +875,7 @@ export default function ComparadorTable({ onRefresh }: ComparadorTableProps) {
                         >
                           {equipacion}
                         </td>
-                        {vehiculos.map((vehiculo) => (
+                        {vehiculosFiltrados.map((vehiculo) => (
                           <td key={vehiculo.id} className="text-center py-1">
                             {vehiculo.equipacion.includes(equipacion) ? (
                               <Check className="h-5 w-5 mx-auto stroke-[3]" style={{ color: '#15803d' }} />
