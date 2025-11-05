@@ -49,6 +49,22 @@ type FotoDocKey =
   | 'fichaTecnicaDorso'
 
 export default function FotografiasStep({ onComplete, onBack }: FotografiasStepProps) {
+  // Forzar orientación VERTICAL al montar el componente
+  useEffect(() => {
+    if (screen.orientation && 'lock' in screen.orientation) {
+      (screen.orientation as any).lock('portrait').catch(() => {
+        console.log('No se pudo bloquear orientación vertical en toda la app')
+      })
+    }
+    
+    return () => {
+      // Desbloquear al desmontar
+      if (screen.orientation && 'unlock' in screen.orientation) {
+        (screen.orientation as any).unlock()
+      }
+    }
+  }, [])
+
   // Scroll al inicio cuando se monta el componente
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
