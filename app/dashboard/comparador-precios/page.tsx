@@ -9,7 +9,7 @@ import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { CompactSearchWithModal } from "@/components/dashboard/compact-search-with-modal"
 import { InformeComparador } from "@/components/dashboard/informe-comparador"
 import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
-import { TrendingDown, TrendingUp, Minus, Target, Euro, AlertCircle, ExternalLink, Search, Filter, RefreshCw, BarChart3, Edit, Trash2, Link as LinkIcon, Settings, FileText, Printer, Upload } from "lucide-react"
+import { TrendingDown, TrendingUp, Minus, Target, Euro, AlertCircle, ExternalLink, Search, Filter, RefreshCw, BarChart3, Edit, Trash2, Link as LinkIcon, Settings, FileText, Printer, Upload, FileSpreadsheet } from "lucide-react"
 import { BMWLogo, MINILogo } from "@/components/ui/brand-logos"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -1195,6 +1195,14 @@ export default function ComparadorPreciosPage() {
               onChange={handleExcelUpload}
               className="hidden"
             />
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => router.push('/dashboard/comparador-precios/excel')}
+              title="Análisis de Excel"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+            </Button>
             <Button 
               size="sm" 
               variant="outline"
