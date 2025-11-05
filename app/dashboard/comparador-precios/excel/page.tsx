@@ -884,7 +884,11 @@ export default function ExcelComparadorPage() {
                       borderLeftColor: borderLeftColor,
                       borderLeftWidth: '3px'
                     }}
-                    onClick={() => v.num_competidores > 0 && abrirModalCompetidores(v)}
+                    onClick={() => {
+                      if (v.num_competidores > 0) {
+                        abrirModalCompetidores(v)
+                      }
+                    }}
                     title="Click para ver análisis de competidores"
                   >
                     <div className="font-medium truncate text-[9px] leading-tight mb-0.5">{v.modelo}</div>
@@ -1046,7 +1050,11 @@ export default function ExcelComparadorPage() {
                           <Badge 
                             variant="outline" 
                             className="text-[10px] cursor-pointer hover:bg-primary/10 transition-colors"
-                            onClick={() => vehiculo.num_competidores > 0 && abrirModalCompetidores(vehiculo)}
+                            onClick={() => {
+                              if (vehiculo.num_competidores > 0) {
+                                abrirModalCompetidores(vehiculo)
+                              }
+                            }}
                           >
                             {vehiculo.num_competidores || 0}
                           </Badge>
