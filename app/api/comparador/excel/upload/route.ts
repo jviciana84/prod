@@ -217,12 +217,20 @@ export async function POST(request: NextRequest) {
             .in('estado_anuncio', ['activo', 'nuevo', 'precio_bajado'])
             .ilike('modelo', `%${vehiculo.modelo}%`)
           
-          // Filtrar por año (±1 año)
+          // Filtro de año ±1
           if (vehiculo.fecha_matriculacion) {
             const fechaVehiculo = new Date(vehiculo.fecha_matriculacion)
             const añoVehiculo = fechaVehiculo.getFullYear()
             query = query.gte('año', (añoVehiculo - 1).toString())
             query = query.lte('año', (añoVehiculo + 1).toString())
+          }
+          
+          // Filtro de KM ±30.000 km
+          if (vehiculo.km) {
+            const kmMin = Math.max(0, vehiculo.km - 30000)
+            const kmMax = vehiculo.km + 30000
+            query = query.gte('km', kmMin.toString())
+            query = query.lte('km', kmMax.toString())
           }
           
           const { data, error } = await query
@@ -231,33 +239,41 @@ export async function POST(request: NextRequest) {
           }
         }
         
-        // ESTRATEGIA 2: Si no encontró nada, buscar por partes del modelo
+        // ESTRATEGIA 2: Búsqueda por versión específica (con letra: d, i, xd, etc.)
         if (competidores.length === 0 && vehiculo.modelo) {
-          // Extraer partes clave del modelo (números y letras significativas)
-          const partesModelo = vehiculo.modelo.match(/\b\d{2,3}[a-z]+\b/gi) // Ej: "116d", "320i", "40i"
+          // Capturar versión específica: "118d", "320i", "M135i", "40i", etc.
+          // Incluye modelos M (M135i, M240i, etc.)
+          const partesModelo = vehiculo.modelo.match(/\b[M]?\d{2,3}[a-z]+\b/gi)
           
           if (partesModelo && partesModelo.length > 0) {
-            // Buscar por la parte más específica
-            const parteEspecifica = partesModelo[0]
+            const versionEspecifica = partesModelo[0] // "M135i" o "118d" completo
             
             let query = supabase
               .from('comparador_scraper')
               .select('precio, km, año, modelo')
               .in('estado_anuncio', ['activo', 'nuevo', 'precio_bajado'])
-              .ilike('modelo', `%${parteEspecifica}%`)
+              .ilike('modelo', `%${versionEspecifica}%`) // Busca "118d" completo
             
-            // Si tenemos serie, incluirla
+            // Añadir serie para mayor precisión
             if (vehiculo.serie) {
               const serieLimpia = vehiculo.serie.replace(/serie/i, '').trim()
               query = query.ilike('modelo', `%${serieLimpia}%`)
             }
             
-            // Filtrar por año
+            // Filtro de año ±1
             if (vehiculo.fecha_matriculacion) {
               const fechaVehiculo = new Date(vehiculo.fecha_matriculacion)
               const añoVehiculo = fechaVehiculo.getFullYear()
               query = query.gte('año', (añoVehiculo - 1).toString())
               query = query.lte('año', (añoVehiculo + 1).toString())
+            }
+            
+            // Filtro de KM ±30.000 km
+            if (vehiculo.km) {
+              const kmMin = Math.max(0, vehiculo.km - 30000)
+              const kmMax = vehiculo.km + 30000
+              query = query.gte('km', kmMin.toString())
+              query = query.lte('km', kmMax.toString())
             }
             
             const { data, error } = await query
@@ -268,30 +284,7 @@ export async function POST(request: NextRequest) {
           }
         }
         
-        // ESTRATEGIA 3: Si aún no hay resultados, buscar solo por serie + marca
-        if (competidores.length === 0 && vehiculo.serie && vehiculo.marca) {
-          const serieLimpia = vehiculo.serie.replace(/serie/i, '').trim()
-          
-          let query = supabase
-            .from('comparador_scraper')
-            .select('precio, km, año, modelo')
-            .in('estado_anuncio', ['activo', 'nuevo', 'precio_bajado'])
-            .ilike('modelo', `%${vehiculo.marca}%`)
-            .ilike('modelo', `%${serieLimpia}%`)
-          
-          if (vehiculo.fecha_matriculacion) {
-            const fechaVehiculo = new Date(vehiculo.fecha_matriculacion)
-            const añoVehiculo = fechaVehiculo.getFullYear()
-            query = query.gte('año', (añoVehiculo - 1).toString())
-            query = query.lte('año', (añoVehiculo + 1).toString())
-          }
-          
-          const { data, error } = await query
-          if (!error && data && data.length > 0) {
-            competidores = data
-            tipoCoincidencia = 'fuzzy'
-          }
-        }
+        // ESTRATEGIA 3: DESACTIVADA (demasiado amplia, mezclaba versiones diferentes)
         
         const compError = null
         
@@ -314,8 +307,8 @@ export async function POST(request: NextRequest) {
           if (precios.length > 0) {
             const precioMedio = precios.reduce((sum, p) => sum + p, 0) / precios.length
             
-            // Precio competitivo: 5% menos que el precio medio
-            const precioCompetitivo = precioMedio * 0.95
+            // Precio competitivo: 2% menos que el precio medio
+            const precioCompetitivo = precioMedio * 0.98
             
             // Log de la búsqueda exitosa
             console.log(`✅ [${vehiculo.modelo}] Encontrados ${precios.length} competidores (${tipoCoincidencia})`)

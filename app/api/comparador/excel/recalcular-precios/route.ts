@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     // Obtener todos los vehículos del Excel
     const { data: vehiculos, error: vehiculosError } = await supabase
       .from('vehiculos_excel_comparador')
-      .select('id, modelo, serie, marca, fecha_matriculacion')
+      .select('id, modelo, serie, marca, fecha_matriculacion, km')
     
     if (vehiculosError) {
       return NextResponse.json({ error: 'Error cargando vehículos', details: vehiculosError.message }, { status: 500 })
@@ -45,13 +45,28 @@ export async function POST(request: NextRequest) {
         
         // ESTRATEGIA 1: Búsqueda por modelo completo
         if (vehiculo.modelo) {
-          const { data } = await supabase
+          let query = supabase
             .from('comparador_scraper')
             .select('precio, km, año, modelo')
             .in('estado_anuncio', ['activo', 'nuevo', 'precio_bajado'])
             .ilike('modelo', `%${vehiculo.modelo}%`)
-            .gte('año', vehiculo.fecha_matriculacion ? (new Date(vehiculo.fecha_matriculacion).getFullYear() - 1).toString() : '2015')
-            .lte('año', vehiculo.fecha_matriculacion ? (new Date(vehiculo.fecha_matriculacion).getFullYear() + 1).toString() : '2025')
+          
+          // Filtro de año ±1
+          if (vehiculo.fecha_matriculacion) {
+            const añoVehiculo = new Date(vehiculo.fecha_matriculacion).getFullYear()
+            query = query.gte('año', (añoVehiculo - 1).toString())
+            query = query.lte('año', (añoVehiculo + 1).toString())
+          }
+          
+          // Filtro de KM ±30.000 km
+          if (vehiculo.km) {
+            const kmMin = Math.max(0, vehiculo.km - 30000)
+            const kmMax = vehiculo.km + 30000
+            query = query.gte('km', kmMin.toString())
+            query = query.lte('km', kmMax.toString())
+          }
+          
+          const { data } = await query
           
           if (data && data.length >= 3) {
             competidores = data
@@ -59,28 +74,40 @@ export async function POST(request: NextRequest) {
           }
         }
         
-        // ESTRATEGIA 2: Búsqueda por partes del modelo (116d, 320i, etc.)
+        // ESTRATEGIA 2: Búsqueda por versión específica (con letra: d, i, xd, etc.)
         if (competidores.length < 3 && vehiculo.modelo) {
-          const partesModelo = vehiculo.modelo.match(/\b\d{2,3}[a-z]+\b/gi)
+          // Capturar versión específica: "118d", "320i", "M135i", "40i", etc.
+          // Incluye modelos M (M135i, M240i, etc.)
+          const partesModelo = vehiculo.modelo.match(/\b[M]?\d{2,3}[a-z]+\b/gi)
           
           if (partesModelo && partesModelo.length > 0) {
-            const parteEspecifica = partesModelo[0]
+            const versionEspecifica = partesModelo[0] // "M135i" o "118d" completo
             
             let query = supabase
               .from('comparador_scraper')
               .select('precio, km, año, modelo')
               .in('estado_anuncio', ['activo', 'nuevo', 'precio_bajado'])
-              .ilike('modelo', `%${parteEspecifica}%`)
+              .ilike('modelo', `%${versionEspecifica}%`) // Busca "118d" completo
             
+            // Añadir serie para mayor precisión
             if (vehiculo.serie) {
               const serieLimpia = vehiculo.serie.replace(/serie/i, '').trim()
               query = query.ilike('modelo', `%${serieLimpia}%`)
             }
             
+            // Filtro de año ±1
             if (vehiculo.fecha_matriculacion) {
               const añoVehiculo = new Date(vehiculo.fecha_matriculacion).getFullYear()
               query = query.gte('año', (añoVehiculo - 1).toString())
               query = query.lte('año', (añoVehiculo + 1).toString())
+            }
+            
+            // Filtro de KM ±30.000 km
+            if (vehiculo.km) {
+              const kmMin = Math.max(0, vehiculo.km - 30000)
+              const kmMax = vehiculo.km + 30000
+              query = query.gte('km', kmMin.toString())
+              query = query.lte('km', kmMax.toString())
             }
             
             const { data } = await query
@@ -93,31 +120,7 @@ export async function POST(request: NextRequest) {
           }
         }
         
-        // ESTRATEGIA 3: Búsqueda por serie + marca
-        if (competidores.length < 3 && vehiculo.serie && vehiculo.marca) {
-          const serieLimpia = vehiculo.serie.replace(/serie/i, '').trim()
-          
-          let query = supabase
-            .from('comparador_scraper')
-            .select('precio, km, año, modelo')
-            .in('estado_anuncio', ['activo', 'nuevo', 'precio_bajado'])
-            .ilike('modelo', `%${vehiculo.marca}%`)
-            .ilike('modelo', `%${serieLimpia}%`)
-          
-          if (vehiculo.fecha_matriculacion) {
-            const añoVehiculo = new Date(vehiculo.fecha_matriculacion).getFullYear()
-            query = query.gte('año', (añoVehiculo - 2).toString())
-            query = query.lte('año', (añoVehiculo + 2).toString())
-          }
-          
-          const { data } = await query
-          
-          if (data && data.length > 0) {
-            competidores = data
-            tipoCoincidencia = 'fuzzy'
-            stats.fuzzy++
-          }
-        }
+        // ESTRATEGIA 3: DESACTIVADA (demasiado amplia, mezclaba versiones diferentes)
         
         // Procesar precios
         if (competidores.length > 0) {
@@ -132,7 +135,7 @@ export async function POST(request: NextRequest) {
           
           if (precios.length > 0) {
             const precioMedio = precios.reduce((sum, p) => sum + p, 0) / precios.length
-            const precioCompetitivo = precioMedio * 0.95
+            const precioCompetitivo = precioMedio * 0.98
             
             await supabase
               .from('vehiculos_excel_comparador')

@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { CompactSearchWithModal } from "@/components/dashboard/compact-search-with-modal"
 import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
-import { Upload, Search, Filter, RefreshCw, ArrowLeft, Trash2, FileDown, Settings, TrendingUp } from "lucide-react"
+import { Upload, Search, Filter, RefreshCw, ArrowLeft, Trash2, FileDown, Settings, TrendingUp, Info } from "lucide-react"
 import { BMWLogo, MINILogo } from "@/components/ui/brand-logos"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -52,6 +52,7 @@ export default function ExcelComparadorPage() {
   const [configOpen, setConfigOpen] = useState(false)
   const [competidoresModal, setCompetidoresModal] = useState<{open: boolean, vehiculo: any, competidores: any[]}>({open: false, vehiculo: null, competidores: []})
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [infoModalOpen, setInfoModalOpen] = useState(false)
   
   // Configuración de costes (aplicada)
   const [config, setConfig] = useState<Config>({
@@ -168,12 +169,22 @@ export default function ExcelComparadorPage() {
           .in('estado_anuncio', ['activo', 'nuevo', 'precio_bajado'])
           .ilike('modelo', `%${vehiculo.modelo}%`)
         
+        // Filtro de año ±1
         if (vehiculo.fecha_matriculacion) {
           const fechaVehiculo = new Date(vehiculo.fecha_matriculacion)
           const añoVehiculo = fechaVehiculo.getFullYear()
           query = query.gte('año', (añoVehiculo - 1).toString())
           query = query.lte('año', (añoVehiculo + 1).toString())
         }
+        
+        // Filtro de KM ±30.000 km
+        if (vehiculo.km) {
+          const kmMin = Math.max(0, vehiculo.km - 30000)
+          const kmMax = vehiculo.km + 30000
+          query = query.gte('km', kmMin.toString())
+          query = query.lte('km', kmMax.toString())
+        }
+        
         const { data, error } = await query
         if (!error && data && data.length > 0) {
           competidores = data
@@ -181,27 +192,42 @@ export default function ExcelComparadorPage() {
         }
       }
       
-      // ESTRATEGIA 2: Búsqueda por partes del modelo
+      // ESTRATEGIA 2: Búsqueda por partes del modelo (VERSIÓN ESPECÍFICA con letra)
       if (competidores.length === 0 && vehiculo.modelo) {
-        const partesModelo = vehiculo.modelo.match(/\b\d{2,3}[a-z]+\b/gi)
+        // Capturar versión específica: "118d", "320i", "M135i", "40i", etc.
+        // Incluye modelos M (M135i, M240i, etc.)
+        const partesModelo = vehiculo.modelo.match(/\b[M]?\d{2,3}[a-z]+\b/gi)
         if (partesModelo && partesModelo.length > 0) {
-          const parteEspecifica = partesModelo[0]
+          const versionEspecifica = partesModelo[0] // "M135i" o "118d" completo
+          
           let query = supabase
             .from('comparador_scraper')
             .select('*')
             .in('estado_anuncio', ['activo', 'nuevo', 'precio_bajado'])
-            .ilike('modelo', `%${parteEspecifica}%`)
+            .ilike('modelo', `%${versionEspecifica}%`) // Busca "118d" completo
           
+          // Añadir serie para mayor precisión
           if (vehiculo.serie) {
             const serieLimpia = vehiculo.serie.replace(/serie/i, '').trim()
             query = query.ilike('modelo', `%${serieLimpia}%`)
           }
+          
+          // Filtro de año ±1
           if (vehiculo.fecha_matriculacion) {
             const fechaVehiculo = new Date(vehiculo.fecha_matriculacion)
             const añoVehiculo = fechaVehiculo.getFullYear()
             query = query.gte('año', (añoVehiculo - 1).toString())
             query = query.lte('año', (añoVehiculo + 1).toString())
           }
+          
+          // Filtro de KM ±30.000 km
+          if (vehiculo.km) {
+            const kmMin = Math.max(0, vehiculo.km - 30000)
+            const kmMax = vehiculo.km + 30000
+            query = query.gte('km', kmMin.toString())
+            query = query.lte('km', kmMax.toString())
+          }
+          
           const { data, error } = await query
           if (!error && data && data.length > 0) {
             competidores = data
@@ -210,28 +236,7 @@ export default function ExcelComparadorPage() {
         }
       }
       
-      // ESTRATEGIA 3: Búsqueda por serie + marca
-      if (competidores.length === 0 && vehiculo.serie && vehiculo.marca) {
-        const serieLimpia = vehiculo.serie.replace(/serie/i, '').trim()
-        let query = supabase
-          .from('comparador_scraper')
-          .select('*')
-          .in('estado_anuncio', ['activo', 'nuevo', 'precio_bajado'])
-          .ilike('modelo', `%${vehiculo.marca}%`)
-          .ilike('modelo', `%${serieLimpia}%`)
-        
-        if (vehiculo.fecha_matriculacion) {
-          const fechaVehiculo = new Date(vehiculo.fecha_matriculacion)
-          const añoVehiculo = fechaVehiculo.getFullYear()
-          query = query.gte('año', (añoVehiculo - 1).toString())
-          query = query.lte('año', (añoVehiculo + 1).toString())
-        }
-        const { data, error } = await query
-        if (!error && data && data.length > 0) {
-          competidores = data
-          estrategia = 'fuzzy'
-        }
-      }
+      // ESTRATEGIA 3: DESACTIVADA (demasiado amplia, mezclaba versiones diferentes)
       
       // Procesar competidores
       const competidoresProcesados = competidores.map((comp: any) => {
@@ -938,6 +943,15 @@ export default function ExcelComparadorPage() {
                 Vehículos de Excel - Análisis de Rentabilidad
                 <Badge variant="outline" className="ml-2">{filteredVehicles.length} de {vehiculos.length}</Badge>
               </CardTitle>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setInfoModalOpen(true)}
+                className="h-8 w-8 p-0"
+                title="Información sobre el análisis"
+              >
+                <Info className="w-4 h-4" />
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
@@ -1319,6 +1333,253 @@ export default function ExcelComparadorPage() {
           config={config}
         />
       )}
+
+      {/* Modal de Información del Análisis */}
+      <Dialog open={infoModalOpen} onOpenChange={setInfoModalOpen}>
+        <DialogContent className="max-w-[1100px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <Info className="w-6 h-6 text-primary" />
+              Cómo Funciona el Análisis de Rentabilidad
+            </DialogTitle>
+            <DialogDescription>
+              Explicación detallada del sistema de comparación, búsqueda de competidores y recomendación de precios
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-2 gap-6 py-4">
+            {/* COLUMNA IZQUIERDA: Datos de la Red */}
+            <div className="space-y-6">
+            {/* 1. Búsqueda de Competidores */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Search className="w-5 h-5 text-blue-500" />
+                1. Búsqueda de Competidores en la Red
+              </h3>
+              <div className="pl-7 space-y-3 text-sm">
+                <p className="text-muted-foreground">
+                  Para cada vehículo del Excel, buscamos competidores similares en <strong>BMW Premium Selection</strong> y <strong>MINI Next</strong> usando dos estrategias:
+                </p>
+                
+                <div className="bg-blue-500/10 p-4 rounded-lg border border-blue-500/20">
+                  <p className="font-semibold mb-2 text-blue-700 dark:text-blue-400">📌 Estrategia 1: Búsqueda Exacta</p>
+                  <ul className="space-y-1 text-muted-foreground ml-4">
+                    <li>• Busca por el <strong>modelo completo</strong> del Excel (ej: "Serie 1 118d")</li>
+                    <li>• Filtra por <strong>año ±1</strong> (si es 2023, busca 2022-2024)</li>
+                    <li>• Filtra por <strong>KM ±30.000</strong> (si es 50.000 km, busca 20.000-80.000 km)</li>
+                    <li>• Solo anuncios <strong>activos</strong> (no vendidos ni reservados)</li>
+                  </ul>
+                </div>
+
+                <div className="bg-amber-500/10 p-4 rounded-lg border border-amber-500/20">
+                  <p className="font-semibold mb-2 text-amber-700 dark:text-amber-400">📌 Estrategia 2: Búsqueda por Versión Específica</p>
+                  <p className="text-muted-foreground mb-2">Si no encuentra resultados con la estrategia 1, busca por la <strong>versión específica</strong>:</p>
+                  <ul className="space-y-1 text-muted-foreground ml-4">
+                    <li>• Extrae la versión del modelo: <strong>118d</strong>, <strong>320i</strong>, <strong>M135i</strong>, etc.</li>
+                    <li>• <span className="text-amber-600 font-medium">IMPORTANTE:</span> Busca la versión <strong>completa con la letra</strong> (d, i, xd, etc.)</li>
+                    <li>• Ejemplo: "118d" <strong>NO</strong> trae "118i" ni "120d" (solo 118d exacto)</li>
+                    <li>• Añade la <strong>serie</strong> para mayor precisión (ej: "Serie 1" + "118d")</li>
+                    <li>• Aplica los mismos filtros: <strong>año ±1</strong> y <strong>KM ±30.000</strong></li>
+                  </ul>
+                </div>
+
+                <div className="bg-muted p-3 rounded border text-xs text-muted-foreground">
+                  <strong>💡 Nota sobre modelos M:</strong> Los modelos M (M135i, M240i, M3, etc.) se buscan con la "M" incluida, diferenciándolos de versiones normales.
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Cálculo de Precios */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-green-500" />
+                2. Cálculo de Precio Competitivo
+              </h3>
+              <div className="pl-7 space-y-3 text-sm">
+                <p className="text-muted-foreground">
+                  Una vez encontrados los competidores similares, calculamos el <strong>precio competitivo</strong>:
+                </p>
+                
+                <div className="bg-green-500/10 p-4 rounded-lg border border-green-500/20 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs bg-green-600/20 px-2 py-1 rounded">1</span>
+                    <p className="text-muted-foreground"><strong>Precio Medio Red</strong> = Promedio de todos los precios encontrados</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs bg-green-600/20 px-2 py-1 rounded">2</span>
+                    <p className="text-muted-foreground"><strong>Precio Competitivo</strong> = Precio Medio × 0.98 (2% más barato)</p>
+                  </div>
+                </div>
+
+                <p className="text-muted-foreground italic">
+                  El precio competitivo es <strong>2% más bajo</strong> que la media de la red, garantizando que nuestro precio sea atractivo sin sacrificar margen.
+                </p>
+              </div>
+            </div>
+            </div>
+
+            {/* COLUMNA DERECHA: Cálculos Nuestros */}
+            <div className="space-y-6">
+            {/* 3. Cálculo de Precio de Venta Objetivo */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Settings className="w-5 h-5 text-purple-500" />
+                3. Cálculo de Precio de Venta Objetivo
+              </h3>
+              <div className="pl-7 space-y-3 text-sm">
+                <p className="text-muted-foreground">
+                  Calculamos cuánto nos costaría <strong>vender el vehículo</strong> teniendo en cuenta todos los gastos:
+                </p>
+                
+                <div className="bg-purple-500/10 p-4 rounded-lg border border-purple-500/20">
+                  <p className="font-semibold mb-3 text-purple-700 dark:text-purple-400">Fórmula de Precio de Venta:</p>
+                  <div className="space-y-1.5 font-mono text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">+</span>
+                      <span>Precio Salida (del Excel)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">+</span>
+                      <span>Daños (si tiene)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">+</span>
+                      <span>Transporte (configurable)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">+</span>
+                      <span>Estructura (configurable)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">+</span>
+                      <span className="text-green-600 font-semibold">Garantía (automática)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">×</span>
+                      <span>(1 + Margen % / 100)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">×</span>
+                      <span>IVA (si aplica: 1.21, si no: 1.00)</span>
+                    </div>
+                    <div className="border-t border-purple-500/30 mt-2 pt-2 flex items-center gap-2">
+                      <span className="font-bold text-purple-700 dark:text-purple-400">=</span>
+                      <span className="font-bold text-purple-700 dark:text-purple-400">Precio Venta Objetivo</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-green-500/10 p-3 rounded border border-green-500/20">
+                  <p className="font-semibold mb-2 text-green-700 dark:text-green-400 flex items-center gap-1.5">
+                    <span>✓</span> Garantía Automática
+                  </p>
+                  <p className="text-xs text-muted-foreground mb-2">Se calcula automáticamente según:</p>
+                  <ul className="space-y-1 text-xs text-muted-foreground ml-4">
+                    <li>• Garantía fábrica: 36 meses desde 1ª matriculación</li>
+                    <li>• Garantía fábrica con margen: -6 meses de seguridad</li>
+                    <li>• Garantía nuestra: HOY + 24 meses</li>
+                    <li>• Si nuestra &gt; fábrica → Contratar diferencia</li>
+                    <li>• Tarifas: 1-12m=600€ | 13-18m=900€ | 19-24m=1200€</li>
+                    <li>• Modelos Premium ≥30 (30d, 40i, 50i): +10%</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* 4. Determinación de Rentabilidad */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <span className="text-2xl">💰</span>
+                4. Determinación de Rentabilidad
+              </h3>
+              <div className="pl-7 space-y-3 text-sm">
+                <p className="text-muted-foreground">
+                  Comparamos el <strong>Precio Competitivo</strong> (de la red) con nuestro <strong>Precio de Venta Objetivo</strong>:
+                </p>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3 p-3 bg-green-500/10 rounded border-2 border-green-500">
+                    <span className="text-2xl">✓</span>
+                    <div>
+                      <p className="font-semibold text-green-700 dark:text-green-400">RENTABLE</p>
+                      <p className="text-xs text-muted-foreground">Precio Competitivo &gt; Precio Venta Objetivo</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 p-3 bg-red-500/10 rounded border-2 border-red-500">
+                    <span className="text-2xl">✗</span>
+                    <div>
+                      <p className="font-semibold text-red-700 dark:text-red-400">NO RENTABLE</p>
+                      <p className="text-xs text-muted-foreground">Precio Competitivo ≤ Precio Venta Objetivo</p>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-muted-foreground font-semibold mt-4">
+                  Margen = Precio Competitivo - Precio Venta Objetivo
+                </p>
+                <p className="text-xs text-muted-foreground italic">
+                  El margen te dice cuánto ganarías vendiendo al precio competitivo de la red.
+                </p>
+              </div>
+            </div>
+
+            {/* 5. Puja Máxima */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <span className="text-2xl">🎯</span>
+                5. Cálculo de Puja Máxima
+              </h3>
+              <div className="pl-7 space-y-3 text-sm">
+                <p className="text-muted-foreground">
+                  La <strong>Puja Máxima</strong> es el precio máximo que puedes ofertar en subasta (sin IVA) para vender al precio competitivo:
+                </p>
+                
+                <div className="bg-purple-500/10 p-4 rounded-lg border border-purple-500/20">
+                  <p className="font-semibold mb-3 text-purple-700 dark:text-purple-400">Cálculo Inverso:</p>
+                  <div className="space-y-1.5 font-mono text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold">1.</span>
+                      <span>Partir del <strong>Precio Competitivo</strong></span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">-</span>
+                      <span>Transporte, Estructura, Garantía</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">÷</span>
+                      <span>(1 + Margen %)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">-</span>
+                      <span>Daños</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">÷</span>
+                      <span>IVA (si aplica: 1.21, si no: 1.00)</span>
+                    </div>
+                    <div className="border-t border-purple-500/30 mt-2 pt-2 flex items-center gap-2">
+                      <span className="font-bold text-purple-700 dark:text-purple-400">=</span>
+                      <span className="font-bold text-purple-700 dark:text-purple-400">Puja Máxima (sin IVA)</span>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-xs text-muted-foreground italic bg-muted p-2 rounded">
+                  💡 Si pujas por encima de este precio, no podrás vender de forma competitiva con margen suficiente.
+                </p>
+              </div>
+            </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-4 border-t">
+            <Button onClick={() => setInfoModalOpen(false)}>
+              Cerrar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
