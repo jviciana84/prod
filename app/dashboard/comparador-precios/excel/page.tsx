@@ -53,6 +53,7 @@ export default function ExcelComparadorPage() {
   const [competidoresModal, setCompetidoresModal] = useState<{open: boolean, vehiculo: any, competidores: any[]}>({open: false, vehiculo: null, competidores: []})
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [infoModalOpen, setInfoModalOpen] = useState(false)
+  const [opcionesModal, setOpcionesModal] = useState<{open: boolean, vehiculo: any}>({open: false, vehiculo: null})
   
   // Configuración de costes (aplicada)
   const [config, setConfig] = useState<Config>({
@@ -625,14 +626,6 @@ export default function ExcelComparadorPage() {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 mt-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push('/dashboard/comparador-precios')}
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Volver
-            </Button>
             <Breadcrumbs />
           </div>
           <CompactSearchWithModal className="mt-4" />
@@ -643,6 +636,14 @@ export default function ExcelComparadorPage() {
             Excel - Análisis de Rentabilidad
           </h1>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push('/dashboard/comparador-precios')}
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Volver
+            </Button>
             {vehiculos.length > 0 && (
               <Button 
                 size="sm" 
@@ -875,7 +876,7 @@ export default function ExcelComparadorPage() {
               })
               .filter(Boolean)
               .sort((a: any, b: any) => b.porcentajeMargen - a.porcentajeMargen)
-              .slice(0, 12)
+              .slice(0, 11)
               .map((v: any) => {
                 // Borde verde elegante según rentabilidad
                 const greenIntensity = Math.min(1, (v.porcentajeMargen / 15))
@@ -908,6 +909,17 @@ export default function ExcelComparadorPage() {
                   </div>
                 )
               })}
+            
+            {/* Botón Ver Más (última posición) */}
+            <div 
+              className="text-[9px] p-1.5 rounded border-2 border-green-500 bg-green-500/10 hover:bg-green-500/20 transition-colors cursor-pointer flex flex-col items-center justify-center gap-1"
+              onClick={() => router.push('/dashboard/comparador-precios/excel/oportunidades')}
+              title="Ver todas las oportunidades"
+            >
+              <TrendingUp className="w-4 h-4 text-green-600" />
+              <span className="text-[10px] font-bold text-green-700 dark:text-green-500">Ver todas</span>
+            </div>
+
             {vehiculos.filter((v: any) => {
               const precioVentaObjetivo = calcularPrecioVentaObjetivo(v)
               const precioCompetitivo = v.precio_competitivo
@@ -1018,7 +1030,12 @@ export default function ExcelComparadorPage() {
                         <td className="p-1.5 text-right text-xs">
                           {vehiculo.km ? vehiculo.km.toLocaleString() : '-'}
                         </td>
-                        <td className="p-1.5 text-right text-xs font-medium" style={{ color: textColor }}>
+                        <td 
+                          className="p-1.5 text-right text-xs font-medium cursor-pointer hover:bg-muted/50 transition-colors" 
+                          style={{ color: textColor }}
+                          onClick={() => setOpcionesModal({open: true, vehiculo})}
+                          title="Click para ver opciones detalladas"
+                        >
                           {equipPorcentaje > 0 ? `${equipPorcentaje.toFixed(0)}%` : '0%'}
                         </td>
                         <td className="p-1.5 text-right text-xs">
@@ -1513,6 +1530,14 @@ export default function ExcelComparadorPage() {
                       <p className="text-xs text-muted-foreground">Precio Competitivo ≤ Precio Venta Objetivo</p>
                     </div>
                   </div>
+
+                  <div className="flex items-center gap-3 p-3 bg-amber-500/10 rounded border-2 border-amber-500">
+                    <span className="text-2xl">⚠️</span>
+                    <div>
+                      <p className="font-semibold text-amber-700 dark:text-amber-400">NO INTERESANTE</p>
+                      <p className="text-xs text-muted-foreground">Vehículo con más de 115.000 km</p>
+                    </div>
+                  </div>
                 </div>
 
                 <p className="text-muted-foreground font-semibold mt-4">
@@ -1521,6 +1546,10 @@ export default function ExcelComparadorPage() {
                 <p className="text-xs text-muted-foreground italic">
                   El margen te dice cuánto ganarías vendiendo al precio competitivo de la red.
                 </p>
+                
+                <div className="bg-muted p-3 rounded border text-xs text-muted-foreground mt-3">
+                  <strong>💡 Nota sobre kilometraje:</strong> Los vehículos con más de 115.000 km se marcan automáticamente como "No interesante" y se excluyen de las oportunidades de compra, independientemente de su rentabilidad.
+                </div>
               </div>
             </div>
 
@@ -1575,6 +1604,56 @@ export default function ExcelComparadorPage() {
 
           <div className="flex justify-end pt-4 border-t">
             <Button onClick={() => setInfoModalOpen(false)}>
+              Cerrar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Opciones */}
+      <Dialog open={opcionesModal.open} onOpenChange={(open) => setOpcionesModal({open, vehiculo: null})}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings className="w-5 h-5 text-primary" />
+              Opciones y Equipamiento
+            </DialogTitle>
+            <DialogDescription>
+              {opcionesModal.vehiculo?.modelo} - {opcionesModal.vehiculo?.matricula}
+              {opcionesModal.vehiculo?.equip_porcentaje > 0 && (
+                <span className="ml-2 font-semibold" style={{ 
+                  color: `hsl(142, 70%, ${60 - (Math.min(100, opcionesModal.vehiculo.equip_porcentaje) * 0.3)}%)` 
+                }}>
+                  ({opcionesModal.vehiculo.equip_porcentaje.toFixed(0)}% equipado)
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4">
+            {opcionesModal.vehiculo?.opciones ? (
+              <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                {opcionesModal.vehiculo.opciones
+                  .split(/[,;\n]/)
+                  .map((opcion: string) => opcion.trim())
+                  .filter((opcion: string) => opcion.length > 0)
+                  .map((opcion: string, index: number) => (
+                    <div key={index} className="flex items-start gap-2 text-sm">
+                      <span className="text-green-600 mt-0.5">✓</span>
+                      <span className="text-muted-foreground">{opcion}</span>
+                    </div>
+                  ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Settings className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                <p>No hay opciones registradas para este vehículo</p>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end pt-4 border-t">
+            <Button variant="outline" onClick={() => setOpcionesModal({open: false, vehiculo: null})}>
               Cerrar
             </Button>
           </div>

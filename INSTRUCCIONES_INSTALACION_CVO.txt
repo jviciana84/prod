@@ -108,3 +108,4 @@ a Supabase para actualizar la tabla sale_table.
 
 
 
+
