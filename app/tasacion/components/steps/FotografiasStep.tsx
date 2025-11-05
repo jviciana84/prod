@@ -250,8 +250,9 @@ export default function FotografiasStep({ onComplete, onBack }: FotografiasStepP
         setShowCameraView(true)
         
         // Solicitar orientación según tipo de foto
+        // SOLO fotos de vehículo en horizontal, resto en vertical
         const tipoFoto = (window as any).__tipoFotoActual
-        const orientacion = tipoFoto === 'documento' ? 'portrait' : 'landscape'
+        const orientacion = tipoFoto === 'vehiculo' ? 'landscape' : 'portrait'
         
         if (screen.orientation && 'lock' in screen.orientation) {
           (screen.orientation as any).lock(orientacion).catch(() => {
