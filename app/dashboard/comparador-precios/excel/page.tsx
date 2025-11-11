@@ -38,48 +38,101 @@ interface Config {
 const generarVariantesModelo = (modelo?: string | null, marca?: string | null): string[] => {
   if (!modelo) return []
 
-  const variantes = new Set<string>()
   const limpiarEspacios = (texto: string) => texto.replace(/\s+/g, " ").trim()
-  const base = limpiarEspacios(modelo)
-  if (!base) return []
 
-  const marcaUpper = marca?.trim().toUpperCase()
+  const aplicarNormalizaciones = (texto: string) => {
+    let resultado = limpiarEspacios(texto)
+
+    // Normalizar expresiones de tracción y motorización
+    resultado = resultado.replace(/\b([xse])\s*drive\s*([0-9]+[a-z]*)/gi, (_, letra, resto) => {
+      const prefijo =
+        letra.toLowerCase() === "s" ? "sDrive" :
+        letra.toLowerCase() === "e" ? "eDrive" :
+        "xDrive"
+      return `${prefijo}${resto}`
+    })
+
+    // Unificar notación M Performance (M 60 -> M60)
+    resultado = resultado.replace(/\bM\s*([0-9]+)\b/gi, "M$1")
+
+    // Quitar sufijos comerciales comunes
+    resultado = resultado.replace(/\b(xLine|M Sport|Corporate|Touring|Tour\.?|Gran Coup[ée]|Gran Coupe)\b/gi, "")
+
+    // Normalizar separadores y mayúsculas repetidas
+    resultado = resultado.replace(/[-_]/g, " ")
+
+    return limpiarEspacios(resultado)
+  }
+
+  const variantes = new Set<string>()
   const agregar = (valor?: string) => {
     if (valor) variantes.add(limpiarEspacios(valor))
   }
 
+  const marcaUpper = marca?.trim().toUpperCase() || ""
+
+  // Base normalizada
+  const base = aplicarNormalizaciones(modelo)
+  if (!base) return []
   agregar(base)
 
-  // Separar marca si ya está incluida
-  const sinMarcaBMW = base.replace(/^BMW\s+/i, "").trim()
-  if (sinMarcaBMW !== base) agregar(sinMarcaBMW)
+  // Quitar marca si viene duplicada
+  const quitarMarca = (valor: string, marcaTexto: string) =>
+    limpiarEspacios(valor.replace(new RegExp(`^${marcaTexto}\\s+`, "i"), ""))
 
-  const sinMarcaMINI = base.replace(/^MINI\s+/i, "").trim()
-  if (sinMarcaMINI !== base) agregar(sinMarcaMINI)
+  if (/^BMW\s+/i.test(base)) agregar(quitarMarca(base, "BMW"))
+  if (/^MINI\s+/i.test(base)) agregar(quitarMarca(base, "MINI"))
 
-  // Quitar "Serie X" del inicio (con o sin marca delante)
-  const serieInicio = base.replace(/^(BMW|MINI)\s+Serie\s*\d+\s*/i, "").trim()
-  if (serieInicio && serieInicio !== base) agregar(serieInicio)
+  // Quitar "Serie X" con y sin marca delante
+  const sinSerieConMarca = base.replace(/^(BMW|MINI)\s+Serie\s*\d+\s*/i, "").trim()
+  if (sinSerieConMarca && sinSerieConMarca !== base) agregar(sinSerieConMarca)
 
-  const serieSinMarca = base.replace(/^Serie\s*\d+\s*/i, "").trim()
-  if (serieSinMarca && serieSinMarca !== base) agregar(serieSinMarca)
+  const sinSerie = base.replace(/^Serie\s*\d+\s*/i, "").trim()
+  if (sinSerie && sinSerie !== base) agregar(sinSerie)
 
-  // Añadir combinaciones con la marca detectada
-  const posiblesMarcas = new Set<string>()
-  if (marcaUpper) {
-    posiblesMarcas.add(marcaUpper)
-  }
-  if (/^BMW/i.test(base)) posiblesMarcas.add("BMW")
-  if (/^MINI/i.test(base)) posiblesMarcas.add("MINI")
+  // Tokens y sus combinaciones
+  const tokensOriginales = limpiarEspacios(
+    base
+      .replace(/^(BMW|MINI)\s+/i, "")
+      .replace(/\bSerie\s*\d+\b/gi, "")
+  )
+    .split(" ")
+    .filter(Boolean)
 
-  for (const variante of Array.from(variantes)) {
-    for (const marcaNormalizada of posiblesMarcas) {
-      if (!variante.toUpperCase().startsWith(marcaNormalizada)) {
-        agregar(`${marcaNormalizada} ${variante}`)
-      }
+  const tokensNormalizados = tokensOriginales.map((token) =>
+    token.toUpperCase() === "MINI" || token.toUpperCase() === "BMW"
+      ? token
+      : token
+  )
+
+  const tokensSinDuplicados: string[] = []
+  tokensNormalizados.forEach((token) => {
+    const normal = token.trim()
+    if (!normal) return
+    if (tokensSinDuplicados.length === 0 || tokensSinDuplicados[tokensSinDuplicados.length - 1].toLowerCase() !== normal.toLowerCase()) {
+      tokensSinDuplicados.push(normal)
+    }
+  })
+
+  for (let i = 0; i < tokensSinDuplicados.length; i++) {
+    const slice = tokensSinDuplicados.slice(i).join(" ")
+    agregar(slice)
+    if (marcaUpper && !slice.toUpperCase().startsWith(marcaUpper)) {
+      agregar(`${marcaUpper} ${slice}`)
     }
   }
 
+  // Tomar últimas 2-3 palabras como fallback (i7 xDrive60, Cooper SE, etc.)
+  const ultima2 = tokensSinDuplicados.slice(-2).join(" ")
+  const ultima3 = tokensSinDuplicados.slice(-3).join(" ")
+  agregar(ultima2)
+  agregar(ultima3)
+  if (marcaUpper) {
+    agregar(`${marcaUpper} ${ultima2}`)
+    agregar(`${marcaUpper} ${ultima3}`)
+  }
+
+  // Limpiar variantes vacías y devolver únicas
   return Array.from(variantes).filter(Boolean)
 }
 
