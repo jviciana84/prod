@@ -35,6 +35,54 @@ interface Config {
   estructura: number
 }
 
+const generarVariantesModelo = (modelo?: string | null, marca?: string | null): string[] => {
+  if (!modelo) return []
+
+  const variantes = new Set<string>()
+  const limpiarEspacios = (texto: string) => texto.replace(/\s+/g, " ").trim()
+  const base = limpiarEspacios(modelo)
+  if (!base) return []
+
+  const marcaUpper = marca?.trim().toUpperCase()
+  const agregar = (valor?: string) => {
+    if (valor) variantes.add(limpiarEspacios(valor))
+  }
+
+  agregar(base)
+
+  // Separar marca si ya está incluida
+  const sinMarcaBMW = base.replace(/^BMW\s+/i, "").trim()
+  if (sinMarcaBMW !== base) agregar(sinMarcaBMW)
+
+  const sinMarcaMINI = base.replace(/^MINI\s+/i, "").trim()
+  if (sinMarcaMINI !== base) agregar(sinMarcaMINI)
+
+  // Quitar "Serie X" del inicio (con o sin marca delante)
+  const serieInicio = base.replace(/^(BMW|MINI)\s+Serie\s*\d+\s*/i, "").trim()
+  if (serieInicio && serieInicio !== base) agregar(serieInicio)
+
+  const serieSinMarca = base.replace(/^Serie\s*\d+\s*/i, "").trim()
+  if (serieSinMarca && serieSinMarca !== base) agregar(serieSinMarca)
+
+  // Añadir combinaciones con la marca detectada
+  const posiblesMarcas = new Set<string>()
+  if (marcaUpper) {
+    posiblesMarcas.add(marcaUpper)
+  }
+  if (/^BMW/i.test(base)) posiblesMarcas.add("BMW")
+  if (/^MINI/i.test(base)) posiblesMarcas.add("MINI")
+
+  for (const variante of Array.from(variantes)) {
+    for (const marcaNormalizada of posiblesMarcas) {
+      if (!variante.toUpperCase().startsWith(marcaNormalizada)) {
+        agregar(`${marcaNormalizada} ${variante}`)
+      }
+    }
+  }
+
+  return Array.from(variantes).filter(Boolean)
+}
+
 export default function ExcelComparadorPage() {
   const router = useRouter()
   const supabase = createClientComponentClient()
@@ -42,6 +90,7 @@ export default function ExcelComparadorPage() {
   
   const [vehiculos, setVehiculos] = useState<any[]>([])
   const [vehiculosStock, setVehiculosStock] = useState<any[]>([])
+  const [sinDatosDetalles, setSinDatosDetalles] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [uploadingExcel, setUploadingExcel] = useState(false)
   const [recalculando, setRecalculando] = useState(false)
@@ -162,82 +211,62 @@ export default function ExcelComparadorPage() {
       let competidores: any[] = []
       let estrategia = ''
       
-      // ESTRATEGIA 1: Búsqueda por modelo completo
-      if (vehiculo.modelo) {
+      const variantesModelo = generarVariantesModelo(vehiculo.modelo, vehiculo.marca)
+
+      const ejecutarBusqueda = async (termino: string) => {
         let query = supabase
           .from('comparador_scraper')
           .select('*')
           .in('estado_anuncio', ['activo', 'nuevo', 'precio_bajado'])
-          .ilike('modelo', `%${vehiculo.modelo}%`)
-        
-        // Filtro de año ±1
+          .ilike('modelo', `%${termino}%`)
+
         if (vehiculo.fecha_matriculacion) {
           const fechaVehiculo = new Date(vehiculo.fecha_matriculacion)
           const añoVehiculo = fechaVehiculo.getFullYear()
           query = query.gte('año', (añoVehiculo - 1).toString())
           query = query.lte('año', (añoVehiculo + 1).toString())
         }
-        
-        // Filtro de KM ±30.000 km
+
         if (vehiculo.km) {
           const kmMin = Math.max(0, vehiculo.km - 30000)
           const kmMax = vehiculo.km + 30000
           query = query.gte('km', kmMin.toString())
           query = query.lte('km', kmMax.toString())
         }
-        
+
         const { data, error } = await query
-        if (!error && data && data.length > 0) {
-          competidores = data
-          estrategia = 'exacta'
+        if (error) {
+          console.warn('⚠️ Error buscando competidores para', termino, error.message)
+          return []
+        }
+        return data || []
+      }
+
+      // ESTRATEGIA 1: Variantes normalizadas del modelo
+      for (const variante of variantesModelo) {
+        const resultados = await ejecutarBusqueda(variante)
+        if (resultados.length > 0) {
+          competidores = resultados
+          estrategia = `exacta-${variante}`
+          break
         }
       }
-      
-      // ESTRATEGIA 2: Búsqueda por partes del modelo (VERSIÓN ESPECÍFICA con letra)
-      if (competidores.length === 0 && vehiculo.modelo) {
-        // Capturar versión específica: "118d", "320i", "M135i", "40i", etc.
-        // Incluye modelos M (M135i, M240i, etc.)
-        const partesModelo = vehiculo.modelo.match(/\b[M]?\d{2,3}[a-z]+\b/gi)
-        if (partesModelo && partesModelo.length > 0) {
-          const versionEspecifica = partesModelo[0] // "M135i" o "118d" completo
-          
-          let query = supabase
-            .from('comparador_scraper')
-            .select('*')
-            .in('estado_anuncio', ['activo', 'nuevo', 'precio_bajado'])
-            .ilike('modelo', `%${versionEspecifica}%`) // Busca "118d" completo
-          
-          // Añadir serie para mayor precisión
-          if (vehiculo.serie) {
-            const serieLimpia = vehiculo.serie.replace(/serie/i, '').trim()
-            query = query.ilike('modelo', `%${serieLimpia}%`)
+
+      // ESTRATEGIA 2: Buscar por versión específica si no hubo coincidencias
+      if (competidores.length === 0) {
+        for (const variante of variantesModelo) {
+          const versiones = variante.match(/\b[M]?\d{2,3}[a-z]+\b/gi) || []
+          for (const version of versiones) {
+            const resultados = await ejecutarBusqueda(version)
+            if (resultados.length > 0) {
+              competidores = resultados
+              estrategia = `version-${version}`
+              break
+            }
           }
-          
-          // Filtro de año ±1
-          if (vehiculo.fecha_matriculacion) {
-            const fechaVehiculo = new Date(vehiculo.fecha_matriculacion)
-            const añoVehiculo = fechaVehiculo.getFullYear()
-            query = query.gte('año', (añoVehiculo - 1).toString())
-            query = query.lte('año', (añoVehiculo + 1).toString())
-          }
-          
-          // Filtro de KM ±30.000 km
-          if (vehiculo.km) {
-            const kmMin = Math.max(0, vehiculo.km - 30000)
-            const kmMax = vehiculo.km + 30000
-            query = query.gte('km', kmMin.toString())
-            query = query.lte('km', kmMax.toString())
-          }
-          
-          const { data, error } = await query
-          if (!error && data && data.length > 0) {
-            competidores = data
-            estrategia = 'parcial'
-          }
+          if (competidores.length > 0) break
         }
       }
-      
-      // ESTRATEGIA 3: DESACTIVADA (demasiado amplia, mezclaba versiones diferentes)
       
       // Procesar competidores
       const competidoresProcesados = competidores.map((comp: any) => {
@@ -642,6 +671,114 @@ export default function ExcelComparadorPage() {
   const modelosUnicos = useMemo(() => {
     return Array.from(new Set(vehiculos.map((v: any) => v.modelo).filter(Boolean))).sort()
   }, [vehiculos])
+
+  const obtenerDetalleSinDatos = useCallback(async (vehiculo: any) => {
+    if (!vehiculo?.modelo) {
+      return 'Modelo'
+    }
+
+    try {
+      const estadoFiltro = ['activo', 'nuevo', 'precio_bajado']
+      const variantes = generarVariantesModelo(vehiculo.modelo, vehiculo.marca)
+      if (variantes.length === 0) {
+        return 'Modelo'
+      }
+
+      const contar = async (termino: string, aplicarRangoAño = false, aplicarRangoKm = false) => {
+        let query = supabase
+          .from('comparador_scraper')
+          .select('id', { count: 'exact', head: true })
+          .in('estado_anuncio', estadoFiltro)
+          .ilike('modelo', `%${termino}%`)
+
+        if (aplicarRangoAño && vehiculo.fecha_matriculacion) {
+          const añoBase = new Date(vehiculo.fecha_matriculacion).getFullYear()
+          query = query
+            .gte('año', (añoBase - 1).toString())
+            .lte('año', (añoBase + 1).toString())
+        }
+
+        if (aplicarRangoKm) {
+          const kmNumerico = typeof vehiculo.km === 'number'
+            ? vehiculo.km
+            : typeof vehiculo.km === 'string'
+              ? parseInt(vehiculo.km.replace(/[.\s]/g, ''), 10)
+              : null
+
+          if (typeof kmNumerico === 'number' && !Number.isNaN(kmNumerico)) {
+            const kmMin = Math.max(0, kmNumerico - 30000)
+            const kmMax = kmNumerico + 30000
+            query = query
+              .gte('km', kmMin.toString())
+              .lte('km', kmMax.toString())
+          } else {
+            return 0
+          }
+        }
+
+        const { count } = await query
+        return count || 0
+      }
+
+      let coincidenciasModelo = 0
+      let varianteSeleccionada = ''
+      for (const variante of variantes) {
+        coincidenciasModelo = await contar(variante, false, false)
+        if (coincidenciasModelo > 0) {
+          varianteSeleccionada = variante
+          break
+        }
+      }
+
+      if (coincidenciasModelo === 0) {
+        return 'Modelo'
+      }
+
+      const coincidenciasModeloAño = await contar(varianteSeleccionada, true, false)
+      if (coincidenciasModeloAño === 0) {
+        return 'Fecha'
+      }
+
+      const coincidenciasCompleto = await contar(varianteSeleccionada, true, true)
+      if (coincidenciasCompleto === 0) {
+        return 'Km'
+      }
+
+      return 'Recalcular'
+    } catch (error: any) {
+      console.error('❌ Error analizando sin datos:', error)
+      return 'Error'
+    }
+  }, [supabase])
+
+  useEffect(() => {
+    const pendientes = vehiculos.filter(
+      (v: any) =>
+        (!v.precio_competitivo || Number.isNaN(v.precio_competitivo)) &&
+        v.id &&
+        !sinDatosDetalles[v.id]
+    )
+
+    if (pendientes.length === 0) return
+
+    let cancelado = false
+
+    ;(async () => {
+      for (const vehiculo of pendientes) {
+        const detalle = await obtenerDetalleSinDatos(vehiculo)
+        if (!cancelado) {
+          setSinDatosDetalles((prev) => ({
+            ...prev,
+            [vehiculo.id]: detalle,
+          }))
+        }
+      }
+    })()
+
+    return () => {
+      cancelado = true
+    }
+  }, [vehiculos, sinDatosDetalles, obtenerDetalleSinDatos])
 
   return (
     <>
@@ -1059,6 +1196,17 @@ export default function ExcelComparadorPage() {
                       ? `${clasesMargenBase} bg-green-500/10 border-green-500 text-green-700 dark:text-green-400`
                       : `${clasesMargenBase} bg-red-500/10 border-red-500 text-red-700 dark:text-red-400`
 
+                    const añoVehiculo = vehiculo.fecha_matriculacion ? new Date(vehiculo.fecha_matriculacion).getFullYear() : null
+                    const rangoAños = añoVehiculo ? `${añoVehiculo - 1} - ${añoVehiculo + 1}` : 'sin fecha'
+                    const kmValor = typeof vehiculo.km === 'number'
+                      ? vehiculo.km
+                      : typeof vehiculo.km === 'string'
+                        ? parseInt(vehiculo.km.replace(/[.\s]/g, ''), 10)
+                        : null
+                    const rangoKm = typeof kmValor === 'number' && !isNaN(kmValor)
+                      ? `${Math.max(0, kmValor - 30000).toLocaleString()} - ${(kmValor + 30000).toLocaleString()} km`
+                      : 'sin kilometraje'
+
                     return (
                       <tr key={vehiculo.id} className="border-b hover:bg-muted/50">
                         <td className="p-1.5 text-xs">{vehiculo.lote || '-'}</td>
@@ -1145,7 +1293,10 @@ export default function ExcelComparadorPage() {
                               )}
                             </div>
                           ) : (
-                            <span className="text-muted-foreground text-[10px]">-</span>
+                            <div className="flex flex-col items-end gap-[2px] leading-tight text-[10px] text-muted-foreground max-w-[180px] text-right">
+                              <span className="uppercase tracking-wide font-semibold text-amber-500">Sin datos</span>
+                              <span>{sinDatosDetalles[vehiculo.id] || 'Analizando motivos...'}</span>
+                            </div>
                           )}
                         </td>
                         <td className="p-1.5 text-center">

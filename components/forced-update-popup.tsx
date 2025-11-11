@@ -59,10 +59,18 @@ export function ForcedUpdatePopup() {
         .maybeSingle()
 
       if (userUpdateError) {
-        console.error("Error al verificar user_forced_updates:", userUpdateError)
-        // Continuar sin mostrar popup si hay error
-        setShowPopup(false)
-        return
+        const meaningfulError = ["message", "code", "details", "hint"].some(
+          (key) => {
+            const value = (userUpdateError as Record<string, any>)[key]
+            return value !== undefined && value !== null && String(value).trim() !== ""
+          }
+        )
+
+        if (meaningfulError) {
+          console.error("Error al verificar user_forced_updates:", userUpdateError)
+          setShowPopup(false)
+          return
+        }
       }
 
       if (userUpdate && userUpdate.id) {
