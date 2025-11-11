@@ -8,8 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { CompactSearchWithModal } from "@/components/dashboard/compact-search-with-modal"
 import { InformeComparador } from "@/components/dashboard/informe-comparador"
+import { PricingGuideModal } from "@/components/comparador/pricing-guide-modal"
 import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
-import { TrendingDown, TrendingUp, Minus, Target, Euro, AlertCircle, ExternalLink, Search, Filter, RefreshCw, BarChart3, Edit, Trash2, Link as LinkIcon, Settings, FileText, Printer, Upload, FileSpreadsheet } from "lucide-react"
+import { TrendingDown, TrendingUp, Minus, Target, Euro, AlertCircle, ExternalLink, Search, Filter, RefreshCw, BarChart3, Edit, Trash2, Link as LinkIcon, Settings, FileText, Printer, Upload, FileSpreadsheet, Info } from "lucide-react"
 import { BMWLogo, MINILogo } from "@/components/ui/brand-logos"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -206,6 +207,209 @@ function CompetitorDetailModal({ vehicle, open, onClose }: { vehicle: any, open:
     }
   }
 
+  const formatCurrency = (value?: number | null, fractionDigits = 0) => {
+    if (typeof value !== "number" || isNaN(value)) return "N/A"
+    return value.toLocaleString("es-ES", {
+      minimumFractionDigits: fractionDigits,
+      maximumFractionDigits: fractionDigits
+    })
+  }
+
+  const formatCurrencyWithSymbol = (value?: number | null, fractionDigits = 0) => {
+    const formatted = formatCurrency(value, fractionDigits)
+    return formatted === "N/A" ? formatted : `${formatted}€`
+  }
+
+  const formatKmValue = (value?: number | null) => {
+    if (typeof value !== "number" || isNaN(value)) return "N/A"
+    return `${Math.round(value).toLocaleString("es-ES")} km`
+  }
+
+  const gamaLabel = vehicle.gama ? vehicle.gama.toUpperCase() : "N/A"
+  const percentilesEquip = vehicle.percentilesEquipamiento || null
+  const percentilesCount = percentilesEquip?.count ?? 0
+  const percentilesFuenteTexto = percentilesCount > 0
+    ? `Calculado con ${percentilesCount} vehículos propios de gama ${gamaLabel}.`
+    : "Sin histórico suficiente; usando referencia estándar de la gama."
+
+  const metodoPrecioBase =
+    vehicle.metodoPrecioBase === "percentil25"
+      ? "Percentil 25 (más barato)"
+      : vehicle.metodoPrecioBase === "promedio"
+      ? "Promedio de comparables"
+      : "Sin comparables"
+
+  const metodoPrecioBaseDescripcion =
+    vehicle.metodoPrecioBase === "percentil25"
+      ? "Patito feo detectado (gama alta + básico): nos basamos en el 25% más barato para liderar precio."
+      : vehicle.metodoPrecioBase === "promedio"
+      ? "Se promedia el precio de los comparables filtrados por equipamiento similar (±10k€ precio nuevo)."
+      : "Sin comparables válidos: usamos tus datos como referencia."
+
+  const diferenciaKmNumero = typeof vehicle.diferenciaKm === "number" ? vehicle.diferenciaKm : null
+  const diferenciaKmTexto =
+    diferenciaKmNumero !== null
+      ? `${Math.abs(Math.round(diferenciaKmNumero)).toLocaleString("es-ES")} km ${diferenciaKmNumero >= 0 ? "más" : "menos"}`
+      : "Sin datos"
+
+  const valorKmAplicadoNumero = typeof vehicle.valorKmAplicado === "number" ? vehicle.valorKmAplicado : null
+  const ajusteKmAplicadoNumero = typeof vehicle.ajusteKmAplicado === "number" ? vehicle.ajusteKmAplicado : null
+  const ajusteAgresivoAplicadoNumero =
+    typeof vehicle.ajusteAgresivoAplicado === "number" ? vehicle.ajusteAgresivoAplicado : null
+  const ajusteKmTexto =
+    ajusteKmAplicadoNumero === null
+      ? "sin ajuste"
+      : ajusteKmAplicadoNumero > 0
+      ? `restamos ${formatCurrencyWithSymbol(ajusteKmAplicadoNumero, 0)}`
+      : ajusteKmAplicadoNumero < 0
+      ? `sumamos ${formatCurrencyWithSymbol(Math.abs(ajusteKmAplicadoNumero), 0)}`
+      : "no ajustamos"
+
+  const maxDescuentoZombieNumero =
+    typeof vehicle.maxDescuentoZombie === "number" ? vehicle.maxDescuentoZombie : null
+  const descuentoExtraZombieNumero =
+    typeof vehicle.descuentoExtraZombie === "number" ? vehicle.descuentoExtraZombie : null
+  const descuentoMinimoRequeridoNumero =
+    typeof vehicle.descuentoMinimoRequerido === "number" ? vehicle.descuentoMinimoRequerido : null
+  const precioMaximoPermitidoZombieNumero =
+    typeof vehicle.precioMaximoPermitidoZombie === "number" ? vehicle.precioMaximoPermitidoZombie : null
+
+  const precioRecomendadoBaseNumero =
+    typeof vehicle.precioRecomendadoBase === "number" ? vehicle.precioRecomendadoBase : null
+  const precioRecomendadoPostZombieNumero =
+    typeof vehicle.precioRecomendadoPostZombie === "number" ? vehicle.precioRecomendadoPostZombie : null
+  const precioRecomendadoPostUrgenciaNumero =
+    typeof vehicle.precioRecomendadoPostUrgencia === "number" ? vehicle.precioRecomendadoPostUrgencia : null
+
+  const precioPercentil25CompetenciaNumero =
+    typeof vehicle.precioPercentil25Competencia === "number" ? vehicle.precioPercentil25Competencia : null
+  const precioMinimoCompetenciaNumero =
+    typeof vehicle.precioMinimoCompetencia === "number" ? vehicle.precioMinimoCompetencia : null
+  const precioPromedioCompetenciaGeneralNumero =
+    typeof vehicle.precioPromedioCompetenciaGeneral === "number" ? vehicle.precioPromedioCompetenciaGeneral : null
+  const ventajaKmBrutaNumero = typeof vehicle.ventajaKmBruta === "number" ? vehicle.ventajaKmBruta : null
+  const ventajaKmSignificativaBool = Boolean(vehicle.ventajaKmSignificativa)
+  const ventajaKmUmbralNumero =
+    typeof vehicle.ventajaKmUmbral === "number" ? vehicle.ventajaKmUmbral : VENTAJA_KM_SIGNIFICATIVA
+  const bonusKmAplicadoNumero = typeof vehicle.bonusKmAplicado === "number" ? vehicle.bonusKmAplicado : 0
+  const ventajaAniosNumero = typeof vehicle.ventajaAnios === "number" ? vehicle.ventajaAnios : 0
+  const ventajaAniosSignificativaBool = Boolean(vehicle.ventajaAniosSignificativa)
+  const ventajaAniosUmbralNumero =
+    typeof vehicle.ventajaAniosUmbral === "number" ? vehicle.ventajaAniosUmbral : VENTAJA_ANIO_SIGNIFICATIVA
+  const bonusAniosAplicadoNumero =
+    typeof vehicle.bonusAniosAplicado === "number" ? vehicle.bonusAniosAplicado : 0
+  const valorAnioVentajaNumero =
+    typeof vehicle.valorAnioVentaja === "number" ? vehicle.valorAnioVentaja : 1000
+  const promedioAnioCompetenciaNumero =
+    typeof vehicle.promedioAnioCompetencia === "number" ? vehicle.promedioAnioCompetencia : null
+  const patitoFeoModo =
+    (vehicle.patitoFeoModo as 'bonus' | 'agresivo' | 'neutral' | undefined) ??
+    (vehicle.gama === "alta" && vehicle.equipamiento === "basico" ? "neutral" : "neutral")
+  const precioBaseMinimoPatitoFeoNumero =
+    typeof vehicle.precioBaseMinimoPatitoFeo === "number" ? vehicle.precioBaseMinimoPatitoFeo : null
+  const ventajaKmTextoDetalle =
+    ventajaKmBrutaNumero !== null && ventajaKmBrutaNumero > 0
+      ? `${Math.round(ventajaKmBrutaNumero).toLocaleString("es-ES")} km`
+      : "sin ventaja clara"
+  const bonusKmDisplay =
+    bonusKmAplicadoNumero > 0
+      ? {
+          text: `+${formatCurrencyWithSymbol(bonusKmAplicadoNumero, 0)}`,
+          className: "text-green-600 dark:text-green-400"
+        }
+      : ajusteKmAplicadoNumero !== null && ajusteKmAplicadoNumero > 0
+      ? {
+          text: `-${formatCurrencyWithSymbol(ajusteKmAplicadoNumero, 0)}`,
+          className: "text-red-600 dark:text-red-400"
+        }
+      : {
+          text: "0€",
+          className: "text-muted-foreground"
+        }
+  const bonusAnioDisplay =
+    bonusAniosAplicadoNumero > 0
+      ? {
+          text: `+${formatCurrencyWithSymbol(bonusAniosAplicadoNumero, 0)}`,
+          className: "text-green-600 dark:text-green-400"
+        }
+      : {
+          text: "0€",
+          className: "text-muted-foreground"
+        }
+
+  const pasosExplicativos: Array<{ titulo: string; descripcion: string; activo: boolean }> = []
+
+  pasosExplicativos.push({
+    titulo: "Base de mercado",
+    descripcion:
+      vehicle.metodoPrecioBase === "percentil25"
+        ? `Hay ${vehicle.competidores || 0} comparables válidos. Elegimos el percentil 25 (el más barato) → ${formatCurrencyWithSymbol(precioPercentil25CompetenciaNumero, 0)}.`
+        : `Promediamos ${vehicle.competidores || 0} comparables filtrados por equipamiento similar → ${formatCurrencyWithSymbol(precioPromedioCompetenciaGeneralNumero, 0)}.`,
+    activo: !!vehicle.precioMedioCompetencia
+  })
+
+  if (vehicle.gama === "alta" && vehicle.equipamiento === "basico") {
+    if (bonusKmAplicadoNumero > 0) {
+      pasosExplicativos.push({
+        titulo: "Ventaja de kilómetros",
+        descripcion: `Nuestra ventaja de ${ventajaKmTextoDetalle} supera el umbral de ${ventajaKmUmbralNumero.toLocaleString("es-ES")} km. La valoramos a ${valorKmAplicadoNumero?.toFixed?.(2) ?? "0"} €/km → +${formatCurrencyWithSymbol(bonusKmAplicadoNumero, 0)}.`,
+        activo: true
+      })
+    } else {
+      pasosExplicativos.push({
+        titulo: "Ajuste por kilometraje",
+        descripcion: `No hay ventaja fuerte de km. Frente a ${formatKmValue(vehicle.kmMedioCompetencia)} (media mercado) ${diferenciaKmTexto}, por lo que ${ajusteKmTexto} a la base.`,
+        activo: diferenciaKmNumero !== null && valorKmAplicadoNumero !== null
+      })
+    }
+
+    if (bonusAniosAplicadoNumero > 0) {
+      pasosExplicativos.push({
+        titulo: "Ventaja de año",
+        descripcion: `Somos ${ventajaAniosNumero.toFixed(1)} años más nuevos que la competencia (media ${promedioAnioCompetenciaNumero !== null ? promedioAnioCompetenciaNumero.toFixed(1) : "N/A"}). Valoramos ${valorAnioVentajaNumero}€ por año → +${formatCurrencyWithSymbol(bonusAniosAplicadoNumero, 0)}.`,
+        activo: true
+      })
+    }
+
+    if (patitoFeoModo === "agresivo") {
+      pasosExplicativos.push({
+        titulo: "Modo patito feo agresivo",
+        descripcion:
+          diferenciaKmNumero !== null && diferenciaKmNumero < 0
+            ? `Ventaja de km moderada. Tomamos el mínimo ${formatCurrencyWithSymbol(precioBaseMinimoPatitoFeoNumero, 0)} y aplicamos -1% → ${formatCurrencyWithSymbol(precioBaseMinimoPatitoFeoNumero ? precioBaseMinimoPatitoFeoNumero * 0.99 : null, 0)}.`
+            : `Sin ventaja: restamos ${formatCurrencyWithSymbol(ajusteKmAplicadoNumero ?? 0, 0)} por km y ${formatCurrencyWithSymbol(ajusteAgresivoAplicadoNumero ?? 0, 0)} (3%) para liderar precio.`,
+        activo: true
+      })
+    }
+  } else {
+    pasosExplicativos.push({
+      titulo: "Ajuste por kilometraje",
+      descripcion: `Nuestros ${vehicle.km?.toLocaleString("es-ES")} km frente a ${formatKmValue(vehicle.kmMedioCompetencia)} implican ${diferenciaKmTexto}. Con ${valorKmAplicadoNumero?.toFixed?.(2) ?? "0"} €/km ${ajusteKmTexto} a la base.`,
+      activo: diferenciaKmNumero !== null && valorKmAplicadoNumero !== null
+    })
+  }
+
+  pasosExplicativos.push({
+    titulo: "Control de precios zombie",
+    descripcion:
+      maxDescuentoZombieNumero !== null && descuentoMinimoRequeridoNumero !== null
+        ? `Competidores con >60 días ofrecían ${maxDescuentoZombieNumero.toFixed(1)}% y no vendieron. Añadimos +${descuentoExtraZombieNumero?.toFixed?.(0) ?? "1"} pp → ${descuentoMinimoRequeridoNumero.toFixed(1)}%. El precio no puede superar ${formatCurrencyWithSymbol(precioMaximoPermitidoZombieNumero, 0)}.`
+        : "",
+    activo: maxDescuentoZombieNumero !== null && descuentoMinimoRequeridoNumero !== null
+  })
+
+  pasosExplicativos.push({
+    titulo: "Urgencia por días en stock",
+    descripcion: `Llevamos ${vehicle.diasEnStock} días en stock. Añadimos -5% extra → ${formatCurrencyWithSymbol(precioRecomendadoPostUrgenciaNumero, 0)}.`,
+    activo: typeof vehicle.diasEnStock === "number" && vehicle.diasEnStock > 60 && !!precioRecomendadoPostUrgenciaNumero
+  })
+
+  pasosExplicativos.push({
+    titulo: "Resultado final",
+    descripcion: `Tras todos los ajustes, el precio recomendado queda en ${formatCurrencyWithSymbol(vehicle.precioRecomendado, 0)}.`,
+    activo: !!vehicle.precioRecomendado
+  })
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
@@ -277,89 +481,291 @@ function CompetitorDetailModal({ vehicle, open, onClose }: { vehicle: any, open:
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {/* Paso 1: Valor teórico */}
-                {vehicle.valorEsperadoTeorico && (
-                  <div className="bg-muted/50 p-3 rounded-md space-y-2">
-                    <div className="text-xs font-semibold text-foreground">1️⃣ Valor Teórico por Depreciación</div>
-                    <div className="space-y-1 text-xs">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Precio nuevo original:</span>
-                        <span className="font-medium">{vehicle.precioNuevo?.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
-                      </div>
-                      {vehicle.ajusteAño > 0 && (
-                        <div className="flex justify-between text-orange-500">
-                          <span>- Depreciación por antigüedad ({vehicle.año}):</span>
-                          <span>-{vehicle.ajusteAño.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
-                        </div>
-                      )}
-                      {vehicle.ajusteKm > 0 && (
-                        <div className="flex justify-between text-orange-500">
-                          <span>- Depreciación por km ({vehicle.km.toLocaleString()} km):</span>
-                          <span>-{vehicle.ajusteKm.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
-                        </div>
-                      )}
-                      <div className="flex justify-between font-semibold pt-1 border-t">
-                        <span>= Valor teórico esperado:</span>
-                        <span>{vehicle.valorEsperadoTeorico.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
-                      </div>
-                    </div>
+                <div className="bg-slate-950/5 dark:bg-slate-900/40 border border-slate-500/20 rounded-md p-3 space-y-3">
+                  <div className="flex items-center gap-2 text-[11px] font-semibold text-slate-700 dark:text-slate-200">
+                    <Info className="w-3.5 h-3.5" />
+                    Datos exactos utilizados en el cálculo
                   </div>
-                )}
-
-                {/* Paso 2: Mercado real */}
-                <div className="bg-blue-500/10 p-3 rounded-md space-y-2">
-                  <div className="text-xs font-semibold text-foreground">2️⃣ Precio Real del Mercado</div>
-                  <div className="space-y-1 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Precio medio ({vehicle.competidores} coches):</span>
-                      <span className="font-medium text-blue-400">{vehicle.precioRealMercado?.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
-                    </div>
-                    {vehicle.kmMedioCompetencia && (
+                  <div className="grid sm:grid-cols-2 gap-3 text-[11px] sm:text-xs">
+                    <div className="space-y-1.5">
+                      <div className="font-semibold text-slate-700 dark:text-slate-200">
+                        Percentiles precio nuevo (gama {gamaLabel})
+                      </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">KM medio competencia:</span>
-                        <span className="font-medium">{vehicle.kmMedioCompetencia.toLocaleString()} km</span>
+                        <span>P25:</span>
+                        <span>{formatCurrencyWithSymbol(percentilesEquip?.p25, 0)}</span>
                       </div>
-                    )}
-                    {vehicle.kmMedioCompetencia && vehicle.km && (
-                      <div className="flex justify-between text-orange-500">
-                        <span>Ajuste por diferencia KM ({(vehicle.km - vehicle.kmMedioCompetencia).toLocaleString()} km):</span>
-                        <span>{((vehicle.km - vehicle.kmMedioCompetencia) * 0.10).toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
+                      <div className="flex justify-between">
+                        <span>P50 (mediana):</span>
+                        <span>{formatCurrencyWithSymbol(percentilesEquip?.p50, 0)}</span>
                       </div>
-                    )}
-                    {vehicle.analisisMercado && (
-                      <div className="text-xs text-muted-foreground italic pt-1 border-t">
-                        {vehicle.analisisMercado}
+                      <div className="flex justify-between">
+                        <span>P75:</span>
+                        <span>{formatCurrencyWithSymbol(percentilesEquip?.p75, 0)}</span>
                       </div>
-                    )}
+                      <div className="text-[10px] text-muted-foreground">{percentilesFuenteTexto}</div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <div className="font-semibold text-slate-700 dark:text-slate-200">Base de la competencia</div>
+                      <div className="flex justify-between">
+                        <span>Método:</span>
+                        <span>{metodoPrecioBase}</span>
+                      </div>
+                      <div className="text-[10px] text-muted-foreground leading-snug">
+                        {metodoPrecioBaseDescripcion}
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Precio base usado:</span>
+                        <span>{formatCurrencyWithSymbol(vehicle.precioMedioCompetencia, 0)}</span>
+                      </div>
+                      {precioMinimoCompetenciaNumero !== null && (
+                        <div className="flex justify-between">
+                          <span>Mínimo comparables:</span>
+                          <span>{formatCurrencyWithSymbol(precioMinimoCompetenciaNumero, 0)}</span>
+                        </div>
+                      )}
+                      {precioPercentil25CompetenciaNumero !== null && vehicle.metodoPrecioBase === "percentil25" && (
+                        <div className="flex justify-between">
+                          <span>Percentil 25:</span>
+                          <span>{formatCurrencyWithSymbol(precioPercentil25CompetenciaNumero, 0)}</span>
+                        </div>
+                      )}
+                      {precioPromedioCompetenciaGeneralNumero !== null && (
+                        <div className="flex justify-between">
+                          <span>Promedio general:</span>
+                          <span>{formatCurrencyWithSymbol(precioPromedioCompetenciaGeneralNumero, 0)}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <div className="font-semibold text-slate-700 dark:text-slate-200">Ajuste por kilometraje</div>
+                      <div className="flex justify-between">
+                        <span>Media mercado:</span>
+                        <span>{formatKmValue(vehicle.kmMedioCompetencia)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Diferencia:</span>
+                        <span>{diferenciaKmTexto}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Valor €/km:</span>
+                        <span>{valorKmAplicadoNumero !== null ? `${valorKmAplicadoNumero.toFixed(2)}€` : "N/A"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Supera umbral ({ventajaKmUmbralNumero.toLocaleString("es-ES")} km):</span>
+                        <span>{ventajaKmSignificativaBool ? "Sí" : "No"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>{bonusKmAplicadoNumero > 0 ? "Bonus aplicado:" : "Penalización:"}</span>
+                        <span className={bonusKmDisplay.className}>{bonusKmDisplay.text}</span>
+                      </div>
+                      {ajusteAgresivoAplicadoNumero ? (
+                        <div className="flex justify-between text-red-500">
+                          <span>Extra -3% patito feo:</span>
+                          <span>-{formatCurrencyWithSymbol(ajusteAgresivoAplicadoNumero, 0)}</span>
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <div className="font-semibold text-slate-700 dark:text-slate-200">Ventaja por año</div>
+                      <div className="flex justify-between">
+                        <span>Media competencia:</span>
+                        <span>{promedioAnioCompetenciaNumero !== null ? promedioAnioCompetenciaNumero.toFixed(1) : "N/A"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Nuestro año:</span>
+                        <span>{vehicle.año || "N/A"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Ventaja:</span>
+                        <span>{ventajaAniosNumero > 0 ? `+${ventajaAniosNumero.toFixed(1)} años` : "Sin ventaja"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Umbral:</span>
+                        <span>{ventajaAniosUmbralNumero} año(s)</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Valor por año:</span>
+                        <span>{valorAnioVentajaNumero ? `${valorAnioVentajaNumero.toLocaleString("es-ES")}€` : "N/A"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Bonus aplicado:</span>
+                        <span className={bonusAnioDisplay.className}>{bonusAnioDisplay.text}</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <div className="font-semibold text-slate-700 dark:text-slate-200">Cadena de ajustes</div>
+                      <div className="flex justify-between">
+                        <span>Base tras KM:</span>
+                        <span>{formatCurrencyWithSymbol(precioRecomendadoBaseNumero, 0)}</span>
+                      </div>
+                      {maxDescuentoZombieNumero !== null && descuentoMinimoRequeridoNumero !== null && (
+                        <div className="space-y-1">
+                          <div className="flex justify-between">
+                            <span>Zombie detectado:</span>
+                            <span>{maxDescuentoZombieNumero.toFixed(1)}% rechazado</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Margen extra:</span>
+                            <span>+{descuentoExtraZombieNumero?.toFixed?.(0) ?? "1"} pp → {descuentoMinimoRequeridoNumero.toFixed(1)}%</span>
+                          </div>
+                          {precioMaximoPermitidoZombieNumero !== null && (
+                            <div className="flex justify-between">
+                              <span>Tope por zombie:</span>
+                              <span>{formatCurrencyWithSymbol(precioMaximoPermitidoZombieNumero, 0)}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {precioRecomendadoPostZombieNumero !== null &&
+                        precioRecomendadoBaseNumero !== null &&
+                        Math.round(precioRecomendadoPostZombieNumero) !== Math.round(precioRecomendadoBaseNumero) && (
+                          <div className="flex justify-between">
+                            <span>Después zombie:</span>
+                            <span>{formatCurrencyWithSymbol(precioRecomendadoPostZombieNumero, 0)}</span>
+                          </div>
+                        )}
+                      {precioRecomendadoPostUrgenciaNumero !== null && (
+                        <div className="flex justify-between text-amber-500">
+                          <span>Urgencia +60 días:</span>
+                          <span>{formatCurrencyWithSymbol(precioRecomendadoPostUrgenciaNumero, 0)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between font-semibold">
+                        <span>Precio final recomendado:</span>
+                        <span>{formatCurrencyWithSymbol(vehicle.precioRecomendado, 0)}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {/* Paso 3: Tu precio vs mercado */}
-                <div className={`p-3 rounded-md space-y-2 ${
-                  vehicle.posicion === 'competitivo' ? 'bg-green-500/10' :
-                  vehicle.posicion === 'alto' ? 'bg-red-500/10' : 'bg-yellow-500/10'
-                }`}>
-                  <div className="text-xs font-semibold text-foreground">3️⃣ Tu Posicionamiento</div>
-                  <div className="space-y-1 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Tu precio actual:</span>
-                      <span className="font-medium">{vehicle.nuestroPrecio.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Diferencia vs mercado:</span>
-                      <span className={`font-medium ${vehicle.diferencia < 0 ? 'text-green-500' : 'text-red-500'}`}>
-                        {vehicle.diferencia > 0 ? '+' : ''}{vehicle.diferencia.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€ ({vehicle.porcentajeDif?.toFixed(1)}%)
-                      </span>
-                    </div>
-                    <div className="flex justify-between font-semibold pt-1 border-t">
-                      <span>💡 Precio recomendado:</span>
-                      <span className="text-foreground">{vehicle.precioRecomendado?.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
-                    </div>
-                    {vehicle.recomendacion && (
-                      <div className="text-xs text-muted-foreground italic pt-2">
-                        {vehicle.recomendacion}
+                <div className="bg-slate-950/2 dark:bg-slate-900/20 border border-slate-500/20 rounded-md p-3">
+                  <div className="text-[11px] font-semibold text-slate-700 dark:text-slate-200 mb-2 flex items-center gap-2">
+                    <Target className="w-3.5 h-3.5" />
+                    Cómo se construye el precio de manera automática
+                  </div>
+                  <ol className="space-y-2 text-[11px] sm:text-xs list-decimal list-inside marker:text-primary">
+                    {pasosExplicativos
+                      .filter((paso) => paso.activo && paso.descripcion)
+                      .map((paso, idx) => (
+                        <li key={idx} className="leading-snug">
+                          <span className="font-semibold">{paso.titulo}: </span>
+                          <span className="text-muted-foreground">{paso.descripcion}</span>
+                        </li>
+                      ))}
+                  </ol>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-3">
+                  {/* Paso 1: Valor teórico */}
+                  {vehicle.valorEsperadoTeorico ? (
+                    <div className="bg-muted/50 p-3 rounded-md space-y-2 h-full">
+                      <div className="text-xs font-semibold text-foreground">1️⃣ Valor Teórico por Depreciación</div>
+                      <div className="space-y-1 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Precio nuevo original:</span>
+                          <span className="font-medium">{vehicle.precioNuevo?.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
+                        </div>
+                        {vehicle.ajusteAño > 0 && (
+                          <div className="flex justify-between text-orange-500">
+                            <span>- Depreciación por antigüedad ({vehicle.año}):</span>
+                            <span>-{vehicle.ajusteAño.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
+                          </div>
+                        )}
+                        {vehicle.ajusteKm > 0 && (
+                          <div className="flex justify-between text-orange-500">
+                            <span>- Depreciación por km ({vehicle.km.toLocaleString()} km):</span>
+                            <span>-{vehicle.ajusteKm.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between font-semibold pt-1 border-t">
+                          <span>= Valor teórico esperado:</span>
+                          <span>{vehicle.valorEsperadoTeorico.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
+                        </div>
                       </div>
-                    )}
+                    </div>
+                  ) : (
+                    <div className="bg-muted/30 p-3 rounded-md text-xs text-muted-foreground h-full space-y-2">
+                      <div className="font-semibold text-foreground">1️⃣ Valor Teórico por Depreciación</div>
+                      <p>No hay datos suficientes para calcular la depreciación teórica.</p>
+                    </div>
+                  )}
+
+                  {/* Paso 2: Mercado real */}
+                  <div className="bg-blue-500/10 p-3 rounded-md space-y-2 h-full">
+                    <div className="text-xs font-semibold text-foreground">2️⃣ Precio Real del Mercado</div>
+                    <div className="space-y-1 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Precio medio ({vehicle.competidores} coches):</span>
+                        <span className="font-medium text-blue-400">{vehicle.precioRealMercado?.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
+                      </div>
+                      {vehicle.kmMedioCompetencia && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">KM medio competencia:</span>
+                          <span className="font-medium">{vehicle.kmMedioCompetencia.toLocaleString()} km</span>
+                        </div>
+                      )}
+                      {ajusteKmAplicadoNumero !== null && (
+                        <div className="flex justify-between text-orange-500">
+                          <span>Ajuste aplicado por KM:</span>
+                          <span>
+                            {ajusteKmAplicadoNumero === 0
+                              ? "0€"
+                              : `${ajusteKmAplicadoNumero > 0 ? "-" : "+"}${formatCurrencyWithSymbol(Math.abs(ajusteKmAplicadoNumero), 0)}`}
+                          </span>
+                        </div>
+                      )}
+                      {bonusKmAplicadoNumero > 0 && (
+                        <div className="flex justify-between text-green-600 dark:text-green-400">
+                          <span>Bonus por ventaja de KM:</span>
+                          <span>+{formatCurrencyWithSymbol(bonusKmAplicadoNumero, 0)}</span>
+                        </div>
+                      )}
+                      {bonusAniosAplicadoNumero > 0 && (
+                        <div className="flex justify-between text-green-600 dark:text-green-400">
+                          <span>Bonus por ventaja de año:</span>
+                          <span>+{formatCurrencyWithSymbol(bonusAniosAplicadoNumero, 0)}</span>
+                        </div>
+                      )}
+                      {vehicle.analisisMercado && (
+                        <div className="text-xs text-muted-foreground italic pt-1 border-t">
+                          {vehicle.analisisMercado}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Paso 3: Tu precio vs mercado */}
+                  <div className={`p-3 rounded-md space-y-2 h-full ${
+                    vehicle.posicion === 'competitivo' ? 'bg-green-500/10' :
+                    vehicle.posicion === 'alto' ? 'bg-red-500/10' : 'bg-yellow-500/10'
+                  }`}>
+                    <div className="text-xs font-semibold text-foreground">3️⃣ Tu Posicionamiento</div>
+                    <div className="space-y-1 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Tu precio actual:</span>
+                        <span className="font-medium">{vehicle.nuestroPrecio.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Diferencia vs mercado:</span>
+                        <span className={`font-medium ${vehicle.diferencia < 0 ? 'text-green-500' : 'text-red-500'}`}>
+                          {vehicle.diferencia > 0 ? '+' : ''}{vehicle.diferencia.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€ ({vehicle.porcentajeDif?.toFixed(1)}%)
+                        </span>
+                      </div>
+                      <div className="flex justify-between font-semibold pt-1 border-t">
+                        <span>💡 Precio recomendado:</span>
+                        <span className="text-foreground">{vehicle.precioRecomendado?.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>
+                      </div>
+                      {vehicle.recomendacion && (
+                        <div className="text-xs text-muted-foreground italic pt-2">
+                          {vehicle.recomendacion}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -731,6 +1137,7 @@ export default function ComparadorPreciosPage() {
   const [error, setError] = useState<string | null>(null)
   const [configOpen, setConfigOpen] = useState(false)
   const [informeOpen, setInformeOpen] = useState(false)
+  const [showPricingGuide, setShowPricingGuide] = useState(false)
   
   // Estados para carga de Excel
   const [uploadingExcel, setUploadingExcel] = useState(false)
@@ -763,7 +1170,7 @@ export default function ComparadorPreciosPage() {
   
   // Filtros de tolerancia del card
   const [toleranciaKm, setToleranciaKm] = useState("10000")
-  const [toleranciaAñoCard, setToleranciaAñoCard] = useState("1")
+  const [toleranciaAñoCard, setToleranciaAñoCard] = useState("2") // 🎯 CORREGIDO: ±2 años por defecto
   const [toleranciaCvCard, setToleranciaCvCard] = useState("20")
   const [marcaFilter, setMarcaFilter] = useState("all") // BMW, MINI, all
   const [combustibleFilter, setCombustibleFilter] = useState("all") // PHEV, BEV, Gasolina, Diesel, all
@@ -1210,6 +1617,14 @@ export default function ComparadorPreciosPage() {
               title="Configurar parámetros de valoración"
             >
               <Settings className="w-4 h-4" />
+            </Button>
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => setShowPricingGuide(true)}
+              title="Guía: Cómo encontrar el precio objetivo"
+            >
+              <Info className="w-4 h-4" />
             </Button>
           </div>
         </div>
@@ -1659,6 +2074,12 @@ export default function ComparadorPreciosPage() {
         vehiculos={vehiculos}
         stats={stats}
         filter={filter}
+      />
+
+      {/* Modal de Guía de Pricing */}
+      <PricingGuideModal
+        open={showPricingGuide}
+        onClose={() => setShowPricingGuide(false)}
       />
     </div>
     </>

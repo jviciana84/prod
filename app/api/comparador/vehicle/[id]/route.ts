@@ -282,9 +282,10 @@ export async function GET(
           modeloCompleto = `${modeloCompleto} ${potenciaCv}`
         }
       } 
-      // Para BMW: extraer variante técnica (xDrive30, eDrive40, M50, 320d, etc.) + CV
+      // Para BMW: extraer variante técnica (xDrive30d, eDrive40, M50d, 320d, etc.) + CV
       else {
-        const versionMatch = ducVehiculo['Versión'].match(/([ex]?Drive\d+|M\d+|\d{3}[a-z]+)/i)
+        // ✅ CORREGIDO: Ahora captura letras después del número (d, i, e, etc.)
+        const versionMatch = ducVehiculo['Versión'].match(/([ex]?Drive\d+[a-z]*|M\d+[a-z]*|\d{3}[a-z]+)/i)
         if (versionMatch) {
           modeloCompleto = `${ducVehiculo['Modelo']} ${versionMatch[1]}`
         } else {

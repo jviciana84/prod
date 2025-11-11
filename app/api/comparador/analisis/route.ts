@@ -21,6 +21,164 @@ function parseKm(km: string | number | null): number | null {
   return isNaN(num) ? null : num
 }
 
+// Función para identificar la gama del modelo
+function identificarGama(modelo: string): 'basica' | 'media' | 'alta' {
+  const modeloLower = modelo.toLowerCase()
+  
+  // Gama Alta
+  if (modeloLower.includes('x5') || modeloLower.includes('x6') || modeloLower.includes('x7') ||
+      modeloLower.includes('serie 5') || modeloLower.includes('serie 6') || modeloLower.includes('serie 7') ||
+      modeloLower.includes('serie 8') || /\b(i5|i7|ix)\b/.test(modeloLower)) {
+    return 'alta'
+  }
+  
+  // Gama Media
+  if (modeloLower.includes('x3') || modeloLower.includes('x4') || 
+      modeloLower.includes('serie 3') || modeloLower.includes('serie 4') ||
+      modeloLower.includes('countryman') || modeloLower.includes('clubman') ||
+      /\b(i4|ix3)\b/.test(modeloLower)) {
+    return 'media'
+  }
+  
+  // Gama Básica (por defecto)
+  return 'basica'
+}
+
+// Función para identificar nivel de equipamiento según precio nuevo
+type PercentilesEquipamiento = {
+  p25: number
+  p50: number
+  p75: number
+  count: number
+}
+
+type PercentilesPorGama = Record<'basica' | 'media' | 'alta', PercentilesEquipamiento>
+
+const FALLBACK_PRECIOS_BASE: Record<'basica' | 'media' | 'alta', number> = {
+  basica: 35000,
+  media: 55000,
+  alta: 105000
+}
+
+const DESCUENTO_EXTRA_ZOMBIE = 1 // puntos porcentuales extra para ser competitivos
+const VENTAJA_KM_SIGNIFICATIVA = 15000 // km de ventaja para considerar bonus
+const VENTAJA_ANIO_SIGNIFICATIVA = 1 // años de ventaja para considerar bonus
+const VALOR_ANIO_VENTAJA = 1000 // € por año de ventaja (gama alta)
+
+function identificarEquipamiento(
+  modelo: string,
+  precioNuevo: number,
+  percentilesPorGama?: PercentilesPorGama
+): 'basico' | 'medio' | 'premium' {
+  const gama = identificarGama(modelo)
+  const percentiles = percentilesPorGama?.[gama]
+
+  if (percentiles && percentiles.count >= 4) {
+    if (precioNuevo <= percentiles.p25) return 'basico'
+    if (precioNuevo >= percentiles.p75) return 'premium'
+    return 'medio'
+  }
+
+  const precioReferencia = percentiles?.p50 || FALLBACK_PRECIOS_BASE[gama]
+  if (!precioReferencia) return 'medio'
+
+  const desviacion = (precioNuevo - precioReferencia) / precioReferencia
+  if (desviacion <= -0.1) return 'basico'
+  if (desviacion >= 0.1) return 'premium'
+  return 'medio'
+}
+
+// Función para calcular valor de KM según gama
+function valorKmPorGama(gama: 'basica' | 'media' | 'alta'): number {
+  // Valor en € por cada km de diferencia
+  const valores = {
+    'basica': 0.10,   // +1.000€ por cada 10k km
+    'media': 0.15,    // +1.500€ por cada 10k km
+    'alta': 0.20      // +2.000€ por cada 10k km
+  }
+  return valores[gama]
+}
+
+function obtenerPercentil(valoresOrdenados: number[], percentil: number): number {
+  if (valoresOrdenados.length === 0) return 0
+  if (valoresOrdenados.length === 1) return valoresOrdenados[0]
+
+  const indice = (percentil / 100) * (valoresOrdenados.length - 1)
+  const inferior = Math.floor(indice)
+  const superior = Math.ceil(indice)
+
+  if (inferior === superior) {
+    return valoresOrdenados[inferior]
+  }
+
+  const pesoSuperior = indice - inferior
+  return valoresOrdenados[inferior] + (valoresOrdenados[superior] - valoresOrdenados[inferior]) * pesoSuperior
+}
+
+function calcularPercentiles(valores: number[]): PercentilesEquipamiento | null {
+  if (valores.length === 0) return null
+
+  const ordenados = [...valores].sort((a, b) => a - b)
+  return {
+    p25: obtenerPercentil(ordenados, 25),
+    p50: obtenerPercentil(ordenados, 50),
+    p75: obtenerPercentil(ordenados, 75),
+    count: ordenados.length
+  }
+}
+
+function calcularPercentilesPorGama(stockData: any[]): PercentilesPorGama {
+  const preciosPorGama: Record<'basica' | 'media' | 'alta', number[]> = {
+    basica: [],
+    media: [],
+    alta: []
+  }
+
+  for (const item of stockData) {
+    const modelo = item.model || ''
+    const precioNuevo =
+      typeof item.original_new_price === 'number'
+        ? item.original_new_price
+        : parsePrice(item.original_new_price)
+
+    if (!precioNuevo) continue
+
+    const gama = identificarGama(modelo)
+    preciosPorGama[gama].push(precioNuevo)
+  }
+
+  const percentilesPorGama: PercentilesPorGama = {
+    basica: {
+      p25: FALLBACK_PRECIOS_BASE.basica * 0.85,
+      p50: FALLBACK_PRECIOS_BASE.basica,
+      p75: FALLBACK_PRECIOS_BASE.basica * 1.15,
+      count: 0
+    },
+    media: {
+      p25: FALLBACK_PRECIOS_BASE.media * 0.85,
+      p50: FALLBACK_PRECIOS_BASE.media,
+      p75: FALLBACK_PRECIOS_BASE.media * 1.15,
+      count: 0
+    },
+    alta: {
+      p25: FALLBACK_PRECIOS_BASE.alta * 0.85,
+      p50: FALLBACK_PRECIOS_BASE.alta,
+      p75: FALLBACK_PRECIOS_BASE.alta * 1.15,
+      count: 0
+    }
+  }
+
+  for (const [gama, valores] of Object.entries(preciosPorGama)) {
+    const clave = gama as 'basica' | 'media' | 'alta'
+    const percentiles = calcularPercentiles(valores)
+    if (percentiles) {
+      percentilesPorGama[clave] = percentiles
+    }
+  }
+
+  return percentilesPorGama
+}
+
 // Función para calcular valor esperado normalizado de un vehículo
 function calcularValorEsperado(precioNuevo: number, año: number, km: number): number {
   const añoActual = new Date().getFullYear()
@@ -180,7 +338,7 @@ export async function GET(request: NextRequest) {
     
     // Leer tolerancias configurables (con valores por defecto)
     const toleranciaCv = parseInt(searchParams.get('toleranciaCv') || '20') // ±20 CV por defecto
-    const toleranciaAño = parseFloat(searchParams.get('toleranciaAño') || '1') // Puede ser fraccionario (0.25, 0.5, etc.)
+    const toleranciaAño = parseFloat(searchParams.get('toleranciaAño') || '2') // 🎯 CORREGIDO: ±2 años por defecto para mercado completo
     
     // Obtener vehículos de nuestro stock desde duc_scraper (DUC es nuestra fuente de verdad)
     let ducQuery = supabase
@@ -288,9 +446,10 @@ export async function GET(request: NextRequest) {
             modeloCompleto = `${modeloCompleto} ${potenciaCv}`
           }
         } 
-        // Para BMW: extraer variante técnica (xDrive30, eDrive40, M50, 320d, etc.) + CV
+        // Para BMW: extraer variante técnica (xDrive30d, eDrive40, M50d, 320d, etc.) + CV
         else {
-          const versionMatch = v['Versión'].match(/([ex]?Drive\d+|M\d+|\d{3}[a-z]+)/i)
+          // ✅ CORREGIDO: Ahora captura letras después del número (d, i, e, etc.)
+          const versionMatch = v['Versión'].match(/([ex]?Drive\d+[a-z]*|M\d+[a-z]*|\d{3}[a-z]+)/i)
           if (versionMatch) {
             modeloCompleto = `${v['Modelo']} ${versionMatch[1]}`
           } else {
@@ -318,6 +477,8 @@ export async function GET(request: NextRequest) {
         fecha_matriculacion: v['Fecha primera matriculación'] || null // Fecha del DUC
       }
     })
+
+    const percentilesEquipamientoPorGama = calcularPercentilesPorGama(stockDataTransformed)
 
     // Obtener datos del comparador (competencia) - CARGAR TODOS (sin límite de 1000)
     let allComparadorData: any[] = []
@@ -543,7 +704,7 @@ export async function GET(request: NextRequest) {
         }
         // Si solo uno tiene CV especificado, permitir el match (más flexible)
         
-        // Verificar año con tolerancia configurable
+        // Verificar año con tolerancia configurable (por defecto ±1, pero puede ser ±2 para mercado amplio)
         if (vehiculo.year && comp.año) {
           const añoNuestro = parseInt(vehiculo.year)
           const añoComp = parseInt(comp.año)
@@ -559,44 +720,137 @@ export async function GET(request: NextRequest) {
         return true
       })
 
-      // Calcular precio medio de competencia (EXCLUYENDO Quadis para la métrica)
-      const competidoresSinQuadis = competidoresSimilares.filter((c: any) => {
-        if (!c.concesionario) return true
-        const concesionarioLower = c.concesionario.toLowerCase()
-        return !concesionarioLower.includes('quadis') && !concesionarioLower.includes('duc')
-      })
-      
-      const preciosCompetencia = competidoresSinQuadis
-        .map((c: any) => parsePrice(c.precio))
-        .filter((p: number | null): p is number => p !== null)
-      
-      const precioMedioCompetencia = preciosCompetencia.length > 0
-        ? preciosCompetencia.reduce((sum: number, p: number) => sum + p, 0) / preciosCompetencia.length
-        : null
-
-    // Calcular descuento promedio de competencia (EXCLUYENDO Quadis)
-    const descuentosCompetencia = competidoresSinQuadis
-      .filter((c: any) => {
-        const precioNuevo = c.precio_nuevo_original || parsePrice(c.precio_nuevo)
-        return precioNuevo && parsePrice(c.precio)
-      })
-      .map((c: any) => {
-        const precioActual = parsePrice(c.precio)!
-        const precioNuevo = c.precio_nuevo_original || parsePrice(c.precio_nuevo)!
-        return ((precioNuevo - precioActual) / precioNuevo) * 100
-      })
-      
-      const descuentoMedioCompetencia = descuentosCompetencia.length > 0
-        ? descuentosCompetencia.reduce((sum: number, d: number) => sum + d, 0) / descuentosCompetencia.length
-        : null
-
-      // Obtener nuestro precio (de DUC o CMS si existe)
+      // Obtener nuestro precio PRIMERO (lo necesitamos para filtrar)
       const nuestroPrecio = parsePrice(vehiculo.price)
       const precioNuevoNuestro = parsePrice(vehiculo.original_new_price)
       const nuestrosKm = vehiculo.km || vehiculo.mileage || 0
       const nuestroAño = vehiculo.year ? parseInt(vehiculo.year) : new Date().getFullYear()
       
-      // Calcular nuestro descuento (si tenemos precio nuevo original)
+      // 🎯 Identificar gama y equipamiento
+      const gamaVehiculo = identificarGama(vehiculo.model || '')
+      const equipamientoVehiculo = precioNuevoNuestro 
+        ? identificarEquipamiento(vehiculo.model || '', precioNuevoNuestro, percentilesEquipamientoPorGama)
+        : 'basico'
+      const percentilesGamaActual = percentilesEquipamientoPorGama[gamaVehiculo]
+      
+      // 🐛 DEBUG para 9853MKL
+      if (vehiculo.license_plate === '9853MKL') {
+        console.log('\n🔍 DEBUG 9853MKL:')
+        console.log('  Modelo:', vehiculo.model)
+        console.log('  Precio nuevo:', precioNuevoNuestro)
+        console.log('  Gama:', gamaVehiculo)
+        console.log('  Equipamiento:', equipamientoVehiculo)
+        console.log('  KM:', nuestrosKm)
+      }
+
+      // 🚨 IDENTIFICAR coches con muchas bajadas (para calcular DESCUENTO MÍNIMO)
+      // Coches con >60 días + >2 bajadas = mercado rechazó ese % de descuento
+      // NO excluir, sino usar como PISO MÍNIMO (su descuento + margen extra configurable)
+      // Por ahora incluimos todos (cuando tengamos dias_publicado y numero_bajadas_precio completos)
+      const competidoresValidos = competidoresSimilares
+
+      // Calcular precio medio de competencia (EXCLUYENDO Quadis/Motor Munich/DUC para la métrica - somos nosotros)
+      const competidoresSinQuadis = competidoresValidos.filter((c: any) => {
+        if (!c.concesionario) return true
+        const concesionarioLower = c.concesionario.toLowerCase()
+        return !concesionarioLower.includes('quadis') && 
+               !concesionarioLower.includes('motor munich') &&
+               !concesionarioLower.includes('munich') &&
+               !concesionarioLower.includes('duc')
+      })
+      
+      // 🎯 SEGMENTAR por equipamiento SIMILAR (±10k€ precio nuevo) para comparación justa
+      let competidoresComparables = competidoresSinQuadis
+      if (precioNuevoNuestro) {
+        const margenEquipamiento = 10000 // ±10k€
+        competidoresComparables = competidoresSinQuadis.filter((c: any) => {
+          const precioNuevoComp = c.precio_nuevo_original || parsePrice(c.precio_nuevo)
+          if (!precioNuevoComp) return true // Incluir si no tiene precio nuevo
+          return Math.abs(precioNuevoComp - precioNuevoNuestro) <= margenEquipamiento
+        })
+        
+        // 🎯 Para gama alta + básico: filtrar también por precio de venta
+        // No comparar con coches que tienen precio de venta mucho más alto
+        if (gamaVehiculo === 'alta' && equipamientoVehiculo === 'basico' && nuestroPrecio) {
+          // Solo incluir coches con precio de venta MENOR o similar (±5k€ del nuestro)
+          // Esto evita comparar con coches bien equipados que tienen precios altos
+          const margenPrecioVenta = 5000 // ±5k€ (más estricto)
+          competidoresComparables = competidoresComparables.filter((c: any) => {
+            const precioVentaComp = parsePrice(c.precio)
+            if (!precioVentaComp) return true // Incluir si no tiene precio
+            // Incluir si está dentro del margen o es MÁS BARATO (competidores directos)
+            return precioVentaComp <= (nuestroPrecio + margenPrecioVenta) || 
+                   Math.abs(precioVentaComp - nuestroPrecio) <= margenPrecioVenta
+          })
+        }
+        
+        // Si no hay suficientes comparables (mínimo 3), usar todos
+        if (competidoresComparables.length < 3) {
+          competidoresComparables = competidoresSinQuadis
+        }
+      }
+      
+      const preciosCompetencia = competidoresComparables
+        .map((c: any) => parsePrice(c.precio))
+        .filter((p: number | null): p is number => p !== null)
+        .sort((a, b) => a - b) // Ordenar de menor a mayor
+      
+      const precioMinimoCompetencia = preciosCompetencia.length > 0 ? preciosCompetencia[0] : null
+      const precioMaximoCompetencia = preciosCompetencia.length > 0 ? preciosCompetencia[preciosCompetencia.length - 1] : null
+      const precioPromedioCompetenciaGeneral = preciosCompetencia.length > 0
+        ? preciosCompetencia.reduce((sum, p) => sum + p, 0) / preciosCompetencia.length
+        : null
+      let precioPercentil25Competencia: number | null = null
+      let metodoPrecioBase: 'sin_datos' | 'percentil25' | 'promedio' = 'sin_datos'
+      
+      // 🐛 DEBUG para 9853MKL
+      if (vehiculo.license_plate === '9853MKL') {
+        console.log('  Competidores comparables:', competidoresComparables.length)
+        console.log('  Precios ordenados:', preciosCompetencia.slice(0, 5).map(p => p.toLocaleString()))
+      }
+      
+      // 🎯 Para gama alta + básico: usar precio MÁS BAJO (percentil 25), no el promedio
+      // El promedio incluye coches muy equipados que inflan el precio
+      let precioMedioCompetencia = null
+      if (preciosCompetencia.length > 0) {
+        if (gamaVehiculo === 'alta' && equipamientoVehiculo === 'basico') {
+          // Usar el percentil 25 (25% más barato) o el precio mínimo si hay pocos
+          const percentil25 = Math.floor(preciosCompetencia.length * 0.25)
+          const indiceReferencia = Math.max(0, percentil25)
+          precioPercentil25Competencia = preciosCompetencia[indiceReferencia]
+          precioMedioCompetencia = precioPercentil25Competencia
+          metodoPrecioBase = 'percentil25'
+          
+          // 🐛 DEBUG para 9853MKL
+          if (vehiculo.license_plate === '9853MKL') {
+            console.log('  ✅ LÓGICA GAMA ALTA + BÁSICO ACTIVADA')
+            console.log('  Percentil 25 índice:', indiceReferencia)
+            console.log('  Precio base (Percentil 25):', precioMedioCompetencia?.toLocaleString())
+          }
+        } else {
+          // Para otros casos: usar promedio
+          precioMedioCompetencia = precioPromedioCompetenciaGeneral
+          metodoPrecioBase = 'promedio'
+        }
+      }
+
+      // Calcular descuento promedio de competencia comparables (mismo equipamiento)
+      const descuentosCompetencia = competidoresComparables
+        .filter((c: any) => {
+          const precioNuevo = c.precio_nuevo_original || parsePrice(c.precio_nuevo)
+          return precioNuevo && parsePrice(c.precio)
+        })
+        .map((c: any) => {
+          const precioActual = parsePrice(c.precio)!
+          const precioNuevo = c.precio_nuevo_original || parsePrice(c.precio_nuevo)!
+          return ((precioNuevo - precioActual) / precioNuevo) * 100
+        })
+      
+      const descuentoMedioCompetencia = descuentosCompetencia.length > 0
+        ? descuentosCompetencia.reduce((sum: number, d: number) => sum + d, 0) / descuentosCompetencia.length
+        : null
+      
+      // Calcular nuestro descuento (ya tenemos nuestroPrecio y precioNuevoNuestro definidos arriba)
       const descuentoNuestro = precioNuevoNuestro && nuestroPrecio
         ? ((precioNuevoNuestro - nuestroPrecio) / precioNuevoNuestro) * 100
         : null
@@ -613,8 +867,8 @@ export async function GET(request: NextRequest) {
         ajusteAño = analisis.ajustePorAño
       }
       
-      // Calcular KM medio de competidores para ajuste
-      const kmsCompetencia = competidoresSinQuadis
+      // Calcular KM medio de competidores COMPARABLES (mismo equipamiento) para ajuste
+      const kmsCompetencia = competidoresComparables
         .map((c: any) => parseKm(c.km))
         .filter((km): km is number => km !== null)
       
@@ -622,26 +876,151 @@ export async function GET(request: NextRequest) {
         ? kmsCompetencia.reduce((sum, km) => sum + km, 0) / kmsCompetencia.length
         : nuestrosKm
       
-      // NUEVA LÓGICA: Ajustar precio recomendado por diferencia de KM
+      let promedioAnioCompetencia: number | null = null
+      const anosCompetencia = competidoresComparables
+        .map((c: any) => (c.año ? parseInt(c.año) : null))
+        .filter((a): a is number => a !== null && !isNaN(a))
+
+      if (anosCompetencia.length > 0) {
+        promedioAnioCompetencia = anosCompetencia.reduce((sum, año) => sum + año, 0) / anosCompetencia.length
+      }
+      
+      // 🎯 CALCULAR DESCUENTO MÍNIMO si hay competidores con muchas bajadas
+      let maxDescuentoRechazado: number | null = null
+      const competidoresConBajadas = competidoresComparables.filter((c: any) => {
+        // Cuando tengamos los datos completos, usar:
+        // return c.dias_publicado > 60 && c.numero_bajadas_precio > 2
+        // Por ahora usamos dias_publicado si está disponible
+        return c.dias_publicado && c.dias_publicado > 60
+      })
+      
+      let descuentoMinimoRequerido = null
+      if (competidoresConBajadas.length > 0 && precioNuevoNuestro) {
+        const descuentosRechazados = competidoresConBajadas
+          .map((c: any) => {
+            const precioComp = parsePrice(c.precio)
+            const precioNuevoComp = c.precio_nuevo_original || parsePrice(c.precio_nuevo)
+            if (precioComp && precioNuevoComp) {
+              return ((precioNuevoComp - precioComp) / precioNuevoComp) * 100
+            }
+            return null
+          })
+          .filter((d): d is number => d !== null)
+        
+        if (descuentosRechazados.length > 0) {
+          maxDescuentoRechazado = Math.max(...descuentosRechazados)
+          // TU descuento debe ser al menos ligeramente mayor que el rechazado
+          descuentoMinimoRequerido = maxDescuentoRechazado + DESCUENTO_EXTRA_ZOMBIE
+        }
+      }
+      
+      // NUEVA LÓGICA: Ajustar precio recomendado por diferencia de KM según GAMA
       let precioRecomendado = precioMedioCompetencia
+      const valorKmGama = valorKmPorGama(gamaVehiculo)
+      let diferenciaKm: number | null = null
+      let valorKmAplicado: number | null = null
+      let ajusteKmAplicado = 0
+      let ajusteAgresivoAplicado = 0
+      let precioRecomendadoBase: number | null = null
+      let precioRecomendadoPostZombie: number | null = null
+      let precioRecomendadoPostUrgencia: number | null = null
+      let precioMaximoPermitidoZombie: number | null = null
+      let bonusKmAplicado = 0
+      let bonusAniosAplicado = 0
+      let ventajaKmBruta: number | null = null
+      let ventajaKmSignificativa = false
+      let ventajaAnios = 0
+      let ventajaAniosSignificativa = false
+      let patitoFeoModo: 'bonus' | 'agresivo' | 'neutral' | null = null
+      let precioBaseMinimoPatitoFeo: number | null = null
+      
+      // 🐛 DEBUG para 9853MKL
+      if (vehiculo.license_plate === '9853MKL') {
+        console.log('  KM medio competencia:', Math.round(kmMedioCompetencia).toLocaleString())
+        console.log('  Diferencia KM:', (nuestrosKm - kmMedioCompetencia).toLocaleString())
+      }
       
       if (precioMedioCompetencia && kmMedioCompetencia) {
         // Calcular diferencia de KM
-        const diferenciaKm = nuestrosKm - kmMedioCompetencia
-        
-        // Ajustar precio por diferencia de KM (€0.10/km es más realista para usado)
-        const ajustePorKm = diferenciaKm * 0.10
-        
-        // Precio recomendado = precio medio mercado - ajuste por tus KM extras
-        precioRecomendado = precioMedioCompetencia - ajustePorKm
-        
-        // Aplicar límites razonables
-        if (precioRecomendado < nuestroPrecio * 0.8) {
-          precioRecomendado = nuestroPrecio * 0.8 // No recomendar más de 20% de bajada
+        diferenciaKm = nuestrosKm - kmMedioCompetencia
+        valorKmAplicado = valorKmGama
+
+        // 🎯 LÓGICA ESPECIAL para Gama Alta + Básico
+        if (gamaVehiculo === 'alta' && equipamientoVehiculo === 'basico') {
+          const precioBaseMinimo = precioMinimoCompetencia ?? precioMedioCompetencia ?? 0
+          const valorKm = valorKmAplicado
+          precioBaseMinimoPatitoFeo = precioBaseMinimo
+
+          ventajaKmBruta = kmMedioCompetencia - nuestrosKm
+          const tieneVentajaKm = (ventajaKmBruta ?? 0) > 0
+          ventajaKmSignificativa = (ventajaKmBruta ?? 0) > VENTAJA_KM_SIGNIFICATIVA
+          const bonusKm = tieneVentajaKm ? (ventajaKmBruta ?? 0) * valorKm : 0
+
+          const diferenciaAniosBruta = promedioAnioCompetencia && nuestroAño
+            ? nuestroAño - promedioAnioCompetencia
+            : null
+          ventajaAnios = diferenciaAniosBruta && diferenciaAniosBruta > 0 ? diferenciaAniosBruta : 0
+          ventajaAniosSignificativa = ventajaAnios >= VENTAJA_ANIO_SIGNIFICATIVA
+          const bonusAnios = ventajaAnios > 0 ? ventajaAnios * VALOR_ANIO_VENTAJA : 0
+
+          const aplicarBonos = (ventajaKmSignificativa && bonusKm > 0) || (ventajaAniosSignificativa && bonusAnios > 0)
+
+          if (aplicarBonos) {
+            bonusKmAplicado = bonusKm
+            bonusAniosAplicado = bonusAnios
+            precioRecomendado = precioBaseMinimo + bonusKm + bonusAnios
+            ajusteKmAplicado = -bonusKm
+            ajusteAgresivoAplicado = 0
+            patitoFeoModo = 'bonus'
+          } else {
+            patitoFeoModo = 'agresivo'
+            const ajusteAgresivo = precioBaseMinimo * 0.03 // -3% mínimo del mínimo
+
+            if (diferenciaKm < 0) {
+              const ajustePorVentajaKm = precioBaseMinimo * 0.01
+              ajusteKmAplicado = ajustePorVentajaKm
+              precioRecomendado = precioBaseMinimo * 0.99
+            } else {
+              const ajustePorKm = diferenciaKm * valorKm
+              ajusteKmAplicado = ajustePorKm
+              ajusteAgresivoAplicado = ajusteAgresivo
+              precioRecomendado = precioBaseMinimo - ajustePorKm - ajusteAgresivo
+            }
+
+            const limiteInferior = nuestroPrecio * 0.65
+            if (precioRecomendado < limiteInferior) {
+              precioRecomendado = limiteInferior
+            }
+
+            if (precioMinimoCompetencia && precioRecomendado >= precioMinimoCompetencia) {
+              precioRecomendado = precioMinimoCompetencia * 0.97
+            }
+          }
+        } else {
+          // Para otros casos: lógica normal
+          const valorKm = valorKmAplicado
+          const ajustePorKm = diferenciaKm * valorKm
+          ajusteKmAplicado = ajustePorKm
+          
+          // Precio recomendado = precio medio mercado - ajuste por tus KM extras
+          precioRecomendado = precioMedioCompetencia - ajustePorKm
+          
+          // 🎯 Aplicar límites FLEXIBLES según gama + equipamiento
+          const limiteInferior = gamaVehiculo === 'media' && equipamientoVehiculo === 'basico'
+            ? nuestroPrecio * 0.75  // Gama media básica: permitir hasta -25% de bajada
+            : nuestroPrecio * 0.80  // Resto: hasta -20% de bajada
+          
+          if (precioRecomendado < limiteInferior) {
+            precioRecomendado = limiteInferior
+          }
+          if (precioRecomendado > precioMedioCompetencia * 1.1) {
+            precioRecomendado = precioMedioCompetencia * 1.1 // No recomendar más de 10% de subida
+          }
         }
-        if (precioRecomendado > precioMedioCompetencia * 1.1) {
-          precioRecomendado = precioMedioCompetencia * 1.1 // No recomendar más de 10% de subida
-        }
+      }
+      
+      if (precioRecomendado !== null) {
+        precioRecomendadoBase = precioRecomendado
       }
       
       // Calcular diferencia contra mercado REAL
@@ -662,6 +1041,22 @@ export async function GET(request: NextRequest) {
         ? (diferenciaAjustada / precioRecomendado) * 100
         : null
       
+      // 🎯 APLICAR DESCUENTO MÍNIMO si hay competidores estancados
+      if (descuentoMinimoRequerido && descuentoNuestro !== null && precioNuevoNuestro) {
+        if (descuentoNuestro < descuentoMinimoRequerido) {
+          // Tu descuento es insuficiente
+          precioMaximoPermitidoZombie = precioNuevoNuestro * (1 - descuentoMinimoRequerido / 100)
+          if (precioRecomendado > precioMaximoPermitidoZombie) {
+            precioRecomendado = precioMaximoPermitidoZombie
+            precioRecomendadoPostZombie = precioMaximoPermitidoZombie
+          }
+        }
+      }
+      
+      if (precioRecomendadoPostZombie === null) {
+        precioRecomendadoPostZombie = precioRecomendado
+      }
+      
       // Determinar posición basada en precio AJUSTADO por KM
       let posicion = 'justo'
       let recomendacion = ''
@@ -671,18 +1066,30 @@ export async function GET(request: NextRequest) {
           ? `${(nuestrosKm - kmMedioCompetencia).toLocaleString()} km más` 
           : `${(kmMedioCompetencia - nuestrosKm).toLocaleString()} km menos`
         
+        // 🎯 Añadir contexto de gama + equipamiento a la recomendación
+        const contextoGama = gamaVehiculo === 'alta' && equipamientoVehiculo === 'basico'
+          ? ` ⚠️ Gama Alta con equipamiento básico: mercado limitado.`
+          : ''
+        
         if (porcentajeDifAjustado <= -3) {
           // Precio competitivo considerando TUS KM
           posicion = 'competitivo'
-          recomendacion = `Excelente precio. Tienes ${diferenciaKmTexto} que la competencia, tu precio ajustado es ${Math.abs(porcentajeDifAjustado).toFixed(1)}% mejor. Puedes mantener o subir hasta ${precioRecomendado.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€`
+          recomendacion = `Excelente precio. Tienes ${diferenciaKmTexto} que la competencia, tu precio ajustado es ${Math.abs(porcentajeDifAjustado).toFixed(1)}% mejor. Puedes mantener o subir hasta ${precioRecomendado.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€${contextoGama}`
         } else if (porcentajeDifAjustado >= 3) {
           // Precio alto considerando TUS KM
           posicion = 'alto'
-          recomendacion = `Precio elevado. Con ${diferenciaKmTexto} que la competencia, deberías estar en ${precioRecomendado.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€ (${Math.abs(porcentajeDifAjustado).toFixed(1)}% menos)`
+          recomendacion = `Precio elevado. Con ${diferenciaKmTexto} que la competencia, deberías estar en ${precioRecomendado.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€ (${Math.abs(porcentajeDifAjustado).toFixed(1)}% menos)${contextoGama}`
         } else {
           // Precio justo
           posicion = 'justo'
-          recomendacion = `Precio adecuado considerando tus ${nuestrosKm.toLocaleString()} km vs ${kmMedioCompetencia.toLocaleString()} km de media del mercado`
+          recomendacion = `Precio adecuado considerando tus ${nuestrosKm.toLocaleString()} km vs ${kmMedioCompetencia.toLocaleString()} km de media del mercado${contextoGama}`
+        }
+        
+        // 🚨 Añadir advertencia si hay descuento mínimo requerido
+        if (descuentoMinimoRequerido && descuentoNuestro !== null) {
+          if (descuentoNuestro < descuentoMinimoRequerido) {
+            recomendacion += ` 🚨 ALERTA: Competidores con +60 días no vendieron con ${descuentoMinimoRequerido.toFixed(1)}% descuento. Tu descuento actual (${descuentoNuestro.toFixed(1)}%) es insuficiente.`
+          }
         }
       }
       
@@ -691,6 +1098,7 @@ export async function GET(request: NextRequest) {
       if (diasEnStockActual > 60 && posicion !== 'competitivo') {
         const descuentoUrgente = precioRecomendado * 0.95 // 5% adicional
         recomendacion += `. ⚠️ URGENTE: Lleva ${diasEnStockActual} días sin vender. Considera ${descuentoUrgente.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€ para venta rápida`
+        precioRecomendadoPostUrgencia = descuentoUrgente
         precioRecomendado = descuentoUrgente
       }
       
@@ -709,6 +1117,8 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      const precioRecomendadoFinal = precioRecomendado
+
       return {
         // Datos de nuestro vehículo
         id: vehiculo.id,
@@ -721,6 +1131,26 @@ export async function GET(request: NextRequest) {
         descuentoNuestro,
         enlaceAnuncio: vehiculo.duc_url || vehiculo.cms_url || null,
         fechaPrimeraMatriculacion: vehiculo.fecha_matriculacion || null, // Del DUC
+        
+        // 🎯 NUEVA LÓGICA: Clasificación automática
+        gama: gamaVehiculo, // 'basica' | 'media' | 'alta'
+        equipamiento: equipamientoVehiculo, // 'basico' | 'medio' | 'premium'
+        descuentoMinimoRequerido, // null o % mínimo si hay competidores estancados
+        maxDescuentoZombie: maxDescuentoRechazado,
+        descuentoExtraZombie: DESCUENTO_EXTRA_ZOMBIE,
+        competidoresEstancados: competidoresConBajadas.length, // Cuántos tienen >60 días
+        ventajaKmBruta,
+        ventajaKmSignificativa,
+        ventajaKmUmbral: VENTAJA_KM_SIGNIFICATIVA,
+        bonusKmAplicado,
+        ventajaAnios,
+        ventajaAniosSignificativa,
+        ventajaAniosUmbral: VENTAJA_ANIO_SIGNIFICATIVA,
+        bonusAniosAplicado,
+        valorAnioVentaja: VALOR_ANIO_VENTAJA,
+        promedioAnioCompetencia,
+        patitoFeoModo,
+        precioBaseMinimoPatitoFeo,
         
         // Análisis de competencia
         precioMedioCompetencia,
@@ -736,7 +1166,11 @@ export async function GET(request: NextRequest) {
         valorEsperadoTeorico,  // Lo que DEBERÍA valer por depreciación
         precioRealMercado: precioMedioCompetencia, // Lo que REALMENTE se vende (medio)
         kmMedioCompetencia, // KM medio de competidores
-        precioRecomendado, // Lo que recomendamos cobrar (AJUSTADO por tus KM)
+        precioRecomendado: precioRecomendadoFinal, // Lo que recomendamos cobrar (AJUSTADO por tus KM)
+        precioRecomendadoBase,
+        precioRecomendadoPostZombie,
+        precioRecomendadoPostUrgencia,
+        precioMaximoPermitidoZombie,
         diferenciaAjustada, // Diferencia vs precio ajustado
         porcentajeDifAjustado, // % diferencia vs ajustado
         ajusteKm, // Cuánto resta el kilometraje (depreciación)
@@ -744,6 +1178,16 @@ export async function GET(request: NextRequest) {
         diasEnStock: diasEnStockActual,
         recomendacion,
         analisisMercado, // Si el mercado está inflado/deflactado
+        percentilesEquipamiento: percentilesGamaActual,
+        precioMinimoCompetencia,
+        precioMaximoCompetencia,
+        precioPromedioCompetenciaGeneral,
+        precioPercentil25Competencia,
+        metodoPrecioBase,
+        diferenciaKm,
+        valorKmAplicado,
+        ajusteKmAplicado,
+        ajusteAgresivoAplicado,
         
         // Detalles de TODOS los competidores (incluye Quadis para el gráfico)
         competidoresDetalle: competidoresSimilares.map((comp: any) => {

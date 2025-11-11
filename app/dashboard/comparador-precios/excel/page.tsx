@@ -526,30 +526,52 @@ export default function ExcelComparadorPage() {
     // Partir del precio competitivo (ya tiene IVA de la red)
     let pujaMaxima = precioCompetitivo
 
-    // Quitar gastos
-    pujaMaxima -= configToUse.gastosTransporte
-    pujaMaxima -= configToUse.estructura
+    // Quitar IVA primero (inverso del cálculo de venta)
+    if (tieneIVA) {
+      pujaMaxima = pujaMaxima / 1.21
+    }
 
-    // Quitar garantía automática
-    const garantiaAuto = calcularGarantiaAutomatica(vehiculo)
-    pujaMaxima -= garantiaAuto.coste
-
-    // Quitar margen
+    // Quitar margen porcentual
     if (configToUse.porcentajeMargen > 0) {
       pujaMaxima = pujaMaxima / (1 + configToUse.porcentajeMargen / 100)
     }
+
+    // Quitar costes añadidos tras el margen en orden inverso al cálculo original
+    const garantiaAuto = calcularGarantiaAutomatica(vehiculo)
+    pujaMaxima -= garantiaAuto.coste
+    pujaMaxima -= configToUse.estructura
+    pujaMaxima -= configToUse.gastosTransporte
 
     // Quitar daños si los tiene
     if (vehiculo.daño_neto) {
       pujaMaxima -= vehiculo.daño_neto
     }
 
-    // Quitar IVA para obtener precio neto de puja
-    if (tieneIVA) {
-      pujaMaxima = pujaMaxima / 1.21
+    return Math.round(pujaMaxima)
+  }, [config, calcularGarantiaAutomatica])
+
+  const calcularPrecioDesdeBase = useCallback((vehiculo: any, base: number | null, aplicarMargen: boolean) => {
+    if (base === null || base === undefined) return null
+
+    const regFis = vehiculo.reg_fis?.toUpperCase() || ''
+    const tieneIVA = regFis.includes('IVA')
+    const garantiaInfo = calcularGarantiaAutomatica(vehiculo)
+
+    let resultado = base
+    resultado += vehiculo.daño_neto || 0
+    resultado += config.gastosTransporte
+    resultado += config.estructura
+    resultado += garantiaInfo.coste
+
+    if (aplicarMargen && config.porcentajeMargen > 0) {
+      resultado = resultado * (1 + config.porcentajeMargen / 100)
     }
 
-    return Math.round(pujaMaxima)
+    if (tieneIVA) {
+      resultado = resultado * 1.21
+    }
+
+    return Math.round(resultado)
   }, [config, calcularGarantiaAutomatica])
 
   // Filtrar vehículos (memoizado)
@@ -567,6 +589,8 @@ export default function ExcelComparadorPage() {
       // Filtro de rentabilidad
       const precioVentaObjetivo = calcularPrecioVentaObjetivo(v)
       const precioCompetitivo = v.precio_competitivo
+      const pujaMaxima = calcularPujaMaxima(v)
+      const precioVentaDesdePuja = calcularPrecioDesdeBase(v, pujaMaxima, true)
       const matchRentabilidad = rentabilidadFilter === "all" || (() => {
         if (!precioVentaObjetivo || !precioCompetitivo) {
           return rentabilidadFilter === "sin-datos"
@@ -579,7 +603,7 @@ export default function ExcelComparadorPage() {
       
       return matchSearch && matchMarca && matchModelo && matchRentabilidad
     })
-  }, [vehiculos, searchTerm, marcaFilter, modeloFilter, rentabilidadFilter, calcularPrecioVentaObjetivo])
+  }, [vehiculos, searchTerm, marcaFilter, modeloFilter, rentabilidadFilter, calcularPrecioVentaObjetivo, calcularPujaMaxima, calcularPrecioDesdeBase])
   
   // Calcular stats (memoizado)
   const stats = useMemo(() => {
@@ -597,8 +621,7 @@ export default function ExcelComparadorPage() {
       }
       
       const margen = precioCompetitivo - precioVentaObjetivo
-      
-      if (!margen) {
+      if (margen === undefined || margen === null) {
         sinDatos++
       } else if (margen > 0) {
         rentables++
@@ -613,7 +636,7 @@ export default function ExcelComparadorPage() {
       noRentables,
       sinDatos
     }
-  }, [vehiculos, calcularPrecioVentaObjetivo])
+  }, [vehiculos, calcularPrecioVentaObjetivo, calcularPujaMaxima, calcularPrecioDesdeBase])
 
   // Modelos únicos (memoizado)
   const modelosUnicos = useMemo(() => {
@@ -1009,6 +1032,32 @@ export default function ExcelComparadorPage() {
 
                     // Determinar si es "No interesante" (>115.000 km)
                     const esNoInteresante = vehiculo.km && vehiculo.km > 115000
+                    const garantiaInfo = calcularGarantiaAutomatica(vehiculo)
+
+                    const calcularPrecioDesdeBase = (base: number | null, aplicarMargen: boolean) => {
+                      if (base === null || base === undefined) return null
+                      let resultado = base
+                      resultado += vehiculo.daño_neto || 0
+                      resultado += config.gastosTransporte
+                      resultado += config.estructura
+                      resultado += garantiaInfo.coste
+                      if (aplicarMargen && config.porcentajeMargen > 0) {
+                        resultado = resultado * (1 + config.porcentajeMargen / 100)
+                      }
+                      if (tieneIVA) {
+                        resultado = resultado * 1.21
+                      }
+                      return Math.round(resultado)
+                    }
+
+                    const precioVentaDesdePuja = pujaMaxima ? calcularPrecioDesdeBase(pujaMaxima, true) : null
+                    const margenDesdePuja = precioCompetitivo && precioVentaDesdePuja !== null
+                      ? Math.round(precioCompetitivo - precioVentaDesdePuja)
+                      : null
+                    const clasesMargenBase = "w-full flex flex-col items-center gap-[2px] leading-tight py-1.5 px-2 rounded-md border-2"
+                    const clasesMargen = rentable
+                      ? `${clasesMargenBase} bg-green-500/10 border-green-500 text-green-700 dark:text-green-400`
+                      : `${clasesMargenBase} bg-red-500/10 border-red-500 text-red-700 dark:text-red-400`
 
                     return (
                       <tr key={vehiculo.id} className="border-b hover:bg-muted/50">
@@ -1044,16 +1093,23 @@ export default function ExcelComparadorPage() {
                         <td className="p-1.5 text-right text-red-500 text-xs">
                           {vehiculo.daño_neto ? `${vehiculo.daño_neto.toLocaleString()}€` : '-'}
                         </td>
-                        <td className="p-1.5 text-right bg-purple-500/5 font-bold text-xs text-purple-600">
-                          {pujaMaxima ? `${pujaMaxima.toLocaleString()}€` : '-'}
+                        <td className="p-1.5 text-right bg-purple-500/5 text-xs">
+                          {pujaMaxima ? (
+                            <div className="flex flex-col items-end gap-[2px] leading-tight">
+                              <span className="font-semibold text-purple-600">{pujaMaxima.toLocaleString()}€</span>
+                              <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Puja máx.</span>
+                            </div>
+                          ) : (
+                            '-'
+                          )}
                         </td>
                         <td className="p-1.5 text-right bg-amber-500/5">
                           {precioVentaObjetivo ? (
-                            <div
-                              className="flex items-center justify-end gap-1 cursor-help"
-                              title={(() => {
-                                const garantiaInfo = calcularGarantiaAutomatica(vehiculo)
-                                return `Desglose:\n` +
+                            <div className="flex flex-col items-end gap-[2px] leading-tight">
+                              <div
+                                className="flex items-center justify-end gap-1 cursor-help"
+                                title={
+                                  `Desglose:\n` +
                                   `• Precio Salida: ${vehiculo.precio_salida_neto?.toLocaleString()}€\n` +
                                   `• Daños: ${vehiculo.daño_neto?.toLocaleString() || 0}€\n` +
                                   `• Transporte: ${config.gastosTransporte}€\n` +
@@ -1061,19 +1117,34 @@ export default function ExcelComparadorPage() {
                                   `• Garantía (auto): ${garantiaInfo.coste}€ (${garantiaInfo.detalle})\n` +
                                   `• Margen ${config.porcentajeMargen}%\n` +
                                   `• IVA: ${tieneIVA ? '21%' : 'REBU 0%'}`
-                              })()}
-                            >
-                              <span className="font-bold text-xs">
-                                {precioVentaObjetivo.toLocaleString()}€
-                              </span>
-                              <Badge variant="outline" className="text-[7px] px-1 py-0">
-                                {tieneIVA ? 'IVA' : 'REBU'}
-                              </Badge>
+                                }
+                              >
+                                <span className="font-bold text-xs">
+                                  {precioVentaObjetivo.toLocaleString()}€
+                                </span>
+                                <Badge variant="outline" className="text-[7px] px-1 py-0">
+                                  {tieneIVA ? 'IVA' : 'REBU'}
+                                </Badge>
+                              </div>
+                              {precioVentaDesdePuja && (
+                                <span className="text-[10px] text-muted-foreground">
+                                  Puja Máx = {precioVentaDesdePuja.toLocaleString()}€
+                                </span>
+                              )}
                             </div>
                           ) : '-'}
                         </td>
-                        <td className="p-1.5 text-right bg-green-500/5 font-bold text-xs text-green-600">
-                          {precioCompetitivo ? `${precioCompetitivo.toLocaleString()}€` : (
+                        <td className="p-1.5 text-right bg-green-500/5 text-xs">
+                          {precioCompetitivo ? (
+                            <div className="flex flex-col items-end gap-[2px] leading-tight">
+                              <span className="font-bold text-green-600">{precioCompetitivo.toLocaleString()}€</span>
+                              {precioVentaDesdePuja && (
+                                <span className="text-[10px] text-muted-foreground">
+                                  Puja Máx = {precioVentaDesdePuja.toLocaleString()}€
+                                </span>
+                              )}
+                            </div>
+                          ) : (
                             <span className="text-muted-foreground text-[10px]">-</span>
                           )}
                         </td>
@@ -1096,13 +1167,14 @@ export default function ExcelComparadorPage() {
                               No interesante
                             </Badge>
                           ) : margen !== null && precioVentaObjetivo && precioCompetitivo ? (
-                            <div className={`w-full text-xs font-bold flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md border-2 ${
-                              rentable 
-                                ? "bg-green-500/10 border-green-500 text-green-700 dark:text-green-400" 
-                                : "bg-red-500/10 border-red-500 text-red-700 dark:text-red-400"
-                            }`}>
+                            <div className={clasesMargen}>
                               <span className="text-base">{rentable ? "✓" : "✗"}</span>
-                              <span className="text-base">{margen > 0 ? '+' : ''}{margen.toLocaleString()}€</span>
+                              <span className="text-xs font-bold">{margen > 0 ? '+' : ''}{margen.toLocaleString()}€</span>
+                              {margenDesdePuja !== null && (
+                                <span className="text-[10px] text-muted-foreground">
+                                  Puja Máx = {margenDesdePuja > 0 ? '+' : ''}{margenDesdePuja.toLocaleString()}€
+                                </span>
+                              )}
                             </div>
                           ) : (
                             <Badge variant="outline" className="w-full text-[10px]">-</Badge>
