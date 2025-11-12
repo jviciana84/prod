@@ -404,7 +404,12 @@ export default function DashboardSidebar({ roles }: DashboardSidebarProps) {
           isExpanded={isExpanded}
         />
 
-        {(roles.includes("admin") || roles.includes("Director") || roles.includes("Supervisor")) && (
+        {(() => {
+          const normalizedRoles = roles.map((role) => role.toLowerCase())
+          return normalizedRoles.some((role) =>
+            role === "admin" || role === "director" || role === "supervisor"
+          )
+        })() && (
           <SidebarItem
             href="/dashboard/reports"
             icon={<BarChart className="h-5 w-5" />}

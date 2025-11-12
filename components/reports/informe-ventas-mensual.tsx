@@ -1,12 +1,13 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { createClientComponentClient } from "@/lib/supabase/client-singleton"
+import { createClientComponentClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import {
   BarChart,
   Bar,
@@ -36,9 +37,10 @@ import {
   CreditCard,
   Percent,
   Calendar,
-  Target
+  Target,
+  AlertTriangle
 } from "lucide-react"
-import { format, subMonths, startOfMonth, endOfMonth, parseISO, getMonth, getYear, startOfWeek, endOfWeek } from "date-fns"
+import { format, subMonths, startOfMonth, endOfMonth, parseISO, getMonth, getYear, startOfWeek, endOfWeek, getISOWeek } from "date-fns"
 import { es } from "date-fns/locale"
 import { CalendarioSemanalSelector } from "./calendario-semanal-selector"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -484,12 +486,21 @@ export function InformeVentasMensual() {
     setRefreshing(false)
   }
 
-  const handleVistaChange = (vista: "mensual" | "semanal") => {
+  const handleVistaChange = async (vista: "mensual" | "semanal") => {
     setVistaActual(vista)
+
     if (vista === "mensual") {
       setSemanaSeleccionada(null)
       cargarDatos()
+      return
     }
+
+    const ahora = new Date()
+    const inicio = startOfWeek(ahora, { weekStartsOn: 1 })
+    const fin = endOfWeek(ahora, { weekStartsOn: 1 })
+    const numeroSemana = getISOWeek(ahora)
+
+    await handleSemanaSeleccionada(inicio, fin, numeroSemana)
   }
 
   const exportarDatos = () => {
@@ -532,23 +543,8 @@ export function InformeVentasMensual() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {[...Array(4)].map((_, i) => (
-            <Card key={i}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  <Skeleton className="h-4 w-24" />
-                </CardTitle>
-                <Skeleton className="h-4 w-4" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-8 w-16" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        <Skeleton className="h-96 w-full" />
+      <div className="flex justify-center py-16">
+        <BMWMSpinner size={48} />
       </div>
     )
   }
