@@ -56,13 +56,13 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   section: {
-    marginBottom: 18,
+    marginBottom: 14,
   },
   sectionTitle: {
     fontSize: 11,
     fontWeight: 700,
     color: "#1d4ed8",
-    marginBottom: 12,
+    marginBottom: 10,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
@@ -81,12 +81,12 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 8,
     backgroundColor: "#f8fafc",
-    minWidth: 160,
+    minWidth: 140,
   },
   miniLabel: {
-    fontSize: 8,
+    fontSize: 6,
     color: "#64748b",
-    marginBottom: 4,
+    marginBottom: 1,
     textTransform: "uppercase",
   },
   miniValue: {
@@ -95,19 +95,19 @@ const styles = StyleSheet.create({
     color: "#0f172a",
   },
   miniDescription: {
-    fontSize: 8,
+    fontSize: 6,
     color: "#94a3b8",
-    marginTop: 3,
+    marginTop: 2,
   },
   chartRow: {
     flexDirection: "row",
-    gap: 10,
+    gap: 6,
     alignItems: "stretch",
     justifyContent: "space-between",
   },
   chartBox: {
     flex: 1,
-    minHeight: 110,
+    minHeight: 100,
     border: "1 solid #e2e8f0",
     borderRadius: 8,
     padding: 8,
@@ -117,16 +117,16 @@ const styles = StyleSheet.create({
   chartBoxFull: {
     border: "1 solid #e2e8f0",
     borderRadius: 8,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     backgroundColor: "#f8fafc",
     alignItems: "stretch",
     width: "100%",
   },
   chartTitle: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: 700,
-    marginBottom: 8,
+    marginBottom: 4,
     color: "#0f172a",
     textTransform: "uppercase",
     letterSpacing: 0.4,
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
     fontWeight: 700,
   },
   legend: {
-    marginTop: 6,
+    marginTop: 4,
     gap: 6,
     alignSelf: "stretch",
   },
@@ -173,11 +173,11 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   legendLabel: {
-    fontSize: 8,
+    fontSize: 7,
     color: "#475569",
   },
   legendValue: {
-    fontSize: 8,
+    fontSize: 7,
     color: "#111827",
     fontWeight: 600,
   },
@@ -273,12 +273,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   asesorRank: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     backgroundColor: "#1d4ed8",
     color: "#ffffff",
-    fontSize: 9,
+    fontSize: 6,
     fontWeight: 700,
     textAlign: "center",
     justifyContent: "center",
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#e2e8f0",
   },
   asesorRankLabel: {
-    fontSize: 8,
+    fontSize: 6,
     fontWeight: 700,
     color: "#ffffff",
   },
@@ -304,14 +304,14 @@ const styles = StyleSheet.create({
   asesorMetrics: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 10,
   },
   asesorSales: {
     fontSize: 7,
     color: "#64748b",
   },
   asesorRevenue: {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: 600,
     color: "#1f2937",
   },
@@ -535,10 +535,10 @@ const BarChart = ({
     return <Text style={[styles.muted, { fontSize: 9 }]}>Sin datos disponibles.</Text>
   }
  
-  const width = 210
-  const height = 110
-  const paddingX = 30
-  const paddingY = 18
+  const width = 200
+  const height = 100
+  const paddingX = 28
+  const paddingY = 16
   const chartWidth = width - paddingX * 2
   const chartHeight = height - paddingY * 2
   const barWidth = chartWidth / Math.max(data.length, 1)
@@ -604,9 +604,9 @@ const HorizontalBarChart = ({
     return <Text style={[styles.muted, { fontSize: 9 }]}>Sin datos disponibles.</Text>
   }
  
-  const width = 220
-  const height = 140
-  const paddingX = 32
+  const width = 210
+  const height = 130
+  const paddingX = 30
   const paddingY = 14
   const chartWidth = width - paddingX * 2
   const barGap = 10
@@ -659,7 +659,7 @@ const describeArc = (x: number, y: number, radius: number, startAngle: number, e
 
 const PieChart = ({
   data,
-  size = 140,
+  size = 130,
   showLegend = true,
   legendLayout = "column",
   valueFormatter,
@@ -817,11 +817,7 @@ export const InformeVentasPDF = ({ periodoLabel, vista, estadisticas, ventas, lo
   ]
 
   const provinciasDetalle = (estadisticas.ventasPorProvincia ?? []).slice(0, 12)
-  const topAsesoresRaw = estadisticas.topAsesores ?? []
-  const topAsesoresSlice = topAsesoresRaw.slice(0, 10)
-  const topAsesores = topAsesoresSlice.length >= 10
-    ? topAsesoresSlice
-    : [...topAsesoresSlice, ...Array.from({ length: 10 - topAsesoresSlice.length }).map(() => ({ advisor: "—", ventas: 0, ingresos: 0 }))]
+  const topAsesores = (estadisticas.topAsesores ?? []).slice(0, 10)
   const basePages = 3
   const totalPaginas = basePages + ventasChunks.length
 
@@ -900,7 +896,7 @@ export const InformeVentasPDF = ({ periodoLabel, vista, estadisticas, ventas, lo
                       </Text>
                     </View>
                     <View>
-                      <Text style={styles.asesorName}>{truncateText(asesor.advisor ?? "Sin datos", 28)}</Text>
+                      <Text style={styles.asesorName}>{truncateText(asesor.advisor ?? "Sin datos", 24)}</Text>
                       <Text style={styles.asesorSales}>
                         Ventas: {(asesor.ventas ?? 0).toLocaleString("es-ES")}
                       </Text>
