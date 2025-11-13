@@ -8,6 +8,8 @@ export const metadata: Metadata = {
   description: "Gestión de incentivos del sistema",
 }
 
+export const dynamic = "force-dynamic"
+
 export default async function IncentivosPage({
   searchParams,
 }: {
