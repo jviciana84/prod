@@ -4,6 +4,7 @@ export interface VentaMensual {
   model: string
   brand?: string
   sale_date: string
+  order_date?: string
   advisor: string
   advisor_name?: string
   price?: number
@@ -41,6 +42,26 @@ export interface EstadisticasVentas {
       ingresos: number
     }>
   }>
+  objetivos?: ObjetivosReporte
+}
+
+export interface ObjetivoMetric {
+  actual: number
+  objetivo: number
+  tipo: "unidades" | "porcentaje"
+}
+
+export interface ObjetivosConcesion {
+  nombre: string
+  ventaBMW: ObjetivoMetric
+  ventaMINI: ObjetivoMetric
+  penetracionFinanciera: ObjetivoMetric
+}
+
+export interface ObjetivosReporte {
+  periodoLabel: string
+  year: number
+  concesiones: ObjetivosConcesion[]
 }
 
 export interface VentaGeografica {

@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
+import { pdf } from "@react-pdf/renderer"
 import { createClientComponentClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -44,12 +45,14 @@ import { format, subMonths, startOfMonth, endOfMonth, parseISO, getMonth, getYea
 import { es } from "date-fns/locale"
 import { CalendarioSemanalSelector } from "./calendario-semanal-selector"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { MapaEspanaSVGReal } from "./mapa-espana-svg-real"
 import { MapaDebug } from "./mapa-debug"
-import type { VentaMensual, EstadisticasVentas } from "@/types/ventas"
+import type { VentaMensual, EstadisticasVentas, ObjetivosReporte, ObjetivosConcesion } from "@/types/ventas"
+import { InformeVentasPDF } from "./pdf/informe-ventas-pdf"
 
 // Colores para los gráficos
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d", "#ff6b6b", "#4ecdc4"]
@@ -161,23 +164,95 @@ export function InformeVentasMensual() {
   const [showDebug, setShowDebug] = useState(false)
   const [ventas, setVentas] = useState<VentaMensual[]>([])
   const [estadisticas, setEstadisticas] = useState<EstadisticasVentas | null>(null)
+  const [objetivos, setObjetivos] = useState<ObjetivosReporte | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [mesSeleccionado, setMesSeleccionado] = useState<string>(format(new Date(), "yyyy-MM"))
   const [refreshing, setRefreshing] = useState(false)
   const [tipoGrafico, setTipoGrafico] = useState<"barras" | "circular" | "linea" | "area">("barras")
+  const [descargandoPDF, setDescargandoPDF] = useState(false)
   
   // Estados para vista semanal
   const [vistaActual, setVistaActual] = useState<"mensual" | "semanal">("mensual")
   const [semanaSeleccionada, setSemanaSeleccionada] = useState<{ inicio: Date; fin: Date; numero: number } | null>(null)
+  const [provinciaExpandida, setProvinciaExpandida] = useState<string | null>(null)
 
   const supabase = createClientComponentClient()
 
+  const getQuarterInfoFromMes = useCallback((mesString: string) => {
+    const [yearString, monthString] = mesString.split("-")
+    const year = Number(yearString)
+    const monthIndex = Number(monthString) - 1
+
+    if (Number.isNaN(year) || Number.isNaN(monthIndex)) {
+      const now = new Date()
+      return {
+        year: now.getFullYear(),
+        periodoLabel: "Q1 (Ene-Mar)",
+        startDate: startOfMonth(new Date(now.getFullYear(), 0, 1)),
+        endDate: endOfMonth(new Date(now.getFullYear(), 2, 1)),
+        displayLabel: "Enero - Marzo",
+      }
+    }
+
+    if (monthIndex >= 0 && monthIndex <= 2) {
+      return {
+        year,
+        periodoLabel: "Q1 (Ene-Mar)",
+        startDate: new Date(year, 0, 1),
+        endDate: new Date(year, 2, 31, 23, 59, 59, 999),
+        displayLabel: "Enero - Marzo",
+      }
+    }
+    if (monthIndex >= 3 && monthIndex <= 5) {
+      return {
+        year,
+        periodoLabel: "Q2 (Abr-Jun)",
+        startDate: new Date(year, 3, 1),
+        endDate: new Date(year, 5, 30, 23, 59, 59, 999),
+        displayLabel: "Abril - Junio",
+      }
+    }
+    if (monthIndex >= 6 && monthIndex <= 8) {
+      return {
+        year,
+        periodoLabel: "Q3 (Jul-Sep)",
+        startDate: new Date(year, 6, 1),
+        endDate: new Date(year, 8, 30, 23, 59, 59, 999),
+        displayLabel: "Julio - Septiembre",
+      }
+    }
+    return {
+      year,
+      periodoLabel: "Q4 (Oct-Dic)",
+      startDate: new Date(year, 9, 1),
+      endDate: new Date(year, 11, 31, 23, 59, 59, 999),
+      displayLabel: "Octubre - Diciembre",
+    }
+  }, [])
+
   const getFechasMes = useCallback((mesString: string) => {
     const [year, month] = mesString.split("-").map(Number)
-    const fechaInicio = startOfMonth(new Date(year, month - 1))
-    const fechaFin = endOfMonth(new Date(year, month - 1))
+    const fechaInicio = startOfMonth(new Date(year, (month ?? 1) - 1))
+    const fechaFin = endOfMonth(new Date(year, (month ?? 1) - 1))
     return { fechaInicio, fechaFin }
+  }, [])
+
+  const imageUrlToBase64 = useCallback(async (url: string) => {
+    try {
+      const response = await fetch(url)
+      if (!response.ok) throw new Error(`Estado ${response.status}`)
+      const blob = await response.blob()
+      return await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result as string)
+        reader.onerror = () => reject(reader.error)
+        reader.readAsDataURL(blob)
+      })
+    } catch (error) {
+      console.warn("No se pudo cargar logo desde", url)
+      return undefined
+    }
   }, [])
 
   const fetchVentasMensual = async (mesString: string) => {
@@ -197,6 +272,7 @@ export function InformeVentasMensual() {
           model,
           brand,
           sale_date,
+          order_date,
           advisor,
           advisor_name,
           price,
@@ -209,17 +285,22 @@ export function InformeVentasMensual() {
           vehicle_type,
           created_at
         `)
-        .gte("sale_date", fechaInicio.toISOString())
-        .lte("sale_date", fechaFin.toISOString())
-        .order("sale_date", { ascending: false })
+        .gte("order_date", fechaInicio.toISOString())
+        .lte("order_date", fechaFin.toISOString())
+        .order("order_date", { ascending: false })
 
       if (error) {
         throw new Error(`Error al obtener ventas: ${error.message}`)
       }
 
       console.log(`📊 Ventas encontradas: ${ventasData?.length || 0}`)
-      setVentas(ventasData || [])
-      return ventasData || []
+      const normalizadas = (ventasData ?? []).map((venta) => ({
+        ...venta,
+        sale_date: venta.sale_date ?? venta.order_date ?? venta.created_at,
+      }))
+
+      setVentas(normalizadas)
+      return normalizadas
     } catch (error: any) {
       console.error("Error al cargar ventas:", error)
       setError(error.message)
@@ -245,6 +326,7 @@ export function InformeVentasMensual() {
           model,
           brand,
           sale_date,
+          order_date,
           advisor,
           advisor_name,
           price,
@@ -257,17 +339,22 @@ export function InformeVentasMensual() {
           vehicle_type,
           created_at
         `)
-        .gte("sale_date", inicio.toISOString())
-        .lte("sale_date", fin.toISOString())
-        .order("sale_date", { ascending: false })
+        .gte("order_date", inicio.toISOString())
+        .lte("order_date", fin.toISOString())
+        .order("order_date", { ascending: false })
 
       if (error) {
         throw new Error(`Error al obtener ventas: ${error.message}`)
       }
 
       console.log(`📊 Ventas encontradas: ${ventasData?.length || 0}`)
-      setVentas(ventasData || [])
-      return ventasData || []
+      const normalizadas = (ventasData ?? []).map((venta) => ({
+        ...venta,
+        sale_date: venta.sale_date ?? venta.order_date ?? venta.created_at,
+      }))
+
+      setVentas(normalizadas)
+      return normalizadas
     } catch (error: any) {
       console.error("Error al cargar ventas:", error)
       setError(error.message)
@@ -276,6 +363,91 @@ export function InformeVentasMensual() {
       setLoading(false)
     }
   }
+
+  const fetchObjetivosPeriodo = useCallback(
+    async (mesString: string) => {
+      try {
+        const { year, periodoLabel, startDate, endDate, displayLabel } = getQuarterInfoFromMes(mesString)
+
+        const { data: salesObjectivesData, error: salesObjectivesError } = await supabase
+          .from("sales_quarterly_objectives")
+          .select("concesionario, marca, periodo_label, año, objetivo")
+          .eq("año", year)
+          .eq("periodo_label", periodoLabel)
+
+        if (salesObjectivesError) throw salesObjectivesError
+
+        const { data: financialObjectivesData, error: financialObjectivesError } = await supabase
+          .from("financial_penetration_objectives")
+          .select("concesionario, año, objetivo_porcentaje")
+          .eq("año", year)
+
+        if (financialObjectivesError) throw financialObjectivesError
+
+        const { data: actualSalesData, error: actualSalesError } = await supabase
+          .from("sales_vehicles")
+          .select("brand, payment_method, vehicle_type, dealership_code")
+          .gte("order_date", startDate.toISOString())
+          .lte("order_date", endDate.toISOString())
+
+        if (actualSalesError) throw actualSalesError
+
+        const salesObjectivesMap = new Map<string, number>()
+        salesObjectivesData?.forEach((item) => {
+          salesObjectivesMap.set(
+            `${item.concesionario}-${item.marca}-${item.periodo_label}-${item.año}`,
+            Number(item.objetivo ?? 0),
+          )
+        })
+
+        const financialObjectivesMap = new Map<string, number>()
+        financialObjectivesData?.forEach((item) => {
+          financialObjectivesMap.set(`${item.concesionario}-${item.año}`, Number(item.objetivo_porcentaje ?? 0))
+        })
+
+        const CONCESIONARIO_MAP: Record<string, { codigo: string; nombre: string }> = {
+          "Quadis Munich": { codigo: "QM", nombre: "Quadis Munich" },
+        }
+
+        const concesiones: ObjetivosConcesion[] = []
+
+        Object.values(CONCESIONARIO_MAP).forEach(({ codigo, nombre }) => {
+          const ventasConcesionario = (actualSalesData ?? []).filter(
+            (venta) => venta.dealership_code === codigo && venta.vehicle_type !== "Moto",
+          )
+
+          const bmwActual = ventasConcesionario.filter((venta) => venta.brand?.toLowerCase().includes("bmw")).length
+          const miniActual = ventasConcesionario.filter((venta) => venta.brand?.toLowerCase().includes("mini")).length
+          const totalActual = bmwActual + miniActual
+          const financiadas = ventasConcesionario.filter((venta) =>
+            venta.payment_method?.toLowerCase().includes("financiad"),
+          ).length
+          const penetrationActual = totalActual > 0 ? (financiadas / totalActual) * 100 : 0
+
+          const objetivoBMW = salesObjectivesMap.get(`${nombre}-BMW-${periodoLabel}-${year}`) ?? 0
+          const objetivoMINI = salesObjectivesMap.get(`${nombre}-MINI-${periodoLabel}-${year}`) ?? 0
+          const objetivoPenetracion = financialObjectivesMap.get(`${nombre}-${year}`) ?? 0
+
+          concesiones.push({
+            nombre,
+            ventaBMW: { actual: bmwActual, objetivo: objetivoBMW, tipo: "unidades" },
+            ventaMINI: { actual: miniActual, objetivo: objetivoMINI, tipo: "unidades" },
+            penetracionFinanciera: {
+              actual: Number(penetrationActual.toFixed(1)),
+              objetivo: objetivoPenetracion,
+              tipo: "porcentaje",
+            },
+          })
+        })
+
+        setObjetivos({ periodoLabel: `${displayLabel}`, year, concesiones })
+      } catch (err) {
+        console.error("Error al cargar objetivos para PDF:", err)
+        setObjetivos(null)
+      }
+    },
+    [getQuarterInfoFromMes, supabase],
+  )
 
   const calcularEstadisticas = useCallback((ventasData: VentaMensual[]) => {
     if (!ventasData || ventasData.length === 0) {
@@ -462,9 +634,10 @@ export function InformeVentasMensual() {
     const ventasData = await fetchVentasMensual(mesSeleccionado)
     const stats = calcularEstadisticas(ventasData)
     setEstadisticas(stats)
+    fetchObjetivosPeriodo(mesSeleccionado)
     
     setRefreshing(false)
-  }, [mesSeleccionado, calcularEstadisticas])
+  }, [mesSeleccionado, calcularEstadisticas, fetchObjetivosPeriodo])
 
   useEffect(() => {
     cargarDatos()
@@ -493,7 +666,7 @@ export function InformeVentasMensual() {
       setSemanaSeleccionada(null)
       cargarDatos()
       return
-    }
+  }
 
     const ahora = new Date()
     const inicio = startOfWeek(ahora, { weekStartsOn: 1 })
@@ -503,43 +676,73 @@ export function InformeVentasMensual() {
     await handleSemanaSeleccionada(inicio, fin, numeroSemana)
   }
 
-  const exportarDatos = () => {
-    if (!ventas.length) return
+  const periodoLabel = useMemo(() => {
+    if (vistaActual === "semanal" && semanaSeleccionada) {
+      const inicio = format(semanaSeleccionada.inicio, "d MMMM", { locale: es })
+      const fin = format(semanaSeleccionada.fin, "d MMMM yyyy", { locale: es })
+      return `Semana ${semanaSeleccionada.numero}: ${inicio} - ${fin}`
+    }
 
-    const csvContent = [
-      // Headers
-      ["Matrícula", "Modelo", "Marca", "Fecha Venta", "Asesor", "Precio", "Método Pago", "Cliente", "Código Postal", "Provincia", "Descuento"].join(","),
-      // Data
-      ...ventas.map(venta => [
-        venta.license_plate,
-        venta.model,
-        venta.brand || "",
-        format(parseISO(venta.sale_date), "dd/MM/yyyy"),
-        venta.advisor_name || venta.advisor,
-        venta.price || 0,
-        venta.payment_method,
-        venta.client_name || "",
-        venta.client_postal_code || "",
-        normalizarProvincia(venta.client_province || ""),
-        venta.discount || ""
-      ].join(","))
-    ].join("\n")
+    if (vistaActual === "mensual" && mesSeleccionado) {
+      const fecha = parseISO(`${mesSeleccionado}-01`)
+      const etiqueta = format(fecha, "MMMM yyyy", { locale: es })
+      return etiqueta.charAt(0).toUpperCase() + etiqueta.slice(1)
+    }
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
-    const link = document.createElement("a")
-    const url = URL.createObjectURL(blob)
-    link.setAttribute("href", url)
+    return "Periodo no especificado"
+  }, [vistaActual, semanaSeleccionada, mesSeleccionado])
+
+  const handleDescargarPDF = useCallback(async () => {
+    if (!estadisticas || !ventas.length) return
+
+    try {
+      setDescargandoPDF(true)
+      const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://controlvo.ovh"
+      const logoCandidates = [
+        `${baseUrl}/images/quadis-munich.jpg`,
+        `${baseUrl}/images/quadis-munich.JPG`,
+        `${baseUrl}/images/quadis-munich.jpeg`,
+        `${baseUrl}/images/quadis-munich.png`,
+      ]
+      let logoBase64: string | undefined
+      for (const path of logoCandidates) {
+        const candidate = await imageUrlToBase64(path)
+        if (candidate?.startsWith("data:image")) {
+          logoBase64 = candidate
+          break
+        }
+      }
+
+      const blob = await pdf(
+        <InformeVentasPDF
+          periodoLabel={periodoLabel}
+          vista={vistaActual}
+          estadisticas={estadisticas}
+          ventas={ventas}
+          objetivos={objetivos}
+          logoBase64={logoBase64}
+        />,
+      ).toBlob()
     
-    const nombreArchivo = vistaActual === "mensual" 
-      ? `ventas_mensual_${mesSeleccionado}.csv`
-      : `ventas_semanal_semana${semanaSeleccionada?.numero || 'X'}.csv`
+      const nombreArchivo =
+        vistaActual === "mensual"
+          ? `informe_ventas_${mesSeleccionado}.pdf`
+          : `informe_ventas_semana_${semanaSeleccionada?.numero ?? "actual"}.pdf`
     
-    link.setAttribute("download", nombreArchivo)
-    link.style.visibility = "hidden"
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.href = url
+      link.download = nombreArchivo
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
-  }
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error("Error al generar el PDF de ventas:", error)
+    } finally {
+      setDescargandoPDF(false)
+    }
+  }, [estadisticas, ventas, periodoLabel, vistaActual, mesSeleccionado, semanaSeleccionada, objetivos, imageUrlToBase64])
 
   if (loading) {
     return (
@@ -617,9 +820,14 @@ export function InformeVentasMensual() {
             <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
             Actualizar
           </Button>
-          <Button onClick={exportarDatos} disabled={!ventas.length} variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            Exportar CSV
+          <Button
+            onClick={handleDescargarPDF}
+            disabled={!ventas.length || !estadisticas || descargandoPDF}
+            variant="outline"
+            size="sm"
+          >
+            <Download className={`h-4 w-4 mr-2 ${descargandoPDF ? "animate-spin" : ""}`} />
+            {descargandoPDF ? "Generando PDF..." : "Descargar PDF"}
           </Button>
         </div>
       </div>
@@ -829,7 +1037,17 @@ export function InformeVentasMensual() {
                 </div>
               </CardHeader>
               <CardContent className="flex-1 min-h-0 p-6">
-                {showDebug ? <MapaDebug /> : <MapaEspanaSVGReal />}
+                {showDebug ? (
+                  <MapaDebug />
+                ) : (
+                  <MapaEspanaSVGReal
+                    datos={estadisticas?.datosGeograficos || []}
+                    mesSeleccionado={vistaActual === "mensual" ? mesSeleccionado : null}
+                    onMesChange={vistaActual === "mensual" ? handleMesChange : undefined}
+                    esVistaSemanal={vistaActual === "semanal"}
+                    semanaSeleccionada={semanaSeleccionada}
+                  />
+                )}
               </CardContent>
             </Card>
 
@@ -840,29 +1058,86 @@ export function InformeVentasMensual() {
                 <CardDescription>Distribución detallada de ventas por provincia</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4 max-h-[620px] overflow-y-auto">
-                  {estadisticas?.ventasPorProvincia.map((provincia, index) => (
-                    <div key={provincia.provincia} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">
+                <Accordion
+                  type="single"
+                  collapsible
+                  value={provinciaExpandida ?? undefined}
+                  onValueChange={(value) => setProvinciaExpandida(value || null)}
+                  className="space-y-2 max-h-[620px] overflow-y-auto pr-1"
+                >
+                  {estadisticas?.ventasPorProvincia.map((provincia, index) => {
+                    const ventasProvincia = ventas.filter(
+                      (venta) =>
+                        normalizarProvincia(venta.client_province || "Sin provincia") === provincia.provincia,
+                    )
+
+                    return (
+                      <AccordionItem
+                        key={provincia.provincia}
+                        value={provincia.provincia}
+                        className="rounded-lg border border-border bg-card text-card-foreground"
+                      >
+                        <AccordionTrigger className="px-3 py-2 hover:no-underline data-[state=open]:border-b data-[state=open]:bg-muted/40 rounded-lg">
+                          <div className="flex w-full items-center justify-between gap-4">
                       <div className="flex items-center gap-3">
-                        <Badge variant={index < 3 ? "default" : "secondary"}>
+                              <Badge variant={index < 3 ? "default" : "secondary"} className="shrink-0">
                           #{index + 1}
                         </Badge>
-                        <span className="font-medium">{provincia.provincia}</span>
+                              <span className="font-medium text-left">{provincia.provincia}</span>
                       </div>
-                      <div className="flex items-center gap-4">
-                        <span className="text-sm text-muted-foreground">
-                          {provincia.cantidad} ventas
-                        </span>
+                            <div className="flex items-center gap-4 text-sm">
+                              <span className="text-muted-foreground">{provincia.cantidad} ventas</span>
                         <span className="font-medium">
                           {provincia.ingresos.toLocaleString("es-ES", {
                             style: "currency",
-                            currency: "EUR"
+                                  currency: "EUR",
                           })}
                         </span>
                       </div>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="px-3 pb-3">
+                          {ventasProvincia.length ? (
+                            <div className="rounded-md border border-border text-xs">
+                              <div className="grid grid-cols-[minmax(0,0.9fr)_minmax(0,1.4fr)_minmax(0,1.1fr)_minmax(0,0.9fr)] items-center gap-2 bg-muted/40 px-3 py-2 font-semibold">
+                                <span>Matrícula</span>
+                                <span>Modelo</span>
+                                <span>Asesor</span>
+                                <span className="text-right">Precio</span>
+                              </div>
+                              <div className="divide-y divide-border">
+                                {ventasProvincia.map((venta) => (
+                                  <div
+                                    key={venta.id}
+                                    className="grid grid-cols-[minmax(0,0.9fr)_minmax(0,1.4fr)_minmax(0,1.1fr)_minmax(0,0.9fr)] items-center gap-2 px-3 py-2"
+                                  >
+                                    <span className="font-medium truncate" title={venta.license_plate || undefined}>
+                                      {venta.license_plate || "—"}
+                                    </span>
+                                    <span className="truncate" title={venta.model || undefined}>
+                                      {venta.model || "—"}
+                                    </span>
+                                    <span className="truncate" title={venta.advisor_name || venta.advisor || undefined}>
+                                      {venta.advisor_name || venta.advisor || "—"}
+                                    </span>
+                                    <span className="text-right whitespace-nowrap">
+                                      {venta.price?.toLocaleString("es-ES", {
+                                        style: "currency",
+                                        currency: "EUR",
+                                      }) ?? "—"}
+                                    </span>
                     </div>
                   ))}
                 </div>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">No hay detalle disponible para esta provincia.</p>
+                          )}
+                        </AccordionContent>
+                      </AccordionItem>
+                    )
+                  })}
+                </Accordion>
               </CardContent>
             </Card>
           </div>
