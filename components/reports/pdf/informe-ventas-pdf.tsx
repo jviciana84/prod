@@ -2,7 +2,7 @@
 
 import React from "react"
 import {
-  Document as PDFDocument,
+  Document,
   Page,
   Path,
   Rect,
@@ -10,8 +10,9 @@ import {
   StyleSheet,
   Text,
   View,
+  Image,
 } from "@react-pdf/renderer"
-import type { EstadisticasVentas, VentaMensual } from "@/types/ventas"
+import type { EstadisticasVentas, VentaMensual, ObjetivosReporte, ObjetivoMetric } from "@/types/ventas"
 import { pathsProvincias } from "../mapa-final-data"
 import { preciseProvinceMapping } from "../precise-mapping"
 
@@ -26,6 +27,7 @@ interface InformeVentasPDFProps {
   vista: "mensual" | "semanal"
   estadisticas: EstadisticasVentas
   ventas: VentaMensual[]
+  objetivos?: ObjetivosReporte | null
   logoBase64?: string
 }
 
@@ -43,6 +45,20 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     marginBottom: 20,
   },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  headerTextBlock: {
+    flex: 1,
+  },
+  headerLogo: {
+    width: 90,
+    height: 40,
+    objectFit: "contain",
+  },
   title: {
     fontSize: 18,
     fontWeight: 700,
@@ -56,20 +72,20 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   section: {
-    marginBottom: 14,
+    marginBottom: 18,
   },
   sectionTitle: {
     fontSize: 11,
     fontWeight: 700,
     color: "#1d4ed8",
-    marginBottom: 10,
+    marginBottom: 14,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   miniCardRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
+    gap: 12,
     justifyContent: "space-between",
     marginTop: 2,
   },
@@ -78,39 +94,39 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     border: "1 solid #e2e8f0",
     borderRadius: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     backgroundColor: "#f8fafc",
-    minWidth: 140,
+    minWidth: 180,
   },
   miniLabel: {
-    fontSize: 6,
+    fontSize: 8,
     color: "#64748b",
-    marginBottom: 1,
+    marginBottom: 4,
     textTransform: "uppercase",
   },
   miniValue: {
-    fontSize: 12,
+    fontSize: 15,
     fontWeight: 700,
     color: "#0f172a",
   },
   miniDescription: {
-    fontSize: 6,
+    fontSize: 8,
     color: "#94a3b8",
-    marginTop: 2,
+    marginTop: 6,
   },
   chartRow: {
     flexDirection: "row",
-    gap: 6,
+    gap: 8,
     alignItems: "stretch",
     justifyContent: "space-between",
   },
   chartBox: {
     flex: 1,
-    minHeight: 100,
+    minHeight: 120,
     border: "1 solid #e2e8f0",
     borderRadius: 8,
-    padding: 8,
+    padding: 10,
     backgroundColor: "#f8fafc",
     alignItems: "stretch",
   },
@@ -124,9 +140,9 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   chartTitle: {
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: 700,
-    marginBottom: 4,
+    marginBottom: 10,
     color: "#0f172a",
     textTransform: "uppercase",
     letterSpacing: 0.4,
@@ -149,7 +165,7 @@ const styles = StyleSheet.create({
     fontWeight: 700,
   },
   legend: {
-    marginTop: 4,
+    marginTop: 10,
     gap: 6,
     alignSelf: "stretch",
   },
@@ -173,12 +189,58 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   legendLabel: {
-    fontSize: 7,
+    fontSize: 8,
     color: "#475569",
   },
   legendValue: {
-    fontSize: 7,
+    fontSize: 8,
     color: "#111827",
+    fontWeight: 600,
+  },
+  objetivosWrapper: {
+    border: "1 solid #e2e8f0",
+    borderRadius: 8,
+    padding: 8,
+    backgroundColor: "#f8fafc",
+    gap: 8,
+  },
+  objetivosConcesion: {
+    border: "1 solid #dbeafe",
+    borderRadius: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    backgroundColor: "#ffffff",
+    marginBottom: 4,
+  },
+  objetivosConcesionHeader: {
+    fontSize: 8,
+    fontWeight: 700,
+    color: "#1d4ed8",
+    marginBottom: 4,
+  },
+  objetivoRow: {
+    marginBottom: 4,
+  },
+  objetivoRowHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 1,
+  },
+  objetivoRowLabels: {
+    fontSize: 7,
+    fontWeight: 600,
+    color: "#1f2937",
+  },
+  objetivoRowValues: {
+    fontSize: 6,
+    color: "#475569",
+  },
+  objetivoProgress: {
+    marginTop: 2,
+  },
+  objetivoDiff: {
+    fontSize: 7,
     fontWeight: 600,
   },
   mapContainer: {
@@ -253,7 +315,7 @@ const styles = StyleSheet.create({
   asesorList: {
     width: "100%",
     border: "1 solid #e2e8f0",
-    borderRadius: 8,
+    borderRadius: 6,
     overflow: "hidden",
   },
   asesorRow: {
@@ -278,7 +340,7 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     backgroundColor: "#1d4ed8",
     color: "#ffffff",
-    fontSize: 6,
+    fontSize: 8,
     fontWeight: 700,
     textAlign: "center",
     justifyContent: "center",
@@ -288,7 +350,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#e2e8f0",
   },
   asesorRankLabel: {
-    fontSize: 6,
+    fontSize: 7,
     fontWeight: 700,
     color: "#ffffff",
   },
@@ -296,15 +358,15 @@ const styles = StyleSheet.create({
     color: "#1d4ed8",
   },
   asesorName: {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: 600,
     color: "#1f2937",
-    maxWidth: 140,
+    maxWidth: 150,
   },
   asesorMetrics: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 12,
   },
   asesorSales: {
     fontSize: 7,
@@ -479,6 +541,44 @@ const formatTimestamp = () => {
   return `${fecha} ${hora}`
 }
 
+const renderObjetivoProgress = (metric: ObjetivoMetric) => {
+  const width = 150
+  const height = 6
+  const maxValue = metric.tipo === "porcentaje" ? 100 : Math.max(100, metric.actual, metric.objetivo)
+  const actualRatio = Math.max(0, Math.min(metric.actual / maxValue, 1))
+  const objetivoRatio = Math.max(0, Math.min(metric.objetivo / maxValue, 1))
+  const actualWidth = actualRatio * width
+  const objetivoX = objetivoRatio * width
+
+  return (
+    <Svg width={width} height={height + 5} style={styles.objetivoProgress}>
+      <Rect x={0} y={3} width={width} height={height} fill="#e2e8f0" rx={2} />
+      <Rect x={0} y={3} width={actualWidth} height={height} fill="#3b82f6" rx={2} />
+      <Rect x={objetivoX - 1} y={2} width={2} height={height + 2} fill="#facc15" rx={1} />
+    </Svg>
+  )
+}
+
+const renderObjetivoRow = (label: string, metric: ObjetivoMetric) => {
+  const diff = metric.actual - metric.objetivo
+  const diffLabel = `${diff >= 0 ? "+" : ""}${metric.tipo === "porcentaje" ? diff.toFixed(1) : diff.toFixed(0)}`
+  const diffColor = diff >= 0 ? "#166534" : "#b91c1c"
+
+  return (
+    <View style={styles.objetivoRow}>
+      <View style={styles.objetivoRowHeader}>
+        <Text style={styles.objetivoRowLabels}>{label}</Text>
+        <Text style={[styles.objetivoRowValues, { color: diffColor }]}>Δ {diffLabel}{metric.tipo === "porcentaje" ? "%" : ""}</Text>
+      </View>
+      <View style={styles.objetivoRowHeader}>
+        <Text style={styles.objetivoRowValues}>Actual: {metric.actual.toFixed(metric.tipo === "porcentaje" ? 1 : 0)}{metric.tipo === "porcentaje" ? "%" : ""}</Text>
+        <Text style={styles.objetivoRowValues}>Objetivo: {metric.objetivo.toFixed(metric.tipo === "porcentaje" ? 1 : 0)}{metric.tipo === "porcentaje" ? "%" : ""}</Text>
+      </View>
+      {renderObjetivoProgress(metric)}
+    </View>
+  )
+}
+
 const Legend = (
   {
     data,
@@ -536,9 +636,9 @@ const BarChart = ({
   }
  
   const width = 200
-  const height = 100
-  const paddingX = 28
-  const paddingY = 16
+  const height = 120
+  const paddingX = 32
+  const paddingY = 20
   const chartWidth = width - paddingX * 2
   const chartHeight = height - paddingY * 2
   const barWidth = chartWidth / Math.max(data.length, 1)
@@ -604,10 +704,10 @@ const HorizontalBarChart = ({
     return <Text style={[styles.muted, { fontSize: 9 }]}>Sin datos disponibles.</Text>
   }
  
-  const width = 210
-  const height = 130
-  const paddingX = 30
-  const paddingY = 14
+  const width = 220
+  const height = 150
+  const paddingX = 34
+  const paddingY = 16
   const chartWidth = width - paddingX * 2
   const barGap = 10
   const barHeight = (height - paddingY * 2 - barGap * (data.length - 1)) / data.length
@@ -659,7 +759,7 @@ const describeArc = (x: number, y: number, radius: number, startAngle: number, e
 
 const PieChart = ({
   data,
-  size = 130,
+  size = 160,
   showLegend = true,
   legendLayout = "column",
   valueFormatter,
@@ -764,7 +864,7 @@ const MapChart = ({ data }: { data?: { provincia: string; cantidad: number; ingr
   );
 }
 
-const renderFooter = (page: number, total: number, logoBase64?: string, timestamp?: string) => {
+const renderFooter = (page: number, total: number, _logoBase64?: string, timestamp?: string) => {
   return (
     <View style={styles.footer} fixed>
       <View style={styles.footerLeft}>
@@ -776,7 +876,7 @@ const renderFooter = (page: number, total: number, logoBase64?: string, timestam
   )
 }
 
-export const InformeVentasPDF = ({ periodoLabel, vista, estadisticas, ventas, logoBase64 }: InformeVentasPDFProps) => {
+export const InformeVentasPDF = ({ periodoLabel, vista, estadisticas, ventas, objetivos, logoBase64 }: InformeVentasPDFProps) => {
   const ventasChunks = chunkArray(ventas, 18)
   const timestampLabel = formatTimestamp()
 
@@ -822,13 +922,20 @@ export const InformeVentasPDF = ({ periodoLabel, vista, estadisticas, ventas, lo
   const totalPaginas = basePages + ventasChunks.length
 
   return (
-    <PDFDocument>
+    <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.title}>Informe de Ventas</Text>
-          <Text style={styles.subtitle}>
-            Periodo analizado: {periodoLabel} · Vista {vista === "mensual" ? "mensual" : "semanal"}
-          </Text>
+          <View style={styles.headerRow}>
+            <View style={styles.headerTextBlock}>
+              <Text style={styles.title}>Informe de Ventas</Text>
+              <Text style={styles.subtitle}>
+                Periodo analizado: {periodoLabel} · Vista {vista === "mensual" ? "mensual" : "semanal"}
+              </Text>
+            </View>
+            {logoBase64?.startsWith("data:image") ? (
+              <Image src={logoBase64} style={styles.headerLogo} />
+            ) : null}
+          </View>
         </View>
 
         <View style={styles.section}>
@@ -915,14 +1022,23 @@ export const InformeVentasPDF = ({ periodoLabel, vista, estadisticas, ventas, lo
           )}
         </View>
 
-        {renderFooter(1, totalPaginas, logoBase64, timestampLabel)}
-      </Page>
-
-      <Page size="A4" style={styles.page}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Asesores y Financiación</Text>
-          <Text style={styles.subtitle}>Rendimiento comercial y formas de pago</Text>
-        </View>
+        {objetivos?.concesiones?.length ? (
+          <View style={styles.section} wrap={false}>
+            <Text style={styles.sectionTitle}>
+              Objetivos de ventas · {objetivos.periodoLabel} {objetivos.year}
+            </Text>
+            <View style={[styles.objetivosWrapper, { marginTop: 4 }]} wrap={false}>
+              {objetivos.concesiones.map((concesion) => (
+                <View key={concesion.nombre} style={styles.objetivosConcesion}>
+                  <Text style={styles.objetivosConcesionHeader}>{concesion.nombre}</Text>
+                  {renderObjetivoRow("Venta BMW", concesion.ventaBMW)}
+                  {renderObjetivoRow("Venta MINI", concesion.ventaMINI)}
+                  {renderObjetivoRow("Penetración financiera", concesion.penetracionFinanciera)}
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : null}
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Métodos de pago y descuentos</Text>
@@ -956,8 +1072,15 @@ export const InformeVentasPDF = ({ periodoLabel, vista, estadisticas, ventas, lo
 
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.title}>Geografía y detalle</Text>
-          <Text style={styles.subtitle}>Distribución territorial de ventas</Text>
+          <View style={styles.headerRow}>
+            <View style={styles.headerTextBlock}>
+              <Text style={styles.title}>Asesores y Financiación</Text>
+              <Text style={styles.subtitle}>Rendimiento comercial y formas de pago</Text>
+            </View>
+            {logoBase64?.startsWith("data:image") ? (
+              <Image src={logoBase64} style={styles.headerLogo} />
+            ) : null}
+          </View>
         </View>
 
         <View style={styles.section}>
@@ -1010,10 +1133,17 @@ export const InformeVentasPDF = ({ periodoLabel, vista, estadisticas, ventas, lo
       {ventasChunks.map((chunk, chunkIndex) => (
         <Page key={`ventas-${chunkIndex}`} size="A4" style={styles.page}>
           <View style={styles.header}>
-            <Text style={styles.title}>Detalle de ventas</Text>
-            <Text style={styles.subtitle}>
-              Periodo: {periodoLabel} · Página {chunkIndex + 1} de {ventasChunks.length}
-            </Text>
+            <View style={styles.headerRow}>
+              <View style={styles.headerTextBlock}>
+                <Text style={styles.title}>Detalle de ventas</Text>
+                <Text style={styles.subtitle}>
+                  Periodo: {periodoLabel} · Página {chunkIndex + 1} de {ventasChunks.length}
+                </Text>
+              </View>
+              {logoBase64?.startsWith("data:image") ? (
+                <Image src={logoBase64} style={styles.headerLogo} />
+              ) : null}
+            </View>
           </View>
 
           <View style={styles.table}>
@@ -1081,7 +1211,7 @@ export const InformeVentasPDF = ({ periodoLabel, vista, estadisticas, ventas, lo
           {renderFooter(basePages + chunkIndex + 1, totalPaginas, logoBase64, timestampLabel)}
         </Page>
       ))}
-    </PDFDocument>
+    </Document>
   )
 }
 
