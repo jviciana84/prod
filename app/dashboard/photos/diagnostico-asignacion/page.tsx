@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 }
 
 async function getDiagnosticData() {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   try {
     // Verificar vehículo específico 7766MNB

@@ -91,7 +91,10 @@ export default function TestMapPage() {
         </p>
       </div>
 
-      <MapaEspanaSVGReal />
+      <MapaEspanaSVGReal
+        datos={datosPrueba}
+        mesSeleccionado="2025-01"
+      />
     </div>
   )
 }

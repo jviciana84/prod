@@ -99,6 +99,102 @@ function valorKmPorGama(gama: 'basica' | 'media' | 'alta'): number {
   return valores[gama]
 }
 
+type IndicadoresAvp = {
+  vdkPromedio: number | null
+  vdkValores: number[]
+  vdkParesConsiderados: number
+  trePromedio: number | null
+  treValores: number[]
+  treMuestras: number
+  pnePromedio: number | null
+}
+
+function calcularIndicadoresAvp(
+  competidores: any[],
+  fallbackVdk: number
+): IndicadoresAvp {
+  const toleranciaPrecioNuevo = 10000 // ±10k€ para comparar equipamiento
+  const minimoDiferenciaKm = 2500 // evitar pares con casi mismos KM
+
+  const candidatos = competidores
+    .map((comp: any) => {
+      const precioActual = parsePrice(comp.precio)
+      const precioNuevo = comp.precio_nuevo_original || parsePrice(comp.precio_nuevo)
+      const km = parseKm(comp.km)
+      return {
+        precioActual,
+        precioNuevo,
+        km
+      }
+    })
+    .filter(
+      (item): item is { precioActual: number; precioNuevo: number; km: number } =>
+        item.precioActual !== null &&
+        item.precioNuevo !== null &&
+        item.km !== null
+    )
+
+  const vdkValores: number[] = []
+
+  for (let i = 0; i < candidatos.length; i++) {
+    for (let j = i + 1; j < candidatos.length; j++) {
+      const a = candidatos[i]
+      const b = candidatos[j]
+      const diferenciaPrecioNuevo = Math.abs(a.precioNuevo - b.precioNuevo)
+      if (diferenciaPrecioNuevo > toleranciaPrecioNuevo) continue
+
+      const diferenciaKm = b.km - a.km
+      if (diferenciaKm === 0 || Math.abs(diferenciaKm) < minimoDiferenciaKm) continue
+
+      const diferenciaPrecioActual = b.precioActual - a.precioActual
+      const vdk = Math.abs(diferenciaPrecioActual / diferenciaKm)
+      if (!isFinite(vdk) || vdk <= 0) continue
+
+      vdkValores.push(vdk)
+    }
+  }
+
+  const vdkPromedio =
+    vdkValores.length > 0
+      ? vdkValores.reduce((sum, valor) => sum + valor, 0) / vdkValores.length
+      : fallbackVdk
+
+  const treValores: number[] = []
+  let sumaPne = 0
+  let conteoPne = 0
+
+  for (const candidato of candidatos) {
+    const pne = candidato.precioActual + candidato.km * vdkPromedio
+    if (!isFinite(pne) || pne <= 0) continue
+    sumaPne += pne
+    conteoPne++
+
+    if (candidato.precioNuevo > 0) {
+      const tre = pne / candidato.precioNuevo
+      if (isFinite(tre) && tre > 0) {
+        treValores.push(tre)
+      }
+    }
+  }
+
+  const trePromedio =
+    treValores.length > 0
+      ? treValores.reduce((sum, valor) => sum + valor, 0) / treValores.length
+      : null
+
+  const pnePromedio = conteoPne > 0 ? sumaPne / conteoPne : null
+
+  return {
+    vdkPromedio,
+    vdkValores,
+    vdkParesConsiderados: vdkValores.length,
+    trePromedio,
+    treValores,
+    treMuestras: treValores.length,
+    pnePromedio
+  }
+}
+
 function obtenerPercentil(valoresOrdenados: number[], percentil: number): number {
   if (valoresOrdenados.length === 0) return 0
   if (valoresOrdenados.length === 1) return valoresOrdenados[0]
@@ -326,9 +422,22 @@ function parseSpanishDate(fecha: string | null): number | null {
 
 export async function GET(request: NextRequest) {
   try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+    if (!supabaseUrl || !serviceRoleKey) {
+      return NextResponse.json(
+        {
+          error: 'Configuración incompleta',
+          details: 'Faltan las variables NEXT_PUBLIC_SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY en la API.'
+        },
+        { status: 500 }
+      )
+    }
+
     const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
+      supabaseUrl,
+      serviceRoleKey
     )
     
     const { searchParams } = new URL(request.url)
@@ -524,9 +633,10 @@ export async function GET(request: NextRequest) {
 
     // Procesar cada vehículo de nuestro stock
     const vehiculosConAnalisis = stockDataTransformed.map((vehiculo: any) => {
-      // Buscar competidores similares con matching exacto
-      // NOTA: NO excluimos Quadis aquí - se manejan en el frontend con color diferente
-      const competidoresSimilares = comparadorData.filter((comp: any) => {
+      try {
+        // Buscar competidores similares con matching exacto
+        // NOTA: NO excluimos Quadis aquí - se manejan en el frontend con color diferente
+        const competidoresSimilares = comparadorData.filter((comp: any) => {
         if (!comp.modelo) return false
         
         const modeloNuestro = vehiculo.model?.toLowerCase() || ''
@@ -723,7 +833,9 @@ export async function GET(request: NextRequest) {
       // Obtener nuestro precio PRIMERO (lo necesitamos para filtrar)
       const nuestroPrecio = parsePrice(vehiculo.price)
       const precioNuevoNuestro = parsePrice(vehiculo.original_new_price)
-      const nuestrosKm = vehiculo.km || vehiculo.mileage || 0
+      const nuestrosKm = typeof vehiculo.km === 'number'
+        ? vehiculo.km
+        : parseKm(vehiculo.km) ?? (typeof vehiculo.mileage === 'number' ? vehiculo.mileage : parseKm(vehiculo.mileage) ?? 0)
       const nuestroAño = vehiculo.year ? parseInt(vehiculo.year) : new Date().getFullYear()
       
       // 🎯 Identificar gama y equipamiento
@@ -836,20 +948,20 @@ export async function GET(request: NextRequest) {
 
       // Calcular descuento promedio de competencia comparables (mismo equipamiento)
       const descuentosCompetencia = competidoresComparables
-        .filter((c: any) => {
-          const precioNuevo = c.precio_nuevo_original || parsePrice(c.precio_nuevo)
-          return precioNuevo && parsePrice(c.precio)
-        })
-        .map((c: any) => {
-          const precioActual = parsePrice(c.precio)!
-          const precioNuevo = c.precio_nuevo_original || parsePrice(c.precio_nuevo)!
-          return ((precioNuevo - precioActual) / precioNuevo) * 100
-        })
+      .filter((c: any) => {
+        const precioNuevo = c.precio_nuevo_original || parsePrice(c.precio_nuevo)
+        return precioNuevo && parsePrice(c.precio)
+      })
+      .map((c: any) => {
+        const precioActual = parsePrice(c.precio)!
+        const precioNuevo = c.precio_nuevo_original || parsePrice(c.precio_nuevo)!
+        return ((precioNuevo - precioActual) / precioNuevo) * 100
+      })
       
       const descuentoMedioCompetencia = descuentosCompetencia.length > 0
         ? descuentosCompetencia.reduce((sum: number, d: number) => sum + d, 0) / descuentosCompetencia.length
         : null
-      
+
       // Calcular nuestro descuento (ya tenemos nuestroPrecio y precioNuevoNuestro definidos arriba)
       const descuentoNuestro = precioNuevoNuestro && nuestroPrecio
         ? ((precioNuevoNuestro - nuestroPrecio) / precioNuevoNuestro) * 100
@@ -884,6 +996,73 @@ export async function GET(request: NextRequest) {
       if (anosCompetencia.length > 0) {
         promedioAnioCompetencia = anosCompetencia.reduce((sum, año) => sum + año, 0) / anosCompetencia.length
       }
+
+      const valorKmPorGamaActual = valorKmPorGama(gamaVehiculo)
+
+      let vdkPromedioMercado: number | null = null
+      let vdkParesConsiderados = 0
+      let trePromedioMercado: number | null = null
+      let treMuestrasMercado = 0
+      let pneMercadoPromedio: number | null = null
+      let precioAjustadoAvp: number | null = null
+      let bandaInferiorAvp: number | null = null
+      let bandaSuperiorAvp: number | null = null
+      let clasificacionAvp: 'caro' | 'ajustado' | 'competitivo' | null = null
+      
+      if (competidoresComparables.length >= 2 && precioNuevoNuestro && typeof nuestrosKm === 'number') {
+        try {
+          const indicadoresAvp = calcularIndicadoresAvp(competidoresComparables, valorKmPorGamaActual)
+          vdkPromedioMercado = indicadoresAvp.vdkPromedio ?? valorKmPorGamaActual
+          vdkParesConsiderados = indicadoresAvp.vdkParesConsiderados
+          trePromedioMercado = indicadoresAvp.trePromedio
+          treMuestrasMercado = indicadoresAvp.treMuestras
+          pneMercadoPromedio = indicadoresAvp.pnePromedio
+
+          if (
+            trePromedioMercado !== null &&
+            vdkPromedioMercado !== null &&
+            isFinite(trePromedioMercado) &&
+            isFinite(vdkPromedioMercado)
+          ) {
+            let precioCalculado = (precioNuevoNuestro * trePromedioMercado) - (nuestrosKm * vdkPromedioMercado)
+            if (isFinite(precioCalculado)) {
+              const minimoSeguridad = precioNuevoNuestro * 0.35
+              if (precioCalculado < minimoSeguridad) {
+                precioCalculado = minimoSeguridad
+              }
+              precioAjustadoAvp = precioCalculado
+            }
+          }
+        } catch (error) {
+          console.error('Error calculando indicadores AVP', {
+            error,
+            matricula: vehiculo.license_plate,
+            modelo: vehiculo.model,
+            comparables: competidoresComparables.length
+          })
+          vdkPromedioMercado = valorKmPorGamaActual
+        }
+      }
+
+      if (precioAjustadoAvp !== null) {
+        bandaInferiorAvp = precioAjustadoAvp * 0.97
+        bandaSuperiorAvp = precioAjustadoAvp * 1.03
+      }
+
+      if (clasificacionAvp === null && precioAjustadoAvp !== null && nuestroPrecio) {
+        const ratio = (nuestroPrecio - precioAjustadoAvp) / precioAjustadoAvp
+        if (ratio > 0.03) {
+          clasificacionAvp = 'caro'
+        } else if (ratio < -0.03) {
+          clasificacionAvp = 'competitivo'
+        } else {
+          clasificacionAvp = 'ajustado'
+        }
+      }
+
+      if (vdkPromedioMercado === null) {
+        vdkPromedioMercado = valorKmPorGamaActual
+      }
       
       // 🎯 CALCULAR DESCUENTO MÍNIMO si hay competidores con muchas bajadas
       let maxDescuentoRechazado: number | null = null
@@ -916,7 +1095,6 @@ export async function GET(request: NextRequest) {
       
       // NUEVA LÓGICA: Ajustar precio recomendado por diferencia de KM según GAMA
       let precioRecomendado = precioMedioCompetencia
-      const valorKmGama = valorKmPorGama(gamaVehiculo)
       let diferenciaKm: number | null = null
       let valorKmAplicado: number | null = null
       let ajusteKmAplicado = 0
@@ -933,6 +1111,8 @@ export async function GET(request: NextRequest) {
       let ventajaAniosSignificativa = false
       let patitoFeoModo: 'bonus' | 'agresivo' | 'neutral' | null = null
       let precioBaseMinimoPatitoFeo: number | null = null
+      let precioRecomendadoPreAvp: number | null = null
+      let precioRecomendadoCombinado: number | null = null
       
       // 🐛 DEBUG para 9853MKL
       if (vehiculo.license_plate === '9853MKL') {
@@ -943,12 +1123,12 @@ export async function GET(request: NextRequest) {
       if (precioMedioCompetencia && kmMedioCompetencia) {
         // Calcular diferencia de KM
         diferenciaKm = nuestrosKm - kmMedioCompetencia
-        valorKmAplicado = valorKmGama
+        valorKmAplicado = valorKmPorGamaActual
 
         // 🎯 LÓGICA ESPECIAL para Gama Alta + Básico
         if (gamaVehiculo === 'alta' && equipamientoVehiculo === 'basico') {
           const precioBaseMinimo = precioMinimoCompetencia ?? precioMedioCompetencia ?? 0
-          const valorKm = valorKmAplicado
+          const valorKm = valorKmAplicado ?? valorKmPorGamaActual
           precioBaseMinimoPatitoFeo = precioBaseMinimo
 
           ventajaKmBruta = kmMedioCompetencia - nuestrosKm
@@ -998,13 +1178,13 @@ export async function GET(request: NextRequest) {
           }
         } else {
           // Para otros casos: lógica normal
-          const valorKm = valorKmAplicado
+          const valorKm = valorKmAplicado ?? valorKmPorGamaActual
           const ajustePorKm = diferenciaKm * valorKm
           ajusteKmAplicado = ajustePorKm
-          
-          // Precio recomendado = precio medio mercado - ajuste por tus KM extras
-          precioRecomendado = precioMedioCompetencia - ajustePorKm
-          
+        
+        // Precio recomendado = precio medio mercado - ajuste por tus KM extras
+        precioRecomendado = precioMedioCompetencia - ajustePorKm
+        
           // 🎯 Aplicar límites FLEXIBLES según gama + equipamiento
           const limiteInferior = gamaVehiculo === 'media' && equipamientoVehiculo === 'basico'
             ? nuestroPrecio * 0.75  // Gama media básica: permitir hasta -25% de bajada
@@ -1012,14 +1192,27 @@ export async function GET(request: NextRequest) {
           
           if (precioRecomendado < limiteInferior) {
             precioRecomendado = limiteInferior
-          }
-          if (precioRecomendado > precioMedioCompetencia * 1.1) {
-            precioRecomendado = precioMedioCompetencia * 1.1 // No recomendar más de 10% de subida
+        }
+        if (precioRecomendado > precioMedioCompetencia * 1.1) {
+          precioRecomendado = precioMedioCompetencia * 1.1 // No recomendar más de 10% de subida
           }
         }
       }
       
       if (precioRecomendado !== null) {
+        precioRecomendadoPreAvp = precioRecomendado
+      }
+
+      if (precioAjustadoAvp !== null) {
+        if (precioRecomendado === null) {
+          precioRecomendado = precioAjustadoAvp
+        } else {
+          precioRecomendado = (precioRecomendado + precioAjustadoAvp) / 2
+        }
+      }
+
+      if (precioRecomendado !== null) {
+        precioRecomendadoCombinado = precioRecomendado
         precioRecomendadoBase = precioRecomendado
       }
       
@@ -1119,7 +1312,7 @@ export async function GET(request: NextRequest) {
 
       const precioRecomendadoFinal = precioRecomendado
 
-      return {
+        return {
         // Datos de nuestro vehículo
         id: vehiculo.id,
         matricula: vehiculo.license_plate,
@@ -1168,6 +1361,8 @@ export async function GET(request: NextRequest) {
         kmMedioCompetencia, // KM medio de competidores
         precioRecomendado: precioRecomendadoFinal, // Lo que recomendamos cobrar (AJUSTADO por tus KM)
         precioRecomendadoBase,
+        precioRecomendadoPreAvp,
+        precioRecomendadoCombinado,
         precioRecomendadoPostZombie,
         precioRecomendadoPostUrgencia,
         precioMaximoPermitidoZombie,
@@ -1179,6 +1374,15 @@ export async function GET(request: NextRequest) {
         recomendacion,
         analisisMercado, // Si el mercado está inflado/deflactado
         percentilesEquipamiento: percentilesGamaActual,
+        vdkPromedioMercado,
+        vdkParesConsiderados,
+        trePromedioMercado,
+        treMuestrasMercado,
+        pneMercadoPromedio,
+        precioAjustadoAvp,
+        bandaInferiorAvp,
+        bandaSuperiorAvp,
+        clasificacionAvp,
         precioMinimoCompetencia,
         precioMaximoCompetencia,
         precioPromedioCompetenciaGeneral,
@@ -1244,6 +1448,92 @@ export async function GET(request: NextRequest) {
             importeTotalBajado: importeTotalBajadoFallback || 0
           }
         })
+      }
+      } catch (error: any) {
+        console.error('Error analizando vehículo', {
+          error: error?.message || error,
+          stack: error?.stack,
+          matricula: vehiculo?.license_plate,
+          modelo: vehiculo?.model
+        })
+
+        const gamaFallback = identificarGama(vehiculo.model || '')
+
+        return {
+          id: vehiculo.id,
+          matricula: vehiculo.license_plate,
+          modelo: vehiculo.model,
+          año: vehiculo.year,
+          km: vehiculo.km || vehiculo.mileage || null,
+          nuestroPrecio: parsePrice(vehiculo.price),
+          precioNuevo: parsePrice(vehiculo.original_new_price),
+          descuentoNuestro: null,
+          enlaceAnuncio: vehiculo.duc_url || vehiculo.cms_url || null,
+          fechaPrimeraMatriculacion: vehiculo.fecha_matriculacion || null,
+          gama: gamaFallback,
+          equipamiento: 'medio',
+          descuentoMinimoRequerido: null,
+          maxDescuentoZombie: null,
+          descuentoExtraZombie: DESCUENTO_EXTRA_ZOMBIE,
+          competidoresEstancados: 0,
+          ventajaKmBruta: null,
+          ventajaKmSignificativa: false,
+          ventajaKmUmbral: VENTAJA_KM_SIGNIFICATIVA,
+          bonusKmAplicado: 0,
+          ventajaAnios: 0,
+          ventajaAniosSignificativa: false,
+          ventajaAniosUmbral: VENTAJA_ANIO_SIGNIFICATIVA,
+          bonusAniosAplicado: 0,
+          valorAnioVentaja: VALOR_ANIO_VENTAJA,
+          promedioAnioCompetencia: null,
+          patitoFeoModo: null,
+          precioBaseMinimoPatitoFeo: null,
+          precioMedioCompetencia: null,
+          descuentoMedioCompetencia: null,
+          diferencia: null,
+          porcentajeDif: null,
+          competidores: 0,
+          competidoresTotal: 0,
+          posicion: 'justo',
+          precioSugerido: null,
+          valorEsperadoTeorico: null,
+          precioRealMercado: null,
+          kmMedioCompetencia: null,
+          precioRecomendado: null,
+          precioRecomendadoBase: null,
+          precioRecomendadoPreAvp: null,
+          precioRecomendadoCombinado: null,
+          precioRecomendadoPostZombie: null,
+          precioRecomendadoPostUrgencia: null,
+          precioMaximoPermitidoZombie: null,
+          diferenciaAjustada: null,
+          porcentajeDifAjustado: null,
+          ajusteKm: null,
+          ajusteAño: null,
+          diasEnStock: vehiculo.dias_en_stock || 0,
+          recomendacion: 'No se pudo calcular el análisis por datos insuficientes.',
+          analisisMercado: null,
+          percentilesEquipamiento: percentilesEquipamientoPorGama[gamaFallback],
+          vdkPromedioMercado: null,
+          vdkParesConsiderados: 0,
+          trePromedioMercado: null,
+          treMuestrasMercado: 0,
+          pneMercadoPromedio: null,
+          precioAjustadoAvp: null,
+          bandaInferiorAvp: null,
+          bandaSuperiorAvp: null,
+          clasificacionAvp: null,
+          precioMinimoCompetencia: null,
+          precioMaximoCompetencia: null,
+          precioPromedioCompetenciaGeneral: null,
+          precioPercentil25Competencia: null,
+          metodoPrecioBase: 'sin_datos',
+          diferenciaKm: null,
+          valorKmAplicado: null,
+          ajusteKmAplicado: null,
+          ajusteAgresivoAplicado: null,
+          competidoresDetalle: []
+        }
       }
     })
 

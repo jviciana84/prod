@@ -148,26 +148,46 @@ export function NewsToastContainer() {
   const [currentNews, setCurrentNews] = useState<NewsItem | null>(null)
 
   useEffect(() => {
-    // Suscribirse a nuevas noticias
+    if (typeof window === "undefined" || typeof fetch !== "function") {
+      return
+    }
+
+    let isMounted = true
+    let controller: AbortController | null = null
+
     const checkForNewNews = async () => {
+      controller?.abort()
+      controller = new AbortController()
+
       try {
-        const response = await fetch("/api/noticias/ultimas-nuevas")
-        if (response.ok) {
-          const news = await response.json()
-          if (news && news.id) {
-            setCurrentNews(news)
-          }
+        const response = await fetch("/api/noticias/ultimas-nuevas", {
+          signal: controller.signal,
+          cache: "no-store",
+        })
+
+        if (!response.ok) {
+          return
+        }
+
+        const news = await response.json()
+        if (isMounted && news && news.id) {
+          setCurrentNews(news)
         }
       } catch (error) {
-        console.error("Error al obtener noticias:", error)
+        if ((error as DOMException)?.name !== "AbortError" && process.env.NODE_ENV !== "production") {
+          console.debug("NewsToastContainer fetch fallido", error)
+        }
       }
     }
 
-    // Verificar cada 30 minutos
     checkForNewNews()
     const interval = setInterval(checkForNewNews, 30 * 60 * 1000)
 
-    return () => clearInterval(interval)
+    return () => {
+      isMounted = false
+      clearInterval(interval)
+      controller?.abort()
+    }
   }, [])
 
   if (!currentNews) return null

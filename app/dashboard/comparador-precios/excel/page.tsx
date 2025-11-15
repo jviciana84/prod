@@ -35,35 +35,66 @@ interface Config {
   estructura: number
 }
 
+const ESTADOS_COMPETENCIA = ["activo", "nuevo", "precio_bajado"] as const
+
+const STOPWORDS_TOKENS = new Set([
+  "serie",
+  "bmw",
+  "mini",
+  "puertas",
+  "puerta",
+  "gran",
+  "line",
+  "linea",
+  "touring",
+  "tour",
+  "corporate",
+  "berlina",
+  "sedan",
+  "coupe",
+  "coupé",
+  "xline",
+  "sport",
+])
+
+const aplicarNormalizacionesModelo = (texto: string): string => {
+  let resultado = texto.replace(/\s+/g, " ").trim()
+
+  resultado = resultado.replace(/\b([xse])\s*drive\s*([0-9]+[a-z]*)/gi, (_, letra, resto) => {
+    const prefijo =
+      letra.toLowerCase() === "s"
+        ? "sDrive"
+        : letra.toLowerCase() === "e"
+        ? "eDrive"
+        : "xDrive"
+    return `${prefijo}${resto}`
+  })
+
+  resultado = resultado.replace(/\bM\s*([0-9]+)\b/gi, "M$1")
+
+  resultado = resultado.replace(
+    /\b(xLine|M Sport|Corporate|Touring|Tour\.?|Gran Coup[ée]|Gran Coupe)\b/gi,
+    ""
+  )
+
+  resultado = resultado.replace(/[-_]/g, " ")
+
+  return resultado.replace(/\s+/g, " ").trim()
+}
+
+const obtenerKmNumerico = (valor: any): number | null => {
+  if (typeof valor === "number" && !Number.isNaN(valor)) return valor
+  if (typeof valor === "string") {
+    const parseado = parseInt(valor.replace(/[.\s]/g, ""), 10)
+    if (!Number.isNaN(parseado)) return parseado
+  }
+  return null
+}
+
 const generarVariantesModelo = (modelo?: string | null, marca?: string | null): string[] => {
   if (!modelo) return []
 
   const limpiarEspacios = (texto: string) => texto.replace(/\s+/g, " ").trim()
-
-  const aplicarNormalizaciones = (texto: string) => {
-    let resultado = limpiarEspacios(texto)
-
-    // Normalizar expresiones de tracción y motorización
-    resultado = resultado.replace(/\b([xse])\s*drive\s*([0-9]+[a-z]*)/gi, (_, letra, resto) => {
-      const prefijo =
-        letra.toLowerCase() === "s" ? "sDrive" :
-        letra.toLowerCase() === "e" ? "eDrive" :
-        "xDrive"
-      return `${prefijo}${resto}`
-    })
-
-    // Unificar notación M Performance (M 60 -> M60)
-    resultado = resultado.replace(/\bM\s*([0-9]+)\b/gi, "M$1")
-
-    // Quitar sufijos comerciales comunes
-    resultado = resultado.replace(/\b(xLine|M Sport|Corporate|Touring|Tour\.?|Gran Coup[ée]|Gran Coupe)\b/gi, "")
-
-    // Normalizar separadores y mayúsculas repetidas
-    resultado = resultado.replace(/[-_]/g, " ")
-
-    return limpiarEspacios(resultado)
-  }
-
   const variantes = new Set<string>()
   const agregar = (valor?: string) => {
     if (valor) variantes.add(limpiarEspacios(valor))
@@ -72,7 +103,7 @@ const generarVariantesModelo = (modelo?: string | null, marca?: string | null): 
   const marcaUpper = marca?.trim().toUpperCase() || ""
 
   // Base normalizada
-  const base = aplicarNormalizaciones(modelo)
+  const base = aplicarNormalizacionesModelo(modelo)
   if (!base) return []
   agregar(base)
 
@@ -134,6 +165,32 @@ const generarVariantesModelo = (modelo?: string | null, marca?: string | null): 
 
   // Limpiar variantes vacías y devolver únicas
   return Array.from(variantes).filter(Boolean)
+}
+
+const obtenerTokensBusqueda = (modelo?: string | null, marca?: string | null): string[] => {
+  const variantes = generarVariantesModelo(modelo, marca)
+  const tokensSet = new Set<string>()
+
+  variantes.forEach((variante) => {
+    variante
+      .split(" ")
+      .map((token) => aplicarNormalizacionesModelo(token))
+      .map((token) => token.replace(/\s+/g, ""))
+      .forEach((token) => {
+        const tokenLimpio = token.trim()
+        const tokenLower = tokenLimpio.toLowerCase()
+        if (
+          !tokenLimpio ||
+          tokenLimpio.length <= 1 ||
+          STOPWORDS_TOKENS.has(tokenLower)
+        ) {
+          return
+        }
+        tokensSet.add(tokenLimpio)
+      })
+  })
+
+  return Array.from(tokensSet).sort((a, b) => b.length - a.length)
 }
 
 export default function ExcelComparadorPage() {
@@ -265,12 +322,14 @@ export default function ExcelComparadorPage() {
       let estrategia = ''
       
       const variantesModelo = generarVariantesModelo(vehiculo.modelo, vehiculo.marca)
+      const tokensBusqueda = obtenerTokensBusqueda(vehiculo.modelo, vehiculo.marca)
+      const kmVehiculo = obtenerKmNumerico(vehiculo.km)
 
       const ejecutarBusqueda = async (termino: string) => {
         let query = supabase
           .from('comparador_scraper')
           .select('*')
-          .in('estado_anuncio', ['activo', 'nuevo', 'precio_bajado'])
+          .in('estado_anuncio', ESTADOS_COMPETENCIA)
           .ilike('modelo', `%${termino}%`)
 
         if (vehiculo.fecha_matriculacion) {
@@ -280,9 +339,9 @@ export default function ExcelComparadorPage() {
           query = query.lte('año', (añoVehiculo + 1).toString())
         }
 
-        if (vehiculo.km) {
-          const kmMin = Math.max(0, vehiculo.km - 30000)
-          const kmMax = vehiculo.km + 30000
+        if (kmVehiculo !== null) {
+          const kmMin = Math.max(0, kmVehiculo - 30000)
+          const kmMax = kmVehiculo + 30000
           query = query.gte('km', kmMin.toString())
           query = query.lte('km', kmMax.toString())
         }
@@ -290,6 +349,41 @@ export default function ExcelComparadorPage() {
         const { data, error } = await query
         if (error) {
           console.warn('⚠️ Error buscando competidores para', termino, error.message)
+          return []
+        }
+        return data || []
+      }
+
+      const ejecutarBusquedaPorTokens = async (tokens: string[]) => {
+        const tokensValidos = tokens.filter(Boolean)
+        if (tokensValidos.length === 0) return []
+
+        let query = supabase
+          .from('comparador_scraper')
+          .select('*')
+          .in('estado_anuncio', ESTADOS_COMPETENCIA)
+
+        tokensValidos.forEach((token) => {
+          query = query.ilike('modelo', `%${token}%`)
+        })
+
+        if (vehiculo.fecha_matriculacion) {
+          const fechaVehiculo = new Date(vehiculo.fecha_matriculacion)
+          const añoVehiculo = fechaVehiculo.getFullYear()
+          query = query.gte('año', (añoVehiculo - 1).toString())
+          query = query.lte('año', (añoVehiculo + 1).toString())
+        }
+
+        if (kmVehiculo !== null) {
+          const kmMin = Math.max(0, kmVehiculo - 30000)
+          const kmMax = kmVehiculo + 30000
+          query = query.gte('km', kmMin.toString())
+          query = query.lte('km', kmMax.toString())
+        }
+
+        const { data, error } = await query
+        if (error) {
+          console.warn('⚠️ Error buscando por tokens', tokensValidos.join(', '), error.message)
           return []
         }
         return data || []
@@ -305,19 +399,30 @@ export default function ExcelComparadorPage() {
         }
       }
 
-      // ESTRATEGIA 2: Buscar por versión específica si no hubo coincidencias
-      if (competidores.length === 0) {
-        for (const variante of variantesModelo) {
-          const versiones = variante.match(/\b[M]?\d{2,3}[a-z]+\b/gi) || []
-          for (const version of versiones) {
-            const resultados = await ejecutarBusqueda(version)
-            if (resultados.length > 0) {
-              competidores = resultados
-              estrategia = `version-${version}`
-              break
-            }
+      // ESTRATEGIA 2: Combinaciones de tokens relevantes
+      if (competidores.length === 0 && tokensBusqueda.length > 0) {
+        const topTokens = tokensBusqueda.slice(0, 5)
+        const intentosTokens: string[][] = []
+
+        if (topTokens.length >= 3) intentosTokens.push(topTokens.slice(0, 3))
+        if (topTokens.length >= 2) intentosTokens.push(topTokens.slice(0, 2))
+        intentosTokens.push([topTokens[0]])
+
+        for (let i = 1; i < topTokens.length; i++) {
+          intentosTokens.push([topTokens[0], topTokens[i]])
+        }
+
+        for (let i = 1; i < topTokens.length; i++) {
+          intentosTokens.push([topTokens[i]])
+        }
+
+        for (const intento of intentosTokens) {
+          const resultados = await ejecutarBusquedaPorTokens(intento)
+          if (resultados.length > 0) {
+            competidores = resultados
+            estrategia = `tokens-${intento.join('+')}`
+            break
           }
-          if (competidores.length > 0) break
         }
       }
       
@@ -731,42 +836,66 @@ export default function ExcelComparadorPage() {
     }
 
     try {
-      const estadoFiltro = ['activo', 'nuevo', 'precio_bajado']
       const variantes = generarVariantesModelo(vehiculo.modelo, vehiculo.marca)
-      if (variantes.length === 0) {
-        return 'Modelo'
-      }
+      const tokens = obtenerTokensBusqueda(vehiculo.modelo, vehiculo.marca)
+      const kmVehiculo = obtenerKmNumerico(vehiculo.km)
 
-      const contar = async (termino: string, aplicarRangoAño = false, aplicarRangoKm = false) => {
+      const contarTermino = async (
+        termino: string,
+        aplicarRangoAño: boolean,
+        aplicarRangoKm: boolean
+      ) => {
         let query = supabase
           .from('comparador_scraper')
           .select('id', { count: 'exact', head: true })
-          .in('estado_anuncio', estadoFiltro)
+          .in('estado_anuncio', ESTADOS_COMPETENCIA)
           .ilike('modelo', `%${termino}%`)
 
         if (aplicarRangoAño && vehiculo.fecha_matriculacion) {
           const añoBase = new Date(vehiculo.fecha_matriculacion).getFullYear()
-          query = query
-            .gte('año', (añoBase - 1).toString())
-            .lte('año', (añoBase + 1).toString())
+          query = query.gte('año', (añoBase - 1).toString())
+          query = query.lte('año', (añoBase + 1).toString())
         }
 
-        if (aplicarRangoKm) {
-          const kmNumerico = typeof vehiculo.km === 'number'
-            ? vehiculo.km
-            : typeof vehiculo.km === 'string'
-              ? parseInt(vehiculo.km.replace(/[.\s]/g, ''), 10)
-              : null
+        if (aplicarRangoKm && kmVehiculo !== null) {
+          const kmMin = Math.max(0, kmVehiculo - 30000)
+          const kmMax = kmVehiculo + 30000
+          query = query.gte('km', kmMin.toString())
+          query = query.lte('km', kmMax.toString())
+        }
 
-          if (typeof kmNumerico === 'number' && !Number.isNaN(kmNumerico)) {
-            const kmMin = Math.max(0, kmNumerico - 30000)
-            const kmMax = kmNumerico + 30000
-            query = query
-              .gte('km', kmMin.toString())
-              .lte('km', kmMax.toString())
-          } else {
-            return 0
-          }
+        const { count } = await query
+        return count || 0
+      }
+
+      const contarTokens = async (
+        listaTokens: string[],
+        aplicarRangoAño: boolean,
+        aplicarRangoKm: boolean
+      ) => {
+        const tokensFiltrados = listaTokens.filter(Boolean)
+        if (tokensFiltrados.length === 0) return 0
+
+        let query = supabase
+          .from('comparador_scraper')
+          .select('id', { count: 'exact', head: true })
+          .in('estado_anuncio', ESTADOS_COMPETENCIA)
+
+        tokensFiltrados.forEach((token) => {
+          query = query.ilike('modelo', `%${token}%`)
+        })
+
+        if (aplicarRangoAño && vehiculo.fecha_matriculacion) {
+          const añoBase = new Date(vehiculo.fecha_matriculacion).getFullYear()
+          query = query.gte('año', (añoBase - 1).toString())
+          query = query.lte('año', (añoBase + 1).toString())
+        }
+
+        if (aplicarRangoKm && kmVehiculo !== null) {
+          const kmMin = Math.max(0, kmVehiculo - 30000)
+          const kmMax = kmVehiculo + 30000
+          query = query.gte('km', kmMin.toString())
+          query = query.lte('km', kmMax.toString())
         }
 
         const { count } = await query
@@ -774,12 +903,41 @@ export default function ExcelComparadorPage() {
       }
 
       let coincidenciasModelo = 0
-      let varianteSeleccionada = ''
+      let estrategia: { tipo: 'termino' | 'tokens'; valor: string | string[] } = {
+        tipo: 'termino',
+        valor: '',
+      }
+
       for (const variante of variantes) {
-        coincidenciasModelo = await contar(variante, false, false)
+        coincidenciasModelo = await contarTermino(variante, false, false)
         if (coincidenciasModelo > 0) {
-          varianteSeleccionada = variante
+          estrategia = { tipo: 'termino', valor: variante }
           break
+        }
+      }
+
+      if (coincidenciasModelo === 0 && tokens.length > 0) {
+        const topTokens = tokens.slice(0, 5)
+        const intentosTokens: string[][] = []
+
+        if (topTokens.length >= 3) intentosTokens.push(topTokens.slice(0, 3))
+        if (topTokens.length >= 2) intentosTokens.push(topTokens.slice(0, 2))
+        intentosTokens.push([topTokens[0]])
+
+        for (let i = 1; i < topTokens.length; i++) {
+          intentosTokens.push([topTokens[0], topTokens[i]])
+        }
+
+        for (let i = 1; i < topTokens.length; i++) {
+          intentosTokens.push([topTokens[i]])
+        }
+
+        for (const intento of intentosTokens) {
+          coincidenciasModelo = await contarTokens(intento, false, false)
+          if (coincidenciasModelo > 0) {
+            estrategia = { tipo: 'tokens', valor: intento }
+            break
+          }
         }
       }
 
@@ -787,12 +945,40 @@ export default function ExcelComparadorPage() {
         return 'Modelo'
       }
 
-      const coincidenciasModeloAño = await contar(varianteSeleccionada, true, false)
+      let coincidenciasModeloAño = 0
+      if (estrategia.tipo === 'termino') {
+        coincidenciasModeloAño = await contarTermino(
+          estrategia.valor as string,
+          true,
+          false
+        )
+      } else {
+        coincidenciasModeloAño = await contarTokens(
+          estrategia.valor as string[],
+          true,
+          false
+        )
+      }
+
       if (coincidenciasModeloAño === 0) {
         return 'Fecha'
       }
 
-      const coincidenciasCompleto = await contar(varianteSeleccionada, true, true)
+      let coincidenciasCompleto = 0
+      if (estrategia.tipo === 'termino') {
+        coincidenciasCompleto = await contarTermino(
+          estrategia.valor as string,
+          true,
+          true
+        )
+      } else {
+        coincidenciasCompleto = await contarTokens(
+          estrategia.valor as string[],
+          true,
+          true
+        )
+      }
+
       if (coincidenciasCompleto === 0) {
         return 'Km'
       }

@@ -1,15 +1,39 @@
 "use client"
-import { useState, useEffect } from "react"
-import { createClientComponentClient } from "@/lib/supabase/client-singleton"
-import { pathsProvincias, coordenadasProvincias } from "./mapa-final-data"
+import { useEffect, useMemo, useState } from "react"
+import { pathsProvincias } from "./mapa-final-data"
 import { preciseProvinceMapping, inverseProvinceMapping } from "./precise-mapping"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { format, subMonths, startOfMonth, endOfMonth } from "date-fns"
+import { format, subMonths } from "date-fns"
 import { es } from "date-fns/locale"
+
+interface ProvinciaDato {
+  provincia: string
+  cantidad: number
+  ingresos: number
+  codigosPostales?: Array<{
+    codigo: string
+    cantidad: number
+    ingresos: number
+  }>
+}
+
+interface MapaEspanaProps {
+  datos: ProvinciaDato[]
+  mesSeleccionado: string | null
+  onMesChange?: (mes: string) => void
+  esVistaSemanal?: boolean
+  semanaSeleccionada?: { inicio: Date; fin: Date; numero: number } | null
+}
 
 interface VentaGeografica {
   nombre: string
   cantidad: number
+  ingresos: number
+  codigosPostales: Array<{
+    codigo: string
+    cantidad: number
+    ingresos: number
+  }>
 }
 
 // Función para normalizar nombres de provincias (igual que en el informe)
@@ -167,81 +191,30 @@ const calcularCoordenadasProvincias = () => {
   return coordenadas
 }
 
-export function MapaEspanaSVGReal() {
+export function MapaEspanaSVGReal({
+  datos,
+  mesSeleccionado,
+  onMesChange,
+  esVistaSemanal,
+  semanaSeleccionada,
+}: MapaEspanaProps) {
   const [provincias, setProvincias] = useState<VentaGeografica[]>([])
   const [provinciaSeleccionada, setProvinciaSeleccionada] = useState<string | null>(null)
   const [provinciaHover, setProvinciaHover] = useState<string | null>(null)
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
-  const [loading, setLoading] = useState(true)
-  const [mesSeleccionado, setMesSeleccionado] = useState<string>(format(new Date(), "yyyy-MM"))
-  const supabase = createClientComponentClient()
-
-  const getFechasMes = (mesString: string) => {
-    const [year, month] = mesString.split("-").map(Number)
-    const fechaInicio = startOfMonth(new Date(year, month - 1))
-    const fechaFin = endOfMonth(new Date(year, month - 1))
-    return { fechaInicio, fechaFin }
-  }
+  const coordenadasCentradas = useMemo(() => calcularCoordenadasProvincias(), [])
 
   useEffect(() => {
-    fetchVentasGeograficas()
-  }, [mesSeleccionado])
+    const provinciasNormalizadas = datos.map((dato) => ({
+      nombre: normalizarProvincia(dato.provincia),
+      cantidad: dato.cantidad,
+      ingresos: dato.ingresos,
+      codigosPostales: dato.codigosPostales || [],
+    }))
 
-  const fetchVentasGeograficas = async () => {
-    try {
-      setLoading(true)
-      
-      let query = supabase
-        .from('sales_vehicles')
-        .select('client_province, price')
-        .not('client_province', 'is', null)
-
-      if (mesSeleccionado !== "total") {
-        const { fechaInicio, fechaFin } = getFechasMes(mesSeleccionado)
-        console.log("🗺️ Obteniendo ventas geográficas del mes:", mesSeleccionado)
-        console.log("📅 Desde:", fechaInicio.toISOString())
-        console.log("📅 Hasta:", fechaFin.toISOString())
-        
-        query = query
-          .gte("sale_date", fechaInicio.toISOString())
-          .lte("sale_date", fechaFin.toISOString())
-      } else {
-        console.log("🗺️ Obteniendo ventas geográficas totales (sin filtro de fecha)")
-      }
-
-      const { data: ventas, error } = await query
-
-      if (error) {
-        console.error('Error fetching sales data:', error)
-        return
-      }
-
-      console.log(`🗺️ Ventas geográficas encontradas: ${ventas?.length || 0}`)
-
-      // Agrupar por provincia usando client_province directamente
-      const ventasPorProvincia = ventas.reduce((acc, venta) => {
-        const provincia = normalizarProvincia(venta.client_province || 'Sin provincia')
-        
-        if (provincia) {
-          acc[provincia] = (acc[provincia] || 0) + 1
-        }
-        return acc
-      }, {} as Record<string, number>)
-
-      // Convertir a formato requerido
-      const provinciasData = Object.entries(ventasPorProvincia).map(([provincia, cantidad]) => ({
-        nombre: provincia,
-        cantidad
-      }))
-      
-      console.log("🗺️ Provincias con ventas:", provinciasData)
-      setProvincias(provinciasData)
-    } catch (error) {
-      console.error('Error:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+    setProvincias(provinciasNormalizadas)
+    setProvinciaSeleccionada(null)
+  }, [datos])
 
   const getIntensidadColor = (cantidad: number) => {
     if (cantidad >= 10) return "#dc2626" // Rojo intenso
@@ -251,198 +224,264 @@ export function MapaEspanaSVGReal() {
     return "#0891b2" // Azul claro
   }
 
-  // Calcular coordenadas centradas dinámicamente para cada provincia
-  const coordenadasCentradas = calcularCoordenadasProvincias()
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    )
+  const obtenerProvincia = (nombre: string | null) => {
+    if (!nombre) {
+      return null
+    }
+    return provincias.find((provincia) => provincia.nombre === nombre) || null
   }
+
+  const periodoLabel = (() => {
+    if (esVistaSemanal && semanaSeleccionada) {
+      return `Sem. ${semanaSeleccionada.numero}: ${format(semanaSeleccionada.inicio, "d MMM", { locale: es })} - ${format(semanaSeleccionada.fin, "d MMM", { locale: es })}`
+    }
+
+    if (!mesSeleccionado) {
+      return "Sin filtros"
+    }
+
+    if (mesSeleccionado === "total") {
+      return "Total histórico"
+    }
+
+    return format(new Date(`${mesSeleccionado}-01`), "MMMM yyyy", { locale: es }).replace(/^\w/, (c) => c.toUpperCase())
+  })()
+
+  const totalProvincias = provincias.length
+  const totalVentas = provincias.reduce((sum, provincia) => sum + provincia.cantidad, 0)
+  const totalIngresos = provincias.reduce((sum, provincia) => sum + provincia.ingresos, 0)
 
   return (
     <div className="h-full flex flex-col">
       {/* Contenedor del mapa que ocupa el espacio restante */}
       <div className="relative flex-1 min-h-0">
-        {/* Controles dentro del mapa */}
-        <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
-          <Select value={mesSeleccionado} onValueChange={setMesSeleccionado}>
-            <SelectTrigger className="w-32 h-8 text-xs">
-              <SelectValue placeholder="Mes" />
-            </SelectTrigger>
-            <SelectContent>
-              {[...Array(12)].map((_, i) => {
-                const fecha = subMonths(new Date(), i)
-                const valor = format(fecha, "yyyy-MM")
-                const etiqueta = format(fecha, "MMMM yyyy", { locale: es })
+        {(mesSeleccionado || (esVistaSemanal && semanaSeleccionada)) && (
+          <div className="absolute top-4 left-4 z-10 rounded-md bg-white/85 px-3 py-1 text-xs font-medium text-gray-700 shadow-sm dark:bg-gray-900/80 dark:text-gray-100">
+            {periodoLabel}
+          </div>
+        )}
+
+        {!esVistaSemanal && mesSeleccionado && onMesChange && (
+          <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+            <Select value={mesSeleccionado} onValueChange={onMesChange}>
+              <SelectTrigger className="h-9 w-36 text-xs">
+                <SelectValue placeholder="Mes" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="total">Total histórico</SelectItem>
+                {[...Array(12)].map((_, i) => {
+                  const fecha = subMonths(new Date(), i)
+                  const valor = format(fecha, "yyyy-MM")
+                  const etiqueta = format(fecha, "MMMM yyyy", { locale: es })
+                  return (
+                    <SelectItem key={valor} value={valor}>
+                      {etiqueta.charAt(0).toUpperCase() + etiqueta.slice(1)}
+                    </SelectItem>
+                  )
+                })}
+              </SelectContent>
+            </Select>
+            <button
+              onClick={() => onMesChange("total")}
+              className={`px-3 py-2 text-xs rounded border transition-colors ${
+                mesSeleccionado === "total"
+                  ? "bg-blue-600 text-white border-blue-600"
+                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700 dark:hover:bg-gray-800"
+              }`}
+            >
+              Total
+            </button>
+          </div>
+        )}
+
+        {provincias.length === 0 ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-muted-foreground/40 bg-muted/20 text-muted-foreground">
+            <span className="text-sm font-medium">No hay ventas registradas en este período</span>
+            <span className="text-xs">Ajusta los filtros para visualizar datos en el mapa.</span>
+          </div>
+        ) : (
+          <>
+            <svg
+              width="100%"
+              height="100%"
+              viewBox="0 0 800 507"
+              className="w-full h-full border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800"
+              preserveAspectRatio="xMidYMid meet"
+            >
+              {/* SVG paths para las provincias de España */}
+              <g id="spain-provinces">
+                {pathsProvincias.map((path, index) => (
+                  <path
+                    key={index}
+                    d={path.d}
+                    fill={(() => {
+                      const mapeoIdsAProvincias = preciseProvinceMapping;
+                      const provinciaNombre = mapeoIdsAProvincias[path.id];
+                      if (provinciaNombre === provinciaSeleccionada) {
+                        return "#059669"; // Verde para provincia seleccionada
+                      }
+                      return path.fill;
+                    })()}
+                    stroke={path.stroke}
+                    strokeWidth="0.5"
+                    className="cursor-pointer hover:fill-blue-200 dark:hover:fill-blue-800 transition-colors"
+                    onMouseEnter={(e) => {
+                      const mapeoIdsAProvincias = preciseProvinceMapping;
+                      const provinciaNombre = mapeoIdsAProvincias[path.id];
+                      if (provinciaNombre) {
+                        setProvinciaHover(provinciaNombre);
+                        setMousePosition({ x: e.clientX, y: e.clientY });
+                      }
+                    }}
+                    onMouseLeave={() => {
+                      setProvinciaHover(null);
+                    }}
+                    onClick={() => {
+                      const mapeoIdsAProvincias = preciseProvinceMapping;
+                      const provinciaNombre = mapeoIdsAProvincias[path.id];
+                      if (provinciaNombre) {
+                        setProvinciaSeleccionada(provinciaSeleccionada === provinciaNombre ? null : provinciaNombre);
+                      }
+                    }}
+                  />
+                ))}
+              </g>
+              
+              {/* Puntos de ventas centrados en cada provincia */}
+              {provincias.map((provincia, index) => {
+                // Usar el mapeo preciso generado por el script
+                const mapeoProvinciasAIds = inverseProvinceMapping;
+
+                const provinciaId = mapeoProvinciasAIds[provincia.nombre];
+                if (provinciaId === undefined) return null;
+
+                // Usar las coordenadas centradas manualmente
+                const coord = coordenadasCentradas[provinciaId];
+                if (!coord) return null;
+
                 return (
-                  <SelectItem key={valor} value={valor}>
-                    {etiqueta.charAt(0).toUpperCase() + etiqueta.slice(1)}
-                  </SelectItem>
+                  <g key={index}>
+                    <circle
+                      cx={coord.x}
+                      cy={coord.y}
+                      r={Math.max(10, Math.min(25, provincia.cantidad * 4))}
+                      fill={provincia.nombre === provinciaSeleccionada ? "#059669" : getIntensidadColor(provincia.cantidad)}
+                      stroke={provincia.nombre === provinciaSeleccionada ? "#047857" : "white"}
+                      strokeWidth={provincia.nombre === provinciaSeleccionada ? 4 : 3}
+                      className="cursor-pointer hover:opacity-80 transition-opacity drop-shadow-lg"
+                      onMouseEnter={(e) => {
+                        setProvinciaHover(provincia.nombre);
+                        setMousePosition({ x: e.clientX, y: e.clientY });
+                      }}
+                      onMouseLeave={() => {
+                        setProvinciaHover(null);
+                      }}
+                      onClick={() => {
+                        setProvinciaSeleccionada(provinciaSeleccionada === provincia.nombre ? null : provincia.nombre);
+                      }}
+                    />
+                    <text
+                      x={coord.x}
+                      y={coord.y + 1}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      className="font-bold fill-current text-white pointer-events-none"
+                      style={{ fontSize: '16px', textShadow: '2px 2px 4px rgba(0,0,0,0.9)' }}
+                    >
+                      {provincia.cantidad}
+                    </text>
+                  </g>
                 )
               })}
-            </SelectContent>
-          </Select>
-          <button
-            onClick={() => setMesSeleccionado("total")}
-            className={`px-3 py-1 text-xs rounded border ${
-              mesSeleccionado === "total" 
-                ? "bg-blue-600 text-white border-blue-600" 
-                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-            }`}
-          >
-            Total
-          </button>
-        </div>
+            </svg>
 
-        <svg
-          width="100%"
-          height="100%"
-          viewBox="0 0 800 507"
-          className="w-full h-full border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800"
-          preserveAspectRatio="xMidYMid meet"
-        >
-          {/* SVG paths para las provincias de España */}
-          <g id="spain-provinces">
-            {pathsProvincias.map((path, index) => (
-              <path
-                key={index}
-                d={path.d}
-                fill={(() => {
-                  const mapeoIdsAProvincias = preciseProvinceMapping;
-                  const provinciaNombre = mapeoIdsAProvincias[path.id];
-                  if (provinciaNombre === provinciaSeleccionada) {
-                    return "#059669"; // Verde para provincia seleccionada
-                  }
-                  return path.fill;
-                })()}
-                stroke={path.stroke}
-                strokeWidth="0.5"
-                className="cursor-pointer hover:fill-blue-200 dark:hover:fill-blue-800 transition-colors"
-                onMouseEnter={(e) => {
-                  const mapeoIdsAProvincias = preciseProvinceMapping;
-                  const provinciaNombre = mapeoIdsAProvincias[path.id];
-                  if (provinciaNombre) {
-                    setProvinciaHover(provinciaNombre);
-                    setMousePosition({ x: e.clientX, y: e.clientY });
-                  }
-                }}
-                onMouseLeave={() => {
-                  setProvinciaHover(null);
-                }}
-                onClick={() => {
-                  const mapeoIdsAProvincias = preciseProvinceMapping;
-                  const provinciaNombre = mapeoIdsAProvincias[path.id];
-                  if (provinciaNombre) {
-                    setProvinciaSeleccionada(provinciaSeleccionada === provinciaNombre ? null : provinciaNombre);
-                  }
-                }}
-              />
-            ))}
-          </g>
-          
-          {/* Puntos de ventas centrados en cada provincia */}
-          {provincias.map((provincia, index) => {
-            // Usar el mapeo preciso generado por el script
-            const mapeoProvinciasAIds = inverseProvinceMapping;
-
-            const provinciaId = mapeoProvinciasAIds[provincia.nombre];
-            if (provinciaId === undefined) return null;
-
-            // Usar las coordenadas centradas manualmente
-            const coord = coordenadasCentradas[provinciaId];
-            if (!coord) return null;
-
-            return (
-              <g key={index}>
-                <circle
-                  cx={coord.x}
-                  cy={coord.y}
-                  r={Math.max(10, Math.min(25, provincia.cantidad * 4))}
-                  fill={provincia.nombre === provinciaSeleccionada ? "#059669" : getIntensidadColor(provincia.cantidad)}
-                  stroke={provincia.nombre === provinciaSeleccionada ? "#047857" : "white"}
-                  strokeWidth={provincia.nombre === provinciaSeleccionada ? 4 : 3}
-                  className="cursor-pointer hover:opacity-80 transition-opacity drop-shadow-lg"
-                  onMouseEnter={(e) => {
-                    setProvinciaHover(provincia.nombre);
-                    setMousePosition({ x: e.clientX, y: e.clientY });
+            {/* Tooltip comparativo */}
+            {provinciaSeleccionada ? (
+              // Si hay provincia seleccionada, mostrar comparación
+              provinciaHover && provinciaHover !== provinciaSeleccionada && (
+                <div 
+                  className="absolute bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 pointer-events-none z-20"
+                  style={{
+                    left: `${mousePosition.x + 5}px`,
+                    top: `${mousePosition.y - 5}px`,
+                    transform: 'translateY(-100%)'
                   }}
-                  onMouseLeave={() => {
-                    setProvinciaHover(null);
-                  }}
-                  onClick={() => {
-                    setProvinciaSeleccionada(provinciaSeleccionada === provincia.nombre ? null : provincia.nombre);
-                  }}
-                />
-                <text
-                  x={coord.x}
-                  y={coord.y + 1}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  className="font-bold fill-current text-white pointer-events-none"
-                  style={{ fontSize: '16px', textShadow: '2px 2px 4px rgba(0,0,0,0.9)' }}
                 >
-                  {provincia.cantidad}
-                </text>
-              </g>
-            )
-          })}
-        </svg>
-
-        {/* Tooltip comparativo */}
-        {provinciaSeleccionada ? (
-          // Si hay provincia seleccionada, mostrar comparación
-          provinciaHover && provinciaHover !== provinciaSeleccionada && (
-            <div 
-              className="absolute bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 pointer-events-none z-20"
-              style={{
-                left: `${mousePosition.x + 5}px`,
-                top: `${mousePosition.y - 5}px`,
-                transform: 'translateY(-100%)'
-              }}
-            >
-              {/* Provincia seleccionada (fija) */}
-              <div className="mb-2 pb-2 border-b border-gray-200 dark:border-gray-600">
-                <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                  {provinciaSeleccionada}
-                </p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
-                  {provincias.find(p => p.nombre === provinciaSeleccionada)?.cantidad || 0} ventas
-                </p>
-              </div>
-              
-              {/* Provincia del hover */}
-              <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">
-                  {provinciaHover}
-                </p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
-                  {provincias.find(p => p.nombre === provinciaHover)?.cantidad || 0} ventas
-                </p>
-              </div>
-            </div>
-          )
-        ) : (
-          // Si no hay provincia seleccionada, solo mostrar hover
-          provinciaHover && (
-            <div 
-              className="absolute bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 pointer-events-none z-20"
-              style={{
-                left: `${mousePosition.x + 5}px`,
-                top: `${mousePosition.y - 5}px`,
-                transform: 'translateY(-100%)'
-              }}
-            >
-              <p className="text-sm font-medium text-gray-900 dark:text-white">
-                {provinciaHover}
-              </p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">
-                {provincias.find(p => p.nombre === provinciaHover)?.cantidad || 0} ventas
-              </p>
-            </div>
-          )
+                  {/* Provincia seleccionada (fija) */}
+                  <div className="mb-2 pb-2 border-b border-gray-200 dark:border-gray-600">
+                    <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                      {provinciaSeleccionada}
+                    </p>
+                    {(() => {
+                      const provinciaData = obtenerProvincia(provinciaSeleccionada)
+                      return (
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          {provinciaData?.cantidad ?? 0} ventas ·{" "}
+                          {provinciaData
+                            ? provinciaData.ingresos.toLocaleString("es-ES", {
+                                style: "currency",
+                                currency: "EUR",
+                              })
+                            : "€0"}
+                        </p>
+                      )
+                    })()}
+                  </div>
+                  
+                  {/* Provincia del hover */}
+                  <div>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      {provinciaHover}
+                    </p>
+                    {(() => {
+                      const provinciaData = obtenerProvincia(provinciaHover)
+                      return (
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          {provinciaData?.cantidad ?? 0} ventas ·{" "}
+                          {provinciaData
+                            ? provinciaData.ingresos.toLocaleString("es-ES", {
+                                style: "currency",
+                                currency: "EUR",
+                              })
+                            : "€0"}
+                        </p>
+                      )
+                    })()}
+                  </div>
+                </div>
+              )
+            ) : (
+              // Si no hay provincia seleccionada, solo mostrar hover
+              provinciaHover && (
+                <div 
+                  className="absolute bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 pointer-events-none z-20"
+                  style={{
+                    left: `${mousePosition.x + 5}px`,
+                    top: `${mousePosition.y - 5}px`,
+                    transform: 'translateY(-100%)'
+                  }}
+                >
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    {provinciaHover}
+                  </p>
+                  {(() => {
+                    const provinciaData = obtenerProvincia(provinciaHover)
+                    return (
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                        {provinciaData?.cantidad ?? 0} ventas ·{" "}
+                        {provinciaData
+                          ? provinciaData.ingresos.toLocaleString("es-ES", {
+                              style: "currency",
+                              currency: "EUR",
+                            })
+                          : "€0"}
+                      </p>
+                    )
+                  })()}
+                </div>
+              )
+            )}
+          </>
         )}
       </div>
 
@@ -471,7 +510,8 @@ export function MapaEspanaSVGReal() {
           </div>
         </div>
         <div>
-          Total de provincias: {provincias.length} | Total de ventas: {provincias.reduce((sum, p) => sum + p.cantidad, 0)}
+          Total provincias: {totalProvincias} | Total ventas: {totalVentas} | Total ingresos:{" "}
+          {totalIngresos.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}
         </div>
       </div>
     </div>

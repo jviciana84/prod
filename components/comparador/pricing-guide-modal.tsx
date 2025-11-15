@@ -31,10 +31,10 @@ export function PricingGuideModal({ open, onClose }: PricingGuideModalProps) {
             <div className="text-center space-y-3">
               <div className="text-sm font-medium text-muted-foreground">FÓRMULA PRINCIPAL</div>
               <div className="text-2xl font-bold">
-                Precio Objetivo = Base Competencia - Ajuste KM + Ajuste Gama/Equipamiento
+                Precio Objetivo = promedio(Precio Mercado Ajustado, Precio AVP) → Controles Zombie/Urgencia
               </div>
               <div className="text-sm text-muted-foreground">
-                La base cambia según el perfil del vehículo (gama alta + básico usa mínimo, resto usa promedio)
+                1) Ajustamos la base de mercado por KM y gama/equipamiento  2) Calculamos el precio AVP (VdK + TRE)  3) Promediamos ambos y aplicamos límites/zombies
               </div>
             </div>
           </div>
@@ -112,6 +112,29 @@ export function PricingGuideModal({ open, onClose }: PricingGuideModalProps) {
                   </div>
                 </div>
               </div>
+
+              {/* Factor 4: Normalización AVP */}
+              <div className="bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 dark:from-cyan-500/20 dark:to-cyan-500/10 rounded-lg p-4 border border-cyan-500/30">
+                <div className="flex items-start gap-3">
+                  <Gauge className="w-5 h-5 text-cyan-600 dark:text-cyan-400 mt-1 flex-shrink-0" />
+                  <div className="space-y-2 flex-1">
+                    <h3 className="font-semibold text-cyan-700 dark:text-cyan-300">4. Normalización AVP (VdK + TRE)</h3>
+                    <div className="text-sm space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Valor del Kilómetro (VdK):</span>
+                        <strong>Pares similares en ±10k€</strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Precio Normalizado 0 km (PNE):</span>
+                        <strong>Precio + KM × VdK</strong>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        TRE = PNE / Precio Nuevo. Aplicamos TRE medio del mercado a tu Precio Nuevo y restamos tus KM × VdK → Precio AVP.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Columna Derecha: Límites y Reglas */}
@@ -121,7 +144,7 @@ export function PricingGuideModal({ open, onClose }: PricingGuideModalProps) {
                 <div className="flex items-start gap-3">
                   <AlertTriangle className="w-5 h-5 text-purple-600 dark:text-purple-400 mt-1 flex-shrink-0" />
                   <div className="space-y-2 flex-1">
-                    <h3 className="font-semibold text-purple-700 dark:text-purple-300">4. Límites de Descuento</h3>
+                    <h3 className="font-semibold text-purple-700 dark:text-purple-300">5. Límites de Descuento</h3>
                     <div className="text-sm space-y-1">
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Alta + Básico:</span>
@@ -148,7 +171,7 @@ export function PricingGuideModal({ open, onClose }: PricingGuideModalProps) {
                 <div className="flex items-start gap-3">
                   <Clock className="w-5 h-5 text-red-600 dark:text-red-400 mt-1 flex-shrink-0" />
                   <div className="space-y-2 flex-1">
-                    <h3 className="font-semibold text-red-700 dark:text-red-300">5. Descuento Mínimo Requerido</h3>
+                    <h3 className="font-semibold text-red-700 dark:text-red-300">6. Descuento Mínimo Requerido</h3>
                     <div className="text-sm space-y-1">
                       <div className="text-xs text-muted-foreground">
                         Si hay competidores con <strong>&gt;60 días publicados</strong>:
@@ -200,51 +223,33 @@ export function PricingGuideModal({ open, onClose }: PricingGuideModalProps) {
             Fórmulas exactas que usa la API
           </div>
           <pre className="bg-slate-900/70 text-slate-100 text-xs rounded-md p-3 overflow-x-auto">
-            <code>{`// 1) Percentiles de precio nuevo por gama (stock propio)
+            <code>{`// 1) Percentiles propios para clasificar equipamiento
 percentiles[gama] = { P25, P50, P75 } sobre precio_nuevo_original
 
-// 2) Clasificación de equipamiento
+// 2) Clasificación de equipamiento según percentiles
 if (precioNuevo <= P25) equipamiento = 'basico'
 else if (precioNuevo >= P75) equipamiento = 'premium'
 else equipamiento = 'medio'
 
-// 3) Ajuste por kilometraje
-diferenciaKm = nuestrosKm - kmMedioCompetencia
-valorKm = valorKmPorGama[gama]
+// 3) Valor del kilómetro (VdK) con pares similares
+pares = comparables.filter(|precioNuevo_i - precioNuevo_j| <= 10k)
+vdk = avg(|precio_i - precio_j| / |km_j - km_i|)
 
-// 4) Precio base
-if (gama === 'alta' && equipamiento === 'basico') {
-  baseMin = precioMinimoCompetencia
-  ventajaKm = Math.max(0, kmMedioCompetencia - nuestrosKm)
-  bonusKm = ventajaKm >= VENTAJA_KM_SIGNIFICATIVA ? ventajaKm * valorKm : 0
-  ventajaAnios = Math.max(0, nuestroAño - promedioAñoCompetencia)
-  bonusAnios = ventajaAnios >= VENTAJA_ANIO_SIGNIFICATIVA ? ventajaAnios * VALOR_ANIO_VENTAJA : 0
+// 4) Normalización AVP (PNE y TRE)
+pne = precio + km * vdk
+tre = avg(pne / precioNuevo)
+precioAvp = (precioNuevoPropio * tre) - (kmPropios * vdk)
 
-  if (bonusKm > 0 || bonusAnios > 0) {
-    precioObjetivo = baseMin + bonusKm + bonusAnios
-  } else {
-    if (diferenciaKm < 0) {
-      precioObjetivo = baseMin * 0.99  // -1% si la ventaja no es muy grande
-    } else {
-      ajusteKm = diferenciaKm * valorKm
-      precioObjetivo = baseMin - ajusteKm - baseMin * 0.03
-    }
-  }
-} else {
-  base = precioPromedioCompetencia
-  ajusteKm = diferenciaKm * valorKm
-  precioObjetivo = base - ajusteKm
-}
+// 5) Precio mercado ajustado por KM/gama
+precioMercado = metodoBase(gama, equipamiento, comparables)
+ajusteKm = (kmPropios - kmMedio) * valorKmPorGama[gama]
+precioMercadoAjustado = precioMercado - ajusteKm (+ bonus si aplica)
 
-// 5) Descuento mínimo requerido (precios zombie)
-if (existeCompetidorZombie) {
-  const DESCUENTO_EXTRA_ZOMBIE = 0.01  // +1% extra
-  descuentoMinimo = maxDescuentoZombie + DESCUENTO_EXTRA_ZOMBIE
-  precioObjetivo = min(precioObjetivo, precioNuevo * (1 - descuentoMinimo/100))
-}
+// 6) Fusión y controles
+precioCombinado = promedio(precioMercadoAjustado, precioAvp)
+precioFinal = aplicarControlesZombieYLímites(precioCombinado, precioNuevoPropio)
 
-// 6) Límites de seguridad
-aplicarLimitesPorGamaYEquipamiento()`}</code>
+return precioFinal`}</code>
           </pre>
         </div>
 
@@ -288,32 +293,44 @@ aplicarLimitesPorGamaYEquipamiento()`}</code>
                 <div className="font-medium text-cyan-700 dark:text-cyan-300">Cálculo del Objetivo:</div>
                 <div className="space-y-1 text-xs">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">1. Base (Percentil 25):</span>
+                    <span className="text-muted-foreground">1. Base mercado (P25):</span>
                     <strong>63.500€</strong>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">2. KM medio competencia:</span>
-                    <strong>45.000 km</strong>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">3. Diferencia KM:</span>
-                    <strong className="text-green-600 dark:text-green-400">-24.000 km</strong>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">4. Ajuste (0.20€/km):</span>
+                    <span className="text-muted-foreground">2. Ajuste KM (0,20€/km):</span>
                     <strong className="text-green-600 dark:text-green-400">+4.800€</strong>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">5. Subtotal:</span>
-                    <strong>68.300€</strong>
+                    <span className="text-muted-foreground">3. Patito feo (-1%):</span>
+                    <strong className="text-red-600 dark:text-red-400">-680€</strong>
+                  </div>
+                  <div className="flex justify-between border-b pb-1">
+                    <span className="text-muted-foreground">→ Precio mercado ajustado:</span>
+                    <strong>67.600€</strong>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">6. Ajuste Gama (-1%):</span>
-                    <strong className="text-red-600 dark:text-red-400">-683€</strong>
+                    <span className="text-muted-foreground">4. VdK mercado:</span>
+                    <strong>0,20€/km</strong>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">5. TRE media (PNE/Precio Nuevo):</span>
+                    <strong>64%</strong>
+                  </div>
+                  <div className="flex justify-between border-b pb-1">
+                    <span className="text-muted-foreground">→ Precio AVP:</span>
+                    <strong>55.800€</strong>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">6. Promedio Mercado + AVP:</span>
+                    <strong>61.700€</strong>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">7. Control zombis (+1%):</span>
+                    <strong className="text-red-600 dark:text-red-400">-900€</strong>
                   </div>
                   <div className="flex justify-between border-t pt-1 mt-1">
                     <span className="font-medium">PRECIO OBJETIVO:</span>
-                    <strong className="text-lg text-primary">~63.000€</strong>
+                    <strong className="text-lg text-primary">~60.800€</strong>
                   </div>
                 </div>
               </div>
