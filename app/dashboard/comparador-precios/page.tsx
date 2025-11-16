@@ -41,9 +41,6 @@ import {
   Cell
 } from "recharts"
 
-const VENTAJA_KM_SIGNIFICATIVA = 15000
-const VENTAJA_ANIO_SIGNIFICATIVA = 1
-
 // MOCK DATA eliminado - Solo se usarán datos reales de la API
 
 function PriceThermometer({ porcentaje, diferencia }: { porcentaje: number | null, diferencia: number | null }) {
@@ -340,37 +337,6 @@ function CompetitorDetailModal({ vehicle, open, onClose }: { vehicle: any, open:
           className: "text-muted-foreground"
         }
 
-  const vdkPromedioMercadoNumero =
-    typeof vehicle.vdkPromedioMercado === "number" ? vehicle.vdkPromedioMercado : null
-  const vdkParesConsideradosNumero =
-    typeof vehicle.vdkParesConsiderados === "number" ? vehicle.vdkParesConsiderados : 0
-  const trePromedioMercadoNumero =
-    typeof vehicle.trePromedioMercado === "number" ? vehicle.trePromedioMercado : null
-  const treMuestrasMercadoNumero =
-    typeof vehicle.treMuestrasMercado === "number" ? vehicle.treMuestrasMercado : 0
-  const pneMercadoPromedioNumero =
-    typeof vehicle.pneMercadoPromedio === "number" ? vehicle.pneMercadoPromedio : null
-  const precioAjustadoAvpNumero =
-    typeof vehicle.precioAjustadoAvp === "number" ? vehicle.precioAjustadoAvp : null
-  const bandaInferiorAvpNumero =
-    typeof vehicle.bandaInferiorAvp === "number" ? vehicle.bandaInferiorAvp : null
-  const bandaSuperiorAvpNumero =
-    typeof vehicle.bandaSuperiorAvp === "number" ? vehicle.bandaSuperiorAvp : null
-  const precioRecomendadoPreAvpNumero =
-    typeof vehicle.precioRecomendadoPreAvp === "number" ? vehicle.precioRecomendadoPreAvp : null
-  const precioRecomendadoCombinadoNumero =
-    typeof vehicle.precioRecomendadoCombinado === "number" ? vehicle.precioRecomendadoCombinado : null
-  const clasificacionAvp =
-    (vehicle.clasificacionAvp as "caro" | "ajustado" | "competitivo" | null) ?? null
-  const clasificacionAvpEtiqueta =
-    clasificacionAvp === "caro"
-      ? "CARO (+3%)"
-      : clasificacionAvp === "competitivo"
-      ? "COMPETITIVO (-3%)"
-      : clasificacionAvp === "ajustado"
-      ? "AJUSTADO (±3%)"
-      : "Sin datos"
-
   const pasosExplicativos: Array<{ titulo: string; descripcion: string; activo: boolean }> = []
 
   pasosExplicativos.push({
@@ -381,30 +347,6 @@ function CompetitorDetailModal({ vehicle, open, onClose }: { vehicle: any, open:
         : `Promediamos ${vehicle.competidores || 0} comparables filtrados por equipamiento similar → ${formatCurrencyWithSymbol(precioPromedioCompetenciaGeneralNumero, 0)}.`,
     activo: !!vehicle.precioMedioCompetencia
   })
-
-  if (vdkPromedioMercadoNumero !== null) {
-    pasosExplicativos.push({
-      titulo: "Valor del kilómetro (VdK)",
-      descripcion: `El mercado paga ${vdkPromedioMercadoNumero.toFixed(2)}€/km (${vdkParesConsideradosNumero} pares con ±10k€ de precio nuevo).`,
-      activo: true
-    })
-  }
-
-  if (trePromedioMercadoNumero !== null && precioAjustadoAvpNumero !== null) {
-    pasosExplicativos.push({
-      titulo: "Normalización 0 km (PNE)",
-      descripcion: `Convertimos cada comparable a 0 km para medir su equipamiento. TRE media ${((trePromedioMercadoNumero ?? 0) * 100).toFixed(1)}%. Resultado AVP: ${formatCurrencyWithSymbol(precioAjustadoAvpNumero, 0)}.`,
-      activo: true
-    })
-  }
-
-  if (bandaInferiorAvpNumero !== null && bandaSuperiorAvpNumero !== null) {
-    pasosExplicativos.push({
-      titulo: "Banda de posicionamiento",
-      descripcion: `El rango justo queda entre ${formatCurrencyWithSymbol(bandaInferiorAvpNumero, 0)} y ${formatCurrencyWithSymbol(bandaSuperiorAvpNumero, 0)} (${clasificacionAvpEtiqueta}).`,
-      activo: true
-    })
-  }
 
   if (vehicle.gama === "alta" && vehicle.equipamiento === "basico") {
     if (bonusKmAplicadoNumero > 0) {
@@ -444,18 +386,6 @@ function CompetitorDetailModal({ vehicle, open, onClose }: { vehicle: any, open:
       titulo: "Ajuste por kilometraje",
       descripcion: `Nuestros ${vehicle.km?.toLocaleString("es-ES")} km frente a ${formatKmValue(vehicle.kmMedioCompetencia)} implican ${diferenciaKmTexto}. Con ${valorKmAplicadoNumero?.toFixed?.(2) ?? "0"} €/km ${ajusteKmTexto} a la base.`,
       activo: diferenciaKmNumero !== null && valorKmAplicadoNumero !== null
-    })
-  }
-
-  if (
-    precioRecomendadoPreAvpNumero !== null &&
-    precioRecomendadoCombinadoNumero !== null &&
-    precioAjustadoAvpNumero !== null
-  ) {
-    pasosExplicativos.push({
-      titulo: "Fusión AVP + competencia",
-      descripcion: `Promedio entre mercado (${formatCurrencyWithSymbol(precioRecomendadoPreAvpNumero, 0)}) y AVP (${formatCurrencyWithSymbol(precioAjustadoAvpNumero, 0)}) → ${formatCurrencyWithSymbol(precioRecomendadoCombinadoNumero, 0)} antes de aplicar zombis/urgencia.`,
-      activo: true
     })
   }
 
@@ -556,7 +486,7 @@ function CompetitorDetailModal({ vehicle, open, onClose }: { vehicle: any, open:
                     <Info className="w-3.5 h-3.5" />
                     Datos exactos utilizados en el cálculo
                   </div>
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-[11px] sm:text-xs">
+                  <div className="grid sm:grid-cols-2 gap-3 text-[11px] sm:text-xs">
                     <div className="space-y-1.5">
                       <div className="font-semibold text-slate-700 dark:text-slate-200">
                         Percentiles precio nuevo (gama {gamaLabel})
@@ -607,46 +537,6 @@ function CompetitorDetailModal({ vehicle, open, onClose }: { vehicle: any, open:
                           <span>{formatCurrencyWithSymbol(precioPromedioCompetenciaGeneralNumero, 0)}</span>
                         </div>
                       )}
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <div className="font-semibold text-slate-700 dark:text-slate-200">Analítica AVP (normalización)</div>
-                      <div className="flex justify-between">
-                        <span>Valor del km (VdK):</span>
-                        <span>{vdkPromedioMercadoNumero !== null ? `${vdkPromedioMercadoNumero.toFixed(2)}€` : "N/A"}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Pares utilizados:</span>
-                        <span>{vdkParesConsideradosNumero}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>TRE mercado:</span>
-                        <span>
-                          {trePromedioMercadoNumero !== null
-                            ? `${(trePromedioMercadoNumero * 100).toFixed(1)}% (${treMuestrasMercadoNumero} muestras)`
-                            : "N/A"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>PNE medio:</span>
-                        <span>{formatCurrencyWithSymbol(pneMercadoPromedioNumero, 0)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Precio AVP:</span>
-                        <span>{formatCurrencyWithSymbol(precioAjustadoAvpNumero, 0)}</span>
-                      </div>
-                      {bandaInferiorAvpNumero !== null && bandaSuperiorAvpNumero !== null && (
-                        <div className="flex justify-between">
-                          <span>Franja 97%-103%:</span>
-                          <span>
-                            {formatCurrencyWithSymbol(bandaInferiorAvpNumero, 0)} · {formatCurrencyWithSymbol(bandaSuperiorAvpNumero, 0)}
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex justify-between">
-                        <span>Clasificación AVP:</span>
-                        <span>{clasificacionAvpEtiqueta}</span>
-                      </div>
                     </div>
 
                     <div className="space-y-1.5">
@@ -709,24 +599,6 @@ function CompetitorDetailModal({ vehicle, open, onClose }: { vehicle: any, open:
 
                     <div className="space-y-1.5">
                       <div className="font-semibold text-slate-700 dark:text-slate-200">Cadena de ajustes</div>
-                      {precioRecomendadoPreAvpNumero !== null && (
-                        <div className="flex justify-between">
-                          <span>Base mercado sin AVP:</span>
-                          <span>{formatCurrencyWithSymbol(precioRecomendadoPreAvpNumero, 0)}</span>
-                        </div>
-                      )}
-                      {precioAjustadoAvpNumero !== null && (
-                        <div className="flex justify-between">
-                          <span>Objetivo AVP:</span>
-                          <span>{formatCurrencyWithSymbol(precioAjustadoAvpNumero, 0)}</span>
-                        </div>
-                      )}
-                      {precioRecomendadoCombinadoNumero !== null && (
-                        <div className="flex justify-between">
-                          <span>Promedio combinado:</span>
-                          <span>{formatCurrencyWithSymbol(precioRecomendadoCombinadoNumero, 0)}</span>
-                        </div>
-                      )}
                       <div className="flex justify-between">
                         <span>Base tras KM:</span>
                         <span>{formatCurrencyWithSymbol(precioRecomendadoBaseNumero, 0)}</span>
@@ -837,18 +709,6 @@ function CompetitorDetailModal({ vehicle, open, onClose }: { vehicle: any, open:
                           <span className="font-medium">{vehicle.kmMedioCompetencia.toLocaleString()} km</span>
                         </div>
                       )}
-                      {vdkPromedioMercadoNumero !== null && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Valor del km (AVP):</span>
-                          <span>{`${vdkPromedioMercadoNumero.toFixed(2)}€`}</span>
-                        </div>
-                      )}
-                      {trePromedioMercadoNumero !== null && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">TRE mercado:</span>
-                          <span>{`${(trePromedioMercadoNumero * 100).toFixed(1)}%`}</span>
-                        </div>
-                      )}
                       {ajusteKmAplicadoNumero !== null && (
                         <div className="flex justify-between text-orange-500">
                           <span>Ajuste aplicado por KM:</span>
@@ -857,12 +717,6 @@ function CompetitorDetailModal({ vehicle, open, onClose }: { vehicle: any, open:
                               ? "0€"
                               : `${ajusteKmAplicadoNumero > 0 ? "-" : "+"}${formatCurrencyWithSymbol(Math.abs(ajusteKmAplicadoNumero), 0)}`}
                           </span>
-                        </div>
-                      )}
-                      {precioAjustadoAvpNumero !== null && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Precio ajustado AVP:</span>
-                          <span className="font-medium text-blue-400">{formatCurrencyWithSymbol(precioAjustadoAvpNumero, 0)}</span>
                         </div>
                       )}
                       {bonusKmAplicadoNumero > 0 && (
@@ -902,18 +756,6 @@ function CompetitorDetailModal({ vehicle, open, onClose }: { vehicle: any, open:
                           {vehicle.diferencia > 0 ? '+' : ''}{vehicle.diferencia.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€ ({vehicle.porcentajeDif?.toFixed(1)}%)
                         </span>
                       </div>
-                      {bandaInferiorAvpNumero !== null && bandaSuperiorAvpNumero !== null && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Banda AVP 97%-103%:</span>
-                          <span>{formatCurrencyWithSymbol(bandaInferiorAvpNumero, 0)} · {formatCurrencyWithSymbol(bandaSuperiorAvpNumero, 0)}</span>
-                        </div>
-                      )}
-                      {clasificacionAvp && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Diagnóstico AVP:</span>
-                          <span className="font-medium">{clasificacionAvpEtiqueta}</span>
-                        </div>
-                      )}
                       <div className="flex justify-between font-semibold pt-1 border-t">
                         <span>💡 Precio recomendado:</span>
                         <span className="text-foreground">{vehicle.precioRecomendado?.toLocaleString('es-ES', { maximumFractionDigits: 0 })}€</span>

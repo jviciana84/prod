@@ -105,3 +105,5 @@ Conexion a Supabase para actualizar sale_table automaticamente.
 
 
 
+
+
