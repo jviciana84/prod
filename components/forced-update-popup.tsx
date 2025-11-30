@@ -59,18 +59,32 @@ export function ForcedUpdatePopup() {
         .maybeSingle()
 
       if (userUpdateError) {
-        const meaningfulError = ["message", "code", "details", "hint"].some(
-          (key) => {
-            const value = (userUpdateError as Record<string, any>)[key]
-            return value !== undefined && value !== null && String(value).trim() !== ""
-          }
-        )
-
-        if (meaningfulError) {
-          console.error("Error al verificar user_forced_updates:", userUpdateError)
-          setShowPopup(false)
-          return
+        // Verificar si el error tiene información útil
+        const errorMessage = userUpdateError.message
+        const errorCode = userUpdateError.code
+        const errorDetails = userUpdateError.details
+        const errorHint = userUpdateError.hint
+        
+        const hasUsefulInfo = 
+          (errorMessage && String(errorMessage).trim() !== "") ||
+          (errorCode && String(errorCode).trim() !== "") ||
+          (errorDetails && String(errorDetails).trim() !== "") ||
+          (errorHint && String(errorHint).trim() !== "")
+        
+        if (hasUsefulInfo) {
+          // Solo loguear si hay información útil en el error (usando console.warn para evitar que Next.js lo trate como error no manejado)
+          console.warn("Advertencia al verificar user_forced_updates:", {
+            message: errorMessage,
+            code: errorCode,
+            details: errorDetails,
+            hint: errorHint
+          })
         }
+        
+        // En cualquier caso, si hay error (vacío o no), no mostrar el popup
+        // (probablemente la tabla no existe o no hay permisos, pero no es crítico)
+        setShowPopup(false)
+        return
       }
 
       if (userUpdate && userUpdate.id) {

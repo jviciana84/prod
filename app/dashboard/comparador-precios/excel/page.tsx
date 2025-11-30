@@ -1452,7 +1452,7 @@ export default function ExcelComparadorPage() {
                         <td className="p-1.5 text-xs">{vehiculo.marca || '-'}</td>
                         <td className="p-1.5 text-xs" title={vehiculo.modelo}>
                           <div className={`max-w-[150px] truncate ${
-                            vehiculo.num_competidores > 0 && vehiculo.num_competidores <= 3 
+                            vehiculo.num_competidores <= 3 
                               ? 'text-amber-500 font-medium' 
                               : ''
                           }`}>
@@ -1560,9 +1560,14 @@ export default function ExcelComparadorPage() {
                             <div className={clasesMargen}>
                               <span className="text-base">{rentable ? "✓" : "✗"}</span>
                               <span className="text-xs font-bold">{margen > 0 ? '+' : ''}{margen.toLocaleString()}€</span>
-                              {margenDesdePuja !== null && (
+                              {margenDesdePuja !== null && margenDesdePuja > 0 && (
                                 <span className="text-[10px] text-muted-foreground">
-                                  Puja Máx = {margenDesdePuja > 0 ? '+' : ''}{margenDesdePuja.toLocaleString()}€
+                                  Puja Máx = +{margenDesdePuja.toLocaleString()}€
+                                </span>
+                              )}
+                              {margenDesdePuja !== null && margenDesdePuja <= 0 && (
+                                <span className="text-[10px] text-amber-600 dark:text-amber-400">
+                                  Puja Máx no viable
                                 </span>
                               )}
                             </div>

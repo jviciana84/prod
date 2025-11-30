@@ -17,6 +17,50 @@ function excelSerialToDate(serial: number): Date | null {
   return date
 }
 
+// Función para buscar columna de forma flexible (maneja variaciones y duplicados)
+function buscarColumna(row: any, posiblesNombres: string[]): any {
+  // Primero intentar búsqueda exacta
+  for (const nombre of posiblesNombres) {
+    if (row[nombre] !== undefined && row[nombre] !== null && row[nombre] !== '') {
+      return row[nombre]
+    }
+  }
+  
+  // Si no se encuentra exacto, buscar por coincidencia parcial (case-insensitive)
+  const rowKeys = Object.keys(row)
+  for (const nombre of posiblesNombres) {
+    const nombreUpper = nombre.toUpperCase().trim()
+    for (const key of rowKeys) {
+      const keyUpper = key.toUpperCase().trim()
+      // Buscar coincidencia parcial (contiene las palabras clave)
+      if (keyUpper.includes(nombreUpper) || nombreUpper.includes(keyUpper)) {
+        if (row[key] !== undefined && row[key] !== null && row[key] !== '') {
+          return row[key]
+        }
+      }
+    }
+  }
+  
+  // Si hay columnas duplicadas, buscar la última que tenga valor
+  for (const nombre of posiblesNombres) {
+    const nombreUpper = nombre.toUpperCase().trim()
+    let ultimoValor = null
+    for (const key of rowKeys) {
+      const keyUpper = key.toUpperCase().trim()
+      if (keyUpper === nombreUpper || (keyUpper.includes(nombreUpper) && nombreUpper.length > 5)) {
+        if (row[key] !== undefined && row[key] !== null && row[key] !== '') {
+          ultimoValor = row[key]
+        }
+      }
+    }
+    if (ultimoValor !== null) {
+      return ultimoValor
+    }
+  }
+  
+  return null
+}
+
 // Función para normalizar modelo (similar a la del análisis)
 function normalizeModeloParaBusqueda(modelo: string, serie?: string): string {
   if (!modelo) return ''
@@ -133,6 +177,102 @@ export async function POST(request: NextRequest) {
           row['SERIE'] || ''
         )
         
+        // Buscar precios de forma flexible (maneja variaciones y duplicados)
+        const precioNuevoBruto = buscarColumna(row, [
+          'PRECIO NUEVO BRUTO',
+          'PRECIO NUEVO',
+          'PRECIO BRUTO NUEVO',
+          'PRECIO NUEVO BRUTO '
+        ])
+        
+        // Función para buscar todas las columnas que coincidan con un patrón
+        const buscarTodasLasColumnas = (row: any, posiblesNombres: string[]): Array<{key: string, value: any}> => {
+          const resultados: Array<{key: string, value: any}> = []
+          const rowKeys = Object.keys(row)
+          
+          for (const nombre of posiblesNombres) {
+            const nombreUpper = nombre.toUpperCase().trim()
+            for (const key of rowKeys) {
+              const keyUpper = key.toUpperCase().trim()
+              if (keyUpper === nombreUpper || (keyUpper.includes(nombreUpper) && nombreUpper.length > 5)) {
+                if (row[key] !== undefined && row[key] !== null && row[key] !== '') {
+                  resultados.push({ key, value: row[key] })
+                }
+              }
+            }
+          }
+          return resultados
+        }
+        
+        // Buscar todas las columnas de "PRECIO SALIDA" (puede haber BRUTO y NETO, aunque estén mal etiquetadas)
+        const columnasPrecioSalida = buscarTodasLasColumnas(row, [
+          'PRECIO SALIDA  BRUTO',
+          'PRECIO SALIDA BRUTO',
+          'PRECIO SALIDA NETO',
+          'PRECIO BRUTO SALIDA',
+          'PRECIO NETO SALIDA'
+        ])
+        
+        let precioSalidaBruto = null
+        let precioSalidaNeto = null
+        
+        if (columnasPrecioSalida.length === 0) {
+          // No se encontró ninguna columna de precio salida
+          precioSalidaBruto = null
+          precioSalidaNeto = null
+        } else if (columnasPrecioSalida.length === 1) {
+          // Solo hay una columna: asumimos que es BRUTO y calculamos NETO
+          precioSalidaBruto = columnasPrecioSalida[0].value
+          // Neto = Bruto / 1.21 (quitar IVA)
+          if (precioSalidaBruto && typeof precioSalidaBruto === 'number') {
+            precioSalidaNeto = Math.round(precioSalidaBruto / 1.21 * 100) / 100
+          } else if (precioSalidaBruto) {
+            const brutoNum = parseFloat(precioSalidaBruto.toString().replace(/[€.\s]/g, '').replace(',', '.'))
+            if (!isNaN(brutoNum)) {
+              precioSalidaNeto = Math.round(brutoNum / 1.21 * 100) / 100
+            }
+          }
+        } else {
+          // Hay múltiples columnas: la primera es BRUTO, la última es NETO (aunque esté mal etiquetada)
+          precioSalidaBruto = columnasPrecioSalida[0].value
+          precioSalidaNeto = columnasPrecioSalida[columnasPrecioSalida.length - 1].value
+          
+          // Validar que el neto sea aproximadamente bruto / 1.21 (tolerancia del 5%)
+          if (precioSalidaBruto && precioSalidaNeto) {
+            const brutoNum = typeof precioSalidaBruto === 'number' 
+              ? precioSalidaBruto 
+              : parseFloat(precioSalidaBruto.toString().replace(/[€.\s]/g, '').replace(',', '.'))
+            const netoNum = typeof precioSalidaNeto === 'number' 
+              ? precioSalidaNeto 
+              : parseFloat(precioSalidaNeto.toString().replace(/[€.\s]/g, '').replace(',', '.'))
+            
+            if (!isNaN(brutoNum) && !isNaN(netoNum)) {
+              const netoCalculado = brutoNum / 1.21
+              const diferencia = Math.abs(netoNum - netoCalculado) / netoCalculado
+              
+              // Si la diferencia es mayor al 5%, probablemente están intercambiados
+              if (diferencia > 0.05) {
+                // Intercambiar: el que está más cerca de bruto/1.21 es el neto
+                const netoEsPrimero = Math.abs(netoNum - netoCalculado) < Math.abs(brutoNum - netoCalculado)
+                if (netoEsPrimero) {
+                  precioSalidaBruto = columnasPrecioSalida[columnasPrecioSalida.length - 1].value
+                  precioSalidaNeto = columnasPrecioSalida[0].value
+                }
+              }
+            }
+          }
+        }
+        
+        // Si aún no tenemos neto pero sí bruto, calcularlo
+        if (!precioSalidaNeto && precioSalidaBruto) {
+          const brutoNum = typeof precioSalidaBruto === 'number' 
+            ? precioSalidaBruto 
+            : parseFloat(precioSalidaBruto.toString().replace(/[€.\s]/g, '').replace(',', '.'))
+          if (!isNaN(brutoNum)) {
+            precioSalidaNeto = Math.round(brutoNum / 1.21 * 100) / 100
+          }
+        }
+        
         vehiculosParaInsertar.push({
           lote: row['LOTE'] || null,
           chasis: row['CHASIS'] || null,
@@ -156,11 +296,11 @@ export async function POST(request: NextRequest) {
           resumen_opciones: row['RESUMEN OPCIONES'] || null,
           reg_fis: row['REG FIS.'] || null,
           break_even: row['BREAK EVEN / VR NETO'] || null,
-          precio_nuevo_bruto: row['PRECIO NUEVO BRUTO'] || null,
+          precio_nuevo_bruto: precioNuevoBruto,
           msrp_prod_date: row['MSRP Prod Date'] || null,
           tipo_usado: row['TIPO DE USADO'] || null,
-          precio_salida_bruto: row['PRECIO SALIDA  BRUTO'] || null,
-          precio_salida_neto: row['PRECIO SALIDA NETO'] || null,
+          precio_salida_bruto: precioSalidaBruto,
+          precio_salida_neto: precioSalidaNeto,
           nombre_archivo: file.name,
           cargado_por: userId,
           num_competidores: 0 // Inicializar en 0, se actualizará después
