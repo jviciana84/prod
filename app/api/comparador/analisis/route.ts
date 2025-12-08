@@ -127,6 +127,140 @@ function calcularPercentiles(valores: number[]): PercentilesEquipamiento | null 
   }
 }
 
+// Función para calcular percentil de posición en el mercado
+function calcularPercentilPosicion(precio: number, metricas: {
+  precioMinimo: number | null
+  precioMaximo: number | null
+  percentil25: number | null
+  percentil75: number | null
+}): number {
+  if (!metricas.precioMinimo || !metricas.precioMaximo || !metricas.percentil25 || !metricas.percentil75) {
+    return 50 // Neutro si faltan datos
+  }
+
+  const { precioMinimo, precioMaximo, percentil25, percentil75 } = metricas
+
+  if (precio <= percentil25) {
+    const rango = percentil25 - precioMinimo
+    if (rango === 0) return 0
+    return ((precio - precioMinimo) / rango) * 25
+  } else if (precio <= percentil75) {
+    const rango = percentil75 - percentil25
+    if (rango === 0) return 50
+    return 25 + ((precio - percentil25) / rango) * 50
+  } else {
+    const rango = precioMaximo - percentil75
+    if (rango === 0) return 100
+    return 75 + ((precio - percentil75) / rango) * 25
+  }
+}
+
+// Función para calcular nivel de confianza
+function calcularNivelConfianza(metricas: {
+  count: number
+  desviacionEstandar: number | null
+  precioMedio: number | null
+}): 'alta' | 'media' | 'baja' {
+  const { count, desviacionEstandar, precioMedio } = metricas
+
+  if (!precioMedio || !desviacionEstandar || count === 0) return 'baja'
+
+  let score = 0
+
+  // Cantidad de competidores
+  if (count >= 15) score += 40
+  else if (count >= 8) score += 25
+  else if (count >= 4) score += 15
+  else score += 5
+
+  // Consistencia de precios (coeficiente de variación)
+  const cv = (desviacionEstandar / precioMedio) * 100
+  if (cv < 10) score += 30
+  else if (cv < 20) score += 20
+  else score += 10
+
+  if (score >= 60) return 'alta'
+  if (score >= 40) return 'media'
+  return 'baja'
+}
+
+// Función para calcular score de competitividad
+function calcularScoreCompetitividad(
+  precioActual: number,
+  valorTeorico: number | null,
+  metricasMercado: {
+    precioMedio: number | null
+    precioMinimo: number | null
+    precioMaximo: number | null
+    percentil25: number | null
+    percentil75: number | null
+    desviacionEstandar: number | null
+    count: number
+  }
+): { score: number; nivel: 'excelente' | 'bueno' | 'justo' | 'alto' | 'muy_alto'; posicionPercentil: number; confianza: 'alta' | 'media' | 'baja' } {
+  const confianza = calcularNivelConfianza(metricasMercado)
+
+  // Caso sin mercado: usar solo teoría
+  if (!metricasMercado.precioMedio || !valorTeorico) {
+    const ratioTeorico = precioActual / (valorTeorico || precioActual)
+    const scoreTeorico = ratioTeorico <= 1.0
+      ? 100
+      : Math.max(0, 100 - (ratioTeorico - 1) * 50)
+
+    const nivel: 'excelente' | 'bueno' | 'justo' | 'alto' | 'muy_alto' =
+      scoreTeorico >= 80 ? 'excelente' :
+      scoreTeorico >= 60 ? 'bueno' :
+      scoreTeorico >= 40 ? 'justo' :
+      scoreTeorico >= 20 ? 'alto' :
+      'muy_alto'
+
+    return {
+      score: Math.round(scoreTeorico),
+      nivel,
+      posicionPercentil: 50,
+      confianza: 'baja'
+    }
+  }
+
+  // Con mercado: combinar teórico + mercado
+  const posicionPercentil = calcularPercentilPosicion(precioActual, metricasMercado)
+  const ratioTeorico = valorTeorico ? precioActual / valorTeorico : 1.0
+
+  let scoreTeorico = ratioTeorico <= 1.0
+    ? 100
+    : Math.max(0, 100 - (ratioTeorico - 1) * 100)
+
+  const scoreMercado = 100 - posicionPercentil // 0 (más caro) → 0 puntos; 100 (más barato) → 100 puntos
+
+  // Ponderación dinámica según confianza
+  let pesoMercado = 0.6
+  let pesoTeorico = 0.4
+
+  if (confianza === 'alta') {
+    pesoMercado = 0.7
+    pesoTeorico = 0.3
+  } else if (confianza === 'baja') {
+    pesoMercado = 0.4
+    pesoTeorico = 0.6
+  }
+
+  const scoreFinal = scoreMercado * pesoMercado + scoreTeorico * pesoTeorico
+
+  let nivel: 'excelente' | 'bueno' | 'justo' | 'alto' | 'muy_alto'
+  if (scoreFinal >= 80) nivel = 'excelente'
+  else if (scoreFinal >= 60) nivel = 'bueno'
+  else if (scoreFinal >= 40) nivel = 'justo'
+  else if (scoreFinal >= 20) nivel = 'alto'
+  else nivel = 'muy_alto'
+
+  return {
+    score: Math.round(scoreFinal),
+    nivel,
+    posicionPercentil: Math.round(posicionPercentil),
+    confianza
+  }
+}
+
 function calcularPercentilesPorGama(stockData: any[]): PercentilesPorGama {
   const preciosPorGama: Record<'basica' | 'media' | 'alta', number[]> = {
     basica: [],
@@ -801,6 +935,7 @@ export async function GET(request: NextRequest) {
         ? preciosCompetencia.reduce((sum, p) => sum + p, 0) / preciosCompetencia.length
         : null
       let precioPercentil25Competencia: number | null = null
+      let precioPercentil75Competencia: number | null = null
       let metodoPrecioBase: 'sin_datos' | 'percentil25' | 'promedio' = 'sin_datos'
       
       // 🐛 DEBUG para 9853MKL
@@ -813,18 +948,21 @@ export async function GET(request: NextRequest) {
       // El promedio incluye coches muy equipados que inflan el precio
       let precioMedioCompetencia = null
       if (preciosCompetencia.length > 0) {
+        // Calcular percentiles 25 y 75
+        const percentil25Index = Math.floor(preciosCompetencia.length * 0.25)
+        const percentil75Index = Math.floor(preciosCompetencia.length * 0.75)
+        precioPercentil25Competencia = preciosCompetencia[Math.max(0, percentil25Index)]
+        precioPercentil75Competencia = preciosCompetencia[Math.max(0, percentil75Index)]
+        
         if (gamaVehiculo === 'alta' && equipamientoVehiculo === 'basico') {
           // Usar el percentil 25 (25% más barato) o el precio mínimo si hay pocos
-          const percentil25 = Math.floor(preciosCompetencia.length * 0.25)
-          const indiceReferencia = Math.max(0, percentil25)
-          precioPercentil25Competencia = preciosCompetencia[indiceReferencia]
           precioMedioCompetencia = precioPercentil25Competencia
           metodoPrecioBase = 'percentil25'
           
           // 🐛 DEBUG para 9853MKL
           if (vehiculo.license_plate === '9853MKL') {
             console.log('  ✅ LÓGICA GAMA ALTA + BÁSICO ACTIVADA')
-            console.log('  Percentil 25 índice:', indiceReferencia)
+            console.log('  Percentil 25 índice:', percentil25Index)
             console.log('  Precio base (Percentil 25):', precioMedioCompetencia?.toLocaleString())
           }
         } else {
@@ -1119,6 +1257,27 @@ export async function GET(request: NextRequest) {
 
       const precioRecomendadoFinal = precioRecomendado
 
+      // 🎯 Calcular score de competitividad, nivel y confianza
+      const desviacionEstandar = preciosCompetencia.length > 0
+        ? Math.sqrt(preciosCompetencia.reduce((acc, p) => acc + Math.pow(p - (precioPromedioCompetenciaGeneral || 0), 2), 0) / preciosCompetencia.length)
+        : null
+
+      const metricasParaScore = {
+        precioMedio: precioMedioCompetencia,
+        precioMinimo: precioMinimoCompetencia,
+        precioMaximo: precioMaximoCompetencia,
+        percentil25: precioPercentil25Competencia,
+        percentil75: precioPercentil75Competencia,
+        desviacionEstandar,
+        count: competidoresComparables.length
+      }
+
+      const scoreData = calcularScoreCompetitividad(
+        nuestroPrecio || 0,
+        valorEsperadoTeorico,
+        metricasParaScore
+      )
+
       return {
         // Datos de nuestro vehículo
         id: vehiculo.id,
@@ -1183,11 +1342,18 @@ export async function GET(request: NextRequest) {
         precioMaximoCompetencia,
         precioPromedioCompetenciaGeneral,
         precioPercentil25Competencia,
+        precioPercentil75Competencia,
         metodoPrecioBase,
         diferenciaKm,
         valorKmAplicado,
         ajusteKmAplicado,
         ajusteAgresivoAplicado,
+        
+        // 🎯 Indicadores de competitividad calculados
+        score: scoreData.score,
+        nivel: scoreData.nivel,
+        posicionPercentil: scoreData.posicionPercentil,
+        confianza: scoreData.confianza,
         
         // Detalles de TODOS los competidores (incluye Quadis para el gráfico)
         competidoresDetalle: competidoresSimilares.map((comp: any) => {
