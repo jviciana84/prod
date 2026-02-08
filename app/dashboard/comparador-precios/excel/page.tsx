@@ -1383,13 +1383,16 @@ export default function ExcelComparadorPage() {
                     <th className="p-2 text-right font-semibold bg-amber-500/5">Precio Venta</th>
                     <th className="p-2 text-right font-semibold bg-green-500/5">Competitivo</th>
                     <th className="p-2 text-center font-semibold">Comp.</th>
+                    <th className="p-2 text-center font-semibold bg-blue-500/5">Score</th>
+                    <th className="p-2 text-center font-semibold bg-blue-500/5">Nivel</th>
+                    <th className="p-2 text-center font-semibold bg-blue-500/5">Confianza</th>
                     <th className="p-2 text-center font-semibold">Margen</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredVehicles.map((vehiculo: any) => {
                     const precioVentaObjetivo = calcularPrecioVentaObjetivo(vehiculo)
-                    const precioCompetitivo = vehiculo.precio_competitivo
+                    const precioCompetitivo = vehiculo.precio_competitivo || vehiculo.precio_recomendado_avanzado
                     const pujaMaxima = calcularPujaMaxima(vehiculo)
                     const margen = precioVentaObjetivo && precioCompetitivo 
                       ? precioCompetitivo - precioVentaObjetivo 
@@ -1550,6 +1553,70 @@ export default function ExcelComparadorPage() {
                           >
                             {vehiculo.num_competidores || 0}
                           </Badge>
+                        </td>
+                        <td className="p-1.5 text-center bg-blue-500/5">
+                          {vehiculo.score_competitividad !== null && vehiculo.score_competitividad !== undefined ? (
+                            <div className="flex flex-col items-center gap-1">
+                              <Badge 
+                                variant="outline" 
+                                className={`text-[10px] font-bold ${
+                                  vehiculo.score_competitividad >= 80 ? 'bg-green-500/20 border-green-500 text-green-700 dark:text-green-400' :
+                                  vehiculo.score_competitividad >= 60 ? 'bg-blue-500/20 border-blue-500 text-blue-700 dark:text-blue-400' :
+                                  vehiculo.score_competitividad >= 40 ? 'bg-yellow-500/20 border-yellow-500 text-yellow-700 dark:text-yellow-400' :
+                                  'bg-red-500/20 border-red-500 text-red-700 dark:text-red-400'
+                                }`}
+                              >
+                                {vehiculo.score_competitividad}
+                              </Badge>
+                              {vehiculo.posicion_percentil !== null && (
+                                <span className="text-[8px] text-muted-foreground">
+                                  P{vehiculo.posicion_percentil}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground">-</span>
+                          )}
+                        </td>
+                        <td className="p-1.5 text-center bg-blue-500/5">
+                          {vehiculo.nivel_competitividad ? (
+                            <Badge 
+                              variant="outline"
+                              className={`text-[9px] font-medium ${
+                                vehiculo.nivel_competitividad === 'excelente' ? 'bg-green-500/20 border-green-500 text-green-700 dark:text-green-400' :
+                                vehiculo.nivel_competitividad === 'bueno' ? 'bg-blue-500/20 border-blue-500 text-blue-700 dark:text-blue-400' :
+                                vehiculo.nivel_competitividad === 'justo' ? 'bg-yellow-500/20 border-yellow-500 text-yellow-700 dark:text-yellow-400' :
+                                vehiculo.nivel_competitividad === 'alto' ? 'bg-orange-500/20 border-orange-500 text-orange-700 dark:text-orange-400' :
+                                'bg-red-500/20 border-red-500 text-red-700 dark:text-red-400'
+                              }`}
+                            >
+                              {vehiculo.nivel_competitividad === 'excelente' ? 'Excelente' :
+                               vehiculo.nivel_competitividad === 'bueno' ? 'Bueno' :
+                               vehiculo.nivel_competitividad === 'justo' ? 'Justo' :
+                               vehiculo.nivel_competitividad === 'alto' ? 'Alto' :
+                               'Muy Alto'}
+                            </Badge>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground">-</span>
+                          )}
+                        </td>
+                        <td className="p-1.5 text-center bg-blue-500/5">
+                          {vehiculo.confianza_analisis ? (
+                            <Badge 
+                              variant="outline"
+                              className={`text-[9px] ${
+                                vehiculo.confianza_analisis === 'alta' ? 'bg-green-500/20 border-green-500 text-green-700 dark:text-green-400' :
+                                vehiculo.confianza_analisis === 'media' ? 'bg-yellow-500/20 border-yellow-500 text-yellow-700 dark:text-yellow-400' :
+                                'bg-red-500/20 border-red-500 text-red-700 dark:text-red-400'
+                              }`}
+                            >
+                              {vehiculo.confianza_analisis === 'alta' ? 'Alta' :
+                               vehiculo.confianza_analisis === 'media' ? 'Media' :
+                               'Baja'}
+                            </Badge>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground">-</span>
+                          )}
                         </td>
                         <td className="p-1.5">
                           {esNoInteresante ? (

@@ -1,0 +1,19 @@
+---
+description: Cuando el usuario pide hacer push, subir cambios a Git (add, commit, push) en el repo del proyecto
+alwaysApply: true
+---
+
+# Push a Git
+
+Cuando el usuario diga **"haz un push"**, **"sube a git"**, **"push"** o similar:
+
+1. **Repositorio**: Usar el proyecto en `c:\Users\Usuario\Downloads\cursor` (es el que tiene el repo Git con `origin`).
+2. **Pasos**:
+   - `git add .` (o listar archivos concretos si el usuario lo indica)
+   - `git status` para confirmar
+   - `git commit -m "mensaje"` — usar un mensaje descriptivo breve o preguntar si quiere uno concreto
+   - `git push origin main`
+3. **Permisos**: Pedir `network` para que `git push` funcione.
+4. Si el hook `pre-commit` falla (p. ej. `update-version.js`), informar y ofrecer ejecutar el script manualmente o hacer commit con `--no-verify` si es necesario.
+
+El dominio del usuario se actualiza desde este repositorio, así que el push desencadena el despliegue.

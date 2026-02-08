@@ -248,22 +248,43 @@ export async function POST(request: NextRequest) {
       else if (message.toLowerCase().includes('garantía') || message.toLowerCase().includes('warranty') || message.toLowerCase().includes('seguro')) {
         console.log('🔍 Buscando garantías...')
         
-        const { data: garantias, error } = await supabase
-          .from('garantias_brutas_mm')
+        // Buscar primero en garantias_brutas_quadis (tabla principal)
+        const { data: garantiasQuadis, error: errorQuadis } = await supabase
+          .from('garantias_brutas_quadis')
           .select('*')
           .limit(10)
+        
+        // Si no hay datos en quadis, buscar en garantias_brutas_mm
+        let garantias = garantiasQuadis
+        let error = errorQuadis
+        
+        if (!garantias || garantias.length === 0) {
+          const { data: garantiasMm, error: errorMm } = await supabase
+            .from('garantias_brutas_mm')
+            .select('*')
+            .limit(10)
+          garantias = garantiasMm
+          error = errorMm
+        }
         
         if (error) {
           response = `Error al consultar garantías: ${error.message}`
         } else if (garantias && garantias.length > 0) {
           response = `**Garantías (${garantias.length}):**\n\n`
           garantias.forEach((garantia, index) => {
+            // Manejar diferentes estructuras de columnas (quadis vs mm/mmc)
+            const matricula = garantia.matricula || garantia.Matrícula || 'No disponible'
+            const modelo = garantia.modelo || garantia.Modelo || 'No disponible'
+            const marca = garantia.marca || garantia.Marca || 'No disponible'
+            const primaTotal = garantia.prima_total || garantia.Prima_Total || garantia["Prima Total"] || null
+            const estado = garantia.estado || garantia.Estado || 'No especificado'
+            
             response += `${index + 1}. **Garantía ${garantia.id}**\n`
-            response += `   - Matrícula: ${garantia.Matrícula || 'No disponible'}\n`
-            response += `   - Modelo: ${garantia.Modelo || 'No disponible'}\n`
-            response += `   - Marca: ${garantia.Marca || 'No disponible'}\n`
-            response += `   - Prima Total: ${garantia.Prima_Total ? `€${garantia.Prima_Total.toLocaleString()}` : 'No disponible'}\n`
-            response += `   - Estado: ${garantia.Estado || 'No especificado'}\n\n`
+            response += `   - Matrícula: ${matricula}\n`
+            response += `   - Modelo: ${modelo}\n`
+            response += `   - Marca: ${marca}\n`
+            response += `   - Prima Total: ${primaTotal ? `€${primaTotal.toLocaleString()}` : 'No disponible'}\n`
+            response += `   - Estado: ${estado}\n\n`
           })
         } else {
           response = `No se encontraron garantías en la base de datos.`

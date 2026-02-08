@@ -148,6 +148,12 @@ export async function GET(request: NextRequest) {
           .eq("license_plate", matricula)
           .single()
 
+        const { data: garantiasQuadisRecord } = await supabase
+          .from("garantias_brutas_quadis")
+          .select("*")
+          .eq("matricula", matricula)
+          .single()
+
         const { data: garantiasRecord } = await supabase
           .from("garantias_brutas_MM")
           .select("*")

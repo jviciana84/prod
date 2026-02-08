@@ -31,6 +31,20 @@ export async function GET(request: Request) {
     const supabase = createClient(supabaseUrl, supabaseKey)
     console.log("✅ Cliente Supabase creado correctamente")
 
+    // Buscar en garantias_brutas_quadis (PRIMERO - tabla principal)
+    console.log("🔍 Consultando tabla garantias_brutas_quadis...")
+    const { data: garantiasQuadisData, error: garantiasQuadisError } = await supabase
+      .from("garantias_brutas_quadis")
+      .select("*")
+      .ilike("matricula", `%${licensePlate}%`)
+      .limit(1)
+
+    if (garantiasQuadisError) {
+      console.error("❌ Error consultando garantias_brutas_quadis:", garantiasQuadisError)
+    } else {
+      console.log("✅ Datos de garantias_brutas_quadis encontrados:", garantiasQuadisData?.length || 0)
+    }
+
     // Buscar en garantias_brutas_MM (tabla principal con datos del cliente)
     console.log("🔍 Consultando tabla garantias_brutas_MM...")
     const { data: garantiasData, error: garantiasError } = await supabase
@@ -116,7 +130,8 @@ export async function GET(request: Request) {
       console.log("✅ Datos de entregas encontrados:", entregasData?.length || 0)
     }
 
-    // Combinar datos de todas las fuentes
+    // Combinar datos de todas las fuentes (prioridad: QUADIS > MM > MMC)
+    const garantiasQuadisRecord = garantiasQuadisData?.[0] || {}
     const garantiasRecord = garantiasData?.[0] || {}
     const garantiasMmcRecord = garantiasMmcData?.[0] || {}
     const salesRecord = salesData?.[0] || {}
@@ -124,6 +139,7 @@ export async function GET(request: Request) {
     const entregaRecord = entregaData?.[0] || {}
     const entregasRecord = entregasData?.[0] || {}
 
+    console.log("📊 Datos encontrados en garantias_brutas_quadis:", garantiasQuadisRecord)
     console.log("📊 Datos encontrados en garantias_brutas_mm:", garantiasRecord)
     console.log("📊 Datos encontrados en garantias_brutas_mmc:", garantiasMmcRecord)
     console.log("📊 Datos encontrados en sales_vehicles:", salesRecord)
@@ -187,7 +203,7 @@ export async function GET(request: Request) {
      }
 
      // Función para calcular la información de garantía
-     const calculateWarrantyInfo = (fechaMatriculacion: string, garantiasRecord: any, garantiasMmcRecord: any, modelo: string) => {
+     const calculateWarrantyInfo = (fechaMatriculacion: string, garantiasQuadisRecord: any, garantiasRecord: any, garantiasMmcRecord: any, modelo: string) => {
        if (!fechaMatriculacion) return { fechaFinal: null, descripcion: null }
        
        try {
@@ -199,8 +215,8 @@ export async function GET(request: Request) {
          fabricaDate.setDate(fabricaDate.getDate() - 1) // Restar 1 día porque el primer día cuenta
          const fechaFabrica = formatDate(fabricaDate.toISOString())
          
-         // Verificar si hay garantía contratada (está en garantias_brutas_MM o garantias_brutas_MMC)
-         const garantiaContratada = garantiasRecord || garantiasMmcRecord
+         // Verificar si hay garantía contratada (prioridad: QUADIS > MM > MMC)
+         const garantiaContratada = garantiasQuadisRecord || garantiasRecord || garantiasMmcRecord
          
          if (!garantiaContratada) {
            // Solo garantía de fábrica
@@ -360,8 +376,8 @@ export async function GET(request: Request) {
        }
      }
 
-         // Obtener fecha de matriculación
-     const fechaMatriculacion = garantiasRecord["f_matricula"] || garantiasMmcRecord["f_matricula"] || salesRecord.registration_date || stockRecord.registration_date
+         // Obtener fecha de matriculación (prioridad: QUADIS > MM > MMC > sales > stock)
+     const fechaMatriculacion = garantiasQuadisRecord["f_matricula"] || garantiasRecord["f_matricula"] || garantiasMmcRecord["f_matricula"] || salesRecord.registration_date || stockRecord.registration_date
 
      // Obtener fecha de entrega desde la tabla entregas
      const fechaEntrega = entregasRecord.fecha_entrega || entregaRecord.fecha_entrega || entregaRecord.fecha || entregaRecord.created_at
@@ -448,11 +464,11 @@ export async function GET(request: Request) {
 
     // Obtener información de certificación desde la tabla entregas
     const fechaCertificacion = getCertificationDate(entregasRecord)
-    const tipoCertificacion = getCertificationType(salesRecord.model || garantiasRecord.Modelo || garantiasMmcRecord.Modelo || stockRecord.model)
+    const tipoCertificacion = getCertificationType(salesRecord.model || garantiasQuadisRecord.modelo || garantiasRecord.Modelo || garantiasMmcRecord.Modelo || stockRecord.model)
     
          // Generar texto de valoración
      const año = getYearFromRegistration(fechaMatriculacion)
-     const kilometraje = garantiasRecord.kms || garantiasMmcRecord.kms || salesRecord.mileage || stockRecord.mileage
+     const kilometraje = garantiasQuadisRecord.kms || garantiasRecord.kms || garantiasMmcRecord.kms || salesRecord.mileage || stockRecord.mileage
      const valoracionText = getValoracionText(kilometraje, año)
 
      // Logs específicos para información del propietario
@@ -475,23 +491,23 @@ export async function GET(request: Request) {
        success: true,
        vehicleData: {
          matricula: licensePlate,
-         marca: garantiasRecord.marca || garantiasMmcRecord.marca || salesRecord.brand || stockRecord.brand,
-         modelo: garantiasRecord.modelo || garantiasMmcRecord.modelo || salesRecord.model || stockRecord.model,
+         marca: garantiasQuadisRecord.marca || garantiasRecord.marca || garantiasMmcRecord.marca || salesRecord.brand || stockRecord.brand,
+         modelo: garantiasQuadisRecord.modelo || garantiasRecord.modelo || garantiasMmcRecord.modelo || salesRecord.model || stockRecord.model,
          año: getYearFromRegistration(fechaMatriculacion),
          color: salesRecord.color || stockRecord.color,
-         kilometraje: garantiasRecord.kms || garantiasMmcRecord.kms || salesRecord.mileage || stockRecord.mileage,
-         vin: getBastidor(garantiasRecord.chasis || garantiasMmcRecord.chasis || salesRecord.vin || stockRecord.vin),
+         kilometraje: garantiasQuadisRecord.kms || garantiasRecord.kms || garantiasMmcRecord.kms || salesRecord.mileage || stockRecord.mileage,
+         vin: getBastidor(garantiasQuadisRecord.chasis || garantiasRecord.chasis || garantiasMmcRecord.chasis || salesRecord.vin || stockRecord.vin),
          fechaMatriculacion: formatDate(fechaMatriculacion),
          fechaEntrega: formatDate(fechaEntrega),
-         fechaVenta: formatDate(garantiasRecord["f_venta"] || garantiasMmcRecord["f_venta"] || salesRecord.sale_date || stockRecord.sale_date),
+         fechaVenta: formatDate(garantiasQuadisRecord["f_venta"] || garantiasRecord["f_venta"] || garantiasMmcRecord["f_venta"] || salesRecord.sale_date || stockRecord.sale_date),
                            fechaCertificacion: fechaCertificacion,
          tipoCertificacion: tipoCertificacion,
          valoracion: valoracionText,
          diasDesdeVenta: getTimeSinceDelivery(fechaEntrega),
-         garantiaInfo: calculateWarrantyInfo(fechaMatriculacion, garantiasRecord, garantiasMmcRecord, salesRecord.model || garantiasRecord.Modelo || garantiasMmcRecord.Modelo || stockRecord.model),
-         precio: garantiasRecord["precio_venta"] || garantiasMmcRecord["precio_venta"] || salesRecord.price || stockRecord.price,
+         garantiaInfo: calculateWarrantyInfo(fechaMatriculacion, garantiasQuadisRecord, garantiasRecord, garantiasMmcRecord, salesRecord.model || garantiasQuadisRecord.modelo || garantiasRecord.Modelo || garantiasMmcRecord.Modelo || stockRecord.model),
+         precio: garantiasQuadisRecord["precio_venta"] || garantiasRecord["precio_venta"] || garantiasMmcRecord["precio_venta"] || salesRecord.price || stockRecord.price,
          descuento: salesRecord.discount,
-         precioOriginal: ((garantiasRecord["precio_venta"] || garantiasMmcRecord["precio_venta"] || salesRecord.price || stockRecord.price) || 0) + Math.abs(salesRecord.discount || 0),
+         precioOriginal: ((garantiasQuadisRecord["precio_venta"] || garantiasRecord["precio_venta"] || garantiasMmcRecord["precio_venta"] || salesRecord.price || stockRecord.price) || 0) + Math.abs(salesRecord.discount || 0),
        },
        ownerData: {
          nombre: salesRecord.client_name || stockRecord.client_name,
@@ -509,6 +525,7 @@ export async function GET(request: Request) {
        },
       incidents: incidents,
       debug: {
+        garantiasQuadisDataFound: !!garantiasQuadisData?.length,
         garantiasDataFound: !!garantiasData?.length,
         garantiasMmcDataFound: !!garantiasMmcData?.length,
         salesDataFound: !!salesData?.length,
@@ -520,6 +537,7 @@ export async function GET(request: Request) {
         incidenciasCount: incidents.length,
         licensePlate,
         dni,
+        garantiasQuadisRecord,
         garantiasRecord,
         garantiasMmcRecord,
         salesRecord,
