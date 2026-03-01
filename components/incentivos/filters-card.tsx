@@ -112,47 +112,99 @@ export function FiltersCard({
     return months[monthNumber as keyof typeof months] || monthNumber
   }
 
+  const escapeHtml = (str: string) => {
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+  }
+
   const handleCopyData = () => {
     if (displayIncentives.length === 0) {
       toast.error("No hay datos para copiar.")
       return
     }
 
-    // Solo las columnas específicas que aparecen en la tabla de pendientes de gastos
     const headers = [
       "ENTREGA",
-      "MATRÍCULA", 
-      "OR",
+      "MATRÍCULA",
       "ASESOR",
+      "PAGO",
       "GARANTÍA",
       "GASTOS 360º"
-    ].join("\t")
+    ]
 
-    const dataToCopy = displayIncentives
-      .map((incentivo) => {
-        return [
-          formatDate(incentivo.fecha_entrega) || "",
-          incentivo.matricula || "",
-          incentivo.or || "",
-          incentivo.asesor || "",
-          incentivo.garantia === 0 ? "Fabricante" : incentivo.garantia?.toString() || "",
-          incentivo.gastos_360?.toString() || "",
-        ].join("\t")
-      })
-      .join("\n")
+    const rows = displayIncentives.map((incentivo) => {
+      const pago =
+        incentivo.financiado === true
+          ? "FINANCIADO"
+          : incentivo.financiado === false
+            ? "CONTADO"
+            : ""
+      return [
+        formatDate(incentivo.fecha_entrega) || "",
+        incentivo.matricula || "",
+        incentivo.asesor || "",
+        pago,
+        incentivo.garantia === 0 ? "Fabricante" : incentivo.garantia?.toString() || "",
+        incentivo.gastos_360?.toString() || "",
+      ]
+    })
 
-    const fullText = `${headers}\n${dataToCopy}`
+    // Formato texto (tabulado) para Excel o pegado en texto plano
+    const fullText = [
+      headers.join("\t"),
+      ...rows.map((row) => row.join("\t")),
+    ].join("\n")
+
+    // Tabla HTML para pegar en correo (Gmail, Outlook, etc.) y que se vea tabulada
+    const htmlTable = [
+      '<table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; font-family: sans-serif; font-size: 12px;">',
+      "<thead><tr>",
+      ...headers.map((h) => `<th style="background: #f1f5f9; text-align: left; border: 1px solid #cbd5e1;">${escapeHtml(h)}</th>`),
+      "</tr></thead>",
+      "<tbody>",
+      ...rows.map(
+        (row) =>
+          "<tr>" +
+          row.map((cell) => `<td style="border: 1px solid #cbd5e1;">${escapeHtml(cell)}</td>`).join("") +
+          "</tr>"
+      ),
+      "</tbody></table>",
+    ].join("")
+
+    // Fragmento HTML que esperan los clientes de correo (con meta y body)
+    const htmlForClipboard = [
+      "<meta charset=\"utf-8\">",
+      "<!--StartFragment-->",
+      htmlTable,
+      "<!--EndFragment-->",
+    ].join("")
+
+    const clipboardItem = new ClipboardItem({
+      "text/plain": new Blob([fullText], { type: "text/plain" }),
+      "text/html": new Blob([htmlForClipboard], { type: "text/html" }),
+    })
 
     navigator.clipboard
-      .writeText(fullText)
+      .write([clipboardItem])
       .then(() => {
         setIsCopied(true)
-        toast.success("Datos copiados al portapapeles (formato Excel).")
+        toast.success("Datos copiados. Al pegar en un correo se conservará la tabla.")
         setTimeout(() => setIsCopied(false), 2000)
       })
       .catch((err) => {
         console.error("Failed to copy: ", err)
-        toast.error("Error al copiar los datos.")
+        // Fallback: solo texto plano
+        navigator.clipboard.writeText(fullText).then(
+          () => {
+            setIsCopied(true)
+            toast.success("Datos copiados (solo texto).")
+            setTimeout(() => setIsCopied(false), 2000)
+          },
+          () => toast.error("Error al copiar los datos.")
+        )
       })
   }
 

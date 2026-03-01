@@ -244,7 +244,7 @@ export async function generateEdelweissResponse(
       },
       {
         name: 'analyze_sales_performance',
-        description: 'Análisis automático de rendimiento de ventas con métricas y comparaciones',
+        description: 'Análisis de ventas: total, marca/modelo/color más vendido. Usar para "qué color se vende más", "resumen ventas mes/semana".',
         parameters: {
           type: 'object',
           properties: {
@@ -886,10 +886,9 @@ function parseIntelligentQuery(query: string) {
   return criteria
 }
 
-// Funciones que la IA puede llamar
+// Funciones que la IA puede llamar (tabla stock: license_plate, model, matricula, paint_status, is_sold, etc.)
 async function searchVehiclesFunction(query: string, limit: number = 20) {
   try {
-    // Verificar cache primero
     const cacheKey = intelligentCache.generateKey('search_vehicles', { query, limit })
     const cachedResult = intelligentCache.get(cacheKey)
     if (cachedResult) {
@@ -900,68 +899,32 @@ async function searchVehiclesFunction(query: string, limit: number = 20) {
     const { createClient } = await import('@/utils/supabase/server')
     const supabase = await createClient()
     
-    // Analizar la consulta para extraer criterios específicos
-    const criteria = parseIntelligentQuery(query)
+    const term = (query || '').trim()
+    let supabaseQuery = supabase.from('stock').select('*').order('reception_date', { ascending: false })
     
-    let supabaseQuery = supabase.from('vehicles').select('*')
-    
-    // Construir filtros basados en los criterios detectados
-    const filters = []
-    
-    if (criteria.vehicle.brand) {
-      filters.push(`brand.ilike.%${criteria.vehicle.brand}%`)
-    }
-    
-    if (criteria.vehicle.model) {
-      filters.push(`model.ilike.%${criteria.vehicle.model}%`)
-    }
-    
-    if (criteria.vehicle.color) {
-      filters.push(`color.ilike.%${criteria.vehicle.color}%`)
-    }
-    
-    if (criteria.vehicle.year) {
-      filters.push(`year.eq.${criteria.vehicle.year}`)
-    }
-    
-    if (criteria.vehicle.license_plate) {
-      filters.push(`license_plate.ilike.%${criteria.vehicle.license_plate}%`)
-    }
-    
-    // Si no hay filtros específicos, usar búsqueda general
-    if (filters.length === 0) {
-      filters.push(`brand.ilike.%${query}%`, `model.ilike.%${query}%`, `license_plate.ilike.%${query}%`)
-    }
-    
-    // Aplicar filtros
-    if (filters.length === 1) {
-      supabaseQuery = supabaseQuery.filter(filters[0].split('.')[0], filters[0].split('.')[1], filters[0].split('.')[2])
-    } else {
-      supabaseQuery = supabaseQuery.or(filters.join(','))
+    if (term && term.length >= 2) {
+      const likeTerm = `%${term.replace(/\s+/g, '%')}%`
+      supabaseQuery = supabaseQuery.or(`model.ilike.${likeTerm},license_plate.ilike.${likeTerm},matricula.ilike.${likeTerm}`)
     }
     
     const { data: vehicles, error } = await supabaseQuery.limit(limit)
     
     if (error) {
-      console.error('Error buscando vehículos:', error)
-      return { error: 'Error en la búsqueda de vehículos' }
+      console.error('Error buscando vehículos (stock):', error)
+      return { error: 'Error en la búsqueda de vehículos', detail: error.message }
     }
     
     const result = {
       success: true,
       count: vehicles?.length || 0,
       vehicles: vehicles || [],
-      criteria_used: criteria
     }
 
-    // Guardar en cache (TTL de 3 minutos para búsquedas de vehículos)
     intelligentCache.set(cacheKey, result, 3 * 60 * 1000)
-    console.log('💾 Resultado guardado en cache')
-
     return result
   } catch (error) {
     console.error('Error en searchVehiclesFunction:', error)
-    return { error: 'Error interno en búsqueda de vehículos' }
+    return { error: 'Error interno en búsqueda de vehículos', detail: error instanceof Error ? error.message : '' }
   }
 }
 
@@ -1033,30 +996,31 @@ async function getSalesDataFunction(period: string, limit: number = 20) {
     
     let dateFilter = ''
     const now = new Date()
-    
+    let dateValue = ''
+
     switch (period) {
       case 'today':
-        const today = now.toISOString().split('T')[0]
-        dateFilter = `sale_date.gte.${today}`
+        dateValue = now.toISOString().split('T')[0]
         break
       case 'week':
-        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-        dateFilter = `sale_date.gte.${weekAgo}`
+        dateValue = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
         break
       case 'month':
-        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-        dateFilter = `sale_date.gte.${monthAgo}`
+        dateValue = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
         break
       case 'year':
-        const yearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-        dateFilter = `sale_date.gte.${yearAgo}`
+        dateValue = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
         break
     }
-    
+
+    if (!dateValue) {
+      return { error: 'Período no válido. Usa: today, week, month, year' }
+    }
+
     const { data: sales, error } = await supabase
       .from('sales_vehicles')
       .select('*')
-      .gte('sale_date', dateFilter)
+      .gte('sale_date', dateValue)
       .order('sale_date', { ascending: false })
       .limit(limit)
     
@@ -1343,6 +1307,15 @@ async function analyzeSalesPerformanceFunction(period: string, compareWith?: str
       })
     }
     
+    // Análisis por color (soporta distintos nombres de columna en la BD)
+    const colorAnalysis = {}
+    if (currentSales) {
+      currentSales.forEach(sale => {
+        const color = (sale.color ?? sale.color_vehiculo ?? sale.paint ?? sale.exterior_color ?? sale.colour ?? 'Sin especificar').toString().trim() || 'Sin especificar'
+        colorAnalysis[color] = (colorAnalysis[color] || 0) + 1
+      })
+    }
+    
     return {
       success: true,
       period: period,
@@ -1362,9 +1335,10 @@ async function analyzeSalesPerformanceFunction(period: string, compareWith?: str
         growth_percentage: Math.round(growth * 100) / 100,
         growth_direction: growthDirection,
         brand_analysis: brandAnalysis,
-        model_analysis: modelAnalysis
+        model_analysis: modelAnalysis,
+        color_analysis: colorAnalysis
       },
-      insights: generateSalesInsights(currentCount, comparisonCount, growth, brandAnalysis, modelAnalysis)
+      insights: generateSalesInsights(currentCount, comparisonCount, growth, brandAnalysis, modelAnalysis, colorAnalysis)
     }
     
   } catch (error) {
@@ -1498,7 +1472,7 @@ async function calculateMetricsFunction(dataType: string, metrics: string[], per
 }
 
 // Funciones auxiliares
-function generateSalesInsights(currentCount: number, comparisonCount: number, growth: number, brandAnalysis: any, modelAnalysis: any) {
+function generateSalesInsights(currentCount: number, comparisonCount: number, growth: number, brandAnalysis: any, modelAnalysis: any, colorAnalysis?: any) {
   const insights = []
   
   if (growth > 0) {
@@ -1510,15 +1484,23 @@ function generateSalesInsights(currentCount: number, comparisonCount: number, gr
   }
   
   // Marca más vendida
-  const topBrand = Object.keys(brandAnalysis).reduce((a, b) => brandAnalysis[a] > brandAnalysis[b] ? a : b, '')
+  const topBrand = Object.keys(brandAnalysis || {}).reduce((a, b) => brandAnalysis[a] > brandAnalysis[b] ? a : b, '')
   if (topBrand) {
     insights.push(`🏆 **Marca líder**: ${topBrand} con ${brandAnalysis[topBrand]} ventas`)
   }
   
   // Modelo más vendido
-  const topModel = Object.keys(modelAnalysis).reduce((a, b) => modelAnalysis[a] > modelAnalysis[b] ? a : b, '')
+  const topModel = Object.keys(modelAnalysis || {}).reduce((a, b) => modelAnalysis[a] > modelAnalysis[b] ? a : b, '')
   if (topModel) {
     insights.push(`🚗 **Modelo estrella**: ${topModel} con ${modelAnalysis[topModel]} ventas`)
+  }
+  
+  // Color más vendido
+  if (colorAnalysis && Object.keys(colorAnalysis).length > 0) {
+    const topColor = Object.keys(colorAnalysis).reduce((a, b) => colorAnalysis[a] > colorAnalysis[b] ? a : b, '')
+    if (topColor && topColor !== 'Sin especificar') {
+      insights.push(`🎨 **Color que más se vende**: ${topColor} con ${colorAnalysis[topColor]} ventas`)
+    }
   }
   
   return insights

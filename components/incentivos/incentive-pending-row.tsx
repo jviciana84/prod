@@ -141,39 +141,44 @@ export function IncentivePendingRow({ incentivo, onUpdate, index, isAdmin, selec
         data-selected={selectedRowId === incentivo.id.toString()}
         onClick={handleRowClick}
       >
-        <TableCell className="py-3 px-4 text-left">
-          <div className="flex items-center gap-2">
-            <div className="p-1 rounded-md bg-orange-500/10 group-hover:bg-orange-500/20 transition-colors">
-              <Calendar className="h-3 w-3 text-orange-500" />
-            </div>
-            <span className="text-sm font-medium text-foreground/80">{formatDate(incentivo.fecha_entrega)}</span>
+        <TableCell className="py-2 px-2 text-left">
+          <div className="flex items-center gap-1">
+            <Calendar className="h-3 w-3 text-orange-500 shrink-0" />
+            <span className="text-xs font-medium text-foreground/80">{formatDate(incentivo.fecha_entrega)}</span>
           </div>
         </TableCell>
-        <TableCell className="py-3 px-4 font-medium text-left">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-md bg-primary/10 group-hover:bg-primary/20 transition-colors">
-              <Car className="h-3.5 w-3.5 text-primary" />
-            </div>
-            <span className="text-sm font-semibold text-foreground">{incentivo.matricula}</span>
+        <TableCell className="py-2 px-2 font-medium text-left">
+          <div className="flex items-center gap-1">
+            <Car className="h-3.5 w-3.5 text-primary shrink-0" />
+            <span className="text-xs font-semibold text-foreground">{incentivo.matricula}</span>
           </div>
         </TableCell>
-        <TableCell className="py-3 px-4 text-left">
-          <div className="flex items-center gap-2">
-            <div className="p-1 rounded-md bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors">
-              <Tag className="h-3 w-3 text-blue-500" />
-            </div>
-            <span className="text-sm font-medium text-foreground/80">{incentivo.or || "-"}</span>
+        <TableCell className="py-2 px-2 text-left">
+          <div className="flex items-center gap-1">
+            <Tag className="h-3 w-3 text-blue-500 shrink-0" />
+            <span className="text-xs font-medium text-foreground/80">{incentivo.or || "-"}</span>
           </div>
         </TableCell>
-        <TableCell className="py-3 px-4 text-left">
-          <div className="flex items-center gap-2">
-            <div className="p-1 rounded-md bg-green-500/10 group-hover:bg-green-500/20 transition-colors">
-              <Tag className="h-3 w-3 text-green-500" />
-            </div>
-            <span className="text-sm font-semibold text-foreground">{incentivo.asesor}</span>
+        <TableCell className="py-2 px-2 text-left">
+          <div className="flex items-center gap-1">
+            <Tag className="h-3 w-3 text-green-500 shrink-0" />
+            <span className="text-xs font-semibold text-foreground">{incentivo.asesor}</span>
           </div>
         </TableCell>
-        <TableCell className="py-3 px-4 text-left">
+        <TableCell className="py-2 px-2 text-center">
+          {incentivo.financiado === true ? (
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200 border-0">
+              FINANCIADO
+            </Badge>
+          ) : incentivo.financiado === false ? (
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200 border-0">
+              CONTADO
+            </Badge>
+          ) : (
+            <span className="text-xs text-muted-foreground">—</span>
+          )}
+        </TableCell>
+        <TableCell className="py-2 px-2 text-left">
           {isAdmin ? (
             incentivo.garantia === 0 ? (
               <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-200 transition-colors border-green-200">
@@ -189,16 +194,16 @@ export function IncentivePendingRow({ incentivo, onUpdate, index, isAdmin, selec
                 }}
                 onBlur={(e) => handleSaveField("garantia", e.target.value === "" ? null : Number(e.target.value))}
                 placeholder="0.00"
-                className="w-24 h-8 text-xs text-center border-input focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 bg-background hover:bg-muted/50"
+                className="w-20 h-7 text-xs text-center border-input focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 bg-background hover:bg-muted/50"
               />
             )
           ) : (
-            <span className="text-sm font-semibold text-foreground">{formatGarantia(incentivo.garantia)}</span>
+            <span className="text-xs font-semibold text-foreground">{formatGarantia(incentivo.garantia)}</span>
           )}
         </TableCell>
-        <TableCell className="py-3 px-4 text-left relative">
+        <TableCell className="py-2 px-2 text-left relative">
           {isAdmin ? (
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
               <Input
                 type="number"
                 value={noGastos360 ? "0" : gastos360}
@@ -213,7 +218,7 @@ export function IncentivePendingRow({ incentivo, onUpdate, index, isAdmin, selec
                     handleSaveField("gastos_360", e.target.value === "" ? null : Number(e.target.value))
                   }
                 }}
-                className="w-24 h-8 text-xs text-center border-input focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 bg-background hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-20 h-7 text-xs text-center border-input focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 bg-background hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed"
                 placeholder="0.00"
                 disabled={noGastos360}
               />
@@ -227,14 +232,14 @@ export function IncentivePendingRow({ incentivo, onUpdate, index, isAdmin, selec
                 />
                 <label 
                   htmlFor={`no-gastos-360-${incentivo.id}`}
-                  className="text-xs text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors font-medium"
+                  className="text-[10px] text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors font-medium whitespace-nowrap"
                 >
                   Sin gastos
                 </label>
               </div>
             </div>
           ) : (
-            <span className="text-sm font-semibold text-foreground">
+            <span className="text-xs font-semibold text-foreground">
               {incentivo.gastos_360 === 0 ? "Sin gastos" : formatCurrency(incentivo.gastos_360)}
             </span>
           )}

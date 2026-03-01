@@ -182,8 +182,8 @@ export default function IncentivosPageClient({
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6">
-        <Card className="lg:w-[70%] rounded-xl border shadow-sm bg-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-6 px-8 pt-8">
+        <Card className="lg:w-[80%] rounded-xl border shadow-sm bg-card">
+          <CardHeader className="flex flex-row items-center justify-between pb-4 px-6 pt-6">
             <div className="flex flex-col gap-1">
               <CardTitle className="flex items-center gap-3 text-xl font-semibold text-foreground">
                 <Calculator className="h-6 w-6 text-orange-500" />
@@ -215,56 +215,47 @@ export default function IncentivosPageClient({
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="px-8 pb-8">
-            <div className="rounded-lg border bg-background shadow-sm">
+          <CardContent className="px-6 pb-6">
+            <div className="rounded-lg border bg-background shadow-sm overflow-x-auto">
               <Table>
                 <TableHeader className="bg-gradient-to-r from-muted/50 to-muted/30">
                   <TableRow className="hover:bg-transparent border-b border-border/50">
-                    <TableHead className="py-4 px-4 text-sm font-semibold text-muted-foreground uppercase tracking-wide text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="p-1 rounded-md bg-orange-500/10">
-                          <Calendar className="h-3 w-3 text-orange-500" />
-                        </div>
+                    <TableHead className="py-2 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide text-center whitespace-nowrap">
+                      <div className="flex items-center justify-center gap-1">
+                        <Calendar className="h-3 w-3 text-orange-500 shrink-0" />
                         ENTREGA
                       </div>
                     </TableHead>
-                    <TableHead className="py-4 px-4 text-sm font-semibold text-muted-foreground uppercase tracking-wide text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="p-1.5 rounded-md bg-primary/10">
-                          <Car className="h-3.5 w-3.5 text-primary" />
-                        </div>
+                    <TableHead className="py-2 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide text-center whitespace-nowrap">
+                      <div className="flex items-center justify-center gap-1">
+                        <Car className="h-3.5 w-3.5 text-primary shrink-0" />
                         MATRÍCULA
                       </div>
                     </TableHead>
-                    <TableHead className="py-4 px-4 text-sm font-semibold text-muted-foreground uppercase tracking-wide text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="p-1 rounded-md bg-blue-500/10">
-                          <Tag className="h-3 w-3 text-blue-500" />
-                        </div>
+                    <TableHead className="py-2 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide text-center whitespace-nowrap">
+                      <div className="flex items-center justify-center gap-1">
+                        <Tag className="h-3 w-3 text-blue-500 shrink-0" />
                         OR
                       </div>
                     </TableHead>
-                    <TableHead className="py-4 px-4 text-sm font-semibold text-muted-foreground uppercase tracking-wide text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="p-1 rounded-md bg-green-500/10">
-                          <Tag className="h-3 w-3 text-green-500" />
-                        </div>
+                    <TableHead className="py-2 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide text-center whitespace-nowrap">
+                      <div className="flex items-center justify-center gap-1">
+                        <Tag className="h-3 w-3 text-green-500 shrink-0" />
                         ASESOR
                       </div>
                     </TableHead>
-                    <TableHead className="py-4 px-4 text-sm font-semibold text-muted-foreground uppercase tracking-wide text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="p-1 rounded-md bg-yellow-500/10">
-                          <Euro className="h-3 w-3 text-yellow-500" />
-                        </div>
+                    <TableHead className="py-2 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide text-center whitespace-nowrap">
+                      PAGO
+                    </TableHead>
+                    <TableHead className="py-2 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide text-center whitespace-nowrap">
+                      <div className="flex items-center justify-center gap-1">
+                        <Euro className="h-3 w-3 text-yellow-500 shrink-0" />
                         GARANTÍA
                       </div>
                     </TableHead>
-                    <TableHead className="py-4 px-4 text-sm font-semibold text-muted-foreground uppercase tracking-wide text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="p-1 rounded-md bg-purple-500/10">
-                          <Euro className="h-3 w-3 text-purple-500" />
-                        </div>
+                    <TableHead className="py-2 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide text-center whitespace-nowrap">
+                      <div className="flex items-center justify-center gap-1">
+                        <Euro className="h-3 w-3 text-purple-500 shrink-0" />
                         GASTOS 360º
                       </div>
                     </TableHead>
@@ -273,7 +264,7 @@ export default function IncentivosPageClient({
                 <TableBody>
                   {loadingPendingCard ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-12">
+                      <TableCell colSpan={7} className="text-center py-10">
                         <div className="flex justify-center items-center text-muted-foreground">
                           <BMWMSpinner size={24} className="mr-2" />
                           <span>Cargando incentivos pendientes...</span>
@@ -282,7 +273,7 @@ export default function IncentivosPageClient({
                     </TableRow>
                   ) : pendingIncentivesForCard.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-12">
+                      <TableCell colSpan={7} className="text-center py-10">
                         <div className="flex flex-col items-center justify-center text-muted-foreground">
                           <CheckCircle className="h-12 w-12 mb-3 text-green-500" />
                           <p className="text-base font-medium">No hay incentivos pendientes de costes.</p>

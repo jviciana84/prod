@@ -1,6 +1,30 @@
 # Preguntas de prueba para Edelweiss
 
-Copia y pega estas preguntas en el chat de Edelweiss para probar ventas, entregas y otras funciones.
+## Ejecutar desde terminal (recomendado)
+
+Con el servidor en marcha (`npm run dev`), puedes lanzar las preguntas directamente contra la API:
+
+```bash
+node scripts/test-edelweiss-questions.js
+```
+
+Verás cada pregunta y la respuesta de Edelweiss en la terminal. Para ejecutar solo las N primeras preguntas:
+
+```bash
+node scripts/test-edelweiss-questions.js 3
+```
+
+Si el servidor no está en `localhost:3000`:
+
+```bash
+EDELWEISS_TEST_URL=http://localhost:3001 node scripts/test-edelweiss-questions.js
+```
+
+---
+
+## Copiar y pegar en el chat
+
+Si prefieres probar en la web, copia y pega estas preguntas en el chat de Edelweiss.
 
 ---
 
@@ -10,6 +34,8 @@ Copia y pega estas preguntas en el chat de Edelweiss para probar ventas, entrega
 - Cuántos BMW hemos vendido la semana pasada
 - Ventas del mes
 - Dime las ventas de hoy
+- ¿Qué color es el que más se vende?
+- ¿Qué modelo se vende más?
 
 ---
 
