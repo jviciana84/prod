@@ -26,6 +26,7 @@ import {
   Newspaper,
   Map,
   TrendingUp,
+  Upload,
 } from "lucide-react"
 import { createClientComponentClient } from "@/lib/supabase/client"
 import { Badge } from "@/components/ui/badge"
@@ -37,6 +38,7 @@ import { getUserPreferences } from "@/lib/user-preferences"
 import type { PageInfo } from "@/types/user-preferences"
 import { clearCorruptedSession } from "@/utils/fix-auth"
 import { useChat } from "@/contexts/chat-context"
+import { usePdfUploadModal } from "@/contexts/pdf-upload-modal-context"
 import { NewsDropdown } from "./news-dropdown"
 
 interface DashboardHeaderProps {
@@ -89,6 +91,7 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
   const [isNewsDropdownOpen, setIsNewsDropdownOpen] = useState(false)
   const newsButtonRef = useRef<HTMLButtonElement>(null)
   const { openChat } = useChat()
+  const { openModal: openPdfUploadModal } = usePdfUploadModal()
 
   // Obtener el nombre para mostrar (priorizar perfil de la base de datos, luego metadatos, luego email)
   const displayName = userProfile?.full_name || user.user_metadata.full_name || user.email
@@ -774,6 +777,18 @@ export default function DashboardHeader({ user, roles }: DashboardHeaderProps) {
               </div>
             )}
           </div>
+
+          {/* Registrar pedido - abre modal de subir PDF */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative hover:bg-accent"
+            onClick={openPdfUploadModal}
+            title="Registrar pedido"
+          >
+            <Upload className="h-5 w-5" />
+          </Button>
+
           <ThemeToggle />
           <div className="relative ml-2">
             <Button

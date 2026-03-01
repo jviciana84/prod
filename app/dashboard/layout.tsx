@@ -15,6 +15,7 @@ import { GlobalChat } from "@/components/global-chat"
 import { NewsToastContainer } from "@/components/noticias/news-toast"
 import { ForcedUpdatePopup } from "@/components/forced-update-popup"
 import { DashboardBackground } from "@/components/dashboard/dashboard-background"
+import { PdfUploadModalProvider } from "@/contexts/pdf-upload-modal-context"
 import "@/styles/dashboard-layout.css"
 
 export default async function DashboardLayout({
@@ -45,6 +46,7 @@ export default async function DashboardLayout({
   return (
     <ChatProvider>
       <SidebarProvider>
+        <PdfUploadModalProvider>
         <div className="dashboard-layout">
           {/* Fondo gradiente premium CVO */}
           <DashboardBackground />
@@ -88,6 +90,7 @@ export default async function DashboardLayout({
           {/* Popup de actualización forzada */}
           <ForcedUpdatePopup />
         </div>
+        </PdfUploadModalProvider>
       </SidebarProvider>
     </ChatProvider>
   )
