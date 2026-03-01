@@ -86,8 +86,14 @@ export default function UserManagement() {
   const [isForcingUpdate, setIsForcingUpdate] = useState(false)
   const [isDeactivatingUpdate, setIsDeactivatingUpdate] = useState(false)
 
+  // Usuarios que están en Auth pero no tienen perfil (ej. Ivan)
+  const [missingProfiles, setMissingProfiles] = useState<{ id: string; email: string; full_name: string; created_at?: string }[]>([])
+  const [creatingProfileId, setCreatingProfileId] = useState<string | null>(null)
+  const [deletingProfileId, setDeletingProfileId] = useState<string | null>(null)
+
   useEffect(() => {
     fetchUsers()
+    fetchMissingProfiles()
     fetchRandomAvatar()
   }, [])
 
@@ -170,6 +176,46 @@ export default function UserManagement() {
     }
   }
 
+  async function fetchMissingProfiles() {
+    try {
+      const res = await fetch("/api/admin/users/missing-profiles", { cache: "no-store" })
+      if (!res.ok) return
+      const data = await res.json()
+      setMissingProfiles(Array.isArray(data) ? data : [])
+    } catch {
+      setMissingProfiles([])
+    }
+  }
+
+  async function handleCreateProfile(userId: string) {
+    setCreatingProfileId(userId)
+    try {
+      const res = await fetch("/api/admin/users/create-profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(data.error || data.message || "Error al crear perfil")
+      }
+      toast({
+        title: "Perfil creado",
+        description: "El usuario ya aparece en la lista como el resto.",
+      })
+      await fetchUsers()
+      await fetchMissingProfiles()
+    } catch (error: any) {
+      toast({
+        title: "Error al crear perfil",
+        description: error.message,
+        variant: "destructive",
+      })
+    } finally {
+      setCreatingProfileId(null)
+    }
+  }
+
   async function fetchRandomAvatar() {
     try {
       const response = await fetch("/api/admin/avatars/list")
@@ -190,6 +236,33 @@ export default function UserManagement() {
     } catch (error) {
       console.warn("⚠️ Error al cargar avatar aleatorio (continuando sin avatar):", error)
       // No fallar, simplemente continuar sin avatar
+    }
+  }
+
+  async function handleDeleteUserCompletely(userId: string, displayName: string) {
+    if (!confirm(`¿Eliminar por completo a "${displayName}"? Se borrará de Auth y no podrá volver a entrar.`)) return
+    setDeletingProfileId(userId)
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, { method: "DELETE" })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        const msg = data?.message || data?.error || "Error al eliminar"
+        console.error("DELETE usuario falló:", response.status, data)
+        throw new Error(msg)
+      }
+      toast({
+        title: "Usuario eliminado",
+        description: "Se ha eliminado por completo del sistema.",
+      })
+      await fetchMissingProfiles()
+    } catch (error: any) {
+      toast({
+        title: "Error al eliminar",
+        description: error.message,
+        variant: "destructive",
+      })
+    } finally {
+      setDeletingProfileId(null)
     }
   }
 
@@ -940,6 +1013,61 @@ export default function UserManagement() {
           </div>
         </CardHeader>
         <CardContent>
+          {missingProfiles.length > 0 && (
+            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/30">
+              <p className="mb-2 text-sm font-medium text-amber-800 dark:text-amber-200">
+                Usuarios sin perfil (están en Auth pero no aparecen en la lista)
+              </p>
+              <ul className="space-y-2">
+                {missingProfiles.map((m) => (
+                  <li
+                    key={m.id}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded border border-amber-300/50 bg-white px-3 py-2 dark:border-amber-700/50 dark:bg-amber-900/20"
+                  >
+                    <span className="text-sm">
+                      <strong>{m.full_name || m.email}</strong>
+                      {m.full_name && m.email && ` — ${m.email}`}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        disabled={creatingProfileId === m.id || deletingProfileId === m.id}
+                        onClick={() => handleCreateProfile(m.id)}
+                      >
+                        {creatingProfileId === m.id ? (
+                          <>
+                            <BMWMSpinner size={14} className="mr-1.5" />
+                            Creando...
+                          </>
+                        ) : (
+                          "Crear perfil"
+                        )}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        disabled={creatingProfileId === m.id || deletingProfileId === m.id}
+                        onClick={() => handleDeleteUserCompletely(m.id, m.full_name || m.email)}
+                      >
+                        {deletingProfileId === m.id ? (
+                          <>
+                            <BMWMSpinner size={14} className="mr-1.5" />
+                            Eliminando...
+                          </>
+                        ) : (
+                          <>
+                            <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                            Eliminar completo
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {loading ? (
             <div className="flex justify-center p-4">
               <BMWMSpinner size={32} />

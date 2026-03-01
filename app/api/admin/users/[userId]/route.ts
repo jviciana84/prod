@@ -9,8 +9,16 @@ const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, proces
   },
 })
 
-export async function PUT(request: Request, { params }: { params: { userId: string } }) {
+export async function PUT(
+  request: Request,
+  context: { params: Promise<{ userId: string }> | { userId: string } }
+) {
   try {
+    const resolved = await Promise.resolve(context.params)
+    const userId = typeof resolved === "object" && resolved !== null && "userId" in resolved ? resolved.userId : ""
+    if (!userId) {
+      return NextResponse.json({ message: "userId es requerido" }, { status: 400 })
+    }
     const body = await request.json()
     const { fullName, alias, phone, position, avatarUrl, roleId } = body
 
@@ -41,7 +49,7 @@ export async function PUT(request: Request, { params }: { params: { userId: stri
     console.log("📝 Datos que se van a actualizar en profiles:", updateData)
 
     // Actualizar la tabla profiles
-    const { error: profileError } = await supabaseAdmin.from("profiles").update(updateData).eq("id", params.userId)
+    const { error: profileError } = await supabaseAdmin.from("profiles").update(updateData).eq("id", userId)
 
     if (profileError) {
       console.error("Error updating profile:", profileError)
@@ -50,10 +58,10 @@ export async function PUT(request: Request, { params }: { params: { userId: stri
 
     // Si se proporcionó un roleId, actualizar también la tabla user_roles
     if (roleId) {
-      console.log("🔄 Actualizando tabla user_roles para usuario:", params.userId, "con roleId:", roleId)
+      console.log("🔄 Actualizando tabla user_roles para usuario:", userId, "con roleId:", roleId)
       
       // Primero eliminar todos los roles existentes del usuario
-      const { error: deleteError } = await supabaseAdmin.from("user_roles").delete().eq("user_id", params.userId)
+      const { error: deleteError } = await supabaseAdmin.from("user_roles").delete().eq("user_id", userId)
 
       if (deleteError) {
         console.error("Error al eliminar roles existentes:", deleteError)
@@ -62,7 +70,7 @@ export async function PUT(request: Request, { params }: { params: { userId: stri
 
       // Luego asignar el nuevo rol
       const { error: insertError } = await supabaseAdmin.from("user_roles").insert({
-        user_id: params.userId,
+        user_id: userId,
         role_id: roleId,
       })
 
@@ -81,41 +89,130 @@ export async function PUT(request: Request, { params }: { params: { userId: stri
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: { userId: string } }) {
+export async function DELETE(request: Request, context?: { params?: Promise<{ userId: string }> | { userId: string } }) {
   try {
-    console.log("🗑️ Eliminando usuario:", params.userId)
-
-    // PASO 1: Eliminar de la tabla user_roles
-    console.log("🔄 Eliminando roles del usuario...")
-    const { error: userRolesError } = await supabaseAdmin.from("user_roles").delete().eq("user_id", params.userId)
-
-    if (userRolesError) {
-      console.error("Error al eliminar roles del usuario:", userRolesError)
-      return NextResponse.json({ message: userRolesError.message }, { status: 500 })
-    }
-
-    // PASO 2: Eliminar de la tabla profiles
-    console.log("🔄 Eliminando perfil del usuario...")
-    const { error: profileError } = await supabaseAdmin.from("profiles").delete().eq("id", params.userId)
-
-    if (profileError) {
-      console.error("Error al eliminar perfil:", profileError)
-      return NextResponse.json({ message: profileError.message }, { status: 500 })
-    }
-
-    // PASO 3: Eliminar de auth.users
-    console.log("🔄 Eliminando usuario de auth.users...")
-    const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(params.userId)
-
-    if (authError) {
-      console.error("Error al eliminar usuario de auth:", authError)
-      return NextResponse.json({ message: authError.message }, { status: 500 })
-    }
-
-    console.log("✅ Usuario eliminado exitosamente")
-    return NextResponse.json({ message: "User deleted successfully" })
-  } catch (error: any) {
-    console.error("Unexpected error:", error)
-    return NextResponse.json({ message: error.message || "Internal Server Error" }, { status: 500 })
+    return await handleDelete(request, context)
+  } catch (e: any) {
+    const safeMessage = e?.message ?? (e && String(e)) ?? "Error inesperado en DELETE"
+    return NextResponse.json({ message: safeMessage }, { status: 500 })
   }
+}
+
+async function handleDelete(request: Request, context?: { params?: Promise<{ userId: string }> | { userId: string } }) {
+  // Obtener userId desde la URL (más fiable que context.params en Next 15)
+  let userId: string | null = null
+  try {
+    const pathname = new URL(request.url).pathname
+    const parts = pathname.split("/").filter(Boolean)
+    const maybeId = parts[parts.length - 1]
+    if (maybeId && /^[0-9a-f-]{36}$/i.test(maybeId)) userId = maybeId
+  } catch {
+    // ignore
+  }
+  if (!userId && context?.params != null) {
+    const resolved = await Promise.resolve(context.params)
+    userId = typeof resolved === "object" && resolved !== null && "userId" in resolved ? resolved.userId : null
+  }
+  if (!userId) {
+    return NextResponse.json({ message: "userId es requerido" }, { status: 400 })
+  }
+  console.log("🗑️ Eliminando usuario:", userId)
+
+    // Limpiar tablas que referencian al usuario (best-effort: si falla una, seguimos con el resto)
+    const cleanupSteps: { name: string; run: () => Promise<{ error: unknown } | null> } = [
+      {
+        name: "user_roles",
+        run: async () => {
+          const { error } = await supabaseAdmin.from("user_roles").delete().eq("user_id", userId)
+          return error ? { error } : null
+        },
+      },
+      {
+        name: "user_asesor_mapping",
+        run: async () => {
+          const { error } = await supabaseAdmin.from("user_asesor_mapping").delete().eq("user_id", userId)
+          return error ? { error } : null
+        },
+      },
+      {
+        name: "user_preferences",
+        run: async () => {
+          const { error } = await supabaseAdmin.from("user_preferences").delete().eq("user_id", userId)
+          return error ? { error } : null
+        },
+      },
+      {
+        name: "user_forced_updates",
+        run: async () => {
+          const { error } = await supabaseAdmin.from("user_forced_updates").delete().eq("user_id", userId)
+          return error ? { error } : null
+        },
+      },
+      {
+        name: "ai_conversations",
+        run: async () => {
+          try {
+            const { data: sessions } = await supabaseAdmin.from("ai_sessions").select("id").eq("user_id", userId)
+            const sessionIds = (sessions || []).map((s) => s.id)
+            if (sessionIds.length === 0) return null
+            const { error } = await supabaseAdmin.from("ai_conversations").delete().in("session_id", sessionIds)
+            return error ? { error } : null
+          } catch {
+            return null
+          }
+        },
+      },
+      {
+        name: "ai_sessions",
+        run: async () => {
+          const { error } = await supabaseAdmin.from("ai_sessions").delete().eq("user_id", userId)
+          return error ? { error } : null
+        },
+      },
+    ]
+
+    for (const step of cleanupSteps) {
+      try {
+        const result = await step.run()
+        if (result?.error) {
+          console.warn(`⚠️ Limpieza ${step.name} (continuando):`, (result.error as { message?: string })?.message)
+        }
+      } catch (e) {
+        console.warn(`⚠️ Limpieza ${step.name} ignorada:`, e)
+      }
+    }
+
+    // 1) Eliminar de Auth PRIMERO (así el usuario ya no puede entrar aunque falle algo después)
+    let authError: { message?: string } | null = null
+    try {
+      const result = await supabaseAdmin.auth.admin.deleteUser(userId)
+      authError = result.error
+    } catch (authThrow: any) {
+      console.error("auth.admin.deleteUser lanzó excepción:", authThrow)
+      return NextResponse.json(
+        { message: authThrow?.message || "Error al eliminar usuario de Auth" },
+        { status: 500 }
+      )
+    }
+    if (authError) {
+      const msg = authError.message || ""
+      if (msg.toLowerCase().includes("not found") || msg.toLowerCase().includes("user not found")) {
+        console.log("Usuario ya no existía en Auth, eliminación considerada correcta")
+      } else {
+        console.error("Error al eliminar usuario de auth:", authError)
+        return NextResponse.json(
+          { message: msg || "No se pudo eliminar el usuario de la autenticación" },
+          { status: 500 }
+        )
+      }
+    }
+
+    // 2) Eliminar perfil (best-effort: ya no hay usuario en Auth)
+    const { error: profileError } = await supabaseAdmin.from("profiles").delete().eq("id", userId)
+    if (profileError) {
+      console.warn("⚠️ Borrado de perfil (ignorado):", profileError.message)
+    }
+
+  console.log("✅ Usuario eliminado exitosamente")
+  return NextResponse.json({ message: "User deleted successfully" })
 }
