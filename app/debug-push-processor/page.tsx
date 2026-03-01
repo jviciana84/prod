@@ -98,7 +98,7 @@ export default function DebugPushProcessor() {
             <div className="space-y-2 text-sm">
               <p><strong>Procesador automático:</strong> Cada 30 segundos</p>
               <p><strong>API endpoint:</strong> /api/notifications/process-pending-push</p>
-              <p><strong>Campo de búsqueda:</strong> data->needsPushNotification = true</p>
+              <p><strong>Campo de búsqueda:</strong> {'data->needsPushNotification = true'}</p>
               <p><strong>Límite por ejecución:</strong> 10 notificaciones</p>
             </div>
           </CardContent>
