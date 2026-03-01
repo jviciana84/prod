@@ -333,7 +333,7 @@ export default function TransportDashboard({
                   title="Estado del scraper"
                   onClick={() => setIsConsoleOpen(true)}
                 >
-                  <span className="text-green-500">>_</span>
+                  <span className="text-green-500">{'>_'}</span>
                 </Button>
                 <span>Último scraping DUC:</span>
                 <span className="font-mono text-xs">
