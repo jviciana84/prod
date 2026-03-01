@@ -174,7 +174,7 @@ export default function ScraperConsole({ isOpen, onClose }: ScraperConsoleProps)
             </div>
             <div className="mt-2 pt-2 border-t border-green-500/30">
               <div className="flex items-center gap-1 text-green-400">
-                <span className="text-green-500">>_</span>
+                <span className="text-green-500">{'>_'}</span>
                 <span className="text-gray-400 text-xs">Scraper activo - Esperando próximos logs</span>
                 <div className="flex items-center gap-1 ml-1">
                   <span 
