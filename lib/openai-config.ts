@@ -98,11 +98,26 @@ export async function generateEdelweissResponse(
   isEmployee: boolean = false
 ) {
   try {
-    console.log('🔧 OpenAI - Iniciando generación de respuesta...')
+    console.log('🔧 Edelweiss - Iniciando generación de respuesta...')
     console.log('📝 Mensaje del usuario:', userMessage)
-    console.log('🔑 API Key disponible:', !!process.env.OPENAI_API_KEY)
+    console.log('🔑 Gemini API Key:', !!process.env.GEMINI_API_KEY, '| OpenAI API Key:', !!process.env.OPENAI_API_KEY)
     console.log('📊 ContextData recibido:', contextData ? 'Sí' : 'No')
-    
+
+    // Proveedor principal: Gemini (si está configurado); backup: OpenAI
+    if (process.env.GEMINI_API_KEY) {
+      try {
+        const { generateEdelweissResponseGemini } = await import('@/lib/gemini-config')
+        return await generateEdelweissResponseGemini(
+          userMessage,
+          conversationHistory,
+          contextData ?? null,
+          executeEdelweissTool
+        )
+      } catch (geminiError) {
+        console.warn('⚠️ Edelweiss: Gemini fallback a OpenAI', geminiError)
+      }
+    }
+
     // Construir el mensaje del usuario con contexto si está disponible
     let userContent = userMessage
     if (contextData) {
@@ -173,7 +188,7 @@ export async function generateEdelweissResponse(
       },
       {
         name: 'get_sales_data',
-        description: 'Obtener datos de ventas',
+        description: 'Obtener datos de ventas (BMW, MINI, Motorrad). Para cuántos hemos vendido, ventas de la semana/mes.',
         parameters: {
           type: 'object',
           properties: {
@@ -185,6 +200,25 @@ export async function generateEdelweissResponse(
             limit: {
               type: 'number',
               description: 'Número máximo de resultados'
+            }
+          },
+          required: ['period']
+        }
+      },
+      {
+        name: 'get_deliveries_data',
+        description: 'Obtener entregas realizadas (por fecha de entrega). USA cuando pregunten "cuántos coches hemos entregado", "entregas de la semana". Devuelve matrícula, modelo, cliente, asesor, fecha_entrega.',
+        parameters: {
+          type: 'object',
+          properties: {
+            period: {
+              type: 'string',
+              enum: ['today', 'week', 'month', 'year'],
+              description: 'Período para filtrar por fecha_entrega'
+            },
+            limit: {
+              type: 'number',
+              description: 'Número máximo de resultados (default: 50)'
             }
           },
           required: ['period']
@@ -314,7 +348,7 @@ export async function generateEdelweissResponse(
       presence_penalty: 0.1, // Fomenta diversidad en el contenido
       stream: false, // Respuesta completa de una vez
       tools: tools,
-      tool_choice: { type: 'function', function: { name: 'web_search' } },
+      tool_choice: 'auto',
     })
 
     const message = completion.choices[0]?.message
@@ -328,43 +362,9 @@ export async function generateEdelweissResponse(
     if (message?.tool_calls && message.tool_calls.length > 0) {
       const toolCall = message.tool_calls[0] // Tomamos la primera tool call
       console.log('🔧 IA quiere llamar función:', toolCall.function.name)
-      
       const functionName = toolCall.function.name
       const functionArgs = JSON.parse(toolCall.function.arguments || '{}')
-      
-      let functionResult = null
-      
-      // Ejecutar la función correspondiente
-      switch (functionName) {
-        case 'search_vehicles':
-          functionResult = await searchVehiclesFunction(functionArgs.query, functionArgs.limit || 20)
-          break
-        case 'search_contacts':
-          functionResult = await searchContactsFunction(functionArgs.query, functionArgs.type || 'all')
-          break
-        case 'get_sales_data':
-          functionResult = await getSalesDataFunction(functionArgs.period, functionArgs.limit || 20)
-          break
-        case 'search_combined':
-          functionResult = await searchCombinedFunction(functionArgs.query, functionArgs.location)
-          break
-        case 'analyze_sales_performance':
-          functionResult = await analyzeSalesPerformanceFunction(functionArgs.period, functionArgs.compare_with)
-          break
-        case 'calculate_metrics':
-          functionResult = await calculateMetricsFunction(functionArgs.data_type, functionArgs.metrics, functionArgs.period)
-          break
-        case 'optimized_search':
-          const criteria = parseIntelligentQuery(functionArgs.query)
-          functionResult = await optimizedComplexSearch(functionArgs.query, criteria)
-          break
-        case 'web_search':
-          functionResult = await webSearchFunction(functionArgs.query, functionArgs.max_results || 5)
-          break
-        default:
-          functionResult = { error: 'Función no encontrada' }
-      }
-      
+      const functionResult = await executeEdelweissTool(functionName, functionArgs)
       // Agregar el resultado de la función al contexto (nueva API con tool)
       const toolMessage = {
         role: 'tool' as const,
@@ -1083,6 +1083,66 @@ async function getSalesDataFunction(period: string, limit: number = 20) {
   }
 }
 
+async function getDeliveriesFunction(period: string, limit: number = 50) {
+  try {
+    const cacheKey = intelligentCache.generateKey('get_deliveries_data', { period, limit })
+    const cachedResult = intelligentCache.get(cacheKey)
+    if (cachedResult) {
+      console.log('🚀 Cache hit para entregas')
+      return cachedResult
+    }
+
+    const { createClient } = await import('@/utils/supabase/server')
+    const supabase = await createClient()
+
+    const now = new Date()
+    let dateFilter = ''
+
+    switch (period) {
+      case 'today':
+        dateFilter = now.toISOString().split('T')[0]
+        break
+      case 'week':
+        dateFilter = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        break
+      case 'month':
+        dateFilter = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        break
+      case 'year':
+        dateFilter = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        break
+      default:
+        dateFilter = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    }
+
+    const { data: deliveries, error } = await supabase
+      .from('entregas')
+      .select('*')
+      .gte('fecha_entrega', dateFilter)
+      .order('fecha_entrega', { ascending: false })
+      .limit(limit)
+
+    if (error) {
+      console.error('Error obteniendo entregas:', error)
+      return { error: 'Error obteniendo datos de entregas' }
+    }
+
+    const result = {
+      success: true,
+      period,
+      count: deliveries?.length || 0,
+      deliveries: deliveries || [],
+      message: `Entregas desde ${dateFilter}. Incluye matrícula y cliente para cada una.`,
+    }
+
+    intelligentCache.set(cacheKey, result, 2 * 60 * 1000)
+    return result
+  } catch (error) {
+    console.error('Error en getDeliveriesFunction:', error)
+    return { error: 'Error interno obteniendo entregas' }
+  }
+}
+
 async function searchCombinedFunction(query: string, location?: string) {
   try {
     const { createClient } = await import('@/utils/supabase/server')
@@ -1497,8 +1557,8 @@ function analyzeTrend(records: any[], dateField: string) {
   }
 }
 
-// Función para analizar el contexto de la conversación
-function analyzeConversationContext(conversationHistory: Array<{role: 'user' | 'assistant', content: string}>): string {
+// Función para analizar el contexto de la conversación (exportada para uso en Gemini)
+export function analyzeConversationContext(conversationHistory: Array<{role: 'user' | 'assistant', content: string}>): string {
   if (!conversationHistory || conversationHistory.length === 0) {
     return ''
   }
@@ -1939,6 +1999,47 @@ function generateEnhancedWebResults(query: string) {
     },
     sources: ['Búsqueda web general'],
     note: 'Información basada en conocimiento general actualizado'
+  }
+}
+
+/**
+ * Ejecuta una tool de Edelweiss por nombre y argumentos.
+ * Usado por OpenAI (inline) y por Gemini (como callback).
+ */
+export async function executeEdelweissTool(
+  name: string,
+  args: Record<string, unknown>
+): Promise<unknown> {
+  switch (name) {
+    case 'search_vehicles':
+      return searchVehiclesFunction(String(args.query ?? ''), Number(args.limit) || 20)
+    case 'search_contacts':
+      return searchContactsFunction(String(args.query ?? ''), String(args.type || 'all'))
+    case 'get_sales_data':
+      return getSalesDataFunction(String(args.period), Number(args.limit) || 20)
+    case 'get_deliveries_data':
+      return getDeliveriesFunction(String(args.period), Number(args.limit) || 50)
+    case 'search_combined':
+      return searchCombinedFunction(String(args.query ?? ''), args.location as string | undefined)
+    case 'analyze_sales_performance':
+      return analyzeSalesPerformanceFunction(
+        String(args.period),
+        args.compare_with as string | undefined
+      )
+    case 'calculate_metrics':
+      return calculateMetricsFunction(
+        String(args.data_type),
+        Array.isArray(args.metrics) ? args.metrics as string[] : [],
+        args.period as string | undefined
+      )
+    case 'optimized_search': {
+      const criteria = parseIntelligentQuery(String(args.query ?? ''))
+      return optimizedComplexSearch(String(args.query ?? ''), criteria)
+    }
+    case 'web_search':
+      return webSearchFunction(String(args.query ?? ''), Number(args.max_results) || 5)
+    default:
+      return { error: 'Función no encontrada' }
   }
 }
 

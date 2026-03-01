@@ -7,13 +7,13 @@ alwaysApply: true
 
 Cuando el usuario diga **"haz un push"**, **"sube a git"**, **"push"** o similar:
 
-1. **Repositorio**: Usar el proyecto en `c:\Users\Usuario\Downloads\cursor` (es el que tiene el repo Git con `origin`).
+1. **Repositorio**: Para **C18** usar solo `C:\Users\Usuario\Downloads\C18` (proyecto portfolio; no confundir con cursor ni con Documents\C18).
 2. **Pasos**:
    - `git add .` (o listar archivos concretos si el usuario lo indica)
    - `git status` para confirmar
    - `git commit -m "mensaje"` — usar un mensaje descriptivo breve o preguntar si quiere uno concreto
    - `git push origin main`
-3. **Permisos**: Pedir `network` para que `git push` funcione.
-4. Si el hook `pre-commit` falla (p. ej. `update-version.js`), informar y ofrecer ejecutar el script manualmente o hacer commit con `--no-verify` si es necesario.
+3. **Permisos**: Pedir `full_network` para `git push`.
+4. Si C18 aún no es un repo Git, indicar que hay que hacer `git init` y configurar el remote (URL del repo del que el dominio hace deploy).
 
-El dominio del usuario se actualiza desde este repositorio, así que el push desencadena el despliegue.
+El dominio del usuario se actualiza desde el repositorio C18.

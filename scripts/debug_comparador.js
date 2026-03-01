@@ -22,14 +22,37 @@ async function main() {
   console.log('🔍 Diagnóstico del Comparador de Precios\n')
 
   try {
-    // 1. Verificar duc_scraper (nuestros vehículos)
-    console.log('1️⃣ VERIFICANDO NUESTROS VEHÍCULOS (DUC_SCRAPER)...')
+    // 0. Ver qué hay realmente en duc_scraper (sin filtro Disponibilidad)
+    console.log('0️⃣ CONTENIDO REAL DE DUC_SCRAPER (sin filtro)...')
+    const { data: ducRaw, error: ducRawError, count: ducRawCount } = await supabase
+      .from('duc_scraper')
+      .select('"ID Anuncio", "Modelo", "Disponibilidad"', { count: 'exact', head: false })
+    if (ducRawError) {
+      console.error('   ❌ Error:', ducRawError.message)
+    } else {
+      const total = ducRaw?.length ?? 0
+      console.log(`   Filas devueltas: ${total}${ducRawCount != null ? ` (total en tabla: ${ducRawCount})` : ''}`)
+      if (ducRaw && ducRaw.length > 0) {
+        const byDisp = {}
+        ducRaw.forEach(r => {
+          const d = r['Disponibilidad'] ?? '(null)'
+          byDisp[d] = (byDisp[d] || 0) + 1
+        })
+        console.log('   Valores de "Disponibilidad":', byDisp)
+        console.log('   Ejemplos:', ducRaw.slice(0, 3).map(r => ({ Modelo: r['Modelo'], Disponibilidad: r['Disponibilidad'] })))
+      } else {
+        console.log('   ⚠️  La tabla duc_scraper está vacía')
+      }
+    }
+    console.log('\n')
+
+    // 1. Verificar duc_scraper (nuestros vehículos: DISPONIBLE, Disponible o null)
+    console.log('1️⃣ VERIFICANDO NUESTROS VEHÍCULOS (DUC_SCRAPER) [DISPONIBLE o null]...')
     const { data: ducData, error: ducError } = await supabase
       .from('duc_scraper')
       .select('"ID Anuncio", "Matrícula", "Modelo", "Fecha primera matriculación", "KM", "Precio", "Precio vehículo nuevo", "Disponibilidad"')
-      .eq('"Disponibilidad"', 'DISPONIBLE')
+      .or('"Disponibilidad".eq.DISPONIBLE,"Disponibilidad".eq.Disponible,"Disponibilidad".is.null')
       .not('"Modelo"', 'is', null)
-      .limit(10)
 
     // Función para parsear fechas en formato "DD / MM / YYYY"
     const parseSpanishDate = (fecha) => {
@@ -96,7 +119,6 @@ async function main() {
       .from('comparador_scraper')
       .select('id, source, modelo, año, km, precio, precio_nuevo_original, estado_anuncio')
       .in('estado_anuncio', ['activo', 'nuevo', 'precio_bajado', 'precio_subido'])
-      .limit(10)
 
     if (comparadorError) {
       console.error('   ❌ Error consultando comparador:', comparadorError.message)

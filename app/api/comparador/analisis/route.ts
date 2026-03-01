@@ -475,10 +475,11 @@ export async function GET(request: NextRequest) {
     const toleranciaAño = parseFloat(searchParams.get('toleranciaAño') || '2') // 🎯 CORREGIDO: ±2 años por defecto para mercado completo
     
     // Obtener vehículos de nuestro stock desde duc_scraper (DUC es nuestra fuente de verdad)
+    // Incluir DISPONIBLE, Disponible y null (el scrape actual deja Disponibilidad en null)
     let ducQuery = supabase
       .from('duc_scraper')
       .select('"ID Anuncio", "Matrícula", "Modelo", "Versión", "Fecha primera matriculación", "Fecha primera publicación", "KM", "Precio", "Precio vehículo nuevo", "Disponibilidad", "URL"')
-      .eq('"Disponibilidad"', 'DISPONIBLE')
+      .or('"Disponibilidad".eq.DISPONIBLE,"Disponibilidad".eq.Disponible,"Disponibilidad".is.null')
       .not('"Modelo"', 'is', null)
     
     const { data: stockData, error: stockError } = await ducQuery

@@ -21,5 +21,12 @@ VAPID_PRIVATE_KEY=your_vapid_private_key
 # Blob Storage (opcional)
 BLOB_READ_WRITE_TOKEN=your_blob_token
 
-# OpenAI Configuration (requerido para Edelweiss)
+# Edelweiss AI: Gemini (principal) y OpenAI (backup)
+# Si GEMINI_API_KEY está definida, se usa Gemini; si falla o no está, se usa OpenAI.
+# Al menos una debe estar configurada para que el chat Edelweiss funcione.
+GEMINI_API_KEY=tu-api-key-gemini-aqui
+# Modelo Gemini (opcional; por defecto: gemini-2.0-flash)
+# GEMINI_EDELWEISS_MODEL=gemini-2.0-flash
+
+# OpenAI Configuration (backup para Edelweiss si Gemini no está o falla)
 OPENAI_API_KEY=sk-tu-api-key-aqui 
