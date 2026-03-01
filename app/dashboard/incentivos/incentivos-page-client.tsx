@@ -30,9 +30,19 @@ export default function IncentivosPageClient({
   const [loadingPendingCard, setLoadingPendingCard] = useState(true)
   const [refreshingPendingCard, setRefreshingPendingCard] = useState(false)
 
+  // Por defecto: año en curso y mes anterior
+  const defaultYearMonth = (() => {
+    const now = new Date()
+    const y = now.getFullYear()
+    const m0 = now.getMonth()
+    const prevMonth = m0 === 0 ? 12 : m0
+    const year = m0 === 0 ? y - 1 : y
+    return { year: String(year), month: String(prevMonth) }
+  })()
+
   const [filterMode, setFilterMode] = useState<"pending" | "historical">("pending")
-  const [selectedYear, setSelectedYear] = useState<string | null>(null)
-  const [selectedMonth, setSelectedMonth] = useState<string | null>(null)
+  const [selectedYear, setSelectedYear] = useState<string | null>(defaultYearMonth.year)
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(defaultYearMonth.month)
   const [selectedAdvisor, setSelectedAdvisor] = useState<string | null>(null)
 
   // Estado para selección de filas
