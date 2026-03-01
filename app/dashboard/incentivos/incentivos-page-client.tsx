@@ -2,7 +2,7 @@
 
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import { CompactSearchWithModal } from "@/components/dashboard/compact-search-with-modal"
-import { Trophy, Settings, RefreshCw, CheckCircle, Car, Tag, Euro, Calculator, Calendar } from "lucide-react"
+import { Trophy, Settings, RefreshCw, CheckCircle, Car, Tag, Euro, Calculator, Calendar, CreditCard } from "lucide-react"
 import { BMWMSpinner } from "@/components/ui/bmw-m-spinner"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -255,7 +255,10 @@ export default function IncentivosPageClient({
                       </div>
                     </TableHead>
                     <TableHead className="py-2 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide text-center whitespace-nowrap">
-                      PAGO
+                      <div className="flex items-center justify-center gap-1">
+                        <CreditCard className="h-3 w-3 text-teal-500 shrink-0" />
+                        PAGO
+                      </div>
                     </TableHead>
                     <TableHead className="py-2 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide text-center whitespace-nowrap">
                       <div className="flex items-center justify-center gap-1">
