@@ -156,6 +156,12 @@ export default function MobileSidebar({ roles }: MobileSidebarProps) {
             isActive={pathname === "/dashboard/admin/blob-files"}
           />
           <SidebarItem
+            href="/dashboard/admin/cvo-scraper"
+            icon={<PackageOpen className="h-5 w-5" />}
+            title="CVO Scraper"
+            isActive={pathname === "/dashboard/admin/cvo-scraper"}
+          />
+          <SidebarItem
             href="/dashboard/admin/configuracion"
             icon={<Settings className="h-5 w-5" />}
             title="Configuración Sistema"

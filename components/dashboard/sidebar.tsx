@@ -176,6 +176,13 @@ export default function DashboardSidebar({ roles }: DashboardSidebarProps) {
               isExpanded={isExpanded}
             />
             <SidebarItem
+              href="/dashboard/admin/cvo-scraper"
+              icon={<PackageOpen className="h-5 w-5" />}
+              title="CVO Scraper"
+              isActive={pathname === "/dashboard/admin/cvo-scraper"}
+              isExpanded={isExpanded}
+            />
+            <SidebarItem
               href="/dashboard/admin/configuracion"
               icon={<Settings className="h-5 w-5" />}
               title="Configuración Sistema"
